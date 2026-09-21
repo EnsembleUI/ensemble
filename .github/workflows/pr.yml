@@ -33,3 +33,48 @@ jobs:
         run: |
           cd modules/auth
           flutter test
+
+  ensemble_test_runner:
+    name: Ensemble Test Runner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter SDK
+        uses: ./.github/actions/setup-flutter
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap
+        run: melos bootstrap
+
+      - name: Analyze package
+        working-directory: tools/ensemble_test_runner
+        run: flutter analyze --no-pub
+
+      - name: Check schema drift
+        working-directory: tools/ensemble_test_runner
+        run: |
+          dart run tool/generate_schema.dart
+          git diff --exit-code -- assets/schema/
+
+      - name: Package tests
+        working-directory: tools/ensemble_test_runner
+        run: flutter test
+
+      - name: Example widget suite
+        working-directory: tools/ensemble_test_runner/example
+        run: |
+          flutter pub get
+          dart run ensemble_test_runner:ensemble_test --mode=widget
+
+      - name: Host example widget suite
+        working-directory: tools/ensemble_test_runner/example_host
+        run: |
+          flutter pub get
+          dart run ensemble_test_runner:ensemble_test \
+            --tests-dir=tests \
+            --test-entry=test/application_yaml_tests.dart \
+            --mode=widget

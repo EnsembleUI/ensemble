@@ -19,6 +19,10 @@ const _executionMode = String.fromEnvironment(
 );
 const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
 
+/// Host path for the machine JSON report transported from an integration device.
+const ensembleTestMachineResultRelativePath =
+    'diagnostics/machine_result.json';
+
 bool get usesDeviceArtifactTransport => _executionMode == 'integration';
 
 /// Widget tests dress screenshots in a matching device bezel. Integration
@@ -127,6 +131,19 @@ void emitEnsembleTestArtifactTransportBegin() {
 /// Emits the run-level complete record for device→host transport.
 void emitEnsembleTestArtifactTransportComplete() {
   EnsembleTestArtifactEmitter.instance.complete();
+}
+
+/// Writes the suite JSON report through device→host transport.
+///
+/// Integration stdout cannot carry a multi-megabyte JSON line (syslog/logcat
+/// truncates it, and Flutter prefixes `flutter:` so host parsers miss it).
+void emitEnsembleTestMachineReport(String jsonReport) {
+  if (!usesDeviceArtifactTransport) return;
+  emitEnsembleTestArtifact(
+    ensembleTestMachineResultRelativePath,
+    utf8.encode(jsonReport),
+    mimeType: 'application/json',
+  );
 }
 
 String ensembleTestArtifactDisplayPath(String directoryName, String fileName) {

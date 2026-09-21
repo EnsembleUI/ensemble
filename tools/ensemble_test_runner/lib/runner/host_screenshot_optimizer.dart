@@ -15,53 +15,61 @@ bool _didResolveCwebpPath = false;
 /// Frame manifests are updated atomically; PNG remains the fallback whenever
 /// the bundled encoder is unavailable or does not produce a smaller image.
 Future<void> optimizeTransportedScreenshotsForHost(String artifactRoot) async {
-  final manifestsDir = Directory(p.join(artifactRoot, 'screenshots'));
+  final manifestsDir = Directory(p.join(artifactRoot, 'frames'));
+  final legacyManifestsDir = Directory(p.join(artifactRoot, 'screenshots'));
   final imagesDir = Directory(p.join(artifactRoot, 'report', 'screenshots'));
-  if (!manifestsDir.existsSync() || !imagesDir.existsSync()) return;
+  if (!imagesDir.existsSync()) return;
+
   final converted = <String, String>{};
 
-  for (final entity in manifestsDir.listSync().whereType<File>()) {
-    if (!entity.path.endsWith('_frames.json')) continue;
-    final dynamic decoded;
-    try {
-      decoded = json.decode(entity.readAsStringSync());
-    } catch (_) {
-      continue;
-    }
-    if (decoded is! Map || decoded['frames'] is! List) continue;
-    var changed = false;
-    for (final dynamic rawFrame in decoded['frames'] as List) {
-      if (rawFrame is! Map) continue;
-      final fileName = rawFrame['file']?.toString();
-      if (fileName == null || !fileName.endsWith('.png')) continue;
-      final existingConversion = converted[fileName];
-      if (existingConversion != null) {
-        rawFrame['file'] = existingConversion;
-        changed = true;
+  Future<void> optimizeManifests(Directory dir) async {
+    if (!dir.existsSync()) return;
+    for (final entity in dir.listSync().whereType<File>()) {
+      if (!entity.path.endsWith('_frames.json')) continue;
+      final dynamic decoded;
+      try {
+        decoded = json.decode(entity.readAsStringSync());
+      } catch (_) {
         continue;
       }
-      final png = File(p.join(imagesDir.path, fileName));
-      if (!png.existsSync()) continue;
-      final pngBytes = png.readAsBytesSync();
-      final webpBytes = await _encodeWebP(pngBytes);
-      if (webpBytes == null || webpBytes.length >= pngBytes.length) continue;
-      final webpName = '${p.basenameWithoutExtension(fileName)}.webp';
-      AtomicFile.writeBytesSync(
-        File(p.join(imagesDir.path, webpName)),
-        webpBytes,
-      );
-      rawFrame['file'] = webpName;
-      converted[fileName] = webpName;
-      png.deleteSync();
-      changed = true;
-    }
-    if (changed) {
-      AtomicFile.writeStringSync(
-        entity,
-        const JsonEncoder.withIndent('  ').convert(decoded),
-      );
+      if (decoded is! Map || decoded['frames'] is! List) continue;
+      var changed = false;
+      for (final dynamic rawFrame in decoded['frames'] as List) {
+        if (rawFrame is! Map) continue;
+        final fileName = rawFrame['file']?.toString();
+        if (fileName == null || !fileName.endsWith('.png')) continue;
+        final existingConversion = converted[fileName];
+        if (existingConversion != null) {
+          rawFrame['file'] = existingConversion;
+          changed = true;
+          continue;
+        }
+        final png = File(p.join(imagesDir.path, fileName));
+        if (!png.existsSync()) continue;
+        final pngBytes = png.readAsBytesSync();
+        final webpBytes = await _encodeWebP(pngBytes);
+        if (webpBytes == null || webpBytes.length >= pngBytes.length) continue;
+        final webpName = '${p.basenameWithoutExtension(fileName)}.webp';
+        AtomicFile.writeBytesSync(
+          File(p.join(imagesDir.path, webpName)),
+          webpBytes,
+        );
+        rawFrame['file'] = webpName;
+        converted[fileName] = webpName;
+        png.deleteSync();
+        changed = true;
+      }
+      if (changed) {
+        AtomicFile.writeStringSync(
+          entity,
+          const JsonEncoder.withIndent('  ').convert(decoded),
+        );
+      }
     }
   }
+
+  await optimizeManifests(manifestsDir);
+  await optimizeManifests(legacyManifestsDir);
 }
 
 Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {

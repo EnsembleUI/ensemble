@@ -91,29 +91,34 @@ class UiElement {
   final String elementId;
   final String? testId;
   final String? type;
+  final String? role;
   final String? label;
   final String? text;
   final UiElementState state;
   final UiBounds? bounds;
   final List<String> supportedActions;
   final List<UiElement> children;
+  final Map<String, Object?> metadata;
 
   const UiElement({
     required this.elementId,
     this.testId,
     this.type,
+    this.role,
     this.label,
     this.text,
     this.state = const UiElementState(),
     this.bounds,
     this.supportedActions = const [],
     this.children = const [],
+    this.metadata = const {},
   });
 
   Map<String, dynamic> toJson() => {
         'elementId': elementId,
         if (testId != null) 'testId': testId,
         if (type != null) 'type': type,
+        if (role != null) 'role': role,
         if (label != null) 'label': label,
         if (text != null) 'text': text,
         'state': state.toJson(),
@@ -121,6 +126,7 @@ class UiElement {
         if (supportedActions.isNotEmpty) 'supportedActions': supportedActions,
         if (children.isNotEmpty)
           'children': children.map((c) => c.toJson()).toList(),
+        if (metadata.isNotEmpty) 'metadata': metadata,
       };
 
   factory UiElement.fromJson(Map<String, dynamic> json) {
@@ -132,6 +138,7 @@ class UiElement {
       elementId: json['elementId']?.toString() ?? '',
       testId: json['testId']?.toString(),
       type: json['type']?.toString(),
+      role: json['role']?.toString(),
       label: json['label']?.toString(),
       text: json['text']?.toString(),
       state: stateRaw is Map
@@ -149,6 +156,9 @@ class UiElement {
               .map((e) => UiElement.fromJson(Map<String, dynamic>.from(e)))
               .toList()
           : const [],
+      metadata: json['metadata'] is Map
+          ? Map<String, Object?>.from(json['metadata'] as Map)
+          : const {},
     );
   }
 }

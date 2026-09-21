@@ -268,6 +268,7 @@ class EnsembleTestHarness {
           'hostName': 'ensemble-test',
           'arch': 'arm64',
           'model': 'Mac',
+          'modelName': 'Mac',
           'kernelVersion': 'test',
           'osRelease': 'test',
           'majorVersion': 15,

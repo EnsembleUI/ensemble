@@ -15,14 +15,21 @@ class EnsembleTestScaffoldResult {
 
 class EnsembleTestScaffold {
   final String appDir;
+  final String? testsDirRelative;
+  final bool applicationProvided;
 
-  EnsembleTestScaffold(this.appDir);
+  EnsembleTestScaffold(
+    this.appDir, {
+    this.testsDirRelative,
+    this.applicationProvided = false,
+  });
 
   EnsembleTestScaffoldResult create(List<String> arguments) {
     final id = _optionValue(arguments, '--scaffold-test') ?? 'new_test';
     final normalizedId = id.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_');
-    final inspection = EnsembleAppInspector(appDir).inspect();
-    final screen = _optionValue(arguments, '--screen') ?? inspection.appHome;
+    final inspection =
+        applicationProvided ? null : EnsembleAppInspector(appDir).inspect();
+    final screen = _optionValue(arguments, '--screen') ?? inspection?.appHome;
     final feature = _optionValue(arguments, '--feature');
     final tags = arguments
         .where((arg) => arg.startsWith('--tag='))
@@ -30,7 +37,10 @@ class EnsembleTestScaffold {
         .where((tag) => tag.isNotEmpty)
         .toList();
 
-    final testsDir = Directory(p.join(appDir, inspection.appPath, 'tests'));
+    final testsDir = Directory(p.join(
+      appDir,
+      testsDirRelative ?? p.join(inspection!.appPath, 'tests'),
+    ));
     testsDir.createSync(recursive: true);
     Directory(p.join(testsDir.path, 'mocks')).createSync(recursive: true);
 
@@ -45,9 +55,9 @@ class EnsembleTestScaffold {
     if (feature != null && feature.isNotEmpty)
       buffer.writeln('feature: $feature');
     if (tags.isNotEmpty) buffer.writeln('tags: [${tags.join(', ')}]');
+    buffer..writeln('description: Describe the user behavior this test covers');
+    if (!applicationProvided) buffer.writeln('startScreen: $screen');
     buffer
-      ..writeln('description: Describe the user behavior this test covers')
-      ..writeln('startScreen: $screen')
       ..writeln('steps:')
       ..writeln('  - expectVisible:')
       ..writeln('      id: TODO_widget_test_id');

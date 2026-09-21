@@ -189,14 +189,12 @@ List<List<Map<String, dynamic>>> ensembleTestArtifactManifestBatches(
 
 int _manifestRecordEncodedLength(List<Map<String, dynamic>> artifacts) {
   return ensembleTestArtifactProtocolPrefix.length +
-      json
-          .encode({
-            'event': 'manifest',
-            // Budget for ISO-8601 run ids; packing must stay under logcat limits.
-            'runId': '2026-01-01T00:00:00.000000Z',
-            'artifacts': artifacts,
-          })
-          .length;
+      json.encode({
+        'event': 'manifest',
+        // Budget for ISO-8601 run ids; packing must stay under logcat limits.
+        'runId': '2026-01-01T00:00:00.000000Z',
+        'artifacts': artifacts,
+      }).length;
 }
 
 /// Result of materializing a device→host artifact stream.
@@ -484,8 +482,7 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
       );
     }
     if (completeCount != null && completeCount != manifestOrder.length) {
-      error ??=
-          'Artifact complete count $completeCount does not match '
+      error ??= 'Artifact complete count $completeCount does not match '
           'manifest entries (${manifestOrder.length}).';
     }
     if (completeHash != null && completeHash!.isNotEmpty) {

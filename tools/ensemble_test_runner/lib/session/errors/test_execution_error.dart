@@ -40,9 +40,8 @@ class TestExecutionError implements Exception {
     return TestExecutionError(
       code: code,
       message: json['message']?.toString() ?? '',
-      details: detailsRaw is Map
-          ? Map<String, dynamic>.from(detailsRaw)
-          : const {},
+      details:
+          detailsRaw is Map ? Map<String, dynamic>.from(detailsRaw) : const {},
     );
   }
 

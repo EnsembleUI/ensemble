@@ -18,12 +18,17 @@ class ObservationOptions {
   final bool includeBounds;
   final bool allowPartial;
 
+  /// When true, only elements with a qualifying [ValueKey] string id are
+  /// collected — used as a performance baseline for unified observation.
+  final bool keyedOnly;
+
   const ObservationOptions({
     this.synchronization = ObservationSynchronization.untilStable,
     this.stableTimeout,
     this.includeScreenshot = false,
     this.includeBounds = true,
     this.allowPartial = false,
+    this.keyedOnly = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -33,6 +38,7 @@ class ObservationOptions {
         'includeScreenshot': includeScreenshot,
         'includeBounds': includeBounds,
         'allowPartial': allowPartial,
+        'keyedOnly': keyedOnly,
       };
 
   factory ObservationOptions.fromJson(Map<String, dynamic> json) {
@@ -44,10 +50,12 @@ class ObservationOptions {
     final timeoutMs = json['stableTimeoutMs'];
     return ObservationOptions(
       synchronization: sync,
-      stableTimeout: timeoutMs is int ? Duration(milliseconds: timeoutMs) : null,
+      stableTimeout:
+          timeoutMs is int ? Duration(milliseconds: timeoutMs) : null,
       includeScreenshot: json['includeScreenshot'] == true,
       includeBounds: json['includeBounds'] != false,
       allowPartial: json['allowPartial'] == true,
+      keyedOnly: json['keyedOnly'] == true,
     );
   }
 }

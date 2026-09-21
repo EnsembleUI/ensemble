@@ -1,6 +1,9 @@
 # ensemble_test_runner
 
-Dev-only declarative YAML test runner for Ensemble apps. Wraps the **real** Ensemble runtime (`EnsembleApp`), injects mocks via runtime override hooks, and asserts on rendered UI, navigation, APIs, and storage.
+Dev-only declarative YAML test runner for standalone Ensemble, pure Flutter,
+and mixed Flutter/Ensemble apps. It uses one exact, YAML-driven UI vocabulary
+while application-owned state and services remain behind explicit driver
+capabilities.
 
 This package is **not** a dependency of `modules/ensemble`. It is a **dev-only** dependency — not shipped in release builds.
 
@@ -30,8 +33,32 @@ steps:
       id: greeting_text
 ```
 
-Each `*.test.yaml` file is **one** test (no `tests:` array). It starts with
-`startScreen`; tests that need reusable app state can also set `session`.
+Each `*.test.yaml` file is **one** test (no `tests:` array). Standalone Ensemble
+tests require `startScreen`. Application-driven Flutter and mixed tests omit it
+unless their driver explicitly implements screen launch. Tests that need
+reusable app state can set `session` only when the driver supports checkpoints.
+
+### Unified targets
+
+Existing `id:` syntax is unchanged. A structured target can address accessible
+Flutter or Ensemble-originated widgets without a framework selector:
+
+```yaml
+steps:
+  - tap:
+      target:
+        label: Continue
+        role: button
+        within:
+          id: login_form
+        occurrence: 0
+```
+
+`id`, `text`, `label`, and `role` are exact, conjunctive constraints.
+`within` limits matching to descendants and `occurrence` is zero-based. A
+missing target or an ambiguous target without `occurrence` fails; the runner
+does not guess. Snapshot element IDs retain exact observation identity and
+never fall back to a locator when stale.
 
 Use root-level `setup` for commands and HTTP requests that must complete before
 the screen is mounted. This is useful for resetting or configuring a stub server:
@@ -97,6 +124,8 @@ as `${services.modemStub.url}`.
 
 screenshots:
   enabled: true
+  # mask (default), skip, or allow. `allow` explicitly permits raw secure UI.
+  secureContent: mask
   includeSteps: []
   excludeSteps: []
 
@@ -141,9 +170,11 @@ When `devices` is set, each test expands to one run per device (ids look like
 `home[android_nl]` when there is more than one device). Device `locale` sets
 `APP_LOCALE` for that run without rewriting `startScreenInputs`. Device `theme`
 (`light` / `dark`) is applied through `EnsembleThemeManager` after boot (any
-start screen). Each device run writes its own screenshot frames manifest (for
-example `home[android_nl]_frames.json` and `home[iphone_en]_frames.json`); the
-HTML report builds the contact-sheet gallery from those per-step PNGs. In
+start screen). Each device run writes its own frames manifest under
+`build/ensemble_test_runner/frames/` (for example
+`home[android_nl]_frames.json` and `home[iphone_en]_frames.json`); the HTML
+report builds the contact-sheet gallery from the per-step PNGs in
+`report/screenshots/`. In
 integration mode the same matrix is filtered to the connected target's
 platform: locale/theme still apply, viewport/model do not, and other platforms
 are skipped with a warning.
@@ -162,6 +193,11 @@ The package is primarily YAML-first, but it also exposes a small Dart API for
 integrations and custom tooling through `package:ensemble_test_runner/ensemble_test_runner.dart`.
 
 - `runEnsembleYamlTests` runs a suite from a Flutter test environment.
+- `runApplicationYamlTests` and `runApplicationIntegrationYamlTests` run pure
+  Flutter or mixed suites through an `ApplicationTestDriver`.
+- `ApplicationTestServices` exposes optional navigation, API, storage, and
+  runtime metadata capabilities. `ApplicationCheckpointDriver` is required
+  when host YAML uses `session:`.
 - `EnsembleTestParser` parses test files and suite configuration.
 - `EnsembleTestCase`, `EnsembleTestConfig`, and related model types represent
   the supported YAML format.
@@ -171,17 +207,31 @@ integrations and custom tooling through `package:ensemble_test_runner/ensemble_t
 The API documentation is generated from the public declarations and is
 available on the package API tab on pub.dev.
 
-## Runnable example
+## Runnable examples
 
-The [`example/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example) directory contains a minimal local Ensemble app,
-its screen definitions, and a YAML test. It is a useful starting point for a
-new suite and can be run with:
+[`example/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example)
+is a standalone Ensemble app (`runApp(EnsembleApp())`) with local YAML screens.
+
+[`example_host/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example_host)
+is a Flutter host with Ensemble as a child: Flutter login, then a 3-tab Flutter
+shell (Home, Shop, Account). Shop is an Ensemble screen opened from the bottom
+nav or from a card on the Flutter Home tab. Ensemble initializes when that shell
+appears.
 
 ```bash
 cd example
 flutter pub get
 flutter run
-dart run ensemble_test_runner:ensemble_test
+dart run ensemble_test_runner:ensemble_test --mode=widget
+```
+
+```bash
+cd example_host
+flutter pub get
+dart run ensemble_test_runner:ensemble_test \
+  --tests-dir=tests \
+  --test-entry=test/application_yaml_tests.dart \
+  --mode=widget
 ```
 
 ## Run
@@ -203,6 +253,40 @@ The CLI temporarily bundles `definitions.local.path/tests/` as an asset (if need
 By default, output is quiet: no `pub get` package list, no Flutter test progress lines — `SCREEN TRACKER` navigation logs plus the boxed suite report. Use `--verbose` for full subprocess output (useful when debugging).
 
 Optional: `--app-dir=<path>` when not running from the app root.
+
+### Pure Flutter and mixed applications
+
+Keep host YAML under `tests/` (the default; `test/` remains Dart widget tests),
+and provide an application-owned entry file:
+
+```dart
+import 'package:ensemble_test_runner/ensemble_test_runner.dart';
+import 'test_driver.dart';
+
+Future<void> main() => runApplicationYamlTests(driver: MyAppTestDriver());
+```
+
+Run it with paths relative to the application root:
+
+```bash
+dart run ensemble_test_runner:ensemble_test \
+  --tests-dir=tests \
+  --test-entry=test/application_yaml_tests.dart
+```
+
+The entry is validated but never generated, overwritten, or deleted. Both
+paths must remain inside `--app-dir`. Supplying `--tests-dir` alone in an
+existing Ensemble app continues to use the generated legacy entry; a pure
+Flutter app must provide `--test-entry`.
+
+See [`example_host/`](example_host/) for a complete Flutter-host + Ensemble-child
+app: login, bottom nav, and a host card that opens the same Ensemble screen.
+
+The driver lifecycle is suite setup, per-attempt preparation, headless YAML
+setup, application launch, **one shared execution session**, step execution via
+`YamlStepDispatcher`, session close, per-attempt cleanup, then suite teardown.
+Cleanup receives a nullable handle and still runs after a launch failure. Every
+retry repeats the complete per-attempt lifecycle.
 
 ### Execution modes
 

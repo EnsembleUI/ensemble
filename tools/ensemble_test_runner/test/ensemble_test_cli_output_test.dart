@@ -61,6 +61,8 @@ SCREEN TRACKER: Login
         '--mode=integration',
         '--device-id=emulator-5554',
         '--timeout=30s',
+        '--tests-dir=tests',
+        '--test-entry=test/application_yaml_tests.dart',
         '--input',
         'adminPassword=s4C>M7U6t~',
         '--input=expectedDeviceCount=2',
@@ -85,6 +87,21 @@ SCREEN TRACKER: Login
       extractJsonReport(
           'noise\nENSEMBLE_TEST_JSON_REPORT:{"status":"passed"}\n'),
       '{"status":"passed"}',
+    );
+  });
+
+  test('extractJsonReport reads Flutter-prefixed marker lines', () {
+    expect(
+      extractJsonReport(
+        'flutter: ENSEMBLE_TEST_JSON_REPORT:{"status":"passed"}\n',
+      ),
+      '{"status":"passed"}',
+    );
+    expect(
+      extractJsonReport(
+        'I/flutter (12345): ENSEMBLE_TEST_JSON_REPORT:{"mode":"integration"}\n',
+      ),
+      '{"mode":"integration"}',
     );
   });
 

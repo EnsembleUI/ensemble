@@ -4,6 +4,7 @@ import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
+import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -13,14 +14,30 @@ import 'package:flutter_test/flutter_test.dart';
 
 class AssertionEngine {
   final WidgetTester tester;
-  final EnsembleTestContext context;
+  final EnsembleTestContext? context;
+  final ApplicationTestServices services;
 
   AssertionEngine({
     required this.tester,
-    required this.context,
+    this.context,
+    this.services = const ApplicationTestServices(),
   });
 
-  Finder finderForId(String id) => find.byKey(ValueKey(id));
+  EnsembleTestContext get _ensembleContext {
+    final value = context;
+    if (value == null) {
+      throw EnsembleTestFailure(
+        'This assertion requires an application capability that was not provided.',
+      );
+    }
+    return value;
+  }
+
+  Finder finderForId(String id, {bool skipOffstage = true}) =>
+      find.byKey(ValueKey(id), skipOffstage: skipOffstage);
+
+  Finder finderForIdIncludingOffstage(String id) =>
+      finderForId(id, skipOffstage: false);
 
   /// First matching element that is on the current route and visually actionable.
   ///
@@ -72,6 +89,45 @@ class AssertionEngine {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to be visible. '
         '${widgetIdFailureHint(id)}',
+      );
+    }
+  }
+
+  bool hasVisibleElement(Finder finder) => _hasVisiblePaintedElement(finder);
+
+  void expectVisibleFinder(Finder finder, {bool visible = true}) {
+    final actual = _hasVisiblePaintedElement(finder);
+    if (actual != visible) {
+      throw EnsembleTestFailure(
+        'Expected resolved element to be ${visible ? 'visible' : 'not visible'}.',
+      );
+    }
+  }
+
+  void expectExistsFinder(Finder finder, {bool exists = true}) {
+    final actual = finder.evaluate().isNotEmpty;
+    if (actual != exists) {
+      throw EnsembleTestFailure(
+        'Expected resolved element to ${exists ? 'exist' : 'not exist'}.',
+      );
+    }
+  }
+
+  void expectEnabledFinder(Finder finder, {bool enabled = true}) {
+    final matches = finder.evaluate().toList();
+    if (matches.length != 1) {
+      throw EnsembleTestFailure(
+        'Enabled check requires exactly one resolved element; found ${matches.length}.',
+      );
+    }
+    final actual = _readSemantics(
+      () => _semanticsIsEnabled(
+        tester.getSemantics(finder).getSemanticsData(),
+      ),
+    );
+    if (actual != enabled) {
+      throw EnsembleTestFailure(
+        'Expected resolved element to be ${enabled ? 'enabled' : 'disabled'}.',
       );
     }
   }
@@ -196,7 +252,7 @@ class AssertionEngine {
   }
 
   void expectApiNotCalled(String apiName) {
-    final count = context.apiOverlay.callCount(apiName);
+    final count = _ensembleContext.apiOverlay.callCount(apiName);
     if (count != 0) {
       throw EnsembleTestFailure(
         'Expected API "$apiName" not to be called, but it was called $count times.',
@@ -248,7 +304,7 @@ class AssertionEngine {
   }
 
   void expectApiCalled(String apiName, int times) {
-    final actual = context.apiOverlay.callCount(apiName);
+    final actual = _ensembleContext.apiOverlay.callCount(apiName);
     if (actual != times) {
       throw EnsembleTestFailure(
         'Expected API "$apiName" to be called $times times, but it was called $actual times. '
@@ -267,7 +323,7 @@ class AssertionEngine {
   }
 
   void expectExists(String id) {
-    if (finderForId(id).evaluate().isEmpty) {
+    if (finderForIdIncludingOffstage(id).evaluate().isEmpty) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to exist. ${widgetIdFailureHint(id)}',
       );
@@ -275,7 +331,7 @@ class AssertionEngine {
   }
 
   void expectNotExists(String id) {
-    if (finderForId(id).evaluate().isNotEmpty) {
+    if (finderForIdIncludingOffstage(id).evaluate().isNotEmpty) {
       throw EnsembleTestFailure('Expected widget with id "$id" to not exist.');
     }
   }
@@ -486,7 +542,8 @@ class AssertionEngine {
   }
 
   void expectApiCallOrder(List<String> names) {
-    final actual = context.apiOverlay.calls.map((c) => c.name).toList();
+    final actual =
+        _ensembleContext.apiOverlay.calls.map((c) => c.name).toList();
     var index = 0;
     for (final name in names) {
       while (index < actual.length && actual[index] != name) {
@@ -502,7 +559,7 @@ class AssertionEngine {
   }
 
   void expectLastApiCall(String apiName) {
-    final calls = context.apiOverlay.calls;
+    final calls = _ensembleContext.apiOverlay.calls;
     if (calls.isEmpty || calls.last.name != apiName) {
       throw EnsembleTestFailure(
         'Expected last API call to be "$apiName", '
@@ -512,7 +569,7 @@ class AssertionEngine {
   }
 
   void expectConsoleLog(String contains) {
-    final logs = context.runtime.consoleLogs;
+    final logs = _ensembleContext.runtime.consoleLogs;
     if (!logs.any((l) => l.contains(contains))) {
       throw EnsembleTestFailure(
         'Expected console log containing "$contains", got: $logs',
@@ -565,23 +622,23 @@ class AssertionEngine {
   }
 
   void expectNoConsoleErrors() {
-    if (context.runtime.consoleLogs.isNotEmpty) {
+    if (_ensembleContext.runtime.consoleLogs.isNotEmpty) {
       throw EnsembleTestFailure(
-        'Expected no console errors, got: ${context.runtime.consoleLogs}',
+        'Expected no console errors, got: ${_ensembleContext.runtime.consoleLogs}',
       );
     }
   }
 
   void expectNoRenderErrors() {
-    if (context.runtime.flutterErrors.isNotEmpty) {
+    if (_ensembleContext.runtime.flutterErrors.isNotEmpty) {
       throw EnsembleTestFailure(
-        'Expected no render errors, got: ${context.runtime.flutterErrors}',
+        'Expected no render errors, got: ${_ensembleContext.runtime.flutterErrors}',
       );
     }
   }
 
   void expectErrorRecorded(String? contains) {
-    final errors = context.runtime.flutterErrors;
+    final errors = _ensembleContext.runtime.flutterErrors;
     if (errors.isEmpty) {
       throw EnsembleTestFailure('Expected a recorded error, but none found.');
     }
@@ -755,7 +812,7 @@ class AssertionEngine {
       value.runes.any((codeUnit) => codeUnit > 127);
 
   String apiCallSummary({int limit = 10}) {
-    final calls = context.apiOverlay.calls;
+    final calls = _ensembleContext.apiOverlay.calls;
     if (calls.isEmpty) return 'No API calls were recorded.';
     final names = calls.take(limit).map((call) => call.name).join(', ');
     final suffix = calls.length > limit ? ', ... (${calls.length} total)' : '';

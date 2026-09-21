@@ -1,5 +1,34 @@
 # Test Authoring
 
+## Application modes
+
+The same YAML vocabulary runs against standalone Ensemble, pure Flutter, and
+mixed Flutter/Ensemble applications. Standalone tests require `startScreen`.
+Host-driven tests normally omit it and launch through `ApplicationTestDriver`.
+Use `--tests-dir=tests --test-entry=test/application_yaml_tests.dart` for host
+suites. The runner never modifies a custom entry file. `example_host/` is a
+runnable Flutter login → 3-tab shell with Ensemble opened from the bottom nav
+or a host card.
+
+## Element targets
+
+`id:` remains shorthand for an exact `ValueKey<String>` match. Use `target:`
+for exact accessible or compound matching:
+
+```yaml
+- expectVisible:
+    target:
+      label: Continue
+      role: button
+      within: {id: login_form}
+      occurrence: 0
+```
+
+All supplied fields are conjunctive. `within` must resolve to one ancestor.
+Without `occurrence`, multiple matches are an error. There is no heuristic
+fallback. Secure editable values are removed from observations and masked in
+screenshots unless `screenshots.secureContent: allow` is explicitly selected.
+
 `ensemble_test_runner` can act as the execution backend for test authoring. The recommended loop is:
 
 Suites may set `mode: widget` (the default) or `mode: integration` in
@@ -101,8 +130,10 @@ the same API name). Suite `initialState` is the base for every test;
 test-level `storage` / `keychain` / `env` keys override suite values.
 
 When `screenshots.enabled` is true, the runner captures automatic step
-screenshots as per-step PNGs under `build/ensemble_test_runner/screenshots/`.
-Frame metadata is folded into `report/results.json.gz` (no leftover `*_frames.json`).
+screenshots as per-step PNGs under `build/ensemble_test_runner/report/screenshots/`.
+Frame manifests (`*_frames.json`) are written under
+`build/ensemble_test_runner/frames/` and folded into `report/results.json.gz`
+(no leftover manifests after report generation).
 When `performance` / `dumpTree` are enabled, those payloads are embedded **per
 screen** in the same `results.json.gz` under `tests[].report.screens` (then
 `logs/` is deleted).

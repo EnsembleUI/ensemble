@@ -105,8 +105,9 @@ String extractJunitReport(String output) {
 
 String _extractPrefixedReport(String output, String prefix) {
   for (final line in output.split('\n')) {
-    if (line.startsWith(prefix)) {
-      return line.substring(prefix.length);
+    final marker = line.indexOf(prefix);
+    if (marker >= 0) {
+      return line.substring(marker + prefix.length);
     }
   }
   return '';
@@ -144,6 +145,8 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--mode=') ||
         a.startsWith('--jobs=') ||
         a.startsWith('--timeout=') ||
+        a.startsWith('--tests-dir') ||
+        a.startsWith('--test-entry') ||
         a == '--verbose' ||
         a == '--quiet') {
       continue;

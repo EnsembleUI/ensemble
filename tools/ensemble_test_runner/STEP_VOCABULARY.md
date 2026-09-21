@@ -45,7 +45,27 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 ### Control flow
 `group`, `repeat`, `optional`, `ifVisible`
 
+## Targets
+
+`id:` is shorthand for an exact `ValueKey<String>` match. Use `target:` for
+exact accessible or compound matching (`id`, `text`, `label`, `role`, `within`,
+zero-based `occurrence`). Fields are conjunctive; missing or ambiguous matches
+fail without heuristic fallback. Snapshot element IDs keep observation identity
+and never fall back to a locator.
+
+```yaml
+- tap:
+    target:
+      label: Continue
+      role: button
+      within: {id: login_form}
+      occurrence: 0
+```
+
 ## Example
+
+Standalone Ensemble suites require `startScreen`. Pure Flutter / mixed host
+suites omit it unless the driver implements screen launch.
 
 ```yaml
 id: login_flow
@@ -145,10 +165,10 @@ from the Flutter wrapper app root to validate config, test discovery, duplicate
 IDs, sessions, schema comments, and obvious widget IDs. CI can request JSON
 with `--report=json` or `--report-file=build/ensemble_test_results.json`.
 
-Each `*.test.yaml` file is a single test case and must provide:
+Each `*.test.yaml` file is a single test case and may provide:
 
-- `startScreen` — cold-starts the app on the given screen and runs steps
-- `session` — optional; runs the referenced test once, restores its captured public storage/secure storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen`
+- `startScreen` — required for standalone Ensemble; cold-starts the app on the given screen and runs steps. Host/mixed suites omit it when `ApplicationTestDriver` owns launch.
+- `session` — optional; runs the referenced test once, restores its captured public storage/secure storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen` (Ensemble) or restores a checkpoint (host, when supported)
 - `retry` — number of additional attempts after a failed run, e.g. `retry: 3`
 
 Root-level `setup` supports `httpRequest`, `group`, and `optional`. It runs

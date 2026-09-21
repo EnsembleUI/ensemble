@@ -100,12 +100,15 @@ class TestReportDocument {
   /// Keeps `report/` and `test_durations.json`.
   ///
   /// Screenshot images are written directly into `report/screenshots/`; only
-  /// the transient frame manifests are removed here.
+  /// the transient frame manifests under `frames/` (and legacy `screenshots/`)
+  /// are removed here.
   static void cleanTransientArtifacts(String artifactRoot) {
     for (final name in const [
       'logs',
       'worker_progress',
       'worker_reports',
+      'frames',
+      // Legacy pre-rename location for `*_frames.json` manifests.
       'screenshots',
     ]) {
       final directory = Directory(p.join(artifactRoot, name));

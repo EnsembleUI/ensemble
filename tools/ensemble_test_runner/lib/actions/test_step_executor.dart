@@ -5,12 +5,14 @@ import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
+import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +23,8 @@ class TestStepExecutor {
   final WidgetTester tester;
   final EnsembleTestContext context;
   final AssertionEngine assertions;
-  final EnsembleTestHarness harness;
+  final EnsembleTestHarness? harness;
+  final ApplicationTestServices services;
   final TestExecutionConfig config;
   EnsembleConfig? _config;
   FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
@@ -33,11 +36,20 @@ class TestStepExecutor {
     required this.tester,
     required this.context,
     required this.assertions,
-    required this.harness,
+    this.harness,
+    this.services = const ApplicationTestServices(),
     EnsembleConfig? config,
     TestExecutionConfig? executionConfig,
   })  : _config = config,
         config = executionConfig ?? const TestExecutionConfig();
+
+  EnsembleTestHarness get requireHarness {
+    final value = harness;
+    if (value == null) {
+      throw const UnsupportedApplicationCapability('ensembleHarness');
+    }
+    return value;
+  }
 
   Future<void> execute(TestStep step) async {
     if (step.type == 'group') {
@@ -74,6 +86,8 @@ class TestStepExecutor {
         }
       } on EnsembleTestFailure {
         // Best-effort steps (e.g. dismiss cookie banner).
+      } on TestExecutionError {
+        // Session/dispatcher path may surface structured errors.
       }
       return;
     }
@@ -121,6 +135,31 @@ class TestStepExecutor {
         if (screen == null) {
           throw EnsembleTestFailure('waitForNavigation requires "screen"');
         }
+        final navigation = services.navigation;
+        if (navigation != null) {
+          // Prefer history over currentRoute alone: transient screens
+          // (Loading → Status, Home → Devices) are often left during the
+          // previous action's settle before this wait starts.
+          final timeoutMs = step.args['timeoutMs'] as int? ??
+              config.defaultWaitTimeout.inMilliseconds;
+          final stopwatch = Stopwatch()..start();
+          while (stopwatch.elapsedMilliseconds <= timeoutMs) {
+            await YamlTestSession.navigationFlow.flushPending();
+            if (navigation.currentRoute == screen ||
+                navigation.routeHistory.contains(screen)) {
+              return;
+            }
+            await tester.pump(config.waitPollInterval);
+          }
+          await YamlTestSession.navigationFlow.flushPending();
+          if (navigation.currentRoute == screen ||
+              navigation.routeHistory.contains(screen)) {
+            return;
+          }
+          throw EnsembleTestFailure(
+            'Timed out after ${timeoutMs}ms waiting for route "$screen"',
+          );
+        }
         await _waitForNavigation(
           step: step,
           screen: screen,
@@ -134,7 +173,7 @@ class TestStepExecutor {
         if (screen == null) {
           throw EnsembleTestFailure('expectScreen requires "name" or "screen"');
         }
-        assertions.expectNavigateTo(screen);
+        _expectNavigateTo(screen);
         return;
     }
 
@@ -211,7 +250,10 @@ class TestStepExecutor {
         );
         break;
       case 'scrollUntilVisible':
-        await _scrollUntilVisible(_requireId(step));
+        await _scrollUntilVisible(
+          _requireId(step),
+          scrollableId: step.args['scrollableId']?.toString(),
+        );
         break;
       case 'expectVisible':
         assertions.expectVisible(_requireId(step));
@@ -255,14 +297,14 @@ class TestStepExecutor {
         if (name == null) {
           throw EnsembleTestFailure('expectApiCalled requires "name"');
         }
-        assertions.expectApiCalled(name, step.args['times'] as int? ?? 1);
+        _expectApiCalled(name, step.args['times'] as int? ?? 1);
         break;
       case 'expectApiNotCalled':
         final name = step.args['name']?.toString();
         if (name == null) {
           throw EnsembleTestFailure('expectApiNotCalled requires "name"');
         }
-        assertions.expectApiNotCalled(name);
+        _expectApiCalled(name, 0);
         break;
       case 'expectCount':
         final expected = step.args['equals'] as int?;
@@ -276,28 +318,28 @@ class TestStepExecutor {
         if (screen == null) {
           throw EnsembleTestFailure('expectNavigateTo requires "screen"');
         }
-        assertions.expectNavigateTo(screen);
+        _expectNavigateTo(screen);
         break;
       case 'expectVisited':
         final screen = step.args['screen']?.toString();
         if (screen == null) {
           throw EnsembleTestFailure('expectVisited requires "screen"');
         }
-        assertions.expectVisited(screen);
+        _expectVisited(screen);
         break;
       case 'expectStorage':
         final key = step.args['key']?.toString();
         if (key == null) {
           throw EnsembleTestFailure('expectStorage requires "key"');
         }
-        assertions.expectStorage(key, step.args['equals']);
+        _expectStorage(key, step.args['equals']);
         break;
       case 'setStorage':
         final key = step.args['key']?.toString();
         if (key == null) {
           throw EnsembleTestFailure('setStorage requires "key"');
         }
-        context.setStorage(key, step.args['value']);
+        await _setStorage(key, step.args['value']);
         break;
       case 'setEnv':
         final key = step.args['key']?.toString();
@@ -307,7 +349,7 @@ class TestStepExecutor {
         context.setEnv(key, step.args['value']);
         break;
       case 'resetApiCalls':
-        context.apiOverlay.resetCalls();
+        _resetApiCalls();
         break;
       case 'logApiCalls':
         final path = await tester.runAsync(() {
@@ -508,12 +550,59 @@ class TestStepExecutor {
     await _settleAfterAction();
   }
 
-  Future<void> scrollUntilVisibleFinder(Finder finder) async {
+  Future<void> selectIndexOnFinder(Finder finder, int index) async {
+    if (index < 0) {
+      throw EnsembleTestFailure('selectIndex requires a non-negative index');
+    }
+    await tapFinder(finder);
+    final options = find.byType(DropdownMenuItem).evaluate().toList();
+    if (index >= options.length) {
+      throw EnsembleTestFailure('selectIndex: no option at index $index');
+    }
+    await tester.tap(find.byWidget(options[index].widget));
+    await _settleAfterAction();
+  }
+
+  Future<void> setSliderOnFinder(Finder finder, double value) async {
     if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure('setSlider: target element is detached.');
+    }
+    final sliderFinder = find.descendant(
+      of: finder,
+      matching: find.byType(Slider),
+    );
+    final effective =
+        sliderFinder.evaluate().isNotEmpty ? sliderFinder.first : finder;
+    final widget = tester.widget(effective);
+    if (widget is! Slider) {
+      throw EnsembleTestFailure('setSlider target is not a Slider.');
+    }
+    if (value < widget.min || value > widget.max) {
       throw EnsembleTestFailure(
-        'scrollUntilVisible: target element is detached.',
+        'setSlider value $value is outside ${widget.min}..${widget.max}.',
       );
     }
+    final rect = tester.getRect(effective);
+    final fraction = widget.max == widget.min
+        ? 0.0
+        : (value - widget.min) / (widget.max - widget.min);
+    await tester
+        .tapAt(Offset(rect.left + rect.width * fraction, rect.center.dy));
+    await _settleAfterAction();
+  }
+
+  Future<void> dragFinder(Finder finder, Offset offset) async {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure('drag: target element is detached.');
+    }
+    await tester.drag(finder, offset);
+    await _settleAfterAction();
+  }
+
+  Future<void> pullToRefreshFinder(Finder finder) =>
+      dragFinder(finder, const Offset(0, 300));
+
+  Future<void> scrollUntilVisibleFinder(Finder finder) async {
     await tester.scrollUntilVisible(
       finder,
       300,
@@ -524,8 +613,15 @@ class TestStepExecutor {
 
   Future<void> settle({Duration? timeout}) => _settle(timeout: timeout);
 
-
   void _applyMocks(TestMocks mocks) {
+    final api = services.api;
+    if (api is ApiMockingTestService) {
+      api.applyMocks(mocks);
+      return;
+    }
+    if (api != null) {
+      throw const UnsupportedApplicationCapability('apiMocking');
+    }
     for (final entry in mocks.apis.entries) {
       context.apiOverlay.setMock(entry.key, entry.value);
     }
@@ -533,7 +629,7 @@ class TestStepExecutor {
 
   Future<void> openScreenByName(String screen) async {
     final tc = context.testCase;
-    _config = await harness.loadScreen(
+    _config = await requireHarness.loadScreen(
       tester: tester,
       testCase: EnsembleTestCase(
         id: tc.id,
@@ -749,12 +845,21 @@ class TestStepExecutor {
     await _settleAfterAction();
   }
 
-  Future<void> _scrollUntilVisible(String id) async {
-    final finder = assertions.finderForId(id);
+  Future<void> _scrollUntilVisible(
+    String id, {
+    String? scrollableId,
+  }) async {
+    final finder = assertions.finderForId(id, skipOffstage: false);
+    final scrollable = scrollableId == null || scrollableId.isEmpty
+        ? find.byType(Scrollable).first
+        : find.descendant(
+            of: find.byKey(ValueKey(scrollableId)),
+            matching: find.byType(Scrollable),
+          );
     await tester.scrollUntilVisible(
       finder,
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: scrollable,
     );
     await _settleAfterAction();
   }
@@ -856,7 +961,7 @@ class TestStepExecutor {
       throw EnsembleTestFailure('openScreen requires "name" or "screen"');
     }
     final tc = context.testCase;
-    _config = await harness.loadScreen(
+    _config = await requireHarness.loadScreen(
       tester: tester,
       testCase: EnsembleTestCase(
         id: tc.id,
@@ -1016,5 +1121,103 @@ class TestStepExecutor {
     required String label,
   }) async {
     await tester.pump(duration, phase);
+  }
+
+  void _expectApiCalled(String name, int times) {
+    final api = services.api;
+    if (api != null) {
+      final actual = api.callCount(name);
+      if (actual != times) {
+        throw EnsembleTestFailure(
+          'Expected API "$name" to be called $times times, got $actual.',
+        );
+      }
+      return;
+    }
+    if (harness == null) {
+      throw const UnsupportedApplicationCapability('api');
+    }
+    if (times == 0) {
+      assertions.expectApiNotCalled(name);
+    } else {
+      assertions.expectApiCalled(name, times);
+    }
+  }
+
+  void _resetApiCalls() {
+    final api = services.api;
+    if (api is ApiMockingTestService) {
+      api.resetCalls();
+      return;
+    }
+    if (api != null) {
+      throw const UnsupportedApplicationCapability('apiMocking');
+    }
+    if (harness == null) {
+      throw const UnsupportedApplicationCapability('api');
+    }
+    context.apiOverlay.resetCalls();
+  }
+
+  void _expectStorage(String key, Object? expected) {
+    final storage = services.storage;
+    if (storage != null) {
+      final actual = storage.read(key);
+      if (actual != expected) {
+        throw EnsembleTestFailure(
+          'Expected storage "$key" to equal "$expected", got "$actual".',
+        );
+      }
+      return;
+    }
+    if (harness == null) {
+      throw const UnsupportedApplicationCapability('storage');
+    }
+    assertions.expectStorage(key, expected);
+  }
+
+  Future<void> _setStorage(String key, Object? value) async {
+    final storage = services.storage;
+    if (storage != null) {
+      await storage.write(key, value);
+      return;
+    }
+    if (harness == null) {
+      throw const UnsupportedApplicationCapability('storage');
+    }
+    context.setStorage(key, value);
+  }
+
+  void _expectNavigateTo(String screen) {
+    final navigation = services.navigation;
+    if (navigation != null) {
+      if (navigation.currentRoute != screen) {
+        throw EnsembleTestFailure(
+          'Expected route "$screen", got "${navigation.currentRoute}".',
+        );
+      }
+      return;
+    }
+    if (harness == null) {
+      throw const UnsupportedApplicationCapability('navigation');
+    }
+    assertions.expectNavigateTo(screen);
+  }
+
+  void _expectVisited(String screen) {
+    final navigation = services.navigation;
+    if (navigation != null) {
+      if (!navigation.routeHistory.contains(screen)) {
+        throw EnsembleTestFailure(
+          'Expected screen "$screen" in navigation history, but visited '
+          '${navigation.routeHistory}',
+        );
+      }
+      return;
+    }
+    if (harness == null) {
+      throw const UnsupportedApplicationCapability('navigation');
+    }
+    assertions.expectVisited(screen);
   }
 }

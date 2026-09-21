@@ -147,7 +147,7 @@ void main() {
   });
 
   test('complete results aggregate api/storage/console/screenshots/steps', () {
-    final screenshotsDir = Directory(p.join(tempDir.path, 'screenshots'))
+    final framesDir = Directory(p.join(tempDir.path, 'frames'))
       ..createSync(recursive: true);
     final reportScreenshotsDir =
         Directory(p.join(tempDir.path, 'report', 'screenshots'))
@@ -156,7 +156,7 @@ void main() {
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
     File(p.join(reportScreenshotsDir.path, 'login_flow_step1_0.png'))
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
-    File(p.join(screenshotsDir.path, 'login_flow_frames.json'))
+    File(p.join(framesDir.path, 'login_flow_frames.json'))
         .writeAsStringSync(
       jsonEncode({
         'status': 'failed',
@@ -247,8 +247,8 @@ void main() {
           failedStepIndex: 1,
           error: 'Timed out waiting for dashboard',
           logs: [
-            'screenshots: $displayRoot/screenshots/login_flow_frames.json',
-            'screenshotFrames: $displayRoot/screenshots/login_flow_frames.json',
+            'screenshots: $displayRoot/frames/login_flow_frames.json',
+            'screenshotFrames: $displayRoot/frames/login_flow_frames.json',
             'apiCalls: $displayRoot/logs/login_flow_api_calls.json',
             'storage: $displayRoot/logs/login_flow_storage.json',
             'appLogs: $displayRoot/logs/login_flow_app_console.log',
@@ -340,11 +340,11 @@ void main() {
 
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
     expect(
-      File(p.join(screenshotsDir.path, 'login_flow_frames.json')).existsSync(),
+      File(p.join(framesDir.path, 'login_flow_frames.json')).existsSync(),
       isFalse,
     );
     expect(
-      File(p.join(screenshotsDir.path, 'login_flow_step0_0.png')).existsSync(),
+      File(p.join(framesDir.path, 'login_flow_step0_0.png')).existsSync(),
       isFalse,
     );
     expect(
@@ -567,14 +567,18 @@ void main() {
     File(p.join(root, 'report', 'screenshots', 't_step0_0.png'))
         .writeAsBytesSync([1]);
     File(p.join(root, 'test_durations.json')).writeAsStringSync('{}');
+    Directory(p.join(root, 'frames')).createSync(recursive: true);
+    File(p.join(root, 'frames', 't_frames.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'screenshots')).createSync(recursive: true);
-    File(p.join(root, 'screenshots', 't_frames.json')).writeAsStringSync('{}');
+    File(p.join(root, 'screenshots', 'legacy_frames.json'))
+        .writeAsStringSync('{}');
 
     TestReportDocument.cleanTransientArtifacts(root);
 
     expect(Directory(p.join(root, 'logs')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_progress')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_reports')).existsSync(), isFalse);
+    expect(Directory(p.join(root, 'frames')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'screenshots')).existsSync(), isFalse);
     expect(
       File(p.join(root, 'report', TestReportDocument.resultsFileName))

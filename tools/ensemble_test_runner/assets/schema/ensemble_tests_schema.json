@@ -135,10 +135,66 @@
   },
   "required": [
     "id",
-    "startScreen",
     "steps"
   ],
   "$defs": {
+    "elementLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "button",
+            "text",
+            "textField",
+            "checkbox",
+            "switch",
+            "slider",
+            "widget"
+          ]
+        },
+        "within": {
+          "$ref": "#/$defs/elementLocator"
+        },
+        "occurrence": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "label"
+          ]
+        },
+        {
+          "required": [
+            "role"
+          ]
+        }
+      ]
+    },
     "initialState": {
       "type": "object",
       "additionalProperties": false,
@@ -357,12 +413,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "tap",
@@ -380,12 +448,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "doubleTap",
@@ -402,12 +482,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "longPress",
@@ -424,13 +516,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": true,
         "submit": {
           "type": "boolean"
         }
       },
       "required": [
-        "id"
+        "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "enterText",
@@ -448,12 +555,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "clearText",
@@ -470,13 +589,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": true,
         "submit": {
           "type": "boolean"
         }
       },
       "required": [
-        "id"
+        "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "replaceText",
@@ -494,12 +628,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "submitText",
@@ -516,12 +662,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "focus",
@@ -547,13 +705,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "select",
@@ -571,12 +743,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "index": {
           "type": "integer"
         }
       },
       "required": [
-        "id"
+        "index"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "selectIndex",
@@ -594,12 +781,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "check",
@@ -616,12 +815,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "uncheck",
@@ -638,12 +849,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "toggle",
@@ -660,12 +883,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "number"
         }
       },
       "required": [
-        "id"
+        "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "setSlider",
@@ -683,13 +921,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "chooseDate",
@@ -707,13 +959,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "chooseTime",
@@ -728,8 +994,20 @@
     "args_scroll": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "delta": {
           "type": "integer"
+        },
+        "direction": {
+          "type": "string"
+        },
+        "distance": {
+          "type": "number"
         }
       },
       "additionalProperties": false,
@@ -747,12 +1025,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "scrollUntilVisible",
@@ -766,6 +1056,12 @@
     "args_swipe": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "direction": {
           "type": "string",
           "enum": [
@@ -774,9 +1070,6 @@
             "up",
             "down"
           ]
-        },
-        "id": {
-          "type": "string"
         }
       },
       "additionalProperties": false,
@@ -795,6 +1088,9 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "dx": {
           "type": "number"
         },
@@ -802,8 +1098,17 @@
           "type": "number"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "drag",
@@ -821,6 +1126,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
       "additionalProperties": false,
@@ -882,9 +1190,13 @@
     },
     "args_waitFor": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         },
         "text": {
           "type": "string"
@@ -900,7 +1212,28 @@
           "type": "integer"
         }
       },
-      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        },
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
+      ],
       "title": "waitFor",
       "description": "Poll until a widget id and/or text appears",
       "examples": [
@@ -912,9 +1245,13 @@
     },
     "args_waitForText": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         },
         "text": {
           "type": "string"
@@ -930,7 +1267,28 @@
           "type": "integer"
         }
       },
-      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        },
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
+      ],
       "title": "waitForText",
       "description": "Poll until the given text appears on screen",
       "examples": [
@@ -946,12 +1304,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "waitForGone",
@@ -1101,12 +1471,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectVisible",
@@ -1123,12 +1505,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNotVisible",
@@ -1145,12 +1539,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectExists",
@@ -1167,12 +1573,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNotExists",
@@ -1298,12 +1716,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectEnabled",
@@ -1320,12 +1750,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectDisabled",
@@ -1342,11 +1784,25 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": true
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectValue",
@@ -1364,12 +1820,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": {
           "type": "boolean"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectChecked",
@@ -1387,14 +1855,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "property": {
           "type": "string"
         },
         "equals": true
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectProperty",
@@ -1413,14 +1895,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "property": {
           "type": "string"
         },
         "equals": true
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectStyle",
@@ -1439,12 +1935,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": {
           "type": "boolean"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectSelected",
@@ -1462,13 +1970,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": {
           "type": "integer"
         }
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectCount",
@@ -1555,12 +2077,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectEmpty",
@@ -1577,12 +2111,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNotEmpty",
@@ -2209,6 +2755,9 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "step": {
           "$ref": "#/$defs/step"
         },
@@ -2220,8 +2769,17 @@
           "minItems": 1
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "ifVisible",
@@ -2297,12 +2855,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectAccessible",
@@ -2343,12 +2913,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNoOverflow",

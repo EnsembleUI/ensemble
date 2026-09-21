@@ -63,21 +63,24 @@ class EnsembleTestExecutionPlanner {
   /// Discovers assets, parses every file, validates graph, returns run order.
   static Future<EnsembleTestExecutionPlan> build({
     EnsembleTestAppTarget? target,
+    String? testsAssetPrefix,
     EnsembleTestSelection selection = const EnsembleTestSelection(),
     Map<String, dynamic> inputs = const {},
   }) async {
-    final resolvedTarget =
-        target ?? await EnsembleTestDiscovery.loadAppTarget();
+    final resolvedTarget = testsAssetPrefix == null
+        ? (target ?? await EnsembleTestDiscovery.loadAppTarget())
+        : null;
+    final resolvedPrefix = testsAssetPrefix ?? resolvedTarget!.testsAssetPrefix;
     final paths = await EnsembleTestDiscovery.findTestYamlAssets(
-      resolvedTarget.testsAssetPrefix,
+      resolvedPrefix,
     );
     final config = await EnsembleTestDiscovery.loadTestConfig(
-      resolvedTarget.testsAssetPrefix,
+      resolvedPrefix,
     );
     if (paths.isEmpty) {
       throw EnsembleTestFailure(
         'No declarative tests found. Add *.test.yaml files under '
-        '${resolvedTarget.testsAssetPrefix}',
+        '$resolvedPrefix',
       );
     }
     final assetContents = <String, String>{};

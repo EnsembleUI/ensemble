@@ -4,6 +4,55 @@ import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('custom host entry and tests directory are bundled but never modified',
+      () {
+    final dir = Directory.systemTemp.createTempSync('yaml_host_patcher_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    const pubspec = '''
+name: sample_host
+flutter:
+  assets: []
+''';
+    const entry = '''
+import 'package:ensemble_test_runner/ensemble_test_runner.dart';
+Future<void> main() => runApplicationYamlTests(driver: createDriver());
+''';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    Directory('${dir.path}/specs').createSync();
+    File('${dir.path}/specs/login.test.yaml').writeAsStringSync('''
+id: login
+steps: []
+''');
+    Directory('${dir.path}/test').createSync();
+    final entryFile = File('${dir.path}/test/application_yaml_tests.dart')
+      ..writeAsStringSync(entry);
+
+    final patcher = YamlTestAppPatcher(
+      dir.path,
+      testsDirRelative: 'specs',
+      testEntryRelativePath: 'test/application_yaml_tests.dart',
+    );
+    patcher.enable();
+    expect(entryFile.readAsStringSync(), entry);
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(),
+        contains('specs/'));
+    patcher.restore();
+    expect(entryFile.readAsStringSync(), entry);
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+  });
+
+  test('custom paths cannot escape the application root', () {
+    expect(
+      () => YamlTestAppPatcher('/tmp/app', testsDirRelative: '../tests'),
+      throwsStateError,
+    );
+    expect(
+      () =>
+          YamlTestAppPatcher('/tmp/app', testEntryRelativePath: '/tmp/a.dart'),
+      throwsStateError,
+    );
+  });
+
   test('enable injects test assets and restores', () {
     final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
     addTearDown(() => dir.deleteSync(recursive: true));

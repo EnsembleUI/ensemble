@@ -42,7 +42,7 @@ Future<String?> writeScreenshotFrames({
   if (frames.isEmpty) return null;
 
   final defaultDevice = resolveScreenshotDevice(const {});
-  final manifestDirectory = ensembleTestArtifactDirectory('screenshots');
+  final manifestDirectory = ensembleTestArtifactDirectory('frames');
   final imageDirectory = ensembleTestArtifactDirectory(
     p.join('report', 'screenshots'),
   );
@@ -98,20 +98,25 @@ Future<String?> writeScreenshotFrames({
 
   // Drop legacy composite sheet artifacts from older runner versions.
   if (!usesDeviceArtifactTransport) {
-    for (final legacyName in [
-      '$safeTestId.png',
-      '${safeTestId}_sheet.png',
+    for (final legacyDir in [
+      manifestDirectory,
+      ensembleTestArtifactDirectory('screenshots'),
     ]) {
-      final legacy = File(p.join(manifestDirectory.path, legacyName));
-      if (legacy.existsSync()) {
-        legacy.deleteSync();
+      for (final legacyName in [
+        '$safeTestId.png',
+        '${safeTestId}_sheet.png',
+      ]) {
+        final legacy = File(p.join(legacyDir.path, legacyName));
+        if (legacy.existsSync()) {
+          legacy.deleteSync();
+        }
       }
     }
   }
 
   final framesFileName = '${safeTestId}_frames.json';
   await writeEnsembleTestArtifactString(
-    'screenshots',
+    'frames',
     framesFileName,
     const JsonEncoder.withIndent(' ').convert({
       'status': status.name,
@@ -123,7 +128,7 @@ Future<String?> writeScreenshotFrames({
     mimeType: 'application/json',
   );
 
-  return ensembleTestArtifactDisplayPath('screenshots', framesFileName);
+  return ensembleTestArtifactDisplayPath('frames', framesFileName);
 }
 
 /// @Deprecated Use [writeScreenshotFrames]. Kept as a thin alias for call sites.

@@ -3,12 +3,15 @@ import 'dart:ui' as ui;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/application/application_test_driver.dart';
+import 'package:ensemble_test_runner/application/standalone_ensemble_test_driver.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
+import 'package:ensemble_test_runner/entry/application_test_entry.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
@@ -60,11 +63,39 @@ class EnsembleTestPlanRunResult {
 /// Executes parsed Ensemble YAML test plans against a widget tester.
 class EnsembleTestRunner {
   /// Harness used to boot and reset the real Ensemble runtime.
-  final EnsembleTestHarness harness;
+  final EnsembleTestHarness? _legacyHarness;
+  final ApplicationTestDriver? _applicationDriver;
+  final StandaloneEnsembleTestDriver? _standaloneDriver;
   ScreenshotSheetAggregator? _activeScreenshotSheets;
 
   /// Creates a runner backed by [harness].
-  EnsembleTestRunner({required this.harness});
+  EnsembleTestRunner({required EnsembleTestHarness harness})
+      : _legacyHarness = harness,
+        _applicationDriver = null,
+        _standaloneDriver = StandaloneEnsembleTestDriver(harness: harness);
+
+  /// Creates a runner backed by an application-owned lifecycle.
+  EnsembleTestRunner.application({required ApplicationTestDriver driver})
+      : _legacyHarness = null,
+        _applicationDriver = driver,
+        _standaloneDriver = null;
+
+  EnsembleTestHarness get harness {
+    final value = _legacyHarness;
+    if (value == null) {
+      throw StateError(
+          'This runner uses an ApplicationTestDriver, not a harness.');
+    }
+    return value;
+  }
+
+  StandaloneEnsembleTestDriver get standaloneDriver {
+    final value = _standaloneDriver;
+    if (value == null) {
+      throw StateError('This runner has no standalone Ensemble driver.');
+    }
+    return value;
+  }
 
   /// Runs every test in [plan] and returns results keyed by test id.
   Future<EnsembleTestPlanRunResult> runPlan(
@@ -72,6 +103,26 @@ class EnsembleTestRunner {
     WidgetTester tester, {
     EnsembleTestProgressListener? onTestComplete,
   }) async {
+    final applicationDriver = _applicationDriver;
+    if (applicationDriver != null) {
+      final result = await runApplicationTestPlan(
+        driver: applicationDriver,
+        plan: plan,
+        tester: tester,
+        mode: plan.config.mode,
+      );
+      final byId = {for (final item in result.results) item.testId: item};
+      if (onTestComplete != null) {
+        for (final definition in plan.ordered) {
+          final item = byId[definition.testCase.id];
+          if (item != null) await onTestComplete(definition, item);
+        }
+      }
+      return EnsembleTestPlanRunResult(
+        resultsById: byId,
+        suiteLogs: result.suiteLogs,
+      );
+    }
     const hostOwnsServices = bool.fromEnvironment(
       'ensembleTestHostOwnsServices',
     );
@@ -83,6 +134,12 @@ class EnsembleTestRunner {
       screenshots: plan.config.screenshots,
       devices: plan.config.devices,
     );
+    final suiteContext = TestSuiteContext(
+      runId: 'run_${DateTime.now().microsecondsSinceEpoch}',
+      config: plan.config,
+      launchKind: TestApplicationLaunchKind.standaloneEnsemble,
+    );
+    await standaloneDriver.setUpSuite(suiteContext);
     try {
       return await _runPlan(
         plan,
@@ -92,6 +149,7 @@ class EnsembleTestRunner {
     } finally {
       await _activeScreenshotSheets?.flushRemaining();
       _activeScreenshotSheets = null;
+      await standaloneDriver.tearDownSuite();
       await LiveAsyncCallSupport.run<void>(services.stopAll);
     }
   }
@@ -227,6 +285,14 @@ class EnsembleTestRunner {
         () async {
           final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
           final startupStartTime = DateTime.now();
+
+          final launchContext = TestLaunchContext(
+            attemptId: '${test.id}_${stopwatch.elapsedMicroseconds}',
+            attempt: 0,
+            testCase: test,
+            config: suiteConfig,
+          );
+          await standaloneDriver.prepareTest(launchContext);
 
           final config = await harness.loadScreen(
             tester: tester,
@@ -439,18 +505,28 @@ class EnsembleTestRunner {
     required EnsembleConfig config,
     required Stopwatch stopwatch,
   }) async {
-    final assertions = AssertionEngine(tester: tester, context: ctx);
+    final executorServices = StandaloneEnsembleApplicationHandle(
+      context: ctx,
+      configDescription: const {},
+    ).services;
+    final assertions = AssertionEngine(
+      tester: tester,
+      context: ctx,
+      services: executorServices,
+    );
     final executor = TestStepExecutor(
       tester: tester,
       context: ctx,
       assertions: assertions,
       harness: harness,
+      services: executorServices,
       config: config,
     );
     final session = LocalTestExecutionSession.attach(
       tester: tester,
       harness: harness,
       context: ctx,
+      services: executorServices,
       sessionId: test.id,
       assertions: assertions,
       executor: executor,
@@ -459,206 +535,266 @@ class EnsembleTestRunner {
     final stepDurationsMs = <int>[];
     final stepStartTimes = <String>[];
     try {
-    for (var i = 0; i < test.steps.length; i++) {
-      final step = test.steps[i];
-      final startFrame = ctx.runtime.appFrameTimings.length + 1;
-      final startTime = DateTime.now();
-      ctx.runtime.currentStepIndex = i;
-      stepStartTimes.add(startTime.toIso8601String());
-      final storageBefore = capturePublicStorage();
-      final secureStorageBefore = captureSecureStorage();
-      final keychainBefore = await captureKeychainStorage();
-      var capturedStep = false;
-      try {
-        _throwIfUnexpectedFlutterExceptions(
-          tester,
-          phase: 'before this step',
-        );
-        if (i == 0 && ctx.config.screenshots.enabled) {
-          await executor.settle();
-        }
-        final captureBeforeStep = _shouldCaptureBeforeStep(step);
-        if (captureBeforeStep) {
-          await _captureAutomaticScreenshotForStep(
-            executor: executor,
-            step: step,
-            stepIndex: i,
-            waitForTarget: true,
+      for (var i = 0; i < test.steps.length; i++) {
+        final step = test.steps[i];
+        final startFrame = ctx.runtime.appFrameTimings.length + 1;
+        final startTime = DateTime.now();
+        ctx.runtime.currentStepIndex = i;
+        stepStartTimes.add(startTime.toIso8601String());
+        final storageBefore = capturePublicStorage();
+        final secureStorageBefore = captureSecureStorage();
+        final keychainBefore = await captureKeychainStorage();
+        var capturedStep = false;
+        try {
+          _throwIfUnexpectedFlutterExceptions(
+            tester,
+            phase: 'before this step',
           );
-          capturedStep = true;
-        }
-        if (step.type == 'waitForText') {
-          executor.onWaitForTextMatched = (matchedStep) async {
-            if (capturedStep) return;
-            await _waitForHighlightTargetToPaint(executor, matchedStep);
-            await _captureAutomaticScreenshotForStepBestEffort(
-              executor: executor,
-              step: matchedStep,
-              stepIndex: i,
-              pumpBeforeCapture: true,
-              stabilize: false,
-            );
-            capturedStep = true;
-          };
-        }
-        if (step.type == 'waitForNavigation') {
-          // Capture while the target screen is still the current route.
-          // Immediate pixels are wrong for durable screens (Home) whose tracker
-          // updates before paint; long waits are wrong for transient screens
-          // (AutoSignIn_Gateway → Home). Paint briefly, then choose.
-          executor.onWaitForNavigationMatched = (matchedStep) async {
-            if (capturedStep) return;
-            final didCapture = await _captureWaitForNavigationScreenshot(
-              executor: executor,
-              step: matchedStep,
-              stepIndex: i,
-            );
-            if (didCapture) {
-              capturedStep = true;
-            }
-          };
-        }
-        final optionalActionStep = _singleNestedOptionalAction(step);
-        if (optionalActionStep != null) {
-          Future<void> captureOptionalAction(TestStep matchedStep) async {
-            if (capturedStep) return;
+          if (i == 0 && ctx.config.screenshots.enabled) {
+            await executor.settle();
+          }
+          final captureBeforeStep = _shouldCaptureBeforeStep(step);
+          if (captureBeforeStep) {
             await _captureAutomaticScreenshotForStep(
               executor: executor,
-              step: matchedStep,
-              labelStep: step,
+              step: step,
               stepIndex: i,
-              stabilize: false,
+              waitForTarget: true,
             );
             capturedStep = true;
           }
-
-          if (_shouldCaptureBeforeStep(optionalActionStep)) {
-            executor.onBeforeActionStep = captureOptionalAction;
-          } else {
-            executor.onAfterActionStep = captureOptionalAction;
+          if (step.type == 'waitForText') {
+            executor.onWaitForTextMatched = (matchedStep) async {
+              if (capturedStep) return;
+              await _waitForHighlightTargetToPaint(executor, matchedStep);
+              await _captureAutomaticScreenshotForStepBestEffort(
+                executor: executor,
+                step: matchedStep,
+                stepIndex: i,
+                pumpBeforeCapture: true,
+                stabilize: false,
+              );
+              capturedStep = true;
+            };
           }
-        }
-        try {
-          await dispatcher.execute(step);
-        } finally {
-          executor.onWaitForTextMatched = null;
-          executor.onWaitForNavigationMatched = null;
-          executor.onBeforeActionStep = null;
-          executor.onAfterActionStep = null;
-        }
-        if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
-          await _paintAfterUserAction(executor);
-        }
-        _throwIfUnexpectedFlutterExceptions(
-          tester,
-          phase: 'after this step',
-        );
-        if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
-          await _captureAutomaticScreenshotForStep(
-            executor: executor,
-            step: step,
-            stepIndex: i,
-            pumpBeforeCapture: _shouldPumpBeforePostStepCapture(step),
-            // Prefer mid-wait capture for navigation; if we missed it, still
-            // avoid a long Lottie wait that advances to the next screen.
-            waitForLottie: step.type != 'waitForNavigation',
-            stabilize: !_isTextVerificationStep(step),
+          if (step.type == 'waitForNavigation') {
+            // Capture while the target screen is still the current route.
+            // Immediate pixels are wrong for durable screens (Home) whose tracker
+            // updates before paint; long waits are wrong for transient screens
+            // (AutoSignIn_Gateway → Home). Paint briefly, then choose.
+            executor.onWaitForNavigationMatched = (matchedStep) async {
+              if (capturedStep) return;
+              final didCapture = await _captureWaitForNavigationScreenshot(
+                executor: executor,
+                step: matchedStep,
+                stepIndex: i,
+              );
+              if (didCapture) {
+                capturedStep = true;
+              }
+            };
+          }
+          final optionalActionStep = _singleNestedOptionalAction(step);
+          if (optionalActionStep != null) {
+            Future<void> captureOptionalAction(TestStep matchedStep) async {
+              if (capturedStep) return;
+              await _captureAutomaticScreenshotForStep(
+                executor: executor,
+                step: matchedStep,
+                labelStep: step,
+                stepIndex: i,
+                stabilize: false,
+              );
+              capturedStep = true;
+            }
+
+            if (_shouldCaptureBeforeStep(optionalActionStep)) {
+              executor.onBeforeActionStep = captureOptionalAction;
+            } else {
+              executor.onAfterActionStep = captureOptionalAction;
+            }
+          }
+          try {
+            await dispatcher.execute(step);
+          } finally {
+            executor.onWaitForTextMatched = null;
+            executor.onWaitForNavigationMatched = null;
+            executor.onBeforeActionStep = null;
+            executor.onAfterActionStep = null;
+          }
+          if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
+            await _paintAfterUserAction(executor);
+          }
+          _throwIfUnexpectedFlutterExceptions(
+            tester,
+            phase: 'after this step',
           );
-          capturedStep = true;
-        }
-        await YamlTestSession.navigationFlow.flushPending();
-        await _recordStorageStepDiff(
-          ctx: ctx,
-          stepIndex: i,
-          before: storageBefore,
-          secureBefore: secureStorageBefore,
-          keychainBefore: keychainBefore,
-        );
-        stepDurationsMs.add(
-          DateTime.now().difference(startTime).inMilliseconds,
-        );
-        _recordPerformanceMarker(
-          ctx: ctx,
-          testId: test.id,
-          stepIndex: i + 1,
-          label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
-          phase: _phaseForStep(step),
-          startFrame: startFrame,
-          startTime: startTime,
-        );
-        _captureScreenArtifacts(ctx);
-      } catch (error, stackTrace) {
-        await _recordStorageStepDiff(
-          ctx: ctx,
-          stepIndex: i,
-          before: storageBefore,
-          secureBefore: secureStorageBefore,
-          keychainBefore: keychainBefore,
-        );
-        stepDurationsMs.add(
-          DateTime.now().difference(startTime).inMilliseconds,
-        );
-        _recordPerformanceMarker(
-          ctx: ctx,
-          testId: test.id,
-          stepIndex: i + 1,
-          label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
-          phase: _phaseForStep(step),
-          startFrame: startFrame,
-          startTime: startTime,
-        );
-        _captureScreenArtifacts(ctx);
-        final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
-        final idleStartTime = DateTime.now();
-        await _settleLiveApiWorkBestEffort(tester, ctx);
-        final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
-        if (!capturedStep) {
-          await _captureAutomaticScreenshotForStepBestEffort(
-            executor: executor,
-            step: step,
+          if (!captureBeforeStep &&
+              !capturedStep &&
+              optionalActionStep == null) {
+            await _captureAutomaticScreenshotForStep(
+              executor: executor,
+              step: step,
+              stepIndex: i,
+              pumpBeforeCapture: _shouldPumpBeforePostStepCapture(step),
+              // Prefer mid-wait capture for navigation; if we missed it, still
+              // avoid a long Lottie wait that advances to the next screen.
+              waitForLottie: step.type != 'waitForNavigation',
+              stabilize: !_isTextVerificationStep(step),
+            );
+            capturedStep = true;
+          }
+          await YamlTestSession.navigationFlow.flushPending();
+          await _recordStorageStepDiff(
+            ctx: ctx,
             stepIndex: i,
-            pumpBeforeCapture: true,
-            ensureTargetVisible: false,
-            forFailure: true,
+            before: storageBefore,
+            secureBefore: secureStorageBefore,
+            keychainBefore: keychainBefore,
+          );
+          stepDurationsMs.add(
+            DateTime.now().difference(startTime).inMilliseconds,
+          );
+          _recordPerformanceMarker(
+            ctx: ctx,
+            testId: test.id,
+            stepIndex: i + 1,
+            label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
+            phase: _phaseForStep(step),
+            startFrame: startFrame,
+            startTime: startTime,
+          );
+          _captureScreenArtifacts(ctx);
+        } catch (error, stackTrace) {
+          await _recordStorageStepDiff(
+            ctx: ctx,
+            stepIndex: i,
+            before: storageBefore,
+            secureBefore: secureStorageBefore,
+            keychainBefore: keychainBefore,
+          );
+          stepDurationsMs.add(
+            DateTime.now().difference(startTime).inMilliseconds,
+          );
+          _recordPerformanceMarker(
+            ctx: ctx,
+            testId: test.id,
+            stepIndex: i + 1,
+            label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
+            phase: _phaseForStep(step),
+            startFrame: startFrame,
+            startTime: startTime,
+          );
+          _captureScreenArtifacts(ctx);
+          final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
+          final idleStartTime = DateTime.now();
+          await _settleLiveApiWorkBestEffort(tester, ctx);
+          final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
+          if (!capturedStep) {
+            await _captureAutomaticScreenshotForStepBestEffort(
+              executor: executor,
+              step: step,
+              stepIndex: i,
+              pumpBeforeCapture: true,
+              ensureTargetVisible: false,
+              forFailure: true,
+            );
+          }
+          var failureMessage = _failureMessageWithFlutterErrors(
+            error.toString(),
+            ctx,
+          );
+          if (frameworkErrors.isNotEmpty) {
+            failureMessage = '$failureMessage\n'
+                'Unexpected Flutter framework error: '
+                '${_compactDiagnostic(frameworkErrors.first)}';
+          }
+          await _flushPendingScreenshots(
+            ctx,
+            status: TestStatus.failed,
+            durationMs: stopwatch.elapsedMilliseconds,
+            failedStepIndex: i,
+            failedStepLabel: formatStepBrief(step),
+            failureMessage: failureMessage,
+          );
+          await YamlTestSession.navigationFlow.flushPending();
+          _recordPerformanceMarker(
+            ctx: ctx,
+            testId: test.id,
+            stepIndex: null,
+            label: '${test.id} failure cleanup',
+            phase: 'idle',
+            startFrame: idleStartFrame,
+            startTime: idleStartTime,
+          );
+          await _attachPerTestDebugArtifacts(ctx);
+          return EnsembleSingleTestResult.failed(
+            testId: test.id,
+            metadata: test.metadataJson,
+            failedStepIndex: i,
+            failedStep: step,
+            error: failureMessage,
+            stackTrace: stackTrace.toString(),
+            durationMs: stopwatch.elapsedMilliseconds,
+            logs: ctx.logger.logs,
+            failure: TestFailureDetails.fromMessage(
+              failureMessage,
+              phase: 'execution',
+              target: {
+                if (step.args['id'] != null) 'id': step.args['id'],
+                if (step.args['target'] is Map)
+                  'target': Map<String, dynamic>.from(
+                    step.args['target'] as Map,
+                  ),
+              },
+            ),
+            report: buildTestReportDetails(
+              test,
+              stepDurationsMs: stepDurationsMs,
+              stepStartTimes: stepStartTimes,
+              screens: ctx.runtime.screenArtifacts,
+            ),
           );
         }
-        var failureMessage = _failureMessageWithFlutterErrors(
-          error.toString(),
+      }
+      ctx.runtime.currentStepIndex = null;
+
+      await YamlTestSession.navigationFlow.flushPending();
+      final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
+      final idleStartTime = DateTime.now();
+      await _settleLiveApiWorkBestEffort(tester, ctx);
+      final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
+      if (frameworkErrors.isNotEmpty) {
+        final failureMessage = _failureMessageWithFlutterErrors(
+          'Unexpected Flutter framework error after the final step: '
+          '${_compactDiagnostic(frameworkErrors.first)} '
+          'Hint: inspect the last screenshot and check async work started by '
+          'the final step.',
           ctx,
         );
-        if (frameworkErrors.isNotEmpty) {
-          failureMessage = '$failureMessage\n'
-              'Unexpected Flutter framework error: '
-              '${_compactDiagnostic(frameworkErrors.first)}';
-        }
         await _flushPendingScreenshots(
           ctx,
           status: TestStatus.failed,
           durationMs: stopwatch.elapsedMilliseconds,
-          failedStepIndex: i,
-          failedStepLabel: formatStepBrief(step),
+          failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+          failedStepLabel:
+              test.steps.isEmpty ? null : formatStepBrief(test.steps.last),
           failureMessage: failureMessage,
-        );
-        await YamlTestSession.navigationFlow.flushPending();
-        _recordPerformanceMarker(
-          ctx: ctx,
-          testId: test.id,
-          stepIndex: null,
-          label: '${test.id} failure cleanup',
-          phase: 'idle',
-          startFrame: idleStartFrame,
-          startTime: idleStartTime,
         );
         await _attachPerTestDebugArtifacts(ctx);
         return EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
-          failedStepIndex: i,
-          failedStep: step,
+          failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+          failedStep: test.steps.isEmpty ? null : test.steps.last,
           error: failureMessage,
-          stackTrace: stackTrace.toString(),
+          stackTrace: StackTrace.current.toString(),
           durationMs: stopwatch.elapsedMilliseconds,
           logs: ctx.logger.logs,
+          failure: TestFailureDetails.fromMessage(
+            failureMessage,
+            phase: 'execution',
+          ),
           report: buildTestReportDetails(
             test,
             stepDurationsMs: stepDurationsMs,
@@ -667,39 +803,25 @@ class EnsembleTestRunner {
           ),
         );
       }
-    }
-    ctx.runtime.currentStepIndex = null;
-
-    await YamlTestSession.navigationFlow.flushPending();
-    final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
-    final idleStartTime = DateTime.now();
-    await _settleLiveApiWorkBestEffort(tester, ctx);
-    final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
-    if (frameworkErrors.isNotEmpty) {
-      final failureMessage = _failureMessageWithFlutterErrors(
-        'Unexpected Flutter framework error after the final step: '
-        '${_compactDiagnostic(frameworkErrors.first)} '
-        'Hint: inspect the last screenshot and check async work started by '
-        'the final step.',
-        ctx,
-      );
       await _flushPendingScreenshots(
         ctx,
-        status: TestStatus.failed,
+        status: TestStatus.passed,
         durationMs: stopwatch.elapsedMilliseconds,
-        failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
-        failedStepLabel:
-            test.steps.isEmpty ? null : formatStepBrief(test.steps.last),
-        failureMessage: failureMessage,
+      );
+      _recordPerformanceMarker(
+        ctx: ctx,
+        testId: test.id,
+        stepIndex: null,
+        label: '${test.id} idle',
+        phase: 'idle',
+        startFrame: idleStartFrame,
+        startTime: idleStartTime,
       );
       await _attachPerTestDebugArtifacts(ctx);
-      return EnsembleSingleTestResult.failed(
+
+      return EnsembleSingleTestResult.passed(
         testId: test.id,
         metadata: test.metadataJson,
-        failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
-        failedStep: test.steps.isEmpty ? null : test.steps.last,
-        error: failureMessage,
-        stackTrace: StackTrace.current.toString(),
         durationMs: stopwatch.elapsedMilliseconds,
         logs: ctx.logger.logs,
         report: buildTestReportDetails(
@@ -709,35 +831,6 @@ class EnsembleTestRunner {
           screens: ctx.runtime.screenArtifacts,
         ),
       );
-    }
-    await _flushPendingScreenshots(
-      ctx,
-      status: TestStatus.passed,
-      durationMs: stopwatch.elapsedMilliseconds,
-    );
-    _recordPerformanceMarker(
-      ctx: ctx,
-      testId: test.id,
-      stepIndex: null,
-      label: '${test.id} idle',
-      phase: 'idle',
-      startFrame: idleStartFrame,
-      startTime: idleStartTime,
-    );
-    await _attachPerTestDebugArtifacts(ctx);
-
-    return EnsembleSingleTestResult.passed(
-      testId: test.id,
-      metadata: test.metadataJson,
-      durationMs: stopwatch.elapsedMilliseconds,
-      logs: ctx.logger.logs,
-      report: buildTestReportDetails(
-        test,
-        stepDurationsMs: stepDurationsMs,
-        stepStartTimes: stepStartTimes,
-        screens: ctx.runtime.screenArtifacts,
-      ),
-    );
     } finally {
       await session.close();
     }
@@ -769,7 +862,10 @@ class EnsembleTestRunner {
     // screens (AutoSignIn_Gateway) often leave during the paint pumps below.
     ui.Image? earlyImage;
     try {
-      earlyImage = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
+      earlyImage = ExtendedStepHandlers.captureScreenshotImage(
+        executor.tester,
+        secureContent: executor.context.config.screenshots.secureContent,
+      );
     } catch (_) {
       earlyImage = null;
     }
@@ -860,7 +956,10 @@ class EnsembleTestRunner {
       );
     }
 
-    final image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
+    final image = ExtendedStepHandlers.captureScreenshotImage(
+      executor.tester,
+      secureContent: executor.context.config.screenshots.secureContent,
+    );
     final device = _screenshotDeviceTarget(executor.context);
     final highlight = _highlightForStep(
       executor: executor,
@@ -1583,7 +1682,10 @@ class EnsembleTestRunner {
   }) async {
     if (!config.screenshots.enabled) return const [];
     try {
-      final image = ExtendedStepHandlers.captureScreenshotImage(tester);
+      final image = ExtendedStepHandlers.captureScreenshotImage(
+        tester,
+        secureContent: config.screenshots.secureContent,
+      );
       final path = await writeScreenshotFrames(
         testId: test.resolvedScreenshotSheetId,
         config: config.screenshots,

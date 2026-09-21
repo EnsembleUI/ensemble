@@ -6,9 +6,15 @@
 /// recommended command-line entry point for application developers.
 library ensemble_test_runner;
 
+export 'application/application_test_types.dart';
+export 'application/application_test_driver.dart';
+export 'application/standalone_ensemble_test_driver.dart';
+export 'discovery/test_suite_source.dart';
 export 'discovery/ensemble_test_discovery.dart';
 export 'entry/ensemble_test_entry.dart';
 export 'entry/ensemble_integration_test_entry.dart';
+export 'entry/application_test_entry.dart';
+export 'entry/application_integration_test_entry.dart';
 export 'vocabulary/test_step_vocabulary.dart';
 export 'actions/test_execution_config.dart';
 export 'actions/test_step_executor.dart';

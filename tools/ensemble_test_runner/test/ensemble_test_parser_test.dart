@@ -2,6 +2,27 @@ import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('secure screenshots default to mask and parse explicit policy', () {
+    expect(
+      EnsembleTestParser.parseConfigString('').screenshots.secureContent,
+      SecureScreenshotPolicy.mask,
+    );
+    expect(
+      EnsembleTestParser.parseConfigString('''
+screenshots:
+  secureContent: skip
+''').screenshots.secureContent,
+      SecureScreenshotPolicy.skip,
+    );
+    expect(
+      () => EnsembleTestParser.parseConfigString('''
+screenshots:
+  secureContent: raw
+'''),
+      throwsA(isA<EnsembleTestFailure>()),
+    );
+  });
+
   group('EnsembleTestParser', () {
     test('parses minimal test file', () {
       const yaml = '''
@@ -252,7 +273,7 @@ steps:
       );
     });
 
-    test('rejects session without a start screen', () {
+    test('parses host session without a start screen', () {
       const yaml = '''
 id: invalid_session
 session: signin
@@ -261,16 +282,9 @@ steps:
       id: home
 ''';
 
-      expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (error) => error.message,
-            'message',
-            contains('must have "startScreen"'),
-          ),
-        ),
-      );
+      final parsed = EnsembleTestParser.parseString(yaml);
+      expect(parsed.startScreen, isNull);
+      expect(parsed.session, 'signin');
     });
 
     test('resolves CLI inputs in initial state and steps', () {
@@ -756,7 +770,7 @@ tests:
   });
 
   group('startScreen', () {
-    test('rejects when startScreen is missing', () {
+    test('allows structurally optional startScreen for host validation', () {
       const yaml = '''
 id: invalid_neither
 steps:
@@ -764,16 +778,8 @@ steps:
       id: x
 ''';
 
-      expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (e) => e.message,
-            'message',
-            contains('startScreen'),
-          ),
-        ),
-      );
+      final parsed = EnsembleTestParser.parseString(yaml);
+      expect(parsed.startScreen, isNull);
     });
   });
 

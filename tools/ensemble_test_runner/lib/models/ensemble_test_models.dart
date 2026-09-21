@@ -432,11 +432,13 @@ class ScreenshotConfig {
   final bool enabled;
   final List<String> includeSteps;
   final List<String> excludeSteps;
+  final SecureScreenshotPolicy secureContent;
 
   const ScreenshotConfig({
     this.enabled = false,
     this.includeSteps = const [],
     this.excludeSteps = const [],
+    this.secureContent = SecureScreenshotPolicy.mask,
   });
 
   bool shouldCaptureStep(String stepType) {
@@ -448,6 +450,8 @@ class ScreenshotConfig {
     return true;
   }
 }
+
+enum SecureScreenshotPolicy { mask, skip, allow }
 
 /// Mock configuration attached to a test case.
 /// API mocks attached to a test after profile and suite composition.
@@ -494,6 +498,27 @@ class TestStep {
     this.mocks = const TestMocks(),
     this.nestedSteps = const [],
   });
+
+  factory TestStep.fromJson(Map<String, dynamic> json) {
+    final entries = json.entries
+        .where((entry) => entry.key != 'steps')
+        .toList(growable: false);
+    if (entries.length != 1) {
+      throw const FormatException('Serialized TestStep must contain one step.');
+    }
+    final entry = entries.single;
+    final rawArgs = entry.value;
+    return TestStep(
+      type: entry.key,
+      args: rawArgs is Map
+          ? Map<String, dynamic>.from(rawArgs)
+          : <String, dynamic>{'value': rawArgs},
+      nestedSteps: (json['steps'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((value) => TestStep.fromJson(Map<String, dynamic>.from(value)))
+          .toList(),
+    );
+  }
 
   /// Canonical handler name after alias resolution.
   String get canonicalType => type;
@@ -548,6 +573,93 @@ class EnsembleTestRunResult {
 /// Final status of an executed test case.
 enum TestStatus { passed, failed }
 
+enum TestFailureKind {
+  assertion,
+  elementNotFound,
+  ambiguousTarget,
+  unsupportedCapability,
+  bootstrap,
+  crash,
+  cleanup,
+  incompleteExecution,
+  internal,
+}
+
+class TestFailureDetails {
+  final TestFailureKind kind;
+  final String message;
+  final Map<String, dynamic> target;
+  final String? phase;
+
+  const TestFailureDetails({
+    required this.kind,
+    required this.message,
+    this.target = const {},
+    this.phase,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind.name,
+        'message': message,
+        if (target.isNotEmpty) 'target': target,
+        if (phase != null) 'phase': phase,
+      };
+
+  factory TestFailureDetails.fromJson(Map<String, dynamic> json) {
+    final kindName = json['kind']?.toString();
+    return TestFailureDetails(
+      kind: TestFailureKind.values.firstWhere(
+        (value) => value.name == kindName,
+        orElse: () => TestFailureKind.internal,
+      ),
+      message: json['message']?.toString() ??
+          json['actual']?.toString() ??
+          'Test failed',
+      target: json['target'] is Map
+          ? Map<String, dynamic>.from(json['target'] as Map)
+          : const {},
+      phase: json['phase']?.toString(),
+    );
+  }
+
+  /// Best-effort structured kind from a free-form failure message.
+  factory TestFailureDetails.fromMessage(
+    String text, {
+    String? phase,
+    Map<String, dynamic> target = const {},
+  }) {
+    final lower = text.toLowerCase();
+    final TestFailureKind kind;
+    if (lower.contains('ambiguous')) {
+      kind = TestFailureKind.ambiguousTarget;
+    } else if (lower.contains('not found') ||
+        lower.contains('could not find') ||
+        lower.contains('missing')) {
+      kind = TestFailureKind.elementNotFound;
+    } else if (lower.contains('capability') ||
+        lower.contains('unavailable') ||
+        lower.contains('unsupported')) {
+      kind = TestFailureKind.unsupportedCapability;
+    } else if (lower.contains('crash') || lower.contains('application error')) {
+      kind = TestFailureKind.crash;
+    } else if (lower.contains('cleanup') || lower.contains('teardown')) {
+      kind = TestFailureKind.cleanup;
+    } else if (lower.contains('bootstrap') || lower.contains('launch')) {
+      kind = TestFailureKind.bootstrap;
+    } else if (lower.contains('incomplete') || lower.contains('transport')) {
+      kind = TestFailureKind.incompleteExecution;
+    } else {
+      kind = TestFailureKind.assertion;
+    }
+    return TestFailureDetails(
+      kind: kind,
+      message: text,
+      phase: phase,
+      target: target,
+    );
+  }
+}
+
 /// Result for one executed YAML test case.
 /// Result and diagnostics for one expanded test case run.
 class EnsembleSingleTestResult {
@@ -563,6 +675,9 @@ class EnsembleSingleTestResult {
   final String? stackTrace;
   final List<String> logs;
   final EnsembleTestReportDetails? report;
+  final TestFailureDetails? failure;
+  final List<TestFailureDetails> secondaryFailures;
+  final Map<String, bool> capabilityStatus;
 
   const EnsembleSingleTestResult({
     required this.testId,
@@ -577,6 +692,9 @@ class EnsembleSingleTestResult {
     this.stackTrace,
     this.logs = const [],
     this.report,
+    this.failure,
+    this.secondaryFailures = const [],
+    this.capabilityStatus = const {},
   });
 
   factory EnsembleSingleTestResult.passed({
@@ -587,6 +705,7 @@ class EnsembleSingleTestResult {
     int retry = 0,
     List<String> logs = const [],
     EnsembleTestReportDetails? report,
+    Map<String, bool> capabilityStatus = const {},
   }) =>
       EnsembleSingleTestResult(
         testId: testId,
@@ -597,6 +716,7 @@ class EnsembleSingleTestResult {
         retry: retry,
         logs: logs,
         report: report,
+        capabilityStatus: capabilityStatus,
       );
 
   factory EnsembleSingleTestResult.failed({
@@ -611,6 +731,9 @@ class EnsembleSingleTestResult {
     String? stackTrace,
     List<String> logs = const [],
     EnsembleTestReportDetails? report,
+    TestFailureDetails? failure,
+    List<TestFailureDetails> secondaryFailures = const [],
+    Map<String, bool> capabilityStatus = const {},
   }) =>
       EnsembleSingleTestResult(
         testId: testId,
@@ -625,7 +748,63 @@ class EnsembleSingleTestResult {
         stackTrace: stackTrace,
         logs: logs,
         report: report,
+        failure: failure,
+        secondaryFailures: secondaryFailures,
+        capabilityStatus: capabilityStatus,
       );
+
+  factory EnsembleSingleTestResult.fromJson(Map<String, dynamic> json) {
+    final failureRaw = json['failure'];
+    final secondaryRaw = json['secondaryFailures'];
+    final capabilitiesRaw = json['capabilities'];
+    return EnsembleSingleTestResult(
+      testId: json['testId']?.toString() ?? '(unknown)',
+      metadata: json['metadata'] is Map
+          ? Map<String, dynamic>.from(json['metadata'] as Map)
+          : const {},
+      status: json['status'] == TestStatus.passed.name
+          ? TestStatus.passed
+          : TestStatus.failed,
+      durationMs: json['durationMs'] is int ? json['durationMs'] as int : 0,
+      attempts: json['attempts'] is int ? json['attempts'] as int : 1,
+      retry: json['retry'] is int ? json['retry'] as int : 0,
+      failedStepIndex: json['failedStepIndex'] is int
+          ? json['failedStepIndex'] as int
+          : null,
+      failedStep: json['failedStep'] is Map
+          ? TestStep.fromJson(
+              Map<String, dynamic>.from(json['failedStep'] as Map))
+          : null,
+      message: json['message']?.toString(),
+      stackTrace: json['stackTrace']?.toString(),
+      logs: (json['logs'] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
+      report: json['report'] is Map
+          ? EnsembleTestReportDetails.fromJson(
+              Map<String, dynamic>.from(json['report'] as Map),
+            )
+          : null,
+      failure: failureRaw is Map && failureRaw['message'] != null
+          ? TestFailureDetails.fromJson(
+              Map<String, dynamic>.from(failureRaw),
+            )
+          : null,
+      secondaryFailures: secondaryRaw is List
+          ? secondaryRaw
+              .whereType<Map>()
+              .map((value) => TestFailureDetails.fromJson(
+                    Map<String, dynamic>.from(value),
+                  ))
+              .toList()
+          : const [],
+      capabilityStatus: capabilitiesRaw is Map
+          ? capabilitiesRaw.map(
+              (key, value) => MapEntry(key.toString(), value == true),
+            )
+          : const {},
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'testId': testId,
@@ -637,7 +816,12 @@ class EnsembleSingleTestResult {
         if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
         if (failedStep != null) 'failedStep': failedStep!.toJson(),
         if (message != null) 'message': message,
-        if (status == TestStatus.failed) 'failure': _failureJson(),
+        if (status == TestStatus.failed)
+          'failure': failure?.toJson() ?? _failureJson(),
+        if (secondaryFailures.isNotEmpty)
+          'secondaryFailures':
+              secondaryFailures.map((failure) => failure.toJson()).toList(),
+        if (capabilityStatus.isNotEmpty) 'capabilities': capabilityStatus,
         if (stackTrace != null) 'stackTrace': stackTrace,
         'logs': logs,
         if (report != null) 'report': report!.toJson(),
@@ -645,23 +829,27 @@ class EnsembleSingleTestResult {
 
   Map<String, dynamic> _failureJson() {
     final text = message ?? '';
-    final kind = _failureKind(text);
+    final structured = failure ?? TestFailureDetails.fromMessage(text);
+    final legacyKind = _legacyFailureKind(text);
     return {
-      'kind': kind,
+      'kind': structured.kind.name,
+      'legacyKind': legacyKind,
       if (failedStep != null) 'step': failedStep!.type,
       if (failedStepIndex != null) 'stepIndex': failedStepIndex,
       if (failedStep?.args['id'] != null) 'expected': failedStep!.args['id'],
       'actual': text,
-      'suggestions': _failureSuggestions(kind, failedStep),
+      'message': structured.message,
+      'suggestions': _failureSuggestions(legacyKind, failedStep),
       if (report != null)
         'context': {
           'currentScreen': report!.endScreen ?? report!.startScreen,
           'screensVisited': report!.screensVisited,
+          'navigationKnown': report!.navigationKnown,
         },
     };
   }
 
-  String _failureKind(String text) {
+  String _legacyFailureKind(String text) {
     final lower = text.toLowerCase();
     if (lower.contains('timeout') || lower.contains('timed out')) {
       return 'timeout';
@@ -674,13 +862,18 @@ class EnsembleSingleTestResult {
     }
     if (lower.contains('widget') ||
         lower.contains('visible') ||
-        lower.contains('finder')) {
+        lower.contains('finder') ||
+        lower.contains('not found')) {
       return 'missingWidget';
     }
     if (lower.contains('yaml') ||
         lower.contains('parse') ||
         lower.contains('invalid')) {
       return 'parseError';
+    }
+    if (lower.contains('ambiguous')) return 'missingWidget';
+    if (lower.contains('capability') || lower.contains('unavailable')) {
+      return 'assertionFailure';
     }
     return 'assertionFailure';
   }
@@ -724,8 +917,9 @@ class EnsembleSingleTestResult {
 /// Human-readable run metadata for console reports (see [TestReporter]).
 class EnsembleTestReportDetails {
   /// Display start screen (explicit or inherited from runtime).
-  final String startScreen;
+  final String? startScreen;
   final String? endScreen;
+  final bool navigationKnown;
   final String? session;
   final List<String> screensVisited;
   final List<String> stepsOutline;
@@ -739,8 +933,9 @@ class EnsembleTestReportDetails {
   final Map<String, Map<String, dynamic>> screens;
 
   const EnsembleTestReportDetails({
-    required this.startScreen,
+    this.startScreen,
     this.endScreen,
+    this.navigationKnown = true,
     this.session,
     this.screensVisited = const [],
     this.stepsOutline = const [],
@@ -759,8 +954,9 @@ class EnsembleTestReportDetails {
       });
     }
     return EnsembleTestReportDetails(
-      startScreen: json['startScreen']?.toString() ?? '(unknown)',
+      startScreen: json['startScreen']?.toString(),
       endScreen: json['endScreen']?.toString(),
+      navigationKnown: json['navigationKnown'] != false,
       session: json['session']?.toString(),
       screensVisited: (json['screensVisited'] as List<dynamic>? ?? const [])
           .map((value) => value.toString())
@@ -779,8 +975,9 @@ class EnsembleTestReportDetails {
   }
 
   Map<String, dynamic> toJson() => {
-        'startScreen': startScreen,
+        if (startScreen != null) 'startScreen': startScreen,
         if (endScreen != null) 'endScreen': endScreen,
+        'navigationKnown': navigationKnown,
         if (session != null) 'session': session,
         'screensVisited': screensVisited,
         'stepsOutline': stepsOutline,

@@ -1,4 +1,5 @@
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
+import 'package:ensemble_test_runner/session/actions/test_action.dart';
 
 /// Deterministic assertion request.
 sealed class TestAssertion {
@@ -11,30 +12,56 @@ sealed class TestAssertion {
 
   static TestAssertion fromJson(Map<String, dynamic> json) {
     final type = json['type']?.toString() ?? '';
+    final target = json['target'] is Map
+        ? ElementTarget.fromJson(
+            Map<String, dynamic>.from(json['target'] as Map),
+          )
+        : ElementTarget(testId: json['testId']?.toString());
     switch (type) {
       case 'elementVisible':
-        return ElementVisibleAssertion(
-          testId: json['testId']?.toString() ?? '',
-          visible: json['visible'] != false,
-        );
+        return json['target'] is Map
+            ? ElementVisibleAssertion.target(
+                target,
+                visible: json['visible'] != false,
+              )
+            : ElementVisibleAssertion(
+                testId: json['testId']?.toString() ?? '',
+                visible: json['visible'] != false,
+              );
       case 'elementText':
-        return ElementTextAssertion(
-          testId: json['testId']?.toString() ?? '',
-          text: json['text']?.toString() ?? '',
-          contains: json['contains'] == true,
-        );
+        return json['target'] is Map
+            ? ElementTextAssertion.target(
+                target,
+                text: json['text']?.toString() ?? '',
+                contains: json['contains'] == true,
+              )
+            : ElementTextAssertion(
+                testId: json['testId']?.toString() ?? '',
+                text: json['text']?.toString() ?? '',
+                contains: json['contains'] == true,
+              );
       case 'screen':
         return ScreenAssertion(screen: json['screen']?.toString() ?? '');
       case 'elementEnabled':
-        return ElementEnabledAssertion(
-          testId: json['testId']?.toString() ?? '',
-          enabled: json['enabled'] != false,
-        );
+        return json['target'] is Map
+            ? ElementEnabledAssertion.target(
+                target,
+                enabled: json['enabled'] != false,
+              )
+            : ElementEnabledAssertion(
+                testId: json['testId']?.toString() ?? '',
+                enabled: json['enabled'] != false,
+              );
       case 'elementExists':
-        return ElementExistsAssertion(
-          testId: json['testId']?.toString() ?? '',
-          exists: json['exists'] != false,
-        );
+        return json['target'] is Map
+            ? ElementExistsAssertion.target(
+                target,
+                exists: json['exists'] != false,
+              )
+            : ElementExistsAssertion(
+                testId: json['testId']?.toString() ?? '',
+                exists: json['exists'] != false,
+              );
       case 'generic':
         return GenericAssertion(
           domain: json['domain']?.toString() ?? 'ui',
@@ -51,8 +78,15 @@ sealed class TestAssertion {
 
 class ElementVisibleAssertion extends TestAssertion {
   final String testId;
+  final ElementTarget? elementTarget;
+  ElementTarget get target => elementTarget ?? ElementTarget(testId: testId);
   final bool visible;
-  const ElementVisibleAssertion({required this.testId, this.visible = true});
+  const ElementVisibleAssertion({required this.testId, this.visible = true})
+      : elementTarget = null;
+  const ElementVisibleAssertion.target(
+    this.elementTarget, {
+    this.visible = true,
+  }) : testId = '';
   @override
   String get type => 'elementVisible';
   @override
@@ -61,15 +95,23 @@ class ElementVisibleAssertion extends TestAssertion {
   Map<String, dynamic> toJson() => {
         'type': type,
         'domain': domain,
-        'testId': testId,
+        if (target.locator == null) 'testId': testId,
+        if (target.locator != null) 'target': target.toJson(),
         'visible': visible,
       };
 }
 
 class ElementExistsAssertion extends TestAssertion {
   final String testId;
+  final ElementTarget? elementTarget;
+  ElementTarget get target => elementTarget ?? ElementTarget(testId: testId);
   final bool exists;
-  const ElementExistsAssertion({required this.testId, this.exists = true});
+  const ElementExistsAssertion({required this.testId, this.exists = true})
+      : elementTarget = null;
+  const ElementExistsAssertion.target(
+    this.elementTarget, {
+    this.exists = true,
+  }) : testId = '';
   @override
   String get type => 'elementExists';
   @override
@@ -78,20 +120,28 @@ class ElementExistsAssertion extends TestAssertion {
   Map<String, dynamic> toJson() => {
         'type': type,
         'domain': domain,
-        'testId': testId,
+        if (target.locator == null) 'testId': testId,
+        if (target.locator != null) 'target': target.toJson(),
         'exists': exists,
       };
 }
 
 class ElementTextAssertion extends TestAssertion {
   final String testId;
+  final ElementTarget? elementTarget;
+  ElementTarget get target => elementTarget ?? ElementTarget(testId: testId);
   final String text;
   final bool contains;
   const ElementTextAssertion({
     required this.testId,
     required this.text,
     this.contains = false,
-  });
+  }) : elementTarget = null;
+  const ElementTextAssertion.target(
+    this.elementTarget, {
+    required this.text,
+    this.contains = false,
+  }) : testId = '';
   @override
   String get type => 'elementText';
   @override
@@ -100,7 +150,8 @@ class ElementTextAssertion extends TestAssertion {
   Map<String, dynamic> toJson() => {
         'type': type,
         'domain': domain,
-        'testId': testId,
+        if (target.locator == null) 'testId': testId,
+        if (target.locator != null) 'target': target.toJson(),
         'text': text,
         'contains': contains,
       };
@@ -108,8 +159,15 @@ class ElementTextAssertion extends TestAssertion {
 
 class ElementEnabledAssertion extends TestAssertion {
   final String testId;
+  final ElementTarget? elementTarget;
+  ElementTarget get target => elementTarget ?? ElementTarget(testId: testId);
   final bool enabled;
-  const ElementEnabledAssertion({required this.testId, this.enabled = true});
+  const ElementEnabledAssertion({required this.testId, this.enabled = true})
+      : elementTarget = null;
+  const ElementEnabledAssertion.target(
+    this.elementTarget, {
+    this.enabled = true,
+  }) : testId = '';
   @override
   String get type => 'elementEnabled';
   @override
@@ -118,7 +176,8 @@ class ElementEnabledAssertion extends TestAssertion {
   Map<String, dynamic> toJson() => {
         'type': type,
         'domain': domain,
-        'testId': testId,
+        if (target.locator == null) 'testId': testId,
+        if (target.locator != null) 'target': target.toJson(),
         'enabled': enabled,
       };
 }
@@ -225,10 +284,17 @@ sealed class WaitCondition {
               : null,
         );
       case 'element':
-        return ElementWait(
-          testId: json['testId']?.toString() ?? '',
-          gone: json['gone'] == true,
-        );
+        return json['target'] is Map
+            ? ElementWait.target(
+                ElementTarget.fromJson(
+                  Map<String, dynamic>.from(json['target'] as Map),
+                ),
+                gone: json['gone'] == true,
+              )
+            : ElementWait(
+                testId: json['testId']?.toString() ?? '',
+                gone: json['gone'] == true,
+              );
       case 'text':
         return TextWait(
           text: json['text']?.toString(),
@@ -287,8 +353,13 @@ class SettleWait extends WaitCondition {
 
 class ElementWait extends WaitCondition {
   final String testId;
+  final ElementTarget? elementTarget;
+  ElementTarget get target => elementTarget ?? ElementTarget(testId: testId);
   final bool gone;
-  const ElementWait({required this.testId, this.gone = false});
+  const ElementWait({required this.testId, this.gone = false})
+      : elementTarget = null;
+  const ElementWait.target(this.elementTarget, {this.gone = false})
+      : testId = '';
   @override
   String get type => 'element';
   @override
@@ -296,7 +367,8 @@ class ElementWait extends WaitCondition {
   @override
   Map<String, dynamic> toJson() => {
         'type': type,
-        'testId': testId,
+        if (target.locator == null) 'testId': testId,
+        if (target.locator != null) 'target': target.toJson(),
         'gone': gone,
       };
 }

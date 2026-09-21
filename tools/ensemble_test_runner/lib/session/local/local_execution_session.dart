@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
+import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
@@ -23,11 +24,15 @@ import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_test_runner/session/test_execution_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Local [TestExecutionSession] over [WidgetTester] + [EnsembleTestHarness].
+/// Local [TestExecutionSession] over [WidgetTester].
 ///
-/// - [attach]: suite-owned harness; [close] clears session-local resources only.
+/// - [attach]: suite-owned; [close] clears session-local resources only.
 /// - [standalone]: factory-owned bootstrap context; [close] also resets
 ///   overlay/runtime state created for that session.
+///
+/// [harness] is optional — pure Flutter / host suites attach with
+/// [ApplicationTestServices] only. Ensemble lifecycle steps still require a
+/// harness when invoked.
 ///
 /// Leaf UI work delegates to a shared [TestStepExecutor] (same instance the
 /// YAML runner uses for privileged/lifecycle steps and screenshot hooks).
@@ -35,12 +40,13 @@ class LocalTestExecutionSession implements TestExecutionSession {
   LocalTestExecutionSession._({
     required this.sessionId,
     required this.tester,
-    required this.harness,
     required this.context,
     required this.permissions,
     required this.assertions,
     required this.executor,
     required this.ownsBootstrap,
+    this.harness,
+    this.services = const ApplicationTestServices(),
   })  : registry = ObservationRegistry(),
         queue = LeafCommandQueue(),
         _artifactStore = <String, Uint8List>{} {
@@ -55,6 +61,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
         _revision = revision;
         _lastFingerprint = fingerprint;
       },
+      navigation: services.navigation,
     );
     resolver = FlutterTargetResolver(
       tester: tester,
@@ -68,36 +75,43 @@ class LocalTestExecutionSession implements TestExecutionSession {
     );
   }
 
-  /// Attach to a runner-owned harness (suite mode).
+  /// Attach to a launched application (suite mode).
   ///
   /// Prefer passing the suite's [executor] and [assertions] so YAML leaf
   /// steps, privileged steps, and screenshot hooks share one execution path.
+  /// Host suites omit [harness] and supply [services] from the launch handle.
   factory LocalTestExecutionSession.attach({
     required WidgetTester tester,
-    required EnsembleTestHarness harness,
     required EnsembleTestContext context,
+    EnsembleTestHarness? harness,
+    ApplicationTestServices services = const ApplicationTestServices(),
     String? sessionId,
     SessionPermissions? permissions,
     TestExecutionConfig? executionConfig,
     AssertionEngine? assertions,
     TestStepExecutor? executor,
   }) {
-    final sharedAssertions =
-        assertions ?? AssertionEngine(tester: tester, context: context);
+    final sharedAssertions = assertions ??
+        AssertionEngine(
+          tester: tester,
+          context: context,
+          services: services,
+        );
     final sharedExecutor = executor ??
         TestStepExecutor(
           tester: tester,
           context: context,
           assertions: sharedAssertions,
           harness: harness,
+          services: services,
           executionConfig: executionConfig,
         );
     return LocalTestExecutionSession._(
-      sessionId: sessionId ??
-          'suite_${DateTime.now().microsecondsSinceEpoch}',
+      sessionId: sessionId ?? 'suite_${DateTime.now().microsecondsSinceEpoch}',
       tester: tester,
       harness: harness,
       context: context,
+      services: services,
       permissions: permissions ?? SessionPermissions.yamlController,
       assertions: sharedAssertions,
       executor: sharedExecutor,
@@ -112,15 +126,17 @@ class LocalTestExecutionSession implements TestExecutionSession {
     required EnsembleTestContext context,
     required AssertionEngine assertions,
     required TestStepExecutor executor,
+    ApplicationTestServices services = const ApplicationTestServices(),
     String? sessionId,
     SessionPermissions? permissions,
   }) {
     return LocalTestExecutionSession._(
-      sessionId: sessionId ??
-          'standalone_${DateTime.now().microsecondsSinceEpoch}',
+      sessionId:
+          sessionId ?? 'standalone_${DateTime.now().microsecondsSinceEpoch}',
       tester: tester,
       harness: harness,
       context: context,
+      services: services,
       permissions: permissions ?? SessionPermissions.restrictedUi,
       assertions: assertions,
       executor: executor,
@@ -132,8 +148,9 @@ class LocalTestExecutionSession implements TestExecutionSession {
   final String sessionId;
 
   final WidgetTester tester;
-  final EnsembleTestHarness harness;
+  final EnsembleTestHarness? harness;
   final EnsembleTestContext context;
+  final ApplicationTestServices services;
   final SessionPermissions permissions;
 
   /// True when created via [standalone] — owns overlay/runtime cleanup.
@@ -154,6 +171,31 @@ class LocalTestExecutionSession implements TestExecutionSession {
   String? _lastFingerprint;
   bool _closed = false;
 
+  /// Capabilities derived from available application services + UI registry.
+  SessionCapabilities get capabilities => SessionCapabilities(
+        actions: SessionCapabilities.local.actions,
+        assertionDomains: {
+          // Local UI / quality / script asserts need no extra services.
+          'ui',
+          'quality',
+          'script',
+          if (services.navigation != null || harness != null) 'navigation',
+          if (services.api != null || harness != null) 'api',
+          if (services.storage != null || harness != null) 'storage',
+        },
+        waits: SessionCapabilities.local.waits,
+        semanticTree: true,
+        runtimeMetadata: services.metadata != null || harness != null,
+        navigationState: services.navigation != null || harness != null,
+        screenshots: true,
+        coordinateActions: false,
+        apiAssertions: services.api != null || harness != null,
+        storageAssertions: services.storage != null || harness != null,
+        secureFieldRedaction: true,
+        observationRevisions: true,
+        snapshotElementTargets: true,
+      );
+
   /// Local adapter capabilities derived from the step registry.
   static SessionCapabilities get localCapabilities => SessionCapabilities.local;
 
@@ -173,7 +215,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
 
   void _ensureActionPermitted(TestAction action) {
     if (!permissions.actions.contains(action.type) ||
-        !localCapabilities.actions.contains(action.type)) {
+        !capabilities.actions.contains(action.type)) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.permissionDenied,
         message: 'Not permitted to run "${action.type}".',
@@ -184,7 +226,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
 
   void _ensureAssertPermitted(TestAssertion assertion) {
     if (!permissions.assertionDomains.contains(assertion.domain) ||
-        !localCapabilities.assertionDomains.contains(assertion.domain)) {
+        !capabilities.assertionDomains.contains(assertion.domain)) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.permissionDenied,
         message: 'Not permitted to assert domain "${assertion.domain}".',
@@ -195,7 +237,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
 
   void _ensureWaitPermitted(WaitCondition condition) {
     if (!permissions.waits.contains(condition.waitKind) ||
-        !localCapabilities.waits.contains(condition.waitKind)) {
+        !capabilities.waits.contains(condition.waitKind)) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.permissionDenied,
         message: 'Not permitted to wait for "${condition.waitKind}".',
@@ -207,7 +249,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
   @override
   Future<SessionCapabilities> getCapabilities() async {
     _ensureOpen();
-    return localCapabilities;
+    return capabilities;
   }
 
   @override
@@ -336,13 +378,17 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 },
               ),
             );
-          case ElementWait(:final testId, :final gone):
-            await executor.execute(
-              TestStep(
-                type: gone ? 'waitForGone' : 'waitFor',
-                args: {'id': testId, 'timeoutMs': timeoutMs},
-              ),
-            );
+          case ElementWait(:final target, :final gone):
+            if (target.locator == null && !target.usesSnapshotElement) {
+              await executor.execute(
+                TestStep(
+                  type: gone ? 'waitForGone' : 'waitFor',
+                  args: {'id': target.testId, 'timeoutMs': timeoutMs},
+                ),
+              );
+            } else {
+              await _waitForTarget(target, gone: gone, timeoutMs: timeoutMs);
+            }
           case TextWait(:final text, :final anyOf):
             await executor.execute(
               TestStep(
@@ -417,34 +463,72 @@ class LocalTestExecutionSession implements TestExecutionSession {
       try {
         _ensureAssertPermitted(assertion);
         switch (assertion) {
-          case ElementVisibleAssertion(:final testId, :final visible):
-            await executor.execute(
-              TestStep(
+          case ElementVisibleAssertion(
+              :final target,
+              :final visible
+            ):
+            if (target.locator == null && !target.usesSnapshotElement) {
+              await executor.execute(TestStep(
                 type: visible ? 'expectVisible' : 'expectNotVisible',
-                args: {'id': testId},
-              ),
-            );
-          case ElementExistsAssertion(:final testId, :final exists):
-            await executor.execute(
-              TestStep(
+                args: {'id': target.testId},
+              ));
+            } else {
+              assertions.expectVisibleFinder(
+                resolver.resolveFinder(target),
+                visible: visible,
+              );
+            }
+          case ElementExistsAssertion(
+              :final target,
+              :final exists
+            ):
+            if (target.locator == null && !target.usesSnapshotElement) {
+              await executor.execute(TestStep(
                 type: exists ? 'expectExists' : 'expectNotExists',
-                args: {'id': testId},
-              ),
-            );
-          case ElementTextAssertion(:final testId, :final text, :final contains):
+                args: {'id': target.testId},
+              ));
+            } else {
+              try {
+                assertions.expectExistsFinder(
+                  resolver.resolveFinder(target, requireInteractive: false),
+                  exists: exists,
+                );
+              } on TestExecutionError catch (error) {
+                if (exists ||
+                    error.code != TestExecutionErrorCode.elementNotFound) {
+                  rethrow;
+                }
+              }
+            }
+          case ElementTextAssertion(
+              :final target,
+              :final text,
+              :final contains
+            ):
             await executor.execute(
               TestStep(
                 type: contains ? 'expectTextContains' : 'expectText',
-                args: {'id': testId, 'text': text},
+                args: {
+                  if (target.testId != null) 'id': target.testId,
+                  'text': text,
+                },
               ),
             );
-          case ElementEnabledAssertion(:final testId, :final enabled):
-            await executor.execute(
-              TestStep(
+          case ElementEnabledAssertion(
+              :final target,
+              :final enabled
+            ):
+            if (target.locator == null && !target.usesSnapshotElement) {
+              await executor.execute(TestStep(
                 type: enabled ? 'expectEnabled' : 'expectDisabled',
-                args: {'id': testId},
-              ),
-            );
+                args: {'id': target.testId},
+              ));
+            } else {
+              assertions.expectEnabledFinder(
+                resolver.resolveFinder(target),
+                enabled: enabled,
+              );
+            }
           case ScreenAssertion(:final screen):
             await executor.execute(
               TestStep(type: 'expectScreen', args: {'screen': screen}),
@@ -474,11 +558,34 @@ class LocalTestExecutionSession implements TestExecutionSession {
     });
   }
 
+  Future<void> _waitForTarget(
+    ElementTarget target, {
+    required bool gone,
+    required int timeoutMs,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    while (stopwatch.elapsedMilliseconds <= timeoutMs) {
+      var found = false;
+      try {
+        found = resolver.resolveFinder(target).evaluate().isNotEmpty;
+      } on TestExecutionError catch (error) {
+        if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
+      }
+      if (found != gone) return;
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    throw TestExecutionError(
+      code: TestExecutionErrorCode.actionTimeout,
+      message: 'Timed out waiting for resolved element to '
+          '${gone ? 'disappear' : 'appear'}.',
+    );
+  }
+
   @override
   Future<TestArtifact> captureArtifact(ArtifactRequest request) {
     _ensureOpen();
     return queue.run(() async {
-      if (!permissions.captureArtifacts || !localCapabilities.screenshots) {
+      if (!permissions.captureArtifacts || !capabilities.screenshots) {
         throw const TestExecutionError(
           code: TestExecutionErrorCode.permissionDenied,
           message: 'Not permitted to capture artifacts.',
@@ -490,7 +597,10 @@ class LocalTestExecutionSession implements TestExecutionSession {
           message: 'Unsupported artifact kind "${request.kind}".',
         );
       }
-      final image = ExtendedStepHandlers.captureScreenshotImage(tester);
+      final image = ExtendedStepHandlers.captureScreenshotImage(
+        tester,
+        secureContent: context.config.screenshots.secureContent,
+      );
       try {
         final byteData = await tester.runAsync(
           () => image.toByteData(format: ui.ImageByteFormat.png),

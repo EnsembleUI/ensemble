@@ -1,0 +1,5 @@
+definitions:
+  from: local
+  local:
+    path: ensemble/apps/shop
+    appHome: Shop

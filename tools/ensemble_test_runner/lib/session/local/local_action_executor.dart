@@ -4,7 +4,9 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
-import 'package:flutter/widgets.dart' show Element;
+import 'package:ensemble_test_runner/session/local/element_semantics.dart';
+import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
+import 'package:flutter/widgets.dart' show Element, Offset, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Resolves [ElementTarget] for local execution.
@@ -29,8 +31,51 @@ class FlutterTargetResolver {
   /// When set, snapshot targets are revalidated against live observable state.
   final String Function(Element element, String? testId)? liveFingerprint;
 
+  ResolvedTarget resolve(ElementTarget target,
+      {bool requireInteractive = true}) {
+    final finder =
+        resolveFinder(target, requireInteractive: requireInteractive);
+    final elements = finder.evaluate().toList();
+    final element = elements.isEmpty ? null : elements.first;
+    final testId = target.testId ?? target.normalizedLocator?.id;
+    String? fingerprint;
+    var visible = false;
+    var interactable = false;
+    if (element != null) {
+      final described = describeElement(
+        element: element,
+        elementId: target.elementId ?? 'resolved',
+        testId: testId,
+        assertions: assertions,
+        tester: tester,
+        includeBounds: true,
+      );
+      fingerprint = fingerprintForElement(described);
+      visible = described.state.visible == true;
+      interactable = described.state.interactable == true;
+    }
+    return ResolvedTarget(
+      finder: finder,
+      description: target.usesSnapshotElement
+          ? 'snapshot ${target.elementId}'
+          : _describeLocator(target.normalizedLocator),
+      observationId: target.observationId,
+      elementId: target.elementId,
+      testId: testId,
+      fingerprint: fingerprint,
+      visible: visible,
+      interactable: interactable,
+    );
+  }
+
   /// Returns a [Finder] for the target. Snapshot targets never fall back to testId.
-  Finder resolveFinder(ElementTarget target) {
+  ///
+  /// When [requireInteractive] is true (default for actions), offstage and
+  /// non-rendered matches are excluded. Existence checks pass false.
+  Finder resolveFinder(
+    ElementTarget target, {
+    bool requireInteractive = true,
+  }) {
     if (target.usesSnapshotElement) {
       final observationId = target.observationId;
       if (observationId == null || observationId.isEmpty) {
@@ -47,77 +92,197 @@ class FlutterTargetResolver {
       return find.byElementPredicate((e) => identical(e, handle.element));
     }
 
-    final testId = target.testId;
-    if (testId == null || testId.isEmpty) {
+    final locator = target.normalizedLocator;
+    if (locator == null || locator.isEmpty) {
       throw const TestExecutionError(
         code: TestExecutionErrorCode.elementNotFound,
-        message: 'ElementTarget requires testId or elementId+observationId.',
+        message: 'ElementTarget requires a locator or elementId+observationId.',
       );
     }
-
-    final finder = assertions.finderForId(testId);
-    final matches = finder.evaluate().toList();
+    final finder = _finderForLocator(locator);
+    var matches = finder.evaluate().toList();
+    if (locator.label != null || locator.role != null) {
+      matches = _deduplicateSemanticMatches(matches);
+    }
+    if (requireInteractive) {
+      matches = matches
+          .where((element) => assertions.isElementVisuallyActionable(element))
+          .toList();
+    }
     if (matches.isEmpty) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.elementNotFound,
-        message: 'Widget "$testId" not found.',
-        details: {'testId': testId},
+        message: '${_describeLocator(locator)} not found.',
+        details: {'locator': locator.toJson()},
       );
     }
-    final occurrence = target.occurrence ?? 0;
-    if (target.occurrence == null && matches.length > 1) {
+    final occurrence = locator.occurrence ?? 0;
+    if (locator.occurrence == null && matches.length > 1) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.ambiguousTarget,
-        message:
-            'Multiple widgets match testId "$testId" (${matches.length}). '
+        message: 'Multiple widgets match ${_describeLocator(locator)} '
+            '(${matches.length}). '
             'Provide occurrence or use a snapshot elementId.',
-        details: {'testId': testId, 'count': matches.length},
+        details: {'locator': locator.toJson(), 'count': matches.length},
       );
     }
     if (occurrence < 0 || occurrence >= matches.length) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.elementNotFound,
-        message:
-            'occurrence $occurrence out of range for testId "$testId" '
+        message: 'occurrence $occurrence out of range for '
+            '${_describeLocator(locator)} '
             '(${matches.length} matches).',
-        details: {'testId': testId, 'occurrence': occurrence},
+        details: {'locator': locator.toJson(), 'occurrence': occurrence},
       );
     }
-    if (matches.length == 1) return finder;
+    if (matches.length == 1) return find.byWidget(matches.single.widget);
     return find.byWidget(matches[occurrence].widget);
+  }
+
+  List<Element> _deduplicateSemanticMatches(List<Element> matches) {
+    final byNode = <Object, Element>{};
+    for (final element in matches) {
+      Object identity = element;
+      try {
+        identity = tester
+            .getSemantics(
+              find.byElementPredicate(
+                  (candidate) => identical(candidate, element)),
+            )
+            .id;
+      } catch (_) {}
+      byNode.putIfAbsent(identity, () => element);
+    }
+    return byNode.values.toList(growable: false);
+  }
+
+  Finder _finderForLocator(ElementLocator locator) {
+    final within = locator.within;
+    Element? ancestor;
+    if (within != null) {
+      final scopeMatches = _finderForLocator(within).evaluate().toList();
+      if (scopeMatches.length != 1) {
+        throw TestExecutionError(
+          code: scopeMatches.isEmpty
+              ? TestExecutionErrorCode.elementNotFound
+              : TestExecutionErrorCode.ambiguousTarget,
+          message: scopeMatches.isEmpty
+              ? 'Locator scope ${_describeLocator(within)} not found.'
+              : 'Locator scope ${_describeLocator(within)} is ambiguous.',
+          details: {'locator': within.toJson(), 'count': scopeMatches.length},
+        );
+      }
+      ancestor = scopeMatches.single;
+    }
+    return find.byElementPredicate(
+      (element) {
+        if (ancestor != null && !_isDescendantOf(element, ancestor!)) {
+          return false;
+        }
+        final id = locator.id;
+        if (id != null) {
+          final key = element.widget.key;
+          if (key is! ValueKey || key.value != id) return false;
+        }
+        final text = locator.text;
+        if (text != null &&
+            (!isTextLocatorCandidate(element) || readText(element) != text)) {
+          return false;
+        }
+        final label = locator.label;
+        if (label != null &&
+            (!isSemanticLocatorCandidate(element) ||
+                readSemanticsLabel(tester, element) != label)) {
+          return false;
+        }
+        final type = inferWidgetType(element);
+        final role = locator.role;
+        if (role != null &&
+            (!isSemanticLocatorCandidate(element) ||
+                inferSemanticRole(element, type) != role)) {
+          return false;
+        }
+        return true;
+      },
+      skipOffstage: false,
+    );
+  }
+
+  bool _isDescendantOf(Element element, Element ancestor) {
+    var found = false;
+    element.visitAncestorElements((candidate) {
+      if (identical(candidate, ancestor)) {
+        found = true;
+        return false;
+      }
+      return true;
+    });
+    return found;
+  }
+
+  String _describeLocator(ElementLocator? locator) {
+    if (locator == null) return 'element';
+    final fields = <String>[
+      if (locator.id != null) 'id="${locator.id}"',
+      if (locator.text != null) 'text="${locator.text}"',
+      if (locator.label != null) 'label="${locator.label}"',
+      if (locator.role != null) 'role="${locator.role}"',
+    ];
+    return 'element(${fields.join(', ')})';
   }
 
   /// TestId for YAML/[TestStepExecutor.execute] dispatch only.
   ///
-  /// Throws if [target] is a snapshot elementId or specifies [occurrence]
-  /// (those must use [resolveFinder] so identity is preserved).
+  /// Does not pre-resolve the widget — [TestStepExecutor] waits/polls with
+  /// the step's timeoutMs. Snapshot / occurrence targets must use
+  /// [resolveFinder] instead so identity is preserved.
   String requireTestId(ElementTarget target) {
     if (target.usesSnapshotElement) {
       throw const TestExecutionError(
         code: TestExecutionErrorCode.unsupportedAction,
-        message:
-            'Snapshot elementId targets must use exact Element identity; '
+        message: 'Snapshot elementId targets must use exact Element identity; '
             'they cannot be remapped to testId.',
       );
     }
     if (target.occurrence != null) {
       throw const TestExecutionError(
         code: TestExecutionErrorCode.unsupportedAction,
-        message:
-            'occurrence targeting must use the resolved Finder path; '
+        message: 'occurrence targeting must use the resolved Finder path; '
             'it cannot be remapped to a bare testId.',
       );
     }
-    final testId = target.testId;
+    final locator = target.normalizedLocator;
+    final testId = target.testId ?? locator?.id;
     if (testId == null || testId.isEmpty) {
       throw const TestExecutionError(
-        code: TestExecutionErrorCode.elementNotFound,
-        message: 'ElementTarget requires testId or elementId+observationId.',
+        code: TestExecutionErrorCode.unsupportedAction,
+        message: 'This operation requires an id locator.',
       );
     }
-    resolveFinder(target);
     return testId;
   }
+}
+
+class ResolvedTarget {
+  final Finder finder;
+  final String description;
+  final String? observationId;
+  final String? elementId;
+  final String? testId;
+  final String? fingerprint;
+  final bool visible;
+  final bool interactable;
+
+  const ResolvedTarget({
+    required this.finder,
+    required this.description,
+    this.observationId,
+    this.elementId,
+    this.testId,
+    this.fingerprint,
+    this.visible = false,
+    this.interactable = false,
+  });
 }
 
 /// Maps [TestAction] onto [TestStepExecutor] — the single Flutter execution path.
@@ -156,8 +321,7 @@ class LocalActionExecutor {
       case EnterTextAction(:final target, :final value):
         await _withTarget(
           target,
-          onSnapshot: (finder) =>
-              executor.enterTextOnFinder(finder, value),
+          onSnapshot: (finder) => executor.enterTextOnFinder(finder, value),
           onTestId: (id) => _step('enterText', {'id': id, 'value': value}),
         );
       case ReplaceTextAction(:final target, :final value):
@@ -216,88 +380,96 @@ class LocalActionExecutor {
           onTestId: (id) => _step('select', {'id': id, 'value': value}),
         );
       case SelectIndexAction(:final target, :final index):
-        await _testIdOnly(
-          target,
-          'selectIndex',
-          (id) => _step('selectIndex', {'id': id, 'index': index}),
-        );
-      case SetSliderAction(:final target, :final value):
-        await _testIdOnly(
-          target,
-          'setSlider',
-          (id) => _step('setSlider', {'id': id, 'value': value}),
-        );
-      case ScrollUntilVisibleAction(:final target, :final scrollableId):
         await _withTarget(
           target,
-          onSnapshot: executor.scrollUntilVisibleFinder,
-          onTestId: (id) => _step('scrollUntilVisible', {
-                'id': id,
-                if (scrollableId != null) 'scrollableId': scrollableId,
-              }),
+          onSnapshot: (finder) => executor.selectIndexOnFinder(finder, index),
+          onTestId: (id) => _step('selectIndex', {'id': id, 'index': index}),
         );
+      case SetSliderAction(:final target, :final value):
+        await _withTarget(
+          target,
+          onSnapshot: (finder) => executor.setSliderOnFinder(finder, value),
+          onTestId: (id) => _step('setSlider', {'id': id, 'value': value}),
+        );
+      case ScrollUntilVisibleAction(:final target, :final scrollableId):
+        // Do not pre-resolve — the target may be off-list until scrolled.
+        final testId = target.testId ?? target.normalizedLocator?.id;
+        if (target.usesSnapshotElement ||
+            (target.locator != null && testId == null)) {
+          await executor.scrollUntilVisibleFinder(
+            resolver.resolveFinder(target, requireInteractive: false),
+          );
+        } else if (testId != null && testId.isNotEmpty) {
+          await _step('scrollUntilVisible', {
+            'id': testId,
+            if (scrollableId != null) 'scrollableId': scrollableId,
+          });
+        } else {
+          throw const TestExecutionError(
+            code: TestExecutionErrorCode.unsupportedAction,
+            message: 'scrollUntilVisible requires an id or snapshot target.',
+          );
+        }
       case ScrollAction(:final target, :final direction, :final distance):
         if (target != null &&
-            (target.usesSnapshotElement || target.occurrence != null)) {
-          throw const TestExecutionError(
-            code: TestExecutionErrorCode.unsupportedAction,
-            message:
-                'scroll with snapshot/occurrence targeting is not supported; '
-                'use plain testId.',
+            (target.usesSnapshotElement ||
+                target.occurrence != null ||
+                target.locator != null)) {
+          await executor.dragFinder(
+            resolver.resolveFinder(target),
+            _offset(direction, distance ?? 300),
           );
+        } else {
+          await _step('scroll', {
+            if (target != null) 'id': resolver.requireTestId(target),
+            'direction': direction.name,
+            if (distance != null) 'distance': distance,
+          });
         }
-        await _step('scroll', {
-          if (target != null) 'id': resolver.requireTestId(target),
-          'direction': direction.name,
-          if (distance != null) 'distance': distance,
-        });
       case SwipeAction(:final direction, :final target):
         if (target != null &&
-            (target.usesSnapshotElement || target.occurrence != null)) {
-          throw const TestExecutionError(
-            code: TestExecutionErrorCode.unsupportedAction,
-            message:
-                'swipe with snapshot/occurrence targeting is not supported; '
-                'use plain testId.',
+            (target.usesSnapshotElement ||
+                target.occurrence != null ||
+                target.locator != null)) {
+          await executor.dragFinder(
+            resolver.resolveFinder(target),
+            _offset(direction, 300),
           );
+        } else {
+          await _step('swipe', {
+            'direction': direction.name,
+            if (target != null) 'id': resolver.requireTestId(target),
+          });
         }
-        await _step('swipe', {
-          'direction': direction.name,
-          if (target != null) 'id': resolver.requireTestId(target),
-        });
       case DragAction(:final target, :final dx, :final dy):
-        await _testIdOnly(
+        await _withTarget(
           target,
-          'drag',
-          (id) => _step('drag', {'id': id, 'dx': dx, 'dy': dy}),
+          onSnapshot: (finder) => executor.dragFinder(finder, Offset(dx, dy)),
+          onTestId: (id) => _step('drag', {'id': id, 'dx': dx, 'dy': dy}),
         );
       case PullToRefreshAction(:final target):
         if (target != null &&
-            (target.usesSnapshotElement || target.occurrence != null)) {
-          throw const TestExecutionError(
-            code: TestExecutionErrorCode.unsupportedAction,
-            message:
-                'pullToRefresh with snapshot/occurrence targeting is not '
-                'supported; use plain testId.',
-          );
+            (target.usesSnapshotElement ||
+                target.occurrence != null ||
+                target.locator != null)) {
+          await executor.pullToRefreshFinder(resolver.resolveFinder(target));
+        } else {
+          await _step('pullToRefresh', {
+            if (target != null) 'id': resolver.requireTestId(target),
+          });
         }
-        await _step('pullToRefresh', {
-          if (target != null) 'id': resolver.requireTestId(target),
-        });
       case ChooseDateAction(:final target, :final value):
         // Matches ExtendedStepHandlers chooseDate (enterTextOn).
         await _withTarget(
           target,
-          onSnapshot: (finder) =>
-              executor.enterTextOnFinder(finder, value),
+          onSnapshot: (finder) => executor.enterTextOnFinder(finder, value),
           onTestId: (id) => _step('chooseDate', {'id': id, 'value': value}),
         );
       case ChooseTimeAction(:final target, :final value):
         // Matches ExtendedStepHandlers chooseTime (enterTextOn).
         await _withTarget(
           target,
-          onSnapshot: (finder) =>
-              executor.enterTextOnFinder(finder, value),
+          onSnapshot: (finder) => executor.enterTextOnFinder(finder, value),
           onTestId: (id) => _step('chooseTime', {'id': id, 'value': value}),
         );
       case GenericAction(:final name, :final args):
@@ -311,29 +483,28 @@ class LocalActionExecutor {
     required Future<void> Function(Finder finder) onSnapshot,
     required Future<void> Function(String id) onTestId,
   }) async {
-    if (target.usesSnapshotElement || target.occurrence != null) {
+    if (target.usesSnapshotElement ||
+        target.occurrence != null ||
+        target.locator != null) {
       await onSnapshot(resolver.resolveFinder(target));
       return;
     }
     await onTestId(resolver.requireTestId(target));
   }
 
-  Future<void> _testIdOnly(
-    ElementTarget target,
-    String actionName,
-    Future<void> Function(String id) onTestId,
-  ) async {
-    if (target.usesSnapshotElement || target.occurrence != null) {
-      throw TestExecutionError(
-        code: TestExecutionErrorCode.unsupportedAction,
-        message:
-            '$actionName with snapshot/occurrence targeting is not supported; '
-            'use plain testId.',
-      );
-    }
-    await onTestId(resolver.requireTestId(target));
-  }
-
   Future<void> _step(String type, Map<String, dynamic> args) =>
       executor.execute(TestStep(type: type, args: args));
+
+  Offset _offset(SwipeDirection direction, double distance) {
+    switch (direction) {
+      case SwipeDirection.up:
+        return Offset(0, -distance);
+      case SwipeDirection.down:
+        return Offset(0, distance);
+      case SwipeDirection.left:
+        return Offset(-distance, 0);
+      case SwipeDirection.right:
+        return Offset(distance, 0);
+    }
+  }
 }

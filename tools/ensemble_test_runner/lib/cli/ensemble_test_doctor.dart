@@ -179,7 +179,8 @@ class EnsembleTestDoctor {
       }
       if (iosProject.existsSync()) {
         if (fix) {
-          final before = YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+          final before =
+              YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
             appDir,
           );
           if (before != null) {
