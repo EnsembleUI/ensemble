@@ -174,9 +174,11 @@ class FlutterTargetResolver {
       }
       ancestor = scopeMatches.single;
     }
+    final scopedAncestor = ancestor;
     return find.byElementPredicate(
       (element) {
-        if (ancestor != null && !_isDescendantOf(element, ancestor!)) {
+        if (scopedAncestor != null &&
+            !_isDescendantOf(element, scopedAncestor)) {
           return false;
         }
         final id = locator.id;

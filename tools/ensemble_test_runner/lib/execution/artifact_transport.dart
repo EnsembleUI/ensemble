@@ -485,7 +485,7 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
       error ??= 'Artifact complete count $completeCount does not match '
           'manifest entries (${manifestOrder.length}).';
     }
-    if (completeHash != null && completeHash!.isNotEmpty) {
+    if (completeHash != null && completeHash.isNotEmpty) {
       final actual = ensembleTestArtifactManifestSha256(manifestOrder);
       if (actual != completeHash) {
         error ??= 'Artifact complete manifest checksum mismatch.';

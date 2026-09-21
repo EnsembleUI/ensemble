@@ -1,7 +1,6 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// Dummy host console + HTTP traffic so the YAML report has App Logs / API Calls.

@@ -61,7 +61,7 @@ class MockComposition {
         throw EnsembleTestFailure('Mock file "$assetPath" root must be a map');
       }
 
-      return resolveDocument(
+      return await resolveDocument(
         Map<dynamic, dynamic>.from(doc),
         sourceLabel: assetPath,
         testAssetPath: testAssetPath,

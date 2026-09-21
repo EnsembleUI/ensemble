@@ -7,7 +7,6 @@ import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
-import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/schema/ensemble_test_schema_builder.dart';
 import 'package:flutter_test/flutter_test.dart';
 
