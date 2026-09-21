@@ -67,6 +67,33 @@ void main() {
         hasLength(1),
       );
     });
+
+    testWidgets('skips device artifact protocol lines from app console',
+        (tester) async {
+      final runtime = TestRuntimeState()..currentStepIndex = 0;
+      runZoned(() {
+        print(
+          '${ensembleTestArtifactProtocolPrefix}{"event":"chunk","data":"AAAA"}',
+        );
+        print('app: real console line');
+        print('${ensembleTestProgressProtocolPrefix}{"event":"step"}');
+      }, zoneSpecification: runtime.consoleCaptureZone);
+
+      expect(
+        runtime.consoleLogs
+            .any((line) => line.contains(ensembleTestArtifactProtocolPrefix)),
+        isFalse,
+      );
+      expect(
+        runtime.consoleLogs
+            .any((line) => line.contains(ensembleTestProgressProtocolPrefix)),
+        isFalse,
+      );
+      expect(
+        runtime.consoleLogs.where((line) => line.contains('app: real console')),
+        hasLength(1),
+      );
+    });
   });
 
   group('groupLogsByStep', () {
