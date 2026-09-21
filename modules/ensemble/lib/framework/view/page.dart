@@ -28,6 +28,7 @@ import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:flutter/material.dart';
 
 class SinglePageController extends WidgetController {
@@ -89,7 +90,10 @@ class Page extends StatefulWidget {
 }
 
 class PageState extends State<Page>
-    with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
+    with
+        AutomaticKeepAliveClientMixin,
+        RouteAware,
+        WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
   Widget? footerWidget;
@@ -106,6 +110,12 @@ class PageState extends State<Page>
   StreamSubscription<ModelChangeEvent>? _headerVisibilityStorageSubscription;
   Timer? _titleBarHeightPollTimer;
   Timer? _headerVisibilityPollTimer;
+
+  // An enabled fixed TV header without a visibility expression expands while
+  // focus is in the AppBar and collapses when focus moves to the body.
+  final GlobalKey _headerKey = GlobalKey(debugLabel: 'ensemble_header');
+  bool _headerExpanded = false;
+  bool _tvFocusCollapseEnabled = false;
 
   // Last dispatched device metrics. We only want to notify bindings when the
   // actual screen dimensions/orientation change, not when the keyboard opens.
@@ -447,16 +457,30 @@ class PageState extends State<Page>
       _setupPeriodicStorageCheck();
     }
 
-    // Set up collapsibleHeader listeners if enabled
+    // Visibility expressions keep their legacy behavior. Focus-driven collapse
+    // is reserved for enabled, fixed TV headers that do not define `visible`.
     if (widget._pageModel.headerModel != null) {
-      final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
           _scopeManager.dataContext, widget._pageModel.headerModel!);
-      final collapsible = _headerStyles?['collapsibleHeader'];
+      final collapsible = headerStyles?['collapsibleHeader'];
       final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
-      if (enabled) {
+      final hasVisibilityExpression = collapsible?['visible'] != null;
+      final isScrollable =
+          widget._pageModel.runtimeStyles?['scrollableView'] == true;
+      _tvFocusCollapseEnabled =
+          Device().isTV && enabled && !hasVisibilityExpression && !isScrollable;
+
+      if (enabled && hasVisibilityExpression) {
         _initializeLastKnownHeaderVisible();
         _listenToHeaderVisibilityChanges();
         _setupPeriodicVisibilityCheck();
+      }
+      if (_tvFocusCollapseEnabled) {
+        // Start expanded so the first header focus target is laid out at its
+        // final size. The focus listener will collapse it as soon as focus
+        // enters the body.
+        _headerExpanded = true;
+        FocusManager.instance.addListener(_onPrimaryFocusChanged);
       }
     }
 
@@ -521,9 +545,11 @@ class PageState extends State<Page>
   /// fixed AppBar
   dynamic _buildAppBar(HeaderModel headerModel,
       {required bool scrollableView, bool? showNavigationIcon}) {
+    final evaluatedHeader = EnsembleThemeManager()
+        .getRuntimeStyles(_scopeManager.dataContext, headerModel);
+    final collapsible = evaluatedHeader?['collapsibleHeader'];
+
     Widget? titleWidget;
-
-
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
@@ -543,9 +569,10 @@ class PageState extends State<Page>
     if (headerModel.leadingWidget != null) {
       leadingWidget = _scopeManager.buildWidget(headerModel.leadingWidget!);
     }
-
-    final evaluatedHeader = EnsembleThemeManager()
-        .getRuntimeStyles(_scopeManager.dataContext, headerModel);
+    final double? leadingWidth = Utils.optionalInt(
+      _scopeManager.dataContext.eval(evaluatedHeader?['leadingWidth']),
+      min: 0,
+    )?.toDouble();
 
     bool centerTitle =
         Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);
@@ -595,11 +622,16 @@ class PageState extends State<Page>
     if (flexibleMinHeight != null && flexibleMinHeight < baseTitleBarHeight) {
       flexibleMinHeight = null;
     }
+    if (flexibleMaxHeight != null &&
+        flexibleMinHeight != null &&
+        flexibleMaxHeight < flexibleMinHeight) {
+      flexibleMaxHeight = null;
+    }
 
-    // Collapsible header support
-    final collapsible = evaluatedHeader?['collapsibleHeader'];
+    // Legacy expression-driven fixed-header collapse.
     final bool collapsibleEnabled =
-        Utils.getBool(collapsible?['enabled'], fallback: false);
+        Utils.getBool(collapsible?['enabled'], fallback: false) &&
+            collapsible?['visible'] != null;
     bool isHeaderVisible = true;
     if (collapsibleEnabled) {
       final visibleExpr = collapsible?['visible'];
@@ -612,9 +644,9 @@ class PageState extends State<Page>
     final titleBarHeight = isHeaderVisible ? baseTitleBarHeight : 0.0;
 
     if (scrollableView) {
-      return AnimatedAppBar( scrollController: externalScrollController!,
+      return AnimatedAppBar( key: _headerKey, scrollController: externalScrollController!,
         automaticallyImplyLeading:
-           leadingWidget == null && showNavigationIcon != false,
+            leadingWidget == null && showNavigationIcon != false,
         leadingWidget: leadingWidget,
         titleWidget: titleWidget,
         centerTitle: centerTitle,
@@ -640,18 +672,52 @@ class PageState extends State<Page>
         floating: scrollMode == ScrollMode.floating,
         pinned: scrollMode == ScrollMode.pinned,
       );
-    } else if (collapsibleEnabled) {
+    } else if (collapsibleEnabled || _tvFocusCollapseEnabled) {
+      final compactHeight = flexibleMinHeight ?? baseTitleBarHeight;
+      final expandedHeight = flexibleMaxHeight ?? compactHeight;
+      final fixedHeaderHeight = _tvFocusCollapseEnabled
+          ? (_headerExpanded ? expandedHeight : compactHeight)
+          : titleBarHeight;
+
+      // Cross-swap the two header slots based on focus: while expanded (focus
+      // in the header) the compact title shifts out of the bar and the
+      // flexibleBackground sits in place; once focus moves to the body the
+      // title shifts back in and the background shifts out of view. Mirrors the
+      // scrollable mobile header, driven by `_headerExpanded` instead of scroll.
+      Widget? animatedTitle = titleWidget;
+      if (_tvFocusCollapseEnabled && animationEnabled && titleWidget != null) {
+        final slotDuration = Duration(milliseconds: duration ?? 200);
+        final slotCurve = curve ?? Curves.easeInOut;
+        animatedTitle = switch (animationType) {
+          AnimationType.fade => AnimatedOpacity(
+              opacity: _headerExpanded ? 0.0 : 1.0,
+              duration: slotDuration,
+              curve: slotCurve,
+              child: titleWidget,
+            ),
+          AnimationType.drop => AnimatedSlide(
+              offset: _headerExpanded ? const Offset(0, -2) : Offset.zero,
+              duration: slotDuration,
+              curve: slotCurve,
+              child: titleWidget,
+            ),
+          _ => titleWidget,
+        };
+      }
+
       return PreferredSize(
-        preferredSize: Size.fromHeight(titleBarHeight),
+        preferredSize: Size.fromHeight(fixedHeaderHeight),
         child: AnimatedContainer(
-          height: titleBarHeight,
+          height: fixedHeaderHeight,
           duration: Duration(milliseconds: duration ?? 200),
           curve: curve ?? Curves.easeInOut,
           child: AppBar(
+            key: _headerKey,
             automaticallyImplyLeading:
                 leadingWidget == null && showNavigationIcon != false,
             leading: leadingWidget,
-            title: titleWidget,
+            leadingWidth: leadingWidth,
+            title: animatedTitle,
             centerTitle: centerTitle,
             backgroundColor: backgroundColor,
             surfaceTintColor: surfaceTintColor,
@@ -661,16 +727,30 @@ class PageState extends State<Page>
             elevation: elevation,
             shadowColor: shadowColor,
 
-            toolbarHeight: titleBarHeight,
-            flexibleSpace: backgroundWidget,
+            // TV keeps the toolbar/title at its compact height while the
+            // surrounding AnimatedContainer grows flexible content. Legacy
+            // visibility-driven headers retain their title-bar height.
+            toolbarHeight:
+                _tvFocusCollapseEnabled ? compactHeight : titleBarHeight,
+            flexibleSpace: _buildFixedHeaderFlexibleSpace(
+              backgroundWidget,
+              enabled: _tvFocusCollapseEnabled,
+              visible: _headerExpanded,
+              duration: Duration(milliseconds: duration ?? 200),
+              curve: curve ?? Curves.easeInOut,
+              expandedHeight: expandedHeight,
+              animationType: animationType,
+            ),
           ),
         ),
       );
     } else {
       return AppBar(
+        key: _headerKey,
         automaticallyImplyLeading:
             leadingWidget == null && showNavigationIcon != false,
         leading: leadingWidget,
+        leadingWidth: leadingWidth,
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
@@ -739,15 +819,28 @@ class PageState extends State<Page>
 
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
         widget._pageModel.runtimeStyles?['backgroundGradient']);
-    Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
-        .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
+    Color? backgroundColor = Utils.getColor(
+        _scopeManager.dataContext.eval(
+            widget._pageModel.runtimeStyles?['backgroundColor']));
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     dynamic evaluatedBackgroundImg = _scopeManager.dataContext
         .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
     BackgroundImage? backgroundImage =
         Utils.getBackgroundImage(evaluatedBackgroundImg);
-    if (backgroundImage != null || backgroundGradient != null) {
+
+    // Optional TV widget background (`View.styles.background`).
+    // It is the only background layer when configured.
+    // The widget background is a TV-only layer. Non-TV pages retain their
+    // existing backgroundImage/backgroundColor behavior unchanged.
+    final Widget? customBackground =
+        Device().isTV ? _buildPageBackground() : null;
+
+    if (customBackground != null) {
+      backgroundImage = null;
+      backgroundGradient = null;
+      backgroundColor = Colors.transparent;
+    } else if (backgroundImage != null || backgroundGradient != null) {
       backgroundColor = Colors.transparent;
     }
 
@@ -782,6 +875,30 @@ class PageState extends State<Page>
       );
     }
 
+    // Scaffold reads an app bar's preferred size only while it builds. Put the
+    // focus-collapsible fixed header in the body instead so AnimatedContainer
+    // can relayout the adjacent content on every animation frame without a
+    // page-level rebuild.
+    final inlineTvHeader =
+        _tvFocusCollapseEnabled && !isScrollableView && fixedAppBar != null;
+    final pageBody = FooterLayout(
+      body: isScrollableView
+          ? buildScrollablePageContent(hasDrawer)
+          : buildFixedPageContent(fixedAppBar != null),
+      footer: footerWidget,
+    );
+    final scaffoldBody = inlineTvHeader
+        ? Column(
+            children: [
+              // SafeArea supplies the status-bar inset that Scaffold normally
+              // reserves for appBar, while removing it from the inline AppBar
+              // so its animated height remains the configured header height.
+              SafeArea(bottom: false, child: fixedAppBar),
+              Expanded(child: pageBody),
+            ],
+          )
+        : pageBody;
+
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
@@ -793,14 +910,9 @@ class PageState extends State<Page>
             // the entire screen including the Safe Area
             backgroundColor: backgroundColor,
 
-            // appBar is inside CustomScrollView if defined
-            appBar: fixedAppBar,
-            body: FooterLayout(
-              body: isScrollableView
-                  ? buildScrollablePageContent(hasDrawer)
-                  : buildFixedPageContent(fixedAppBar != null),
-              footer: footerWidget,
-            ),
+            // Scrollable and legacy fixed headers remain Scaffold app bars.
+            appBar: inlineTvHeader ? null : fixedAppBar,
+            body: scaffoldBody,
             bottomNavigationBar: _bottomNavBar,
             drawer: _drawer,
             endDrawer: _endDrawer,
@@ -832,8 +944,9 @@ class PageState extends State<Page>
 
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
+    Widget content;
     if (backgroundImage != null) {
-      return Stack(
+      content = Stack(
         children: [
           Positioned.fill(
             child: backgroundImage.getImageAsWidget(_scopeManager),
@@ -842,13 +955,51 @@ class PageState extends State<Page>
         ],
       );
     } else if (backgroundGradient != null) {
-      return Scaffold(
+      content = Scaffold(
           resizeToAvoidBottomInset: false,
+          // Let a widget-based background show through the gradient's
+          // transparent regions. Without one, keep the default background.
+          backgroundColor:
+              customBackground != null ? Colors.transparent : null,
           body: Container(
               decoration: BoxDecoration(gradient: backgroundGradient),
               child: rtn));
+    } else {
+      content = rtn;
     }
-    return rtn;
+
+    if (customBackground != null) {
+      content = Stack(
+        children: [
+          Positioned.fill(child: customBackground),
+          content,
+        ],
+      );
+    }
+    return content;
+  }
+
+  /// Build the optional widget-based page background (`View.styles.background`).
+  /// Backgrounds are decorative: they must never take D-pad focus or intercept
+  /// remote/tap input on TV, so they are wrapped in [ExcludeFocus] +
+  /// [IgnorePointer]. They are also excluded from the host's [TVFocusRegistry]
+  /// grid via [TVFocusExclusion], and wrapped in a [DataScopeWidget] since they
+  /// sit outside the body's scope and still need expression bindings.
+  Widget? _buildPageBackground() {
+    final WidgetModel? backgroundModel = widget._pageModel.backgroundWidget;
+    if (backgroundModel == null) {
+      return null;
+    }
+    return TVFocusExclusion(
+      child: ExcludeFocus(
+        child: IgnorePointer(
+          child: DataScopeWidget(
+            scopeManager: _scopeManager,
+            child: _scopeManager.buildWidget(backgroundModel),
+          ),
+        ),
+      ),
+    );
   }
 
   /// determine if we should wraps the body in a SafeArea or not
@@ -1189,12 +1340,103 @@ class PageState extends State<Page>
     });
   }
 
+  void _onPrimaryFocusChanged() {
+    if (!_tvFocusCollapseEnabled || !mounted) return;
+    final expanded = _isPrimaryFocusInHeader();
+    if (expanded != _headerExpanded) {
+      setState(() => _headerExpanded = expanded);
+    }
+  }
+
+  bool _isPrimaryFocusInHeader() {
+    final primaryContext = FocusManager.instance.primaryFocus?.context;
+    if (primaryContext == null ||
+        ModalRoute.of(primaryContext) != ModalRoute.of(context)) {
+      return false;
+    }
+    final fixedHeader = primaryContext.findAncestorWidgetOfExactType<AppBar>();
+    return fixedHeader?.key == _headerKey;
+  }
+
+  Widget? _buildFixedHeaderFlexibleSpace(
+    Widget? backgroundWidget, {
+    required bool enabled,
+    required bool visible,
+    required Duration duration,
+    required Curve curve,
+    required double expandedHeight,
+    AnimationType? animationType,
+  }) {
+    if (backgroundWidget == null || !enabled) return backgroundWidget;
+
+    // Lay out flexible content at its finite expanded height, then clip it
+    // to the compact/intermediate AppBar. This avoids transient RenderFlex
+    // overflows without giving Column/Flexible children an unbounded height.
+    //
+    // The background shifts out of view while collapsed (focus in the body)
+    // and back in while expanded (focus in the header), mirroring the mobile
+    // collapse. `fade` keeps the legacy opacity transition; the default `drop`
+    // translates it the full height so title and background cross-swap.
+    // Keep the legacy tree unchanged outside the TV focus-collapse path.
+    if (!_tvFocusCollapseEnabled) {
+      return ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.topCenter,
+          minHeight: expandedHeight,
+          maxHeight: expandedHeight,
+          child: SizedBox(
+            height: expandedHeight,
+            child: AnimatedOpacity(
+              opacity: visible ? 1.0 : 0.0,
+              duration: duration,
+              curve: curve,
+              child: backgroundWidget,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final sizedBackground = SizedBox(
+      height: expandedHeight,
+      child: backgroundWidget,
+    );
+    final animatedBackground = animationType == AnimationType.fade
+        ? AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: duration,
+            curve: curve,
+            child: sizedBackground,
+          )
+        : AnimatedSlide(
+            offset: visible ? Offset.zero : const Offset(0, -1),
+            duration: duration,
+            curve: curve,
+            child: sizedBackground,
+          );
+    Widget content = ClipRect(
+      child: OverflowBox(
+        alignment: Alignment.topCenter,
+        minHeight: expandedHeight,
+        maxHeight: expandedHeight,
+        child: animatedBackground,
+      ),
+    );
+    if (!visible) {
+      content = TVFocusExclusion(
+        child: ExcludeFocus(child: IgnorePointer(child: content)),
+      );
+    }
+    return content;
+  }
+
   @override
   void dispose() {
     _titleBarHeightStorageSubscription?.cancel();
     _headerVisibilityStorageSubscription?.cancel();
     _titleBarHeightPollTimer?.cancel();
     _headerVisibilityPollTimer?.cancel();
+    FocusManager.instance.removeListener(_onPrimaryFocusChanged);
 
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
     Ensemble().routeObserver.unsubscribe(this);
@@ -1258,7 +1500,7 @@ class AnimatedAppBar extends StatefulWidget {
 
 class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
   bool isCollapsed = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -1266,7 +1508,6 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
   }
 
   void _updateCollapseState() {
-
     if (!widget.scrollController.hasClients) return;
 
     double expandedHeight = (widget.expandedBarHeight ?? 0.0).toDouble();
