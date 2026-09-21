@@ -67,11 +67,24 @@
                 },
                 "flexibleMinHeight": {
                   "type": "integer",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                  "description": "Sets the header's compact height for scrollable headers and TV focus-collapsible fixed headers. It is ignored when smaller than titleBarHeight."
                 },
                 "flexibleMaxHeight": {
                   "type": "integer",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
+                  "description": "Sets the header's expanded height for scrollable headers and TV focus-collapsible fixed headers. It is ignored when smaller than flexibleMinHeight."
+                },
+                "collapsibleHeader": {
+                  "type": "object",
+                  "description": "Controls fixed-header collapse. When visible is set, it shows or hides the header. On TV, an enabled fixed header without visible expands while focus is in the header and collapses when focus moves to the body. TV focus collapse requires a focusable titleWidget or leadingWidget as the compact-header re-entry target.",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Enable collapsible header behavior. Default false."
+                    },
+                    "visible": {
+                      "description": "Expression that shows or hides a fixed header."
+                    }
+                  }
                 }
               }
             }
@@ -158,6 +171,10 @@
             },
             {
               "properties": {
+                "background": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "TV only. Optional widget rendered as the page's bottom-most background layer, behind the body. When set, backgroundColor, backgroundImage, and backgroundGradient are ignored; add any required color or image inside this widget. The background never takes TV D-pad focus and does not receive taps. Note: a childless Column/Row with only a background is not rendered; add a Spacer child (the app's convention for background-only layers)."
+                },
                 "useSafeArea": {
                   "type": "boolean",
                   "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."

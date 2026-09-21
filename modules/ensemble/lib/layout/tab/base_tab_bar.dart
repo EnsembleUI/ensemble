@@ -220,7 +220,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 index: index,
                 tabRow: tvRow,
                 isSelected: tabController.index == index,
-                autofocus: index == 0 && widget.controller.autofocus,
+                autofocus: widget.controller.autofocus && index == 0,
                 activeColor: activeColor,
                 inactiveColor: inactiveColor,
                 indicatorColor: indicatorColor,
