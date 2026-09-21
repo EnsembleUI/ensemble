@@ -665,6 +665,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = findNearestVerticalScrollable(context);
     if (verticalScrollable != null) {
+      rememberActiveVerticalScrollable(
+          ModalRoute.of(context),
+          findOutermostVerticalScrollable(context) ?? verticalScrollable);
       final verticalPadding =
           tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
       final verticalCurve =
@@ -673,6 +676,24 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
           verticalPadding: verticalPadding,
           animationDurationMs: scrollAnimationDuration,
           curve: verticalCurve);
+    }
+
+    if (tvOptions?.resetScrollOnFocus == true) {
+      final activeScrollable = activeVerticalScrollable(ModalRoute.of(context));
+      if (activeScrollable != null &&
+          activeScrollable.mounted &&
+          activeScrollable.position.hasContentDimensions) {
+        final position = activeScrollable.position;
+        if ((position.pixels - position.minScrollExtent).abs() >
+            kTVScrollThreshold) {
+          position.animateTo(
+            position.minScrollExtent,
+            duration: Duration(milliseconds: scrollAnimationDuration),
+            curve: _getCurveFromName(scrollCurveName,
+                defaultCurve: Curves.easeInOut),
+          );
+        }
+      }
     }
 
     // Handle horizontal scrolling

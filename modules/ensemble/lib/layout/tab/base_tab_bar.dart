@@ -4,6 +4,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -229,6 +230,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 tabFontSize: widget.controller.tabFontSize?.toDouble(),
                 tabFontWeight: widget.controller.tabFontWeight,
                 tabPadding: widget.controller.tabPadding,
+                scrollPadding: widget.controller.tvOptions?.verticalScrollPadding,
+                revealTabBarOnFocus: widget.controller.revealTabBarOnFocus,
                 onTap: () {
                   tabController.animateTo(index);
                   onTabChanged(index);
@@ -413,6 +416,8 @@ class _TVTabButton extends StatefulWidget {
     this.tabFontSize,
     this.tabFontWeight,
     this.tabPadding,
+    this.scrollPadding,
+    this.revealTabBarOnFocus = false,
   });
 
   final TabItem tabItem;
@@ -430,6 +435,11 @@ class _TVTabButton extends StatefulWidget {
   final double? tabFontSize;
   final FontWeight? tabFontWeight;
   final EdgeInsets? tabPadding;
+
+  /// From tvOptions.verticalScrollPadding: how far from the viewport edge the
+  /// revealed TabBar (strip + active body) should sit.
+  final double? scrollPadding;
+  final bool revealTabBarOnFocus;
 
   @override
   State<_TVTabButton> createState() => _TVTabButtonState();
@@ -454,8 +464,22 @@ class _TVTabButtonState extends State<_TVTabButton> {
   }
 
   void _onFocusChange() {
-    // Only scroll when focus is gained (not on initial autofocus to avoid blocking content)
-    if (_focusNode.hasFocus && _hasReceivedFocus && mounted) {
+    if (_focusNode.hasFocus) {
+      // Tabs are custom focusables rather than BoxWrapper widgets. Remember
+      // their enclosing page scroller so resetScrollOnFocus also works when
+      // focus returns from the tab strip itself.
+      final scrollable = findOutermostVerticalScrollable(context);
+      if (scrollable != null) {
+        rememberActiveVerticalScrollable(
+            ModalRoute.of(context), scrollable);
+      }
+    }
+
+    // Preserve the legacy initial-focus guard unless whole-Bar reveal is
+    // explicitly enabled for this TabBar.
+    if (_focusNode.hasFocus &&
+        (_hasReceivedFocus || widget.revealTabBarOnFocus) &&
+        mounted) {
       _scrollIntoView();
     }
     // Mark that we've received focus at least once
@@ -466,7 +490,9 @@ class _TVTabButtonState extends State<_TVTabButton> {
 
   void _scrollIntoView() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (!mounted) return;
+      if (!widget.revealTabBarOnFocus) {
+        // Keep the legacy target and scrolling behavior unchanged.
         Scrollable.ensureVisible(
           context,
           alignment: 0.0,
@@ -474,8 +500,55 @@ class _TVTabButtonState extends State<_TVTabButton> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
         );
+        return;
       }
+
+      // Opt-in behavior: reveal the enclosing TabBar instead of only the
+      // focused tab. Expanded TabBars still use the focused tab as target.
+      final tabBarState = context.findAncestorStateOfType<BaseTabBarState>();
+      final isStretched = tabBarState?.widget.controller.isStretched ?? false;
+      final targetContext = tabBarState != null &&
+              !isStretched
+          ? tabBarState.context
+          : context;
+      scrollWidgetIntoView(
+        targetContext,
+        verticalPadding: widget.scrollPadding ?? kTVVerticalScrollPadding,
+      );
+      _scrollHorizontalIntoView();
     });
+  }
+
+  ScrollableState? _findHorizontalScrollable() {
+    ScrollableState? scrollable;
+    context.visitAncestorElements((element) {
+      if (element.widget is Scrollable) {
+        final state = (element as StatefulElement).state;
+        if (state is ScrollableState) {
+          final axis = state.axisDirection;
+          if (axis == AxisDirection.left || axis == AxisDirection.right) {
+            scrollable = state;
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    return scrollable;
+  }
+
+  void _scrollHorizontalIntoView() {
+    final horizontal = _findHorizontalScrollable();
+    if (horizontal == null || !horizontal.position.hasContentDimensions) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    horizontal.position.ensureVisible(
+      box,
+      alignment: 0.0,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override

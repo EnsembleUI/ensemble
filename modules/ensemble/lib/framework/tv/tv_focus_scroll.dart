@@ -68,6 +68,26 @@ ScrollableState? findNearestVerticalScrollable(BuildContext context) {
   return scrollable;
 }
 
+/// Finds the outermost vertical scrollable ancestor for route-scoped memory.
+ScrollableState? findOutermostVerticalScrollable(BuildContext context) {
+  ScrollableState? scrollable;
+
+  context.visitAncestorElements((element) {
+    if (element.widget is Scrollable) {
+      final state = (element as StatefulElement).state;
+      if (state is ScrollableState) {
+        final axis = state.axisDirection;
+        if (axis == AxisDirection.up || axis == AxisDirection.down) {
+          scrollable = state;
+        }
+      }
+    }
+    return true;
+  });
+
+  return scrollable;
+}
+
 /// Scrolls ONLY [scrollable] so that [itemBox] is fully visible vertically.
 /// Unlike Scrollable.ensureVisible(), this does NOT affect horizontal scroll.
 /// [verticalPadding] controls the threshold from viewport edges (use larger
@@ -104,15 +124,13 @@ void scrollVerticalOnly(
     return;
   }
 
-  // Calculate how much to scroll
-  // Use verticalPadding to position the item nicely within the viewport,
-  // not as a trigger threshold - so horizontal navigation doesn't jitter.
+  // Calculate how much to scroll. Use verticalPadding to position the item
+  // nicely within the viewport, not as a trigger threshold.
   double scrollDelta = 0.0;
   if (isAboveScreen) {
     // Item is above visible area - scroll up (decrease scroll position)
     scrollDelta = itemTop - (viewportTop + verticalPadding);
   } else if (isBelowScreen) {
-    // Item is below visible area - scroll down (increase scroll position)
     scrollDelta = itemBottom - (viewportBottom - verticalPadding);
   }
 
@@ -151,4 +169,25 @@ void scrollWidgetIntoView(
     animationDurationMs: animationDurationMs,
     curve: curve,
   );
+}
+
+// =============================================================================
+// TV Focus - Active Vertical Scrollable Memory (route-scoped)
+// =============================================================================
+
+final Map<Object, ScrollableState> _activeVerticalScrollables = {};
+
+Object _activeScrollableRouteKey(Route<dynamic>? route) =>
+    route == null ? 'noRoute' : identityHashCode(route);
+
+void rememberActiveVerticalScrollable(
+    Route<dynamic>? route, ScrollableState scrollable) {
+  _activeVerticalScrollables[_activeScrollableRouteKey(route)] = scrollable;
+}
+
+ScrollableState? activeVerticalScrollable(Route<dynamic>? route) =>
+    _activeVerticalScrollables[_activeScrollableRouteKey(route)];
+
+void clearActiveVerticalScrollableForRoute(Route<dynamic>? route) {
+  _activeVerticalScrollables.remove(_activeScrollableRouteKey(route));
 }

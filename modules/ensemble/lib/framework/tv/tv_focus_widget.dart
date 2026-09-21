@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_registry.dart';
+import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -460,12 +461,14 @@ class TVFocusRouteObserver extends NavigatorObserver {
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
     TVFocusWidget.clearRowMemoryForRoute(route);
+    clearActiveVerticalScrollableForRoute(route);
   }
 
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didRemove(route, previousRoute);
     TVFocusWidget.clearRowMemoryForRoute(route);
+    clearActiveVerticalScrollableForRoute(route);
   }
 
   @override
@@ -473,6 +476,7 @@ class TVFocusRouteObserver extends NavigatorObserver {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
     if (oldRoute != null) {
       TVFocusWidget.clearRowMemoryForRoute(oldRoute);
+      clearActiveVerticalScrollableForRoute(oldRoute);
     }
   }
 }

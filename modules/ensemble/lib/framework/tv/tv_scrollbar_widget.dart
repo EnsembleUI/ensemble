@@ -89,6 +89,15 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   bool _isScrollable = false;
   bool _isInitialized = false;
 
+  // `scrollbarOptions.autofocus` is claimed explicitly (see
+  // [_maybeAutofocusScrollbar]) because a competing autofocus elsewhere on the
+  // screen (e.g. a BackArrow fallback) makes Flutter discard the scrollbar's
+  // own autofocus request. Only honored during the initial settling window so
+  // content that becomes scrollable much later cannot yank focus away.
+  bool _didAutofocusScrollbar = false;
+  static const Duration _autofocusWindow = Duration(milliseconds: 1500);
+  final DateTime _createdAt = DateTime.now();
+
   // Thumb offset/height are pushed here on scroll so only the thumb rebuilds
   // (via ValueListenableBuilder) instead of the whole scrollbar subtree.
   final ValueNotifier<({double offset, double height})> _thumbVN =
@@ -126,6 +135,17 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
     _focusNode.requestFocus();
   }
 
+  @override
+  void didUpdateWidget(covariant TVScrollbarWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The ListView resolves `fallbackFocus` asynchronously, after the first
+    // frame. Retry the entry autofocus once it becomes a registered focus
+    // target (see [_maybeAutofocusScrollbar]).
+    if (widget.fallbackFocus != null && oldWidget.fallbackFocus == null) {
+      _maybeAutofocusScrollbar();
+    }
+  }
+
   /// Refresh visibility when the owning scrollable's content dimensions change.
   /// A [ScrollController] only notifies listeners for scroll-position changes,
   /// not for a new maxScrollExtent produced by asynchronous content.
@@ -139,6 +159,13 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   }
 
   bool get _isFallbackFocusTarget => widget.fallbackFocus != null;
+
+  ScrollableState? _owningScrollable() {
+    if (!widget.scrollController.hasClients) return null;
+    final storageContext =
+        widget.scrollController.position.context.storageContext;
+    return Scrollable.maybeOf(storageContext);
+  }
 
   bool get _canScrollUp {
     if (!widget.scrollController.hasClients) return false;
@@ -213,6 +240,41 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
         : 0.0;
     _thumbOffset = (maxThumbOffset * scrollRatio).clamp(0.0, maxThumbOffset);
     _thumbVN.value = (offset: _thumbOffset, height: _thumbHeight);
+    _maybeAutofocusScrollbar();
+  }
+
+  /// When a scrollbar is configured with `autofocus` and content starts to
+  /// overflow, claim focus once after the frame. If the content never overflows
+  /// the scrollbar never renders, so a screen-provided fallback (e.g. a
+  /// BackArrow autofocus) keeps focus instead.
+  void _maybeAutofocusScrollbar() {
+    if (_didAutofocusScrollbar ||
+        !widget.options.autofocus ||
+        !_isScrollable) {
+      return;
+    }
+    if (DateTime.now().difference(_createdAt) > _autofocusWindow) {
+      _didAutofocusScrollbar = true;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _didAutofocusScrollbar ||
+          !_isScrollable ||
+          _focusNode.hasFocus) {
+        if (mounted && _focusNode.hasFocus) {
+          _didAutofocusScrollbar = true;
+        }
+        return;
+      }
+      // Only autofocus when the scrollbar is a real TV focus target (the
+      // ListView had no focusable content and registered it with the page
+      // focus grid). Otherwise it is reached via edge handoff, and focusing
+      // it directly would bypass the grid and trap UP/DOWN.
+      if (!_isFallbackFocusTarget) return;
+      _didAutofocusScrollbar = true;
+      _focusNode.requestFocus();
+    });
   }
 
   void _scrollDown() {
@@ -315,6 +377,17 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 // Re-check `_isFocused` at callback time in case focus has
                 // already moved away before the frame completes.
                 if (hasFocus) {
+                  final owningScrollable = _owningScrollable();
+                  final activeScrollable = owningScrollable == null
+                      ? findOutermostVerticalScrollable(context)
+                      : findOutermostVerticalScrollable(
+                              widget.scrollController.position.context
+                                  .storageContext) ??
+                          owningScrollable;
+                  if (activeScrollable != null) {
+                    rememberActiveVerticalScrollable(
+                        ModalRoute.of(context), activeScrollable);
+                  }
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted && context.mounted && _isFocused) {
                       scrollWidgetIntoView(

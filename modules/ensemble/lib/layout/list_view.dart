@@ -25,6 +25,7 @@ import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:flutter/rendering.dart' show RenderObject, RenderSliver;
 
 import 'helpers/list_view_core.dart';
 
@@ -89,6 +90,8 @@ class ListView extends StatefulWidget
           controller.onScroll = EnsembleAction.from(value, initiator: this),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'minHeight': (value) =>
+          controller.minHeight = Utils.optionalInt(value),
       'nestedScroll': (value) =>
           controller.nestedScroll = Utils.optionalBool(value),
       'cacheExtent': (value) =>
@@ -141,6 +144,7 @@ class ListViewController extends BoxLayoutController {
   bool? shrinkWrap;
   bool? nestedScroll;
   double? cacheExtent;
+  int? minHeight;
 
   // scroll position control
   double? initialScrollOffset;
@@ -228,6 +232,58 @@ class ListViewState extends EWidgetState<ListView>
   // rebuilds; a fresh key each build would force it to be recreated.
   final flutter.GlobalKey<TVScrollbarWidgetState> _scrollbarKey =
       flutter.GlobalKey<TVScrollbarWidgetState>();
+  final flutter.GlobalKey _fitMeasureKey =
+      flutter.GlobalKey(debugLabel: 'ListViewFitContentMeasure');
+  double? _fittedHeight;
+  bool _fitMeasureScheduled = false;
+
+  bool get _usesFitContent =>
+      widget._controller.minHeight != null &&
+      widget._controller.maxHeight != null &&
+      widget._controller.shrinkWrap == true;
+
+  double? _measureContentExtent() {
+    final root = _fitMeasureKey.currentContext?.findRenderObject();
+    if (root == null) return null;
+
+    double? extent;
+    void visit(RenderObject node) {
+      if (node is RenderSliver) {
+        final geometry = node.geometry;
+        if (geometry != null && geometry.scrollExtent.isFinite) {
+          extent = extent == null
+              ? geometry.scrollExtent
+              : extent!.clamp(geometry.scrollExtent, double.infinity);
+        }
+        // Nested viewports are descendants of the outer sliver.
+        return;
+      }
+      node.visitChildren(visit);
+    }
+
+    visit(root);
+    return extent;
+  }
+
+  void _scheduleFitMeasure() {
+    if (!_usesFitContent || _fitMeasureScheduled) return;
+    _fitMeasureScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fitMeasureScheduled = false;
+      if (!mounted || !_usesFitContent) return;
+
+      final extent = _measureContentExtent();
+      if (extent == null) return;
+
+      final maxHeight = widget._controller.maxHeight!.toDouble();
+      final minHeight =
+          widget._controller.minHeight!.toDouble().clamp(0.0, maxHeight);
+      final target = extent.clamp(minHeight, maxHeight);
+      if (_fittedHeight == null || (_fittedHeight! - target).abs() > 1.0) {
+        setState(() => _fittedHeight = target);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -464,6 +520,10 @@ class ListViewState extends EWidgetState<ListView>
       },
     );
 
+    if (_usesFitContent) {
+      listView = flutter.KeyedSubtree(key: _fitMeasureKey, child: listView);
+    }
+
     // if we don't shrinkWrap, the ListView used inside Column or scrollable height
     // would cause an error, so we check for that in Studio mode.
     // Note that we don't need to check for explicit height since that will
@@ -542,7 +602,8 @@ class ListViewState extends EWidgetState<ListView>
           child: probedContent,
         );
 
-        // Build Row with scrollbar on correct side
+        // Keep the scrollbar beside the content. The fit-content wrapper above
+        // supplies the finite height required by the stretched row.
         listView = flutter.NotificationListener<
             flutter.ScrollMetricsNotification>(
           onNotification: (notification) {
@@ -554,21 +615,59 @@ class ListViewState extends EWidgetState<ListView>
             // too, and its metrics don't affect this list's scrollbar.
             if (notification.depth == 0) {
               _scrollbarKey.currentState?.updateForScrollMetrics();
+              _scheduleFitMeasure();
             }
             return false;
           },
           child: flutter.Row(
             crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
             children: isLeftPosition
-              ? [
-                  effectiveScrollbarWidget,
-                  flutter.Expanded(child: scopedContent),
-                ]
-              : [
-                  flutter.Expanded(child: scopedContent),
-                  effectiveScrollbarWidget,
-                ],
+                ? [
+                    effectiveScrollbarWidget,
+                    flutter.Expanded(child: scopedContent),
+                  ]
+                : [
+                    flutter.Expanded(child: scopedContent),
+                    effectiveScrollbarWidget,
+                  ],
           ),
+        );
+      }
+    }
+
+    if (_usesFitContent &&
+        !(Device().isTV && widget._controller.tvOptions?.scrollbarOptions != null)) {
+      listView = flutter.NotificationListener<flutter.ScrollMetricsNotification>(
+        onNotification: (notification) {
+          if (notification.depth == 0) _scheduleFitMeasure();
+          return false;
+        },
+        child: listView,
+      );
+    }
+
+    if (widget._controller.shrinkWrap == true) {
+      final maxHeight = widget._controller.maxHeight == null
+          ? null
+          : widget._controller.maxHeight!.clamp(0, double.infinity).toDouble();
+      final minHeight = widget._controller.minHeight == null
+          ? null
+          : widget._controller.minHeight!
+              .clamp(0, maxHeight ?? double.infinity)
+              .toDouble();
+      if (_usesFitContent) {
+        _scheduleFitMeasure();
+        listView = flutter.SizedBox(
+          height: _fittedHeight ?? maxHeight!,
+          child: listView,
+        );
+      } else if (minHeight != null || maxHeight != null) {
+        listView = flutter.ConstrainedBox(
+          constraints: flutter.BoxConstraints(
+            minHeight: minHeight ?? 0.0,
+            maxHeight: maxHeight ?? double.infinity,
+          ),
+          child: listView,
         );
       }
     }

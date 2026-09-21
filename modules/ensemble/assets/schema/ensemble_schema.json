@@ -3339,6 +3339,10 @@
                     "reverse": {
                       "type": "boolean",
                       "description": "Show list in reverse order. Default is false"
+                    },
+                    "minHeight": {
+                      "type": "integer",
+                      "description": "Minimum height of the list"
                     }
                   }
                 }
@@ -6822,6 +6826,10 @@
                 "indicatorThickness": {
                   "type": "integer",
                   "description": "The thickness of the selected tab's indicator"
+                },
+                "revealTabBarOnFocus": {
+                  "type": "boolean",
+                  "description": "Reveal the whole TabBar when a tab receives focus"
                 }
               }
             },

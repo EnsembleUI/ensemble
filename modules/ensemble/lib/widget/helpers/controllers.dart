@@ -264,6 +264,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     fixedFocusScroll = inputs['fixedFocusScroll'];
     fixedFocusOffset = inputs['fixedFocusOffset'];
     verticalScrollPadding = inputs['verticalScrollPadding'];
+    resetScrollOnFocus = inputs['resetScrollOnFocus'];
     scrollAnimationDuration = inputs['scrollAnimationDuration'];
     scrollAnimationCurve = inputs['scrollAnimationCurve'];
     horizontalScrollPadding = inputs['horizontalScrollPadding'];
@@ -342,6 +343,12 @@ class TVOptionsComposite extends WidgetCompositeProperty {
   set verticalScrollPadding(value) =>
       _verticalScrollPadding = Utils.optionalDouble(value);
   double? get verticalScrollPadding => _verticalScrollPadding;
+
+  /// Reset the remembered page scroll when this widget receives focus.
+  bool _resetScrollOnFocus = false;
+  set resetScrollOnFocus(value) =>
+      _resetScrollOnFocus = Utils.getBool(value, fallback: false);
+  bool get resetScrollOnFocus => _resetScrollOnFocus;
 
   /// Duration of scroll animations in milliseconds.
   /// Defaults to 200ms if not specified.
@@ -475,6 +482,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'fixedFocusScroll': () => _fixedFocusScroll,
         'fixedFocusOffset': () => _fixedFocusOffset,
         'verticalScrollPadding': () => _verticalScrollPadding,
+        'resetScrollOnFocus': () => _resetScrollOnFocus,
         'scrollAnimationDuration': () => _scrollAnimationDuration,
         'scrollAnimationCurve': () => _scrollAnimationCurve,
         'horizontalScrollPadding': () => _horizontalScrollPadding,
@@ -509,6 +517,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'fixedFocusScroll': (value) => fixedFocusScroll = value,
         'fixedFocusOffset': (value) => fixedFocusOffset = value,
         'verticalScrollPadding': (value) => verticalScrollPadding = value,
+        'resetScrollOnFocus': (value) => resetScrollOnFocus = value,
         'scrollAnimationDuration': (value) => scrollAnimationDuration = value,
         'scrollAnimationCurve': (value) => scrollAnimationCurve = value,
         'horizontalScrollPadding': (value) => horizontalScrollPadding = value,
