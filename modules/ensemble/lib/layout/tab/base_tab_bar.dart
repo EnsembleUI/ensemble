@@ -4,6 +4,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -219,7 +220,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 index: index,
                 tabRow: tvRow,
                 isSelected: tabController.index == index,
-                autofocus: index == 0, // First tab gets autofocus
+                autofocus: index == 0 &&
+                    widget.controller.autoFocusFirstTab, // First tab autofocuses unless opted out
                 activeColor: activeColor,
                 inactiveColor: inactiveColor,
                 indicatorColor: indicatorColor,
@@ -229,6 +231,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 tabFontSize: widget.controller.tabFontSize?.toDouble(),
                 tabFontWeight: widget.controller.tabFontWeight,
                 tabPadding: widget.controller.tabPadding,
+                scrollPadding: widget.controller.tvOptions?.verticalScrollPadding,
                 onTap: () {
                   tabController.animateTo(index);
                   onTabChanged(index);
@@ -413,6 +416,7 @@ class _TVTabButton extends StatefulWidget {
     this.tabFontSize,
     this.tabFontWeight,
     this.tabPadding,
+    this.scrollPadding,
   });
 
   final TabItem tabItem;
@@ -430,6 +434,10 @@ class _TVTabButton extends StatefulWidget {
   final double? tabFontSize;
   final FontWeight? tabFontWeight;
   final EdgeInsets? tabPadding;
+
+  /// From tvOptions.verticalScrollPadding: how far from the viewport edge the
+  /// revealed TabBar (strip + active body) should sit.
+  final double? scrollPadding;
 
   @override
   State<_TVTabButton> createState() => _TVTabButtonState();
@@ -454,8 +462,21 @@ class _TVTabButtonState extends State<_TVTabButton> {
   }
 
   void _onFocusChange() {
-    // Only scroll when focus is gained (not on initial autofocus to avoid blocking content)
-    if (_focusNode.hasFocus && _hasReceivedFocus && mounted) {
+    // Remember the enclosing page scroller so a pinned focus target outside it
+    // (e.g. a BackArrow) can reset the page when the list has no scrollbar.
+    if (_focusNode.hasFocus && mounted) {
+      final scrollable = findNearestVerticalScrollable(context);
+      if (scrollable != null) {
+        rememberActiveVerticalScrollable(ModalRoute.of(context), scrollable);
+      }
+    }
+    // Scroll when focus is gained. The first-focus guard only matters for an
+    // autofocused tab (initial load would otherwise yank the page); when the
+    // tab is not autofocused, the first focus is already user-initiated, so
+    // scroll immediately (e.g. NewsCarousel's TabBar reveals the related row).
+    if (_focusNode.hasFocus &&
+        (_hasReceivedFocus || !widget.autofocus) &&
+        mounted) {
       _scrollIntoView();
     }
     // Mark that we've received focus at least once
@@ -466,16 +487,60 @@ class _TVTabButtonState extends State<_TVTabButton> {
 
   void _scrollIntoView() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Scrollable.ensureVisible(
-          context,
-          alignment: 0.0,
-          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-        );
-      }
+      if (!mounted) return;
+      // Vertical: same axis-restricted, padding-aware rule as other focusables.
+      // `Scrollable.ensureVisible(keepVisibleAtStart)` no-ops when the tab is
+      // already partially visible, so the page never revealed the TabBar.
+      //
+      // Target the enclosing TabBar's render box (tab strip + active tab body)
+      // instead of this small button, so focusing the tabs also reveals the
+      // tab content (e.g. the "Gerelateerd" row) rather than just the label.
+      // Only for a flowing (non-expanded) TabBar: an expanded body fills the
+      // viewport, where bottom-aligning it would be meaningless.
+      final tabBarState = context.findAncestorStateOfType<BaseTabBarState>();
+      final tabBarController = tabBarState?.widget.controller;
+      // ignore: deprecated_member_use_from_same_package
+      final revealWholeBar = tabBarController != null && !tabBarController.expanded;
+      final targetContext = revealWholeBar ? tabBarState!.context : context;
+      scrollWidgetIntoView(
+        targetContext,
+        verticalPadding: widget.scrollPadding ?? kTVVerticalScrollPadding,
+      );
+      // Horizontal: still reveal the tab when the tab strip overflows.
+      _scrollHorizontalIntoView();
     });
+  }
+
+  ScrollableState? _findHorizontalScrollable() {
+    ScrollableState? scrollable;
+    context.visitAncestorElements((element) {
+      if (element.widget is Scrollable) {
+        final state = (element as StatefulElement).state;
+        if (state is ScrollableState) {
+          final axis = state.axisDirection;
+          if (axis == AxisDirection.left || axis == AxisDirection.right) {
+            scrollable = state;
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    return scrollable;
+  }
+
+  void _scrollHorizontalIntoView() {
+    final horizontal = _findHorizontalScrollable();
+    if (horizontal == null || !horizontal.position.hasContentDimensions) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    horizontal.position.ensureVisible(
+      box,
+      alignment: 0.0,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override

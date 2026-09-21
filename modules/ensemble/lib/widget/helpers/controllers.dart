@@ -264,6 +264,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     fixedFocusScroll = inputs['fixedFocusScroll'];
     fixedFocusOffset = inputs['fixedFocusOffset'];
     verticalScrollPadding = inputs['verticalScrollPadding'];
+    alwaysScrollIntoView = inputs['alwaysScrollIntoView'];
     scrollAnimationDuration = inputs['scrollAnimationDuration'];
     scrollAnimationCurve = inputs['scrollAnimationCurve'];
     horizontalScrollPadding = inputs['horizontalScrollPadding'];
@@ -342,6 +343,15 @@ class TVOptionsComposite extends WidgetCompositeProperty {
   set verticalScrollPadding(value) =>
       _verticalScrollPadding = Utils.optionalDouble(value);
   double? get verticalScrollPadding => _verticalScrollPadding;
+
+  /// When true, re-align the nearest vertical scrollable on focus-gain even if
+  /// the focused item is already fully visible, so a tall focus target (e.g. a
+  /// ListView scrollbar) also reveals content rendered above it. Default false
+  /// preserves the existing only-scroll-when-offscreen behavior.
+  bool _alwaysScrollIntoView = false;
+  set alwaysScrollIntoView(value) =>
+      _alwaysScrollIntoView = Utils.getBool(value, fallback: false);
+  bool get alwaysScrollIntoView => _alwaysScrollIntoView;
 
   /// Duration of scroll animations in milliseconds.
   /// Defaults to 200ms if not specified.
@@ -475,6 +485,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'fixedFocusScroll': () => _fixedFocusScroll,
         'fixedFocusOffset': () => _fixedFocusOffset,
         'verticalScrollPadding': () => _verticalScrollPadding,
+        'alwaysScrollIntoView': () => _alwaysScrollIntoView,
         'scrollAnimationDuration': () => _scrollAnimationDuration,
         'scrollAnimationCurve': () => _scrollAnimationCurve,
         'horizontalScrollPadding': () => _horizontalScrollPadding,
@@ -509,6 +520,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'fixedFocusScroll': (value) => fixedFocusScroll = value,
         'fixedFocusOffset': (value) => fixedFocusOffset = value,
         'verticalScrollPadding': (value) => verticalScrollPadding = value,
+        'alwaysScrollIntoView': (value) => alwaysScrollIntoView = value,
         'scrollAnimationDuration': (value) => scrollAnimationDuration = value,
         'scrollAnimationCurve': (value) => scrollAnimationCurve = value,
         'horizontalScrollPadding': (value) => horizontalScrollPadding = value,

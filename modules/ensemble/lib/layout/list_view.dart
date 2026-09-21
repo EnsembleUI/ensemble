@@ -25,6 +25,7 @@ import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:flutter/rendering.dart' show RenderObject, RenderSliver;
 
 import 'helpers/list_view_core.dart';
 
@@ -89,6 +90,10 @@ class ListView extends StatefulWidget
           controller.onScroll = EnsembleAction.from(value, initiator: this),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'fitContent': (value) =>
+          controller.fitContent = Utils.getBool(value, fallback: false),
+      'minHeight': (value) =>
+          controller.minHeight = Utils.optionalInt(value),
       'nestedScroll': (value) =>
           controller.nestedScroll = Utils.optionalBool(value),
       'cacheExtent': (value) =>
@@ -141,6 +146,17 @@ class ListViewController extends BoxLayoutController {
   bool? shrinkWrap;
   bool? nestedScroll;
   double? cacheExtent;
+
+  /// When true (and `maxHeight` is set), the ListView measures its real
+  /// content extent after layout and sizes itself to min(content, maxHeight)
+  /// instead of always filling maxHeight. Short content therefore lets the
+  /// next sibling (e.g. a TabBar) stay visible, without shrinkWrap/intrinsics.
+  /// Default false preserves the existing fixed-height behavior.
+  bool fitContent = false;
+
+  /// Optional floor for `fitContent`: the fitted height never drops below this
+  /// (still capped at `maxHeight`). Null = no floor.
+  int? minHeight;
 
   // scroll position control
   double? initialScrollOffset;
@@ -228,6 +244,13 @@ class ListViewState extends EWidgetState<ListView>
   // rebuilds; a fresh key each build would force it to be recreated.
   final flutter.GlobalKey<TVScrollbarWidgetState> _scrollbarKey =
       flutter.GlobalKey<TVScrollbarWidgetState>();
+
+  // `fitContent`: key around the list's render subtree so we can read its real
+  // content extent from the laid-out sliver geometry (no shrinkWrap/intrinsics).
+  final flutter.GlobalKey _fitMeasureKey =
+      flutter.GlobalKey(debugLabel: 'ListViewFitContentMeasure');
+  double? _fittedHeight;
+  bool _fitMeasureScheduled = false;
 
   @override
   void initState() {
@@ -369,6 +392,62 @@ class ListViewState extends EWidgetState<ListView>
     return false;
   }
 
+  bool get _usesFitContent =>
+      widget._controller.fitContent && widget._controller.maxHeight != null;
+
+  /// Reads the laid-out content extent from the viewport's sliver geometry.
+  /// [SliverGeometry.scrollExtent] is the full content extent even when the
+  /// content fits the viewport (unlike ScrollPosition.maxScrollExtent), so this
+  /// works without shrinkWrap or child intrinsics.
+  double? _measureContentExtent() {
+    final ctx = _fitMeasureKey.currentContext;
+    if (ctx == null) return null;
+    final root = ctx.findRenderObject();
+    if (root == null) return null;
+
+    double? extent;
+    void visit(RenderObject node) {
+      if (node is RenderSliver) {
+        final g = node.geometry;
+        if (g != null && g.scrollExtent.isFinite && g.scrollExtent > 0) {
+          if (extent == null || g.scrollExtent > extent!) {
+            extent = g.scrollExtent;
+          }
+        }
+      }
+      node.visitChildren(visit);
+    }
+
+    visit(root);
+    return extent;
+  }
+
+  /// After layout, size a `fitContent` list to its real content extent capped
+  /// at `maxHeight`. Only rebuilds when the value meaningfully changes, so the
+  /// post-frame measurement cannot loop.
+  void _scheduleFitMeasure() {
+    if (!_usesFitContent || _fitMeasureScheduled) return;
+    _fitMeasureScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fitMeasureScheduled = false;
+      if (!mounted || !_usesFitContent) return;
+
+      final extent = _measureContentExtent();
+      if (extent == null) return;
+
+      final cap = widget._controller.maxHeight!.toDouble();
+      final floor = (widget._controller.minHeight?.toDouble() ?? 0.0)
+          .clamp(0.0, cap);
+      var target = extent < cap ? extent : cap;
+      if (target < floor) {
+        target = floor;
+      }
+      if (_fittedHeight == null || (_fittedHeight! - target).abs() > 1.0) {
+        setState(() => _fittedHeight = target);
+      }
+    });
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     widget.controller._bind(this);
@@ -464,11 +543,18 @@ class ListViewState extends EWidgetState<ListView>
       },
     );
 
+    if (_usesFitContent) {
+      // Wrap so the post-frame measurement can read this list's sliver extent.
+      listView = flutter.KeyedSubtree(key: _fitMeasureKey, child: listView);
+    }
+
     // if we don't shrinkWrap, the ListView used inside Column or scrollable height
     // would cause an error, so we check for that in Studio mode.
     // Note that we don't need to check for explicit height since that will
     // already cause the height constraint to be constrained.
-    if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
+    if (StudioDebugger().debugMode &&
+        widget._controller.shrinkWrap != true &&
+        !_usesFitContent) {
       listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
           listView, ListView.type, context, widget._controller);
     }
@@ -511,6 +597,7 @@ class ListViewState extends EWidgetState<ListView>
           verticalScrollPadding: tvOptions.verticalScrollPadding,
           scrollAnimationDuration: tvOptions.scrollAnimationDuration,
           scrollAnimationCurve: tvOptions.scrollAnimationCurve,
+          alwaysScrollIntoView: tvOptions.alwaysScrollIntoView,
         );
         final effectiveScrollbarWidget = fallbackFocus == null
             ? flutter.FocusTraversalGroup(
@@ -571,6 +658,26 @@ class ListViewState extends EWidgetState<ListView>
           ),
         );
       }
+    }
+
+    if (_usesFitContent) {
+      // Re-measure when content dimensions change (e.g. async Html grows) —
+      // ScrollMetricsNotification fires for metrics-only changes that the
+      // ScrollController listener does not report.
+      listView = flutter.NotificationListener<flutter.ScrollMetricsNotification>(
+        onNotification: (notification) {
+          if (notification.depth == 0) _scheduleFitMeasure();
+          return false;
+        },
+        child: listView,
+      );
+      // Start at the cap, then shrink to the real content extent after the
+      // first layout. The list scrolls normally whenever content > cap.
+      listView = flutter.SizedBox(
+        height: _fittedHeight ?? widget._controller.maxHeight!.toDouble(),
+        child: listView,
+      );
+      _scheduleFitMeasure();
     }
 
     return BoxWrapper(
