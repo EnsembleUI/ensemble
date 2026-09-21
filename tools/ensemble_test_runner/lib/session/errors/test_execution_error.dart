@@ -46,5 +46,5 @@ class TestExecutionError implements Exception {
   }
 
   @override
-  String toString() => 'TestExecutionError(${code.name}: $message)';
+  String toString() => message;
 }
