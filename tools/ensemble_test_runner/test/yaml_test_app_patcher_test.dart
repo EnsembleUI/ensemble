@@ -42,7 +42,7 @@ steps: []
     expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
   });
 
-  test('integration mode adapts a widget host entry beside it, then restores',
+  test('integration mode wraps a widget host entry beside it, then restores',
       () {
     final dir = Directory.systemTemp.createTempSync('yaml_host_integration_');
     addTearDown(() => dir.deleteSync(recursive: true));
@@ -85,11 +85,11 @@ steps: []
     expect(adapter.existsSync(), isTrue);
     expect(
       adapter.readAsStringSync(),
-      contains('runApplicationIntegrationYamlTests('),
+      contains("import '../test/application_yaml_tests.dart'"),
     );
     expect(
       adapter.readAsStringSync(),
-      contains("import '../test/host_app_test_driver.dart';"),
+      contains('application_yaml_tests.main()'),
     );
     expect(
       File('${dir.path}/pubspec.yaml').readAsStringSync(),
@@ -128,14 +128,7 @@ steps: []
     Directory('${dir.path}/test').createSync();
     const entry = '''
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
-Future<void> main() {
-  const integration =
-      String.fromEnvironment('ensembleTestExecutionMode') == 'integration';
-  if (integration) {
-    return runApplicationIntegrationYamlTests(driver: createDriver());
-  }
-  return runApplicationYamlTests(driver: createDriver());
-}
+Future<void> main() => runApplicationYamlTests(driver: createDriver());
 ''';
     File('${dir.path}/test/application_yaml_tests.dart')
         .writeAsStringSync(entry);

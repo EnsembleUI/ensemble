@@ -193,8 +193,10 @@ The package is primarily YAML-first, but it also exposes a small Dart API for
 integrations and custom tooling through `package:ensemble_test_runner/ensemble_test_runner.dart`.
 
 - `runEnsembleYamlTests` runs a suite from a Flutter test environment.
-- `runApplicationYamlTests` and `runApplicationIntegrationYamlTests` run pure
-  Flutter or mixed suites through an `ApplicationTestDriver`.
+- `runApplicationYamlTests` runs pure Flutter or mixed suites through an
+  `ApplicationTestDriver`. It selects widget vs integration from the CLI
+  `ensembleTestExecutionMode` dart-define. `runApplicationIntegrationYamlTests`
+  remains as an explicit alias.
 - `ApplicationTestServices` exposes optional navigation, API, storage, and
   runtime metadata capabilities. `ApplicationCheckpointDriver` is required
   when host YAML uses `session:`.
@@ -281,23 +283,9 @@ Flutter app must provide `--test-entry`.
 
 `--mode=integration` uses that same host entry. The CLI writes a temporary
 `integration_test/<entry>.dart` wrapper so Flutter detects the native plugin,
-then deletes it when the run finishes. Widget-only entries
-(`runApplicationYamlTests`) are adapted in that wrapper; relative imports are
-rewritten to keep resolving.
-
-The CLI already passes `--dart-define=ensembleTestExecutionMode=integration`, so
-the entry can also dispatch itself:
-
-```dart
-Future<void> main() {
-  const integration =
-      String.fromEnvironment('ensembleTestExecutionMode') == 'integration';
-  if (integration) {
-    return runApplicationIntegrationYamlTests(driver: MyAppTestDriver());
-  }
-  return runApplicationYamlTests(driver: MyAppTestDriver());
-}
-```
+then deletes it when the run finishes. Relative imports stay on the original
+entry; `runApplicationYamlTests` picks the integration binding from
+`--dart-define=ensembleTestExecutionMode=integration`.
 
 See [`example_host/`](example_host/) for a complete Flutter-host + Ensemble-child
 app: login, bottom nav, and a host card that opens the same Ensemble screen.

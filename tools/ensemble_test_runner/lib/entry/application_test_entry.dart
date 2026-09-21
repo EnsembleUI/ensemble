@@ -25,16 +25,24 @@ import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_test_runner/session/yaml/yaml_step_dispatcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
 
 /// Registers and executes YAML tests against an application-provided driver.
+///
+/// Mode comes from `--dart-define=ensembleTestExecutionMode=` (set by the CLI
+/// for `--mode=integration`). Hosts only need:
+/// ```dart
+/// Future<void> main() => runApplicationYamlTests(driver: MyDriver());
+/// ```
 Future<void> runApplicationYamlTests({
   required ApplicationTestDriver driver,
   String? testsAssetPrefix,
 }) async {
-  LiveTestWidgetsFlutterBinding.ensureInitialized();
+  final mode = _executionModeFromEnvironment();
+  _ensureApplicationTestBinding(mode);
   return registerApplicationYamlTests(
     driver: driver,
-    mode: ExecutionMode.widget,
+    mode: mode,
     testsAssetPrefix: testsAssetPrefix,
   );
 }
@@ -81,7 +89,7 @@ Future<void> registerApplicationYamlTests({
         driver: driver,
         plan: plan,
         tester: tester,
-        mode: mode,
+        mode: resolved,
       );
       final reporter = TestReporter();
       print(reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'));
@@ -93,6 +101,22 @@ Future<void> registerApplicationYamlTests({
       completeTransportIfNeeded();
     }
   });
+}
+
+void _ensureApplicationTestBinding(ExecutionMode mode) {
+  if (mode == ExecutionMode.integration) {
+    IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  } else {
+    LiveTestWidgetsFlutterBinding.ensureInitialized();
+  }
+}
+
+ExecutionMode _executionModeFromEnvironment() {
+  const envMode = String.fromEnvironment('ensembleTestExecutionMode');
+  if (envMode == ExecutionMode.integration.name) {
+    return ExecutionMode.integration;
+  }
+  return ExecutionMode.widget;
 }
 
 /// Services started inside the test process.

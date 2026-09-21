@@ -279,19 +279,24 @@ Future<void> main() async {
 
   /// Writes an `integration_test/` entry so Flutter detects the native plugin.
   ///
-  /// The user-owned `--test-entry` is never rewritten. Relative imports are
-  /// rewritten when the adapter is a copy, or preserved via a thin wrapper
-  /// that re-exports the original `main`.
+  /// The user-owned `--test-entry` is never rewritten. Host entries that call
+  /// [runApplicationYamlTests] (which selects the binding from the CLI
+  /// dart-define) get a thin wrapper. Older entries that only call
+  /// [runApplicationIntegrationYamlTests] are adapted the same way.
   void _materializeApplicationIntegrationEntry() {
     final sourceRel = configuredEntryRelativePath.replaceAll('\\', '/');
     final source = File(_testEntryPath).readAsStringSync();
     final alreadyIntegrationDir =
         p.posix.split(p.posix.normalize(sourceRel)).first == 'integration_test';
+    final hasWidget = entryPointCallsFunction(
+      source,
+      'runApplicationYamlTests',
+    );
     final hasIntegration = entryPointCallsFunction(
       source,
       'runApplicationIntegrationYamlTests',
     );
-    if (alreadyIntegrationDir && hasIntegration) {
+    if (alreadyIntegrationDir && (hasWidget || hasIntegration)) {
       return;
     }
 
@@ -305,7 +310,7 @@ Future<void> main() async {
     }
     _backup(dest, optional: true);
     Directory(p.dirname(dest)).createSync(recursive: true);
-    final contents = hasIntegration && !alreadyIntegrationDir
+    final contents = (hasWidget || hasIntegration) && !alreadyIntegrationDir
         ? applicationIntegrationWrapperContents(sourceRel)
         : adaptEntryForIntegration(
             relocateDartImports(
