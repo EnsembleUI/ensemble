@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,6 +55,34 @@ void main() {
     expect(rect.top, closeTo(6, 0.01));
     expect(rect.width, closeTo(50, 0.01));
     expect(rect.height, closeTo(2.5, 0.01));
+  });
+
+  test('device-frame mapping letterboxes instead of stretching', () {
+    final device = resolveScreenshotDevice(const {});
+    final hole = device.screenPath.getBounds();
+    final stretched = const Size(800, 600);
+    final dest = screenshotFittedScreenRect(
+      imageSize: stretched,
+      screenRect: hole,
+    );
+
+    expect(dest.width, closeTo(hole.width, 0.5));
+    expect(dest.height, lessThan(hole.height * 0.8));
+    expect(dest.top, greaterThan(hole.top));
+    expect(dest.bottom, lessThan(hole.bottom));
+  });
+
+  test('device-frame mapping fills the hole when aspects match', () {
+    final device = resolveScreenshotDevice(const {});
+    final hole = device.screenPath.getBounds();
+    final dest = screenshotFittedScreenRect(
+      imageSize: device.screenSize,
+      screenRect: hole,
+    );
+
+    expect(dest.width / dest.height, closeTo(hole.width / hole.height, 0.01));
+    expect(dest.width, greaterThan(hole.width * 0.98));
+    expect(dest.height, greaterThan(hole.height * 0.98));
   });
 
   test('framed highlight percentages sit inside the device screen hole', () {
@@ -161,6 +190,55 @@ void main() {
       expect(percent.height, closeTo(20 / 200 * 100, 0.5));
     },
   );
+
+  testWidgets('allow keeps obscure text, mask covers it', (tester) async {
+    tester.view.physicalSize = const Size(400, 200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 300,
+              height: 48,
+              child: TextField(
+                key: const ValueKey('secret'),
+                obscureText: true,
+                controller: TextEditingController(text: 'password'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final field = tester.getRect(find.byKey(const ValueKey('secret')));
+    final sample = field.center;
+
+    Future<Color> samplePolicy(SecureScreenshotPolicy policy) async {
+      final image = ExtendedStepHandlers.captureScreenshotImage(
+        tester,
+        secureContent: policy,
+      );
+      addTearDown(image.dispose);
+      final bytes = await tester.runAsync(() => _rgba(image));
+      return _rgbaAt(
+        bytes!,
+        image.width,
+        sample.dx.round().clamp(0, image.width - 1),
+        sample.dy.round().clamp(0, image.height - 1),
+      );
+    }
+
+    const maskFill = Color(0xFF202124);
+    final masked = await samplePolicy(SecureScreenshotPolicy.mask);
+    final allowed = await samplePolicy(SecureScreenshotPolicy.allow);
+
+    expect(masked, maskFill);
+    expect(allowed, isNot(maskFill));
+  });
 }
 
 Future<Uint8List> _rgba(ui.Image image) async {

@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
+import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -715,6 +717,58 @@ void main() {
 
     expect(tester.binding.renderViews.first.size, const Size(393, 852));
   });
+
+  testWidgets(
+    'waitForNavigation succeeds when screen was visited but already left',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: Text('Devices'))),
+      );
+
+      final context = EnsembleTestContext.fromTestCase(
+        const EnsembleTestCase(
+          id: 'nav_history',
+          startScreen: 'Home',
+          steps: [],
+        ),
+      );
+      final navigation = _FakeNavigationService(
+        currentRoute: 'Devices',
+        routeHistory: const ['Loading', 'Home', 'Devices'],
+      );
+      final executor = TestStepExecutor(
+        tester: tester,
+        context: context,
+        assertions: AssertionEngine(tester: tester, context: context),
+        harness: EnsembleTestHarness(appPath: 'ensemble/apps/', appHome: 'x'),
+        services: ApplicationTestServices(navigation: navigation),
+        executionConfig: const TestExecutionConfig(
+          defaultWaitTimeout: Duration(milliseconds: 300),
+          waitPollInterval: Duration(milliseconds: 50),
+        ),
+      );
+
+      await executor.execute(
+        const TestStep(
+          type: 'waitForNavigation',
+          args: {'screen': 'Home', 'timeoutMs': 300},
+        ),
+      );
+    },
+  );
+}
+
+class _FakeNavigationService implements NavigationTestService {
+  _FakeNavigationService({
+    required this.currentRoute,
+    required this.routeHistory,
+  });
+
+  @override
+  final String? currentRoute;
+
+  @override
+  final List<String> routeHistory;
 }
 
 class _DelayedTappableButton extends StatefulWidget {

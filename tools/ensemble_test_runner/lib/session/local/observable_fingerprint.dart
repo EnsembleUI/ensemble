@@ -32,11 +32,11 @@ String fingerprintForElement(UiElement element) => _elementDigest(element);
 String _elementDigest(UiElement element) {
   final b = element.bounds;
   // Bucket bounds to reduce noise from sub-pixel layout jitter.
-  String bucket(double? v) =>
-      v == null ? '' : (v / 4).round().toString();
+  String bucket(double? v) => v == null ? '' : (v / 4).round().toString();
   return [
     element.testId ?? '',
     element.type ?? '',
+    element.role ?? '',
     element.label ?? '',
     element.text ?? '',
     element.state.visible,

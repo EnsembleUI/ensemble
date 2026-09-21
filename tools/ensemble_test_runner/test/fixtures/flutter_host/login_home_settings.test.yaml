@@ -1,0 +1,17 @@
+id: login_home_settings
+description: Pure Flutter Login → Home → Settings journey
+steps:
+  - expectVisible:
+      id: login_screen
+  - expectVisible:
+      target:
+        label: Continue
+        role: button
+  - tap:
+      id: login_button
+  - expectVisible:
+      id: home_title
+  - tap:
+      id: open_settings
+  - expectVisible:
+      id: settings_title

@@ -449,7 +449,7 @@ class ExtendedStepHandlers {
   }
 
   static Future<void> _setDevice(TestStepExecutor e, TestStep step) async {
-    if (e.harness.runtimeAdapter.usesPhysicalDisplay) {
+    if (e.requireHarness.runtimeAdapter.usesPhysicalDisplay) {
       throw EnsembleTestFailure(
         'setDevice cannot override the simulator/emulator display in '
         'integration mode.',
@@ -511,7 +511,10 @@ class ExtendedStepHandlers {
     }
   }
 
-  static ui.Image captureScreenshotImage(WidgetTester tester) {
+  static ui.Image captureScreenshotImage(
+    WidgetTester tester, {
+    SecureScreenshotPolicy secureContent = SecureScreenshotPolicy.mask,
+  }) {
     final renderView = tester.binding.renderViews.first;
     final layer = renderView.debugLayer;
     if (layer is! OffsetLayer) {
@@ -521,13 +524,57 @@ class ExtendedStepHandlers {
     }
 
     final view = renderView.flutterView;
-    return layer.toImageSync(
+    final image = layer.toImageSync(
       screenshotLayerBounds(
         physicalSize: view.physicalSize,
         paintBounds: renderView.paintBounds,
       ),
       pixelRatio: screenshotLayerPixelRatio,
     );
+    final secureRects = <Rect>[];
+    final seen = <RenderObject>{};
+    for (final element in tester.allElements) {
+      final widget = element.widget;
+      if (widget is! EditableText || !widget.obscureText) continue;
+      final renderObject = element.renderObject;
+      if (renderObject is! RenderBox ||
+          !renderObject.hasSize ||
+          renderObject.size.isEmpty ||
+          !seen.add(renderObject)) {
+        continue;
+      }
+      secureRects
+          .add(renderObject.localToGlobal(Offset.zero) & renderObject.size);
+    }
+    if (secureRects.isEmpty || secureContent == SecureScreenshotPolicy.allow) {
+      return image;
+    }
+    if (secureContent == SecureScreenshotPolicy.skip) {
+      image.dispose();
+      throw EnsembleTestFailure(
+        'Screenshot skipped because secure content is visible.',
+      );
+    }
+    final logicalSize = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawImage(image, Offset.zero, Paint());
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+    for (final rect in secureRects) {
+      canvas.drawRect(
+        screenshotLogicalRectToImagePixels(
+          logicalRect: rect,
+          logicalSize: logicalSize,
+          imageSize: imageSize,
+        ),
+        Paint()..color = const Color(0xFF202124),
+      );
+    }
+    final picture = recorder.endRecording();
+    final masked = picture.toImageSync(image.width, image.height);
+    picture.dispose();
+    image.dispose();
+    return masked;
   }
 
   static Future<Uint8List> encodeScreenshotImage(
@@ -564,15 +611,18 @@ class ExtendedStepHandlers {
     final screenRect = screenPath.getBounds();
     canvas.save();
     canvas.clipPath(screenPath);
+    canvas.drawRect(screenRect, Paint()..color = const Color(0xFFFFFFFF));
+    final imageSize = Size(
+      screenImage.width.toDouble(),
+      screenImage.height.toDouble(),
+    );
     canvas.drawImageRect(
       screenImage,
-      Rect.fromLTWH(
-        0,
-        0,
-        screenImage.width.toDouble(),
-        screenImage.height.toDouble(),
+      Offset.zero & imageSize,
+      screenshotFittedScreenRect(
+        imageSize: imageSize,
+        screenRect: screenRect,
       ),
-      screenRect,
       Paint()..filterQuality = FilterQuality.high,
     );
     canvas.restore();

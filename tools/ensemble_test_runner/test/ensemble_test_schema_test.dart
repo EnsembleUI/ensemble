@@ -45,12 +45,12 @@ void main() {
     }
   });
 
-  test('generated JSON is valid and requires id, startScreen, and steps', () {
+  test('generated JSON is valid and keeps startScreen optional', () {
     final json = EnsembleTestSchemaBuilder.buildJson();
     final decoded = jsonDecode(json) as Map<String, dynamic>;
     expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
-    expect(decoded['required'],
-        containsAll(<String>['id', 'startScreen', 'steps']));
+    expect(decoded['required'], containsAll(<String>['id', 'steps']));
+    expect(decoded['required'], isNot(contains('startScreen')));
     expect(decoded['properties'], contains('id'));
     expect(decoded['properties'], isNot(contains('tests')));
     expect(decoded['properties'], contains('mocks'));

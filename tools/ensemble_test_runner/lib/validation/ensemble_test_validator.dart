@@ -68,8 +68,14 @@ class EnsembleTestValidationResult {
 
 class EnsembleTestValidator {
   final String appDir;
+  final String? testsDirRelative;
+  final bool applicationProvided;
 
-  EnsembleTestValidator(this.appDir);
+  EnsembleTestValidator(
+    this.appDir, {
+    this.testsDirRelative,
+    this.applicationProvided = false,
+  });
 
   EnsembleTestValidationResult validate() {
     final issues = <EnsembleTestValidationIssue>[];
@@ -89,21 +95,26 @@ class EnsembleTestValidator {
       ));
     }
 
-    late final EnsembleAppInspection inspection;
-    try {
-      inspection = EnsembleAppInspector(appDir).inspect();
-    } on StateError catch (error) {
-      add(ValidationSeverity.error, 'config', error.message);
-      return EnsembleTestValidationResult(issues);
+    EnsembleAppInspection? inspection;
+    if (!applicationProvided) {
+      try {
+        inspection = EnsembleAppInspector(appDir).inspect();
+      } on StateError catch (error) {
+        add(ValidationSeverity.error, 'config', error.message);
+        return EnsembleTestValidationResult(issues);
+      }
     }
 
-    final testsDirRelative = p.posix.join(inspection.appPath, 'tests');
-    final testsDir = Directory(p.join(appDir, testsDirRelative));
+    final resolvedTestsDir = testsDirRelative ??
+        (inspection == null
+            ? 'tests'
+            : p.posix.join(inspection.appPath, 'tests'));
+    final testsDir = Directory(p.join(appDir, resolvedTestsDir));
     if (!testsDir.existsSync()) {
       add(
         ValidationSeverity.error,
         'missingTests',
-        'No declarative tests found. Add *.test.yaml files under $testsDirRelative/',
+        'No declarative tests found. Add *.test.yaml files under $resolvedTestsDir/',
       );
       return EnsembleTestValidationResult(issues);
     }
@@ -118,7 +129,7 @@ class EnsembleTestValidator {
       add(
         ValidationSeverity.error,
         'missingTests',
-        'No declarative tests found. Add *.test.yaml files under $testsDirRelative/',
+        'No declarative tests found. Add *.test.yaml files under $resolvedTestsDir/',
       );
       return EnsembleTestValidationResult(issues);
     }
@@ -141,11 +152,13 @@ class EnsembleTestValidator {
     }
 
     final screensByName = {
-      for (final screen in inspection.screens) screen.name: screen
+      for (final screen in inspection?.screens ?? const <ScreenInspection>[])
+        screen.name: screen
     };
     final knownScreens = screensByName.keys.toSet();
-    final knownWidgetIds = inspection.screens.expand((s) => s.testIds).toSet();
-    final knownApis = inspection.screens.expand((s) => s.apis).toSet();
+    final inspectedScreens = inspection?.screens ?? const <ScreenInspection>[];
+    final knownWidgetIds = inspectedScreens.expand((s) => s.testIds).toSet();
+    final knownApis = inspectedScreens.expand((s) => s.apis).toSet();
     final ids = <String, String>{};
     final sessions = <String, String>{};
 
@@ -191,6 +204,27 @@ class EnsembleTestValidator {
       }
 
       final startScreen = doc['startScreen']?.toString();
+      if (!applicationProvided &&
+          (startScreen == null || startScreen.isEmpty)) {
+        add(
+          ValidationSeverity.error,
+          'missingStartScreen',
+          'Standalone Ensemble test must define startScreen',
+          path: relativePath,
+          testId: id,
+        );
+      }
+      if (applicationProvided &&
+          startScreen != null &&
+          startScreen.isNotEmpty) {
+        add(
+          ValidationSeverity.error,
+          'hostStartScreen',
+          'Host tests must not define startScreen; the application driver owns launch state',
+          path: relativePath,
+          testId: id,
+        );
+      }
       final session = doc['session']?.toString();
       if (session != null && session.isNotEmpty) {
         sessions[id] = session;
@@ -222,7 +256,7 @@ class EnsembleTestValidator {
       final stepInfo = _collectStepInfo(steps);
       for (final widgetId in stepInfo.widgetIds) {
         if (_isPlaceholder(widgetId)) continue;
-        if (!knownWidgetIds.contains(widgetId)) {
+        if (!applicationProvided && !knownWidgetIds.contains(widgetId)) {
           add(
             ValidationSeverity.warning,
             'unknownWidgetId',
@@ -234,11 +268,23 @@ class EnsembleTestValidator {
       }
       for (final api in stepInfo.apiNames) {
         if (_isPlaceholder(api)) continue;
-        if (!knownApis.contains(api)) {
+        if (!applicationProvided && !knownApis.contains(api)) {
           add(
             ValidationSeverity.warning,
             'unknownApi',
             'No obvious API definition found for "$api"',
+            path: relativePath,
+            testId: id,
+          );
+        }
+      }
+      if (applicationProvided) {
+        for (final capability in stepInfo.requiredCapabilities) {
+          add(
+            ValidationSeverity.warning,
+            'hostCapability',
+            'Step requires application capability "$capability"; provide it on '
+                'ApplicationTestServices or the step will fail at runtime',
             path: relativePath,
             testId: id,
           );
@@ -265,11 +311,13 @@ class EnsembleTestValidator {
 typedef _StepInfo = ({
   Set<String> widgetIds,
   Set<String> apiNames,
+  Set<String> requiredCapabilities,
 });
 
 _StepInfo _collectStepInfo(dynamic steps) {
   final widgetIds = <String>{};
   final apiNames = <String>{};
+  final requiredCapabilities = <String>{};
 
   void visit(dynamic node) {
     if (node is! Iterable) return;
@@ -277,6 +325,8 @@ _StepInfo _collectStepInfo(dynamic steps) {
       if (step is! Map || step.isEmpty) continue;
       final type = step.keys.first.toString();
       final args = step.values.first;
+      final capability = _capabilityForStepType(type);
+      if (capability != null) requiredCapabilities.add(capability);
       if (args is Map) {
         final id = args['id'];
         if (id != null) widgetIds.add(id.toString());
@@ -295,7 +345,44 @@ _StepInfo _collectStepInfo(dynamic steps) {
   return (
     widgetIds: widgetIds,
     apiNames: apiNames,
+    requiredCapabilities: requiredCapabilities,
   );
+}
+
+String? _capabilityForStepType(String type) {
+  switch (type) {
+    case 'expectApiCalled':
+    case 'expectApiNotCalled':
+    case 'expectApiCallOrder':
+    case 'expectLastApiCall':
+    case 'resetApiCalls':
+    case 'logApiCalls':
+    case 'waitForApi':
+      return 'api';
+    case 'mocks':
+      return 'apiMocking';
+    case 'setStorage':
+    case 'expectStorage':
+    case 'removeStorage':
+    case 'clearStorage':
+    case 'logStorage':
+      return 'storage';
+    case 'expectScreen':
+    case 'expectNavigateTo':
+    case 'expectVisited':
+    case 'expectNotVisited':
+    case 'expectBackStack':
+    case 'expectCanGoBack':
+    case 'goBack':
+    case 'waitForNavigation':
+      return 'navigation';
+    case 'openScreen':
+    case 'reloadScreen':
+    case 'restartApp':
+      return 'ensembleHarness';
+    default:
+      return null;
+  }
 }
 
 bool _isPlaceholder(String value) =>

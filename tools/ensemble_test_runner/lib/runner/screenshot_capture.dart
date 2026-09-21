@@ -44,6 +44,20 @@ Rect screenshotLogicalRectToImagePixels({
   );
 }
 
+/// Destination rect for a capture inside the device-frame screen hole.
+///
+/// [BoxFit.contain] keeps the capture's aspect ratio. Mapping a default
+/// 800×600 widget-test surface into an iPhone hole with [BoxFit.fill]
+/// stretches the UI.
+Rect screenshotFittedScreenRect({
+  required Size imageSize,
+  required Rect screenRect,
+}) {
+  if (imageSize.isEmpty || screenRect.isEmpty) return screenRect;
+  final fitted = applyBoxFit(BoxFit.contain, imageSize, screenRect.size);
+  return Alignment.center.inscribe(fitted.destination, screenRect);
+}
+
 /// Converts a rect in capture-image pixels into HTML overlay percentages.
 ///
 /// When [frameDevice] is set, percentages are relative to the framed output
@@ -69,14 +83,18 @@ Rect screenshotHighlightPercentRect({
   final screenRect = frameDevice.screenPath.getBounds().shift(
         Offset(padding, padding),
       );
-  final left = screenRect.left +
-      (rectInImagePixels.left / imageSize.width) * screenRect.width;
-  final top = screenRect.top +
-      (rectInImagePixels.top / imageSize.height) * screenRect.height;
-  final right = screenRect.left +
-      (rectInImagePixels.right / imageSize.width) * screenRect.width;
-  final bottom = screenRect.top +
-      (rectInImagePixels.bottom / imageSize.height) * screenRect.height;
+  final dest = screenshotFittedScreenRect(
+    imageSize: imageSize,
+    screenRect: screenRect,
+  );
+  final left =
+      dest.left + (rectInImagePixels.left / imageSize.width) * dest.width;
+  final top =
+      dest.top + (rectInImagePixels.top / imageSize.height) * dest.height;
+  final right =
+      dest.left + (rectInImagePixels.right / imageSize.width) * dest.width;
+  final bottom =
+      dest.top + (rectInImagePixels.bottom / imageSize.height) * dest.height;
   return Rect.fromLTRB(
     _percent(left, outputWidth),
     _percent(top, outputHeight),

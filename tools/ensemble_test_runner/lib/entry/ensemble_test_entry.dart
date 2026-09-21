@@ -192,7 +192,8 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           metadata: _runMetadata(options.mode),
         );
         if (options.mode == ExecutionMode.widget &&
-            !isEnsembleTestParallelWorker()) {
+            !isEnsembleTestParallelWorker() &&
+            !usesDeviceArtifactTransport) {
           if (await _recordHistory(runResult)) {
             suiteLogs.add('history: $_historyDisplayPath');
             runResult = EnsembleTestRunResult(
@@ -203,7 +204,8 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           }
         }
         if (options.mode == ExecutionMode.widget &&
-            !isEnsembleTestParallelWorker()) {
+            !isEnsembleTestParallelWorker() &&
+            !usesDeviceArtifactTransport) {
           final htmlPath = HtmlTestReporter().write(
             runResult,
           );
@@ -325,8 +327,12 @@ Map<String, dynamic> _runMetadata(ExecutionMode mode) {
   const deviceId = String.fromEnvironment('ensembleTestPhysicalDeviceId');
   const platform = String.fromEnvironment('ensembleTestPhysicalPlatform');
   const deviceName = String.fromEnvironment('ensembleTestPhysicalDeviceName');
+  const envMode = String.fromEnvironment('ensembleTestExecutionMode');
+  final resolvedMode = envMode == ExecutionMode.integration.name
+      ? ExecutionMode.integration
+      : mode;
   return {
-    'mode': mode.name,
+    'mode': resolvedMode.name,
     if (deviceId.isNotEmpty) 'deviceId': deviceId,
     if (platform.isNotEmpty) 'platform': platform,
     if (deviceName.isNotEmpty) 'deviceName': deviceName,
@@ -506,7 +512,9 @@ void _emitMachineReport(EnsembleTestRunResult result) {
     );
   }
 
-  if (reportMode == 'json' || emitJsonReport) {
+  if (usesDeviceArtifactTransport) {
+    emitEnsembleTestMachineReport(jsonReport);
+  } else if (reportMode == 'json' || emitJsonReport) {
     print('ENSEMBLE_TEST_JSON_REPORT:$jsonReport');
   }
   if (reportMode == 'junit') {

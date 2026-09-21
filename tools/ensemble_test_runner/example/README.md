@@ -22,6 +22,10 @@ On Flutter 3.44+, disable SwiftPM before an iOS build:
 flutter config --no-enable-swift-package-manager
 ```
 
+Xcode 27 / the iOS 27 SDK requires `UIApplicationSceneManifest` in
+`ios/Runner/Info.plist` (this example already includes it). Without that key
+the app crashes on launch.
+
 iOS must target 15.0+ (Firebase 12). `flutter create` still generates 13.0;
 set `platform :ios, '15.0'` in `ios/Podfile` and `IPHONEOS_DEPLOYMENT_TARGET = 15.0`
 in the Xcode project (CI does this for the example), or run

@@ -11,7 +11,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
@@ -152,7 +151,9 @@ mixin DeviceInfoCapability {
 
       // Initialize wakelock status from actual platform state
       await Device().refreshWakelockStatus();
-    } on PlatformException {
+    } catch (_) {
+      // Fire-and-forget: a TypeError from a mismatched plugin mock must not
+      // become an uncaught async FlutterError that fails the surrounding test.
       log("Error getting device info");
     }
   }

@@ -82,8 +82,7 @@ void main() {
     expect(title.supportedActions, contains('tap'));
     expect(title.bounds, isNotNull);
 
-    final login =
-        obs.elements.firstWhere((e) => e.testId == 'login_button');
+    final login = obs.elements.firstWhere((e) => e.testId == 'login_button');
     expect(login.type, 'button');
     expect(login.state.enabled, isTrue);
     expect(login.supportedActions, containsAll(['tap', 'doubleTap']));
@@ -153,7 +152,8 @@ void main() {
     enabled.dispose();
   });
 
-  testWidgets('occurrence targeting taps the selected duplicate', (tester) async {
+  testWidgets('occurrence targeting taps the selected duplicate',
+      (tester) async {
     final taps = <String>[];
     await tester.pumpWidget(
       MaterialApp(

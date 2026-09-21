@@ -31,6 +31,7 @@ UiElement describeElement({
     elementId: elementId,
     testId: testId,
     type: type,
+    role: inferSemanticRole(element, type),
     label: label,
     text: text,
     state: UiElementState(
@@ -46,6 +47,69 @@ UiElement describeElement({
     bounds: includeBounds ? bounds : null,
     supportedActions: supportedActionsFor(type, secure: secure),
   );
+}
+
+String inferSemanticRole(Element element, String type) {
+  final widget = element.widget;
+  if (widget is Semantics) {
+    final properties = widget.properties;
+    if (properties.button == true) return 'button';
+    if (properties.textField == true) return 'textField';
+    if (properties.slider == true) return 'slider';
+    if (properties.checked != null) return 'checkbox';
+  }
+  if (_selfOrAncestor<Checkbox>(element) != null) return 'checkbox';
+  if (_selfOrAncestor<Switch>(element) != null ||
+      _selfOrAncestor<CupertinoSwitch>(element) != null) {
+    return 'switch';
+  }
+  if (_selfOrAncestor<Slider>(element) != null) return 'slider';
+  if (type == 'textInput') return 'textField';
+  return type;
+}
+
+/// True for the element that owns user-facing semantics, excluding the many
+/// implementation descendants that resolve to the same merged semantics node.
+bool isSemanticLocatorCandidate(Element element) {
+  final widget = element.widget;
+  if ((widget is GestureDetector || widget is InkWell) &&
+      (element.findAncestorWidgetOfExactType<ElevatedButton>() != null ||
+          element.findAncestorWidgetOfExactType<TextButton>() != null ||
+          element.findAncestorWidgetOfExactType<OutlinedButton>() != null ||
+          element.findAncestorWidgetOfExactType<FilledButton>() != null ||
+          element.findAncestorWidgetOfExactType<IconButton>() != null)) {
+    return false;
+  }
+  return widget is Semantics ||
+      isActionableControl(element);
+}
+
+/// Interactive controls suitable as the primary target of a text locator.
+/// Excludes bare [Semantics] wrappers that may span multiple controls.
+bool isActionableControl(Element element) {
+  final widget = element.widget;
+  return widget is ElevatedButton ||
+      widget is TextButton ||
+      widget is OutlinedButton ||
+      widget is FilledButton ||
+      widget is IconButton ||
+      widget is GestureDetector ||
+      widget is InkWell ||
+      widget is TextField ||
+      widget is CupertinoTextField ||
+      widget is EditableText ||
+      widget is Checkbox ||
+      widget is Switch ||
+      widget is CupertinoSwitch ||
+      widget is Slider;
+}
+
+bool isTextLocatorCandidate(Element element) {
+  final widget = element.widget;
+  return widget is Text ||
+      widget is RichText ||
+      widget is EditableText ||
+      isSemanticLocatorCandidate(element);
 }
 
 T? _selfOrAncestor<T extends Widget>(Element element) {
@@ -125,8 +189,10 @@ bool? readChecked(Element element) {
 }
 
 String? readText(Element element) {
+  if (looksSecure(element, null)) return null;
   final texts = <String>[];
   void visit(Element e) {
+    if (!identical(e, element) && looksSecure(e, null)) return;
     final w = e.widget;
     if (w is Text && w.data != null && w.data!.isNotEmpty) {
       texts.add(w.data!);
@@ -143,6 +209,11 @@ String? readText(Element element) {
 }
 
 String? readSemanticsLabel(WidgetTester tester, Element element) {
+  final widget = element.widget;
+  if (widget is Semantics) {
+    final direct = widget.properties.label;
+    if (direct != null && direct.isNotEmpty) return direct;
+  }
   try {
     final node = tester.getSemantics(
       find.byElementPredicate((e) => identical(e, element)),

@@ -7,7 +7,6 @@ import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
-import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/schema/ensemble_test_schema_builder.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -307,7 +306,8 @@ void main() {
     );
   });
 
-  test('artifact protocol keeps valid files when complete is missing', () async {
+  test('artifact protocol keeps valid files when complete is missing',
+      () async {
     final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
     addTearDown(() => appDir.deleteSync(recursive: true));
     final bytes = utf8.encode('kept');
@@ -394,7 +394,8 @@ void main() {
         }),
       );
 
-      await materializeTransportedArtifactsForTest(appDir.path, lines.join('\n'));
+      await materializeTransportedArtifactsForTest(
+          appDir.path, lines.join('\n'));
       expect(
         File('${appDir.path}/build/ensemble_test_runner/screenshots/a.png')
             .readAsStringSync(),
@@ -413,12 +414,11 @@ void main() {
     final encoded = base64Encode(
       List<int>.filled(ensembleTestArtifactRawChunkSize, 7),
     );
-    final line =
-        '$ensembleTestArtifactProtocolPrefix${json.encode({
-      'event': 'chunk',
-      'id': '2026-09-17T00:00:00.000Z-0',
-      'data': encoded,
-    })}';
+    final line = '$ensembleTestArtifactProtocolPrefix${json.encode({
+          'event': 'chunk',
+          'id': '2026-09-17T00:00:00.000Z-0',
+          'data': encoded,
+        })}';
     expect(line.length, lessThan(maxLogcatPayload));
   });
 
@@ -519,21 +519,19 @@ void main() {
       artifacts.length,
     );
     for (final batch in batches) {
-      final line =
-          '$ensembleTestArtifactProtocolPrefix${json.encode({
-        'event': 'manifest',
-        'runId': 'run-big',
-        'artifacts': batch,
-      })}';
+      final line = '$ensembleTestArtifactProtocolPrefix${json.encode({
+            'event': 'manifest',
+            'runId': 'run-big',
+            'artifacts': batch,
+          })}';
       expect(line.length, lessThan(maxLogcatPayload));
     }
-    final completeLine =
-        '$ensembleTestArtifactProtocolPrefix${json.encode({
-      'event': 'complete',
-      'runId': 'run-big',
-      'count': artifacts.length,
-      'sha256': ensembleTestArtifactManifestSha256(artifacts),
-    })}';
+    final completeLine = '$ensembleTestArtifactProtocolPrefix${json.encode({
+          'event': 'complete',
+          'runId': 'run-big',
+          'count': artifacts.length,
+          'sha256': ensembleTestArtifactManifestSha256(artifacts),
+        })}';
     expect(completeLine.length, lessThan(maxLogcatPayload));
   });
 
@@ -627,7 +625,8 @@ void main() {
         'size': bytes.length,
         'sha256': digest,
       }),
-      record({'event': 'chunk', 'id': 'run-bad-0', 'data': base64Encode(bytes)}),
+      record(
+          {'event': 'chunk', 'id': 'run-bad-0', 'data': base64Encode(bytes)}),
       record({'event': 'end', 'id': 'run-bad-0'}),
       record({
         'event': 'manifest',

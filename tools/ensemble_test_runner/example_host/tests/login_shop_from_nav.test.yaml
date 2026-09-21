@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
+id: login_shop_from_nav
+feature: host-ensemble
+tags: [smoke, mixed]
+description: Flutter login then open the Ensemble shop from the host bottom nav
+priority: high
+steps:
+  - expectVisible:
+      id: login_screen
+  - enterText:
+      id: email_field
+      value: user@example.com
+  - enterText:
+      id: password_field
+      value: password
+  - tap:
+      id: login_button
+  - waitFor:
+      id: host_shell
+      timeoutMs: 15000
+  - expectVisible:
+      id: home_title
+  - tap:
+      id: nav_shop
+  - waitFor:
+      id: shop_title
+      timeoutMs: 15000
+  - expectVisible:
+      id: shop_title
+  - expectVisible:
+      id: shop_featured_button
+  - tap:
+      id: shop_featured_button

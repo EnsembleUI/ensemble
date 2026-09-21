@@ -149,6 +149,43 @@ class EnsembleTestSchemaBuilder {
 
   static Map<String, dynamic> build() {
     final defs = <String, dynamic>{
+      'elementLocator': {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'id': {'type': 'string', 'minLength': 1},
+          'text': {'type': 'string'},
+          'label': {'type': 'string'},
+          'role': {
+            'type': 'string',
+            'enum': [
+              'button',
+              'text',
+              'textField',
+              'checkbox',
+              'switch',
+              'slider',
+              'widget',
+            ],
+          },
+          'within': {'\$ref': '#/\$defs/elementLocator'},
+          'occurrence': {'type': 'integer', 'minimum': 0},
+        },
+        'anyOf': [
+          {
+            'required': ['id']
+          },
+          {
+            'required': ['text']
+          },
+          {
+            'required': ['label']
+          },
+          {
+            'required': ['role']
+          },
+        ],
+      },
       'initialState': _initialStateDef(),
       'scenario': {
         'type': 'object',
@@ -257,7 +294,7 @@ class EnsembleTestSchemaBuilder {
             'items': {'\$ref': '#/\$defs/step'},
           },
         },
-        'required': ['id', 'startScreen', 'steps'],
+        'required': ['id', 'steps'],
       },
     };
 
@@ -432,6 +469,11 @@ class EnsembleTestSchemaBuilder {
             'excludeSteps': {
               'type': 'array',
               'items': {'type': 'string'},
+            },
+            'secureContent': {
+              'type': 'string',
+              'enum': ['mask', 'skip', 'allow'],
+              'default': 'mask',
             },
           },
         },

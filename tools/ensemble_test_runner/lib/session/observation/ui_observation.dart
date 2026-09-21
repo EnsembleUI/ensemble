@@ -162,7 +162,9 @@ class UiObservation {
       schemaVersion: json['schemaVersion'] as int? ?? currentSchemaVersion,
       observationId: json['observationId']?.toString() ?? '',
       revision: json['revision'] as int? ?? 0,
-      timestamp: ts != null ? DateTime.parse(ts) : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      timestamp: ts != null
+          ? DateTime.parse(ts)
+          : DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       screen: screenRaw is Map
           ? ScreenObservation.fromJson(Map<String, dynamic>.from(screenRaw))
           : ScreenObservation.unknown(),

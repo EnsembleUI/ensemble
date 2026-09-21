@@ -65,7 +65,8 @@ void main() {
             supportedActions: ['tap', 'enterText'],
           ),
         ],
-        viewport: const UiViewport(width: 390, height: 844, devicePixelRatio: 2),
+        viewport:
+            const UiViewport(width: 390, height: 844, devicePixelRatio: 2),
         observableFingerprint: 'fp_abc',
         completeness: const ObservationCompleteness(
           semanticTree: true,
@@ -153,7 +154,8 @@ void main() {
     test('TestAssertion and WaitCondition variants', () {
       final assertions = <TestAssertion>[
         const ElementVisibleAssertion(testId: 'title'),
-        const ElementTextAssertion(testId: 'title', text: 'Hello', contains: true),
+        const ElementTextAssertion(
+            testId: 'title', text: 'Hello', contains: true),
         const ScreenAssertion(screen: 'Home'),
         const ElementEnabledAssertion(testId: 'submit', enabled: false),
         const GenericAssertion(

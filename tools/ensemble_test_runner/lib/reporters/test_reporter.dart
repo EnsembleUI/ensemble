@@ -160,7 +160,9 @@ class TestReporter {
       if (report.session != null) {
         buffer.writeln('│     session: ${report.session}');
       }
-      buffer.writeln('│     start: ${report.startScreen}');
+      if (report.startScreen != null) {
+        buffer.writeln('│     start: ${report.startScreen}');
+      }
       if (report.endScreen != null && report.endScreen != report.startScreen) {
         buffer.writeln('│     end:   ${report.endScreen}');
       }

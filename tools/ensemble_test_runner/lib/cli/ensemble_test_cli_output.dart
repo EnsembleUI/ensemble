@@ -6,6 +6,7 @@ const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
 const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 const junitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
+const artifactProtocolPrefix = 'ENSEMBLE_TEST_ARTIFACT_V1:';
 const flutterExceptionStart = '══╡ EXCEPTION CAUGHT BY ';
 const flutterTakeExceptionHint =
     '(The following exception is now available via WidgetTester.takeException:)';
@@ -21,6 +22,7 @@ class LiveFlutterTestOutputFilter {
     if (_suppressRest) return false;
     if (line.startsWith(jsonReportPrefix) ||
         line.startsWith(junitReportPrefix) ||
+        line.contains(artifactProtocolPrefix) ||
         line.startsWith(flutterTakeExceptionHint)) {
       return false;
     }
@@ -105,8 +107,9 @@ String extractJunitReport(String output) {
 
 String _extractPrefixedReport(String output, String prefix) {
   for (final line in output.split('\n')) {
-    if (line.startsWith(prefix)) {
-      return line.substring(prefix.length);
+    final marker = line.indexOf(prefix);
+    if (marker >= 0) {
+      return line.substring(marker + prefix.length);
     }
   }
   return '';
@@ -144,6 +147,8 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--mode=') ||
         a.startsWith('--jobs=') ||
         a.startsWith('--timeout=') ||
+        a.startsWith('--tests-dir') ||
+        a.startsWith('--test-entry') ||
         a == '--verbose' ||
         a == '--quiet') {
       continue;

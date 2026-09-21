@@ -47,7 +47,7 @@ void main() {
     expect(legacyComposite.existsSync(), isFalse);
 
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     expect(framesManifest.existsSync(), isTrue);
     final framesJson =
@@ -103,7 +103,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
@@ -143,7 +143,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
@@ -214,7 +214,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
@@ -272,7 +272,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;

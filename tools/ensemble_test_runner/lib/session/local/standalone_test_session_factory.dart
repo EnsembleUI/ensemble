@@ -1,5 +1,6 @@
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
+import 'package:ensemble_test_runner/application/standalone_ensemble_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
@@ -62,11 +63,16 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
     );
 
     final assertions = AssertionEngine(tester: tester, context: context);
+    final services = StandaloneEnsembleApplicationHandle(
+      context: context,
+      configDescription: const {},
+    ).services;
     final executor = TestStepExecutor(
       tester: tester,
       context: context,
       assertions: assertions,
       harness: harness,
+      services: services,
       executionConfig: executionConfig,
     );
 
@@ -78,6 +84,7 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
       permissions: config.permissions,
       assertions: assertions,
       executor: executor,
+      services: services,
     );
   }
 }

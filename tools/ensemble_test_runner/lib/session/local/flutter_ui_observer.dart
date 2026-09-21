@@ -1,6 +1,5 @@
-import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
@@ -8,11 +7,10 @@ import 'package:ensemble_test_runner/session/observation/observation_options.dar
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observer.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Local [UiObserver] over [WidgetTester] + Ensemble metadata.
+/// Local [UiObserver] over [WidgetTester] + optional navigation metadata.
 class FlutterUiObserver implements UiObserver {
   FlutterUiObserver({
     required this.tester,
@@ -22,6 +20,7 @@ class FlutterUiObserver implements UiObserver {
     required this.currentRevision,
     required this.lastFingerprint,
     required this.markRevision,
+    this.navigation,
     this.settleTimeout = const Duration(seconds: 5),
   });
 
@@ -32,6 +31,7 @@ class FlutterUiObserver implements UiObserver {
   final int Function() currentRevision;
   final String? Function() lastFingerprint;
   final void Function(int revision, String fingerprint) markRevision;
+  final NavigationTestService? navigation;
   final Duration settleTimeout;
 
   @override
@@ -57,7 +57,10 @@ class FlutterUiObserver implements UiObserver {
 
     // Identity/freshness always includes bounds so presentation options
     // (includeBounds) cannot change stale-target validation.
-    final built = _buildElements(includeBounds: true);
+    final built = _buildElements(
+      includeBounds: true,
+      keyedOnly: options.keyedOnly,
+    );
     final screen = _screenObservation();
     final fingerprint = fingerprintForObservation(
       screen: screen,
@@ -104,7 +107,7 @@ class FlutterUiObserver implements UiObserver {
   /// Does not register a new observation — only refreshes revision tracking
   /// so [ActionResult.afterRevision] reflects UI changes.
   Future<void> syncRevisionAfterMutation() async {
-    final built = _buildElements(includeBounds: true);
+    final built = _buildElements(includeBounds: true, keyedOnly: false);
     final fingerprint = fingerprintForObservation(
       screen: _screenObservation(),
       elements: built.elements,
@@ -140,56 +143,78 @@ class FlutterUiObserver implements UiObserver {
         elementId: element.elementId,
         testId: element.testId,
         type: element.type,
+        role: element.role,
         label: element.label,
         text: element.text,
         state: element.state,
         bounds: null,
         supportedActions: element.supportedActions,
         children: element.children.map(_withoutBounds).toList(growable: false),
+        metadata: element.metadata,
       );
 
   ScreenObservation _screenObservation() {
-    try {
-      final tracker = ScreenTracker();
-      final name = tracker.getCurrentScreenIdentifier();
-      final current = tracker.currentScreen;
-      final flow = List<String>.from(YamlTestSession.navigationFlow.flow);
-      if ((name == null || name.trim().isEmpty) && flow.isEmpty) {
-        return ScreenObservation.unknown();
-      }
-      return ScreenObservation(
-        name: name?.trim().isEmpty == true ? null : name?.trim(),
-        routeId: current?.screenId,
-        navigationStack: flow,
-        hasModal: current?.isModal,
-        unknown: false,
-      );
-    } catch (_) {
+    final nav = navigation;
+    if (nav == null) return ScreenObservation.unknown();
+    final route = nav.currentRoute;
+    final history = List<String>.from(nav.routeHistory);
+    if ((route == null || route.trim().isEmpty) && history.isEmpty) {
       return ScreenObservation.unknown();
     }
+    return ScreenObservation(
+      name: route?.trim().isEmpty == true ? null : route?.trim(),
+      routeId: route,
+      navigationStack: history,
+      unknown: false,
+    );
   }
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
-      _buildElements({required bool includeBounds}) {
+      _buildElements({required bool includeBounds, bool keyedOnly = false}) {
     final elements = <UiElement>[];
     final handles = <String, SnapshotElementHandle>{};
     var index = 0;
+    final seenRenderObjects = <Object>{};
 
     final semantics = tester.ensureSemantics();
     try {
       for (final element in tester.allElements) {
         final key = element.widget.key;
-        if (key is! ValueKey) continue;
-        final value = key.value;
-        if (value is! String) continue;
-        final testId = _compactTestId(value);
-        if (testId.isEmpty) continue;
+        final value = key is ValueKey ? key.value : null;
+        final testId = value is String ? _compactTestId(value) : '';
+        if (keyedOnly && testId.isEmpty) continue;
+
+        final actionable = testId.isEmpty &&
+            (isSemanticLocatorCandidate(element) ||
+                isTextLocatorCandidate(element));
+        if (testId.isEmpty && !actionable && !keyedOnly) {
+          final type = inferWidgetType(element);
+          if (type == 'widget') continue;
+        }
+
+        final type = inferWidgetType(element);
+        final label = keyedOnly || testId.isNotEmpty
+            ? null
+            : readSemanticsLabel(tester, element);
+        final text = keyedOnly || testId.isNotEmpty ? null : readText(element);
+        final relevant = testId.isNotEmpty ||
+            label != null ||
+            text != null ||
+            actionable ||
+            type != 'widget';
+        if (!relevant) continue;
+        final renderObject = element.renderObject;
+        if (testId.isEmpty &&
+            renderObject != null &&
+            !seenRenderObjects.add(renderObject)) {
+          continue;
+        }
 
         final elementId = 'el_${index++}';
         final uiElement = describeElement(
           element: element,
           elementId: elementId,
-          testId: testId,
+          testId: testId.isEmpty ? null : testId,
           assertions: assertions,
           tester: tester,
           includeBounds: includeBounds,
@@ -198,7 +223,7 @@ class FlutterUiObserver implements UiObserver {
         handles[elementId] = SnapshotElementHandle(
           observationId: '',
           elementId: elementId,
-          testId: testId,
+          testId: testId.isEmpty ? null : testId,
           element: element,
           observableFingerprint: fingerprintForElement(uiElement),
         );

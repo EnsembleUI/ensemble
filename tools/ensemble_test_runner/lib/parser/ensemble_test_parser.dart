@@ -93,12 +93,6 @@ class EnsembleTestParser {
     final hasSession = session != null && session.isNotEmpty;
     final profiles = _toStringSelectorList(map['profiles']);
 
-    if (!hasStartScreen) {
-      throw EnsembleTestFailure(
-        'Test "$id" must have "startScreen"',
-      );
-    }
-
     final setupNode = map['setup'];
     final setupSteps = setupNode == null
         ? const <TestStep>[]
@@ -375,6 +369,9 @@ class EnsembleTestParser {
               enabled: screenshotsNode['enabled'] == true,
               includeSteps: _toStringList(screenshotsNode['includeSteps']),
               excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
+              secureContent: _secureScreenshotPolicy(
+                screenshotsNode['secureContent'],
+              ),
             ),
       performance: performanceNode == null
           ? const PerformanceConfig()
@@ -1183,6 +1180,16 @@ class EnsembleTestParser {
 
   static bool _hasYamlKey(YamlMap map, String key) {
     return map.keys.any((candidate) => candidate.toString() == key);
+  }
+
+  static SecureScreenshotPolicy _secureScreenshotPolicy(dynamic value) {
+    final name = value?.toString() ?? 'mask';
+    return SecureScreenshotPolicy.values.firstWhere(
+      (policy) => policy.name == name,
+      orElse: () => throw EnsembleTestFailure(
+        'screenshots.secureContent must be mask, skip, or allow',
+      ),
+    );
   }
 
   static List<String> _unsupportedTestRootKeys(YamlMap map) {

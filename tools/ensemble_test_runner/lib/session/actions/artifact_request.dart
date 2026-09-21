@@ -17,9 +17,8 @@ class ArtifactRequest {
     final optionsRaw = json['options'];
     return ArtifactRequest(
       kind: json['kind']?.toString() ?? 'screenshot',
-      options: optionsRaw is Map
-          ? Map<String, dynamic>.from(optionsRaw)
-          : const {},
+      options:
+          optionsRaw is Map ? Map<String, dynamic>.from(optionsRaw) : const {},
     );
   }
 }

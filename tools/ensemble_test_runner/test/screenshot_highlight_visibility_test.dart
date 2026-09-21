@@ -124,7 +124,8 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: IgnorePointer(
-              child: Text('Hello from Ensemble', key: ValueKey('greeting_text')),
+              child:
+                  Text('Hello from Ensemble', key: ValueKey('greeting_text')),
             ),
           ),
         ),

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// In-memory app state captured from a successful session-producing test.

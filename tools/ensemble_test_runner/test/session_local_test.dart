@@ -1,5 +1,7 @@
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/leaf_command_queue.dart';
+import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
@@ -242,6 +244,36 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('mapExecutorFailure', () {
+    test('tap wait-for-id timeout is elementNotFound', () {
+      final mapped = LocalTestExecutionSession.mapExecutorFailure(
+        EnsembleTestFailure(
+          'Timed out after 5000ms waiting for id "does_not_exist".',
+        ),
+      );
+      expect(mapped.code, TestExecutionErrorCode.elementNotFound);
+    });
+
+    test('not hit-testable timeout is elementNotInteractable', () {
+      final mapped = LocalTestExecutionSession.mapExecutorFailure(
+        EnsembleTestFailure(
+          'Timed out after 5000ms waiting for id "hidden_btn" to become '
+          'hit-testable. It may be off-screen, disabled, or covered.',
+        ),
+      );
+      expect(mapped.code, TestExecutionErrorCode.elementNotInteractable);
+    });
+
+    test('waitForApi timeout stays actionTimeout', () {
+      final mapped = LocalTestExecutionSession.mapExecutorFailure(
+        EnsembleTestFailure(
+          'Timed out after 6000ms waiting for API "login" to be called.',
+        ),
+      );
+      expect(mapped.code, TestExecutionErrorCode.actionTimeout);
     });
   });
 }

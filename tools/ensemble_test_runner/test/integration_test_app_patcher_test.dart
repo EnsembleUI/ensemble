@@ -51,6 +51,60 @@ definitions:
     expect(entry.existsSync(), isFalse);
   });
 
+  test('integration entry keeps custom widget bootstrap helpers', () {
+    final dir = Directory.systemTemp.createTempSync('integration_adapt_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_app
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets:
+    - ensemble/
+''');
+    Directory('${dir.path}/ensemble/apps/hello/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/ensemble-config.yaml')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+definitions:
+  local:
+    path: ensemble/apps/hello
+    appHome: Home
+''');
+    File('${dir.path}/ensemble/apps/hello/tests/home.test.yaml')
+        .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
+    File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
+import 'package:sample_app/generated/ensemble_modules.dart';
+import 'package:sample_app/main.dart' as starter;
+
+Future<void> main() async {
+  await runEnsembleYamlTests(
+    bootstrap: () => EnsembleModules().init(),
+    externalMethods: {
+      'captureCertificateForHost': starter.captureCertificateForHost,
+    },
+  );
+}
+''');
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    patcher.enable(mode: ExecutionMode.integration);
+    final entry = File(
+      '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+    ).readAsStringSync();
+    expect(entry, contains('runEnsembleIntegrationYamlTests'));
+    expect(entry, isNot(contains('runEnsembleYamlTests(')));
+    expect(entry, contains('ensemble_integration_test_entry.dart'));
+    expect(entry, contains('captureCertificateForHost'));
+    expect(entry, contains("import 'package:sample_app/main.dart' as starter;"));
+    patcher.restore();
+  });
+
   test('failed enable leaves customer files unchanged', () {
     final dir = Directory.systemTemp.createTempSync('integration_fail_');
     addTearDown(() => dir.deleteSync(recursive: true));

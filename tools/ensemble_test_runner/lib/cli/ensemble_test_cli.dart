@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/execution/device_discovery.dart';
 import 'package:ensemble_test_runner/execution/device_selector.dart';
@@ -13,6 +14,7 @@ import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
 import 'package:ensemble_test_runner/discovery/device_matrix.dart';
+import 'package:ensemble_test_runner/discovery/test_suite_source.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
@@ -52,6 +54,8 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///
 /// Options:
 ///   --app-dir=<path>   App directory (default: current directory)
+///   --tests-dir=<path> YAML suite directory relative to the app root
+///   --test-entry=<path> Application-owned Flutter test entry point
 ///   --doctor           Validate test setup without running Flutter tests
 ///   --fix             With --doctor, raise iOS deployment target permanently
 ///   --inspect-app      Print app metadata JSON for test generation
@@ -86,7 +90,36 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   final appDir = _resolveAppDir(arguments);
   final timeoutSeconds = _resolveTimeoutSeconds(arguments);
   final jobs = _resolveJobsOverride(arguments);
-  final patcher = YamlTestAppPatcher(appDir);
+  final testsDirOptions = _optionValues(arguments, '--tests-dir');
+  final testEntryOptions = _optionValues(arguments, '--test-entry');
+  if (testsDirOptions.length > 1 || testEntryOptions.length > 1) {
+    stderr.writeln('--tests-dir and --test-entry may each be specified once.');
+    exit(2);
+  }
+  final testEntry = testEntryOptions.isEmpty ? null : testEntryOptions.first;
+  final explicitTestsDir =
+      testsDirOptions.isEmpty ? null : testsDirOptions.first;
+  if (explicitTestsDir != null &&
+      testEntry == null &&
+      !File(p.join(appDir, 'ensemble', 'ensemble-config.yaml')).existsSync()) {
+    stderr.writeln(
+      'Pure Flutter suites require --test-entry=<path> in addition to '
+      '--tests-dir.',
+    );
+    exit(2);
+  }
+  late final YamlTestAppPatcher patcher;
+  try {
+    patcher = YamlTestAppPatcher(
+      appDir,
+      testsDirRelative:
+          explicitTestsDir ?? (testEntry == null ? null : 'tests'),
+      testEntryRelativePath: testEntry,
+    );
+  } on StateError catch (error) {
+    stderr.writeln(error.message);
+    exit(2);
+  }
 
   if (!Directory(appDir).existsSync()) {
     stderr.writeln('App directory not found: $appDir');
@@ -99,6 +132,49 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   }
 
   if (arguments.contains('--doctor')) {
+    if (patcher.usesApplicationEntry) {
+      final lines = <String>[
+        'Ensemble test runner doctor (application-provided entry)',
+        'App: $appDir',
+        'Tests: ${patcher.testsDirRelative}',
+        'Entry: ${patcher.activeEntryRelativePath}',
+      ];
+      var hasErrors = false;
+      void error(String message) {
+        hasErrors = true;
+        lines.add('[ERROR] $message');
+      }
+
+      void ok(String message) => lines.add('[OK] $message');
+
+      final testsRelative = patcher.testsDirRelative;
+      if (testsRelative == null || testsRelative.isEmpty) {
+        error('Missing --tests-dir for application-provided suites');
+      } else {
+        final testsDir = Directory(p.join(appDir, testsRelative));
+        if (!testsDir.existsSync()) {
+          error('Tests directory not found: $testsRelative');
+        } else {
+          ok('Found tests directory $testsRelative');
+        }
+      }
+
+      final entryFile = File(p.join(appDir, patcher.activeEntryRelativePath));
+      if (!entryFile.existsSync()) {
+        error('test entry not found: ${patcher.activeEntryRelativePath}');
+      } else {
+        ok('test entry exists and will not be overwritten');
+      }
+
+      final result = EnsembleTestValidator(
+        appDir,
+        testsDirRelative: patcher.testsDirRelative,
+        applicationProvided: true,
+      ).validate();
+      lines.addAll(result.formatText().split('\n'));
+      stdout.writeln(lines.join('\n'));
+      exit(hasErrors || result.hasErrors ? 1 : 0);
+    }
     ExecutionMode? modeOverride;
     try {
       if (_optionValues(arguments, '--mode').isNotEmpty) {
@@ -120,6 +196,15 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   }
 
   if (arguments.contains('--inspect-app')) {
+    if (patcher.usesApplicationEntry) {
+      stdout.writeln(const JsonEncoder.withIndent('  ').convert({
+        'launchKind': 'applicationProvided',
+        'staticMetadataAvailable': false,
+        'message':
+            'Host widget and route metadata is available only at runtime.',
+      }));
+      exit(0);
+    }
     try {
       stdout.writeln(EnsembleAppInspector(appDir).inspect().toPrettyJson());
       exit(0);
@@ -130,7 +215,11 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   }
 
   if (arguments.contains('--validate-only')) {
-    final result = EnsembleTestValidator(appDir).validate();
+    final result = EnsembleTestValidator(
+      appDir,
+      testsDirRelative: patcher.testsDirRelative,
+      applicationProvided: patcher.usesApplicationEntry,
+    ).validate();
     stdout.writeln(jsonReport ? result.toPrettyJson() : result.formatText());
     exit(result.hasErrors ? 2 : 0);
   }
@@ -138,7 +227,11 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   if (arguments.any((arg) =>
       arg == '--scaffold-test' || arg.startsWith('--scaffold-test='))) {
     try {
-      final result = EnsembleTestScaffold(appDir).create(arguments);
+      final result = EnsembleTestScaffold(
+        appDir,
+        testsDirRelative: patcher.testsDirRelative,
+        applicationProvided: patcher.usesApplicationEntry,
+      ).create(arguments);
       stdout.writeln(
         result.created
             ? 'Created ${result.path}'
@@ -159,6 +252,17 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     );
     exit(2);
   }
+  final suiteSource = TestSuiteSource(
+    appDirectory: appDir,
+    testsDirectory: testsDirRelative,
+    testsAssetPrefix: testsDirRelative.endsWith('/')
+        ? testsDirRelative
+        : '$testsDirRelative/',
+    testEntryPath: patcher.activeEntryRelativePath,
+    launchKind: patcher.usesApplicationEntry
+        ? TestApplicationLaunchKind.applicationProvided
+        : TestApplicationLaunchKind.standaloneEnsemble,
+  );
 
   if (!patcher.hasTestYamlOnDisk) {
     stderr.writeln(
@@ -333,7 +437,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
                   : reportFile,
               timeoutSeconds: timeoutSeconds,
               verbose: verbose,
-              testEntryRelativePath: executionBackend.entryRelativePath,
+              testEntryRelativePath: patcher.activeEntryRelativePath,
+              testsAssetPrefix: suiteSource.testsAssetPrefix,
               physicalDevice: integrationDevice,
               hostOwnsServices: executionBackend.hostOwnsServices,
               appLogPath: patcher.hasTimerRewrites
@@ -380,8 +485,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       }
       if (!transport.complete) {
         stderr.writeln(
-          transport.error ??
-              'Integration artifact transport was incomplete.',
+          transport.error ?? 'Integration artifact transport was incomplete.',
         );
         if (transport.receivedPaths.isNotEmpty) {
           stderr.writeln(
@@ -451,7 +555,10 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       }
     }
 
-    final machineResult = _runResultFromProcessOutput(testRun);
+    final machineResult = _runResultFromProcessOutput(
+      testRun,
+      artifactRoot: _artifactRootPath(appDir),
+    );
     if (runSerial && machineResult != null) {
       if (machineReport) {
         await _recordHistory(appDir, machineResult);
@@ -529,6 +636,7 @@ List<String> _buildFlutterTestArgs(
   String testEntryRelativePath = YamlTestAppPatcher.testEntryRelativePath,
   FlutterDevice? physicalDevice,
   bool hostOwnsServices = false,
+  String? testsAssetPrefix,
 }) {
   return [
     'test',
@@ -536,6 +644,8 @@ List<String> _buildFlutterTestArgs(
     '--no-pub',
     if (physicalDevice != null) ...['-d', physicalDevice.id],
     if (hostOwnsServices) '--dart-define=ensembleTestHostOwnsServices=true',
+    if (testsAssetPrefix != null)
+      '--dart-define=ensembleTestTestsAssetPrefix=${testsAssetPrefix.endsWith('/') ? testsAssetPrefix : '$testsAssetPrefix/'}',
     if (physicalDevice != null)
       '--dart-define=ensembleTestExecutionMode=integration',
     if (arguments.contains('--reset-device-storage'))
@@ -822,6 +932,8 @@ Future<ProcessResult> _runParallelFlutterTests(
           appLogDisplayPath: _appConsoleLogPath(workerIndex: i),
           artifactRoot: artifactRoot,
           serviceOverrides: serviceOverrides,
+          testEntryRelativePath: patcher.activeEntryRelativePath,
+          testsAssetPrefix: patcher.testsDirRelative,
         ),
         workingDirectory: workerDirectory,
         streamOutput: false,
@@ -867,6 +979,8 @@ Future<ProcessResult> _runParallelFlutterTests(
           ),
           artifactRoot: artifactRoot,
           serviceOverrides: serviceOverrides,
+          testEntryRelativePath: patcher.activeEntryRelativePath,
+          testsAssetPrefix: patcher.testsDirRelative,
         ),
         workingDirectory: workerDirectory,
         streamOutput: false,
@@ -996,6 +1110,8 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
       appLogDisplayPath: useWorker ? _appConsoleLogPath() : null,
       artifactRoot: useWorker ? _artifactRootPath(appDir) : null,
       serviceOverrides: serviceOverrides,
+      testEntryRelativePath: patcher.activeEntryRelativePath,
+      testsAssetPrefix: patcher.testsDirRelative,
     ),
     workingDirectory: workingDirectory,
     streamOutput: false,
@@ -1084,6 +1200,8 @@ void _cleanParallelRunArtifacts(String appDir) {
   for (final name in const [
     'logs',
     'diagnostics',
+    'frames',
+    // Legacy pre-rename location for `*_frames.json` manifests.
     'screenshots',
     'worker_progress',
     'worker_reports',
@@ -1853,8 +1971,7 @@ EnsembleTestConfig _applyIntegrationDeviceMatrix(
   required List<String> arguments,
   required bool quiet,
 }) {
-  if (config.devices.isEmpty &&
-      _optionValues(arguments, '--device').isEmpty) {
+  if (config.devices.isEmpty && _optionValues(arguments, '--device').isEmpty) {
     return config;
   }
   final matrix = resolveIntegrationDeviceMatrix(
@@ -2390,7 +2507,9 @@ void _writeCliTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
     if (report.session != null) {
       buffer.writeln('│     session: ${report.session}');
     }
-    buffer.writeln('│     start: ${report.startScreen}');
+    if (report.startScreen != null) {
+      buffer.writeln('│     start: ${report.startScreen}');
+    }
     if (report.endScreen != null && report.endScreen != report.startScreen) {
       buffer.writeln('│     end:   ${report.endScreen}');
     }
@@ -2433,9 +2552,15 @@ String _baseTestId(String value) {
   return index == -1 ? value : value.substring(0, index);
 }
 
-EnsembleTestRunResult? _runResultFromProcessOutput(ProcessResult result) {
-  final rawJson =
+EnsembleTestRunResult? _runResultFromProcessOutput(
+  ProcessResult result, {
+  String? artifactRoot,
+}) {
+  final fromFile =
+      artifactRoot == null ? '' : _readTransportedMachineResult(artifactRoot);
+  final fromStdout =
       extractJsonReport('${result.stdout ?? ''}\n${result.stderr ?? ''}');
+  final rawJson = fromFile.isNotEmpty ? fromFile : fromStdout;
   if (rawJson.isEmpty) return null;
   try {
     final decoded = json.decode(rawJson);
@@ -2446,6 +2571,18 @@ EnsembleTestRunResult? _runResultFromProcessOutput(ProcessResult result) {
     // Ignore malformed subprocess report and fall back to process exit code.
   }
   return null;
+}
+
+String _readTransportedMachineResult(String artifactRoot) {
+  final file = File(
+    p.join(artifactRoot, ensembleTestMachineResultRelativePath),
+  );
+  if (!file.existsSync()) return '';
+  try {
+    return file.readAsStringSync();
+  } catch (_) {
+    return '';
+  }
 }
 
 EnsembleTestRunResult _runResultFromJson(Map<String, dynamic> json) {
@@ -2467,27 +2604,7 @@ EnsembleTestRunResult _runResultFromJson(Map<String, dynamic> json) {
 }
 
 EnsembleSingleTestResult _singleResultFromJson(Map<String, dynamic> json) {
-  return EnsembleSingleTestResult(
-    testId: json['testId']?.toString() ?? '(unknown)',
-    metadata: json['metadata'] is Map
-        ? Map<String, dynamic>.from(json['metadata'] as Map)
-        : const {},
-    status: json['status'] == 'passed' ? TestStatus.passed : TestStatus.failed,
-    durationMs: json['durationMs'] is int ? json['durationMs'] as int : 0,
-    attempts: json['attempts'] is int ? json['attempts'] as int : 1,
-    retry: json['retry'] is int ? json['retry'] as int : 0,
-    failedStepIndex:
-        json['failedStepIndex'] is int ? json['failedStepIndex'] as int : null,
-    message: json['message']?.toString(),
-    stackTrace: json['stackTrace']?.toString(),
-    logs: (json['logs'] as List<dynamic>? ?? const [])
-        .map((value) => value.toString())
-        .toList(),
-    report: json['report'] is Map
-        ? EnsembleTestReportDetails.fromJson(
-            Map<String, dynamic>.from(json['report'] as Map))
-        : null,
-  );
+  return EnsembleSingleTestResult.fromJson(json);
 }
 
 String _junitReportForCli(EnsembleTestRunResult result) {
@@ -2629,8 +2746,11 @@ Future<ProcessResult> _runFlutterTestProcess(
       if (!_isArtifactProtocolLine(line)) {
         _appendAppConsoleLogLine(appLog, 'stdout', line);
       }
+      if (_isArtifactProtocolLine(line)) {
+        return;
+      }
       if (verbose) {
-        if (!_isArtifactProtocolLine(line)) stdout.writeln(line);
+        stdout.writeln(line);
       } else if (streamOutput && _isIntegrationProgressLine(line)) {
         lastLiveOutput = DateTime.now();
         stderr.writeln(_formatIntegrationProgressLine(line));
@@ -3038,8 +3158,20 @@ void _writeStatus(
 }
 
 void _writeProcessStreams(ProcessResult result) {
-  final out = result.stdout?.toString() ?? '';
-  final err = result.stderr?.toString() ?? '';
+  final out = _withoutArtifactProtocolLines(result.stdout?.toString() ?? '');
+  final err = _withoutArtifactProtocolLines(result.stderr?.toString() ?? '');
   if (out.isNotEmpty) stdout.write(out);
   if (err.isNotEmpty) stderr.write(err);
+}
+
+String _withoutArtifactProtocolLines(String output) {
+  if (output.isEmpty) return output;
+  final kept = const LineSplitter()
+      .convert(output)
+      .where((line) => !_isArtifactProtocolLine(line))
+      .toList();
+  if (kept.isEmpty) return '';
+  final buffer = StringBuffer(kept.join('\n'));
+  if (output.endsWith('\n')) buffer.writeln();
+  return buffer.toString();
 }

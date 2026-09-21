@@ -26,7 +26,8 @@ class TestSessionConfiguration {
   Map<String, dynamic> toJson() => {
         if (sessionId != null) 'sessionId': sessionId,
         if (startScreen != null) 'startScreen': startScreen,
-        if (startScreenInputs.isNotEmpty) 'startScreenInputs': startScreenInputs,
+        if (startScreenInputs.isNotEmpty)
+          'startScreenInputs': startScreenInputs,
         'permissions': permissions.toJson(),
         if (defaultActionTimeout != null)
           'defaultActionTimeoutMs': defaultActionTimeout!.inMilliseconds,

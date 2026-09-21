@@ -195,8 +195,15 @@ class EnsembleTestHarness {
     );
   }
 
+  /// Widget tests mock MethodChannels because there is no host OS plugin.
+  /// Integration runs inside a real Android/iOS binary; those plugins must
+  /// stay registered. Host drivers call this in both modes.
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    if (_usesNativeHostPlugins) {
+      ensureIntegrationRuntime();
+      return;
+    }
     if (!_sqfliteInitialized) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -263,21 +270,7 @@ class EnsembleTestHarness {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(deviceInfoChannel, (call) async {
       if (call.method == 'getDeviceInfo') {
-        return {
-          'computerName': 'Ensemble Test',
-          'hostName': 'ensemble-test',
-          'arch': 'arm64',
-          'model': 'Mac',
-          'kernelVersion': 'test',
-          'osRelease': 'test',
-          'majorVersion': 15,
-          'minorVersion': 0,
-          'patchVersion': 0,
-          'activeCPUs': 8,
-          'memorySize': 8589934592,
-          'cpuFrequency': 0,
-          'systemGUID': 'ensemble-test-device',
-        };
+        return deviceInfoMockForTest();
       }
       return null;
     });
@@ -338,6 +331,99 @@ class EnsembleTestHarness {
   static void ensureIntegrationRuntime() {
     TestWidgetsFlutterBinding.ensureInitialized();
     YamlTestSession.navigationFlow.startListening();
+  }
+
+  static bool get _usesNativeHostPlugins =>
+      const String.fromEnvironment(
+        'ensembleTestExecutionMode',
+        defaultValue: 'widget',
+      ) ==
+      'integration';
+
+  /// Platform-shaped `device_info_plus` map. A macOS payload on iOS makes
+  /// `IosDeviceInfo.fromMap` throw `type 'Null' is not a subtype of type
+  /// 'String'` because required fields such as `name` are missing.
+  @visibleForTesting
+  static Map<String, Object?> deviceInfoMockForTest() {
+    if (Platform.isIOS) {
+      return {
+        'name': 'iPhone',
+        'systemName': 'iOS',
+        'systemVersion': '17.0',
+        'model': 'iPhone',
+        'modelName': 'iPhone',
+        'localizedModel': 'iPhone',
+        'identifierForVendor': 'ensemble-test-device',
+        'isPhysicalDevice': false,
+        'isiOSAppOnMac': false,
+        'isiOSAppOnVision': false,
+        'physicalRamSize': 4096,
+        'availableRamSize': 2048,
+        'freeDiskSize': 1024,
+        'totalDiskSize': 2048,
+        'utsname': {
+          'sysname': 'Darwin',
+          'nodename': 'ensemble-test',
+          'release': '23.0.0',
+          'version': 'test',
+          'machine': 'iPhone15,2',
+        },
+      };
+    }
+    if (Platform.isAndroid) {
+      return {
+        'version': {
+          'baseOS': '',
+          'sdkInt': 34,
+          'release': '14',
+          'codename': 'REL',
+          'incremental': '1',
+          'previewSdkInt': 0,
+          'securityPatch': '2024-01-01',
+        },
+        'board': 'goldfish',
+        'bootloader': 'unknown',
+        'brand': 'google',
+        'device': 'generic',
+        'display': 'test',
+        'fingerprint': 'google/test',
+        'hardware': 'ranchu',
+        'host': 'ensemble-test',
+        'id': 'TEST',
+        'manufacturer': 'Google',
+        'model': 'sdk',
+        'product': 'sdk',
+        'name': 'Ensemble Test',
+        'supported32BitAbis': <String>[],
+        'supported64BitAbis': <String>['arm64-v8a'],
+        'supportedAbis': <String>['arm64-v8a'],
+        'tags': 'test',
+        'type': 'user',
+        'isPhysicalDevice': false,
+        'freeDiskSize': 1024,
+        'totalDiskSize': 2048,
+        'systemFeatures': <String>[],
+        'isLowRamDevice': false,
+        'physicalRamSize': 4096,
+        'availableRamSize': 2048,
+      };
+    }
+    return {
+      'computerName': 'Ensemble Test',
+      'hostName': 'ensemble-test',
+      'arch': 'arm64',
+      'model': 'Mac',
+      'modelName': 'Mac',
+      'kernelVersion': 'test',
+      'osRelease': 'test',
+      'majorVersion': 15,
+      'minorVersion': 0,
+      'patchVersion': 0,
+      'activeCPUs': 8,
+      'memorySize': 8589934592,
+      'cpuFrequency': 0,
+      'systemGUID': 'ensemble-test-device',
+    };
   }
 
   final String appPath;
@@ -469,22 +555,94 @@ class EnsembleTestHarness {
     if (_appFontsLoaded) return;
     _appFontsLoaded = true;
 
-    List<dynamic> manifest;
+    var loadedRoboto = false;
     try {
       final rawManifest = await rootBundle.loadString('FontManifest.json');
-      manifest = jsonDecode(rawManifest) as List<dynamic>;
+      final manifest = jsonDecode(rawManifest) as List<dynamic>;
+      for (final familyEntry in manifest.whereType<Map>()) {
+        final family = familyEntry['family']?.toString();
+        final fonts = familyEntry['fonts'];
+        if (family == null || fonts is! List) continue;
+        var familyLoaded = false;
+        for (final alias in _fontFamilyAliases(family)) {
+          familyLoaded =
+              await _loadFontFamily(alias, fonts) || familyLoaded;
+        }
+        if (familyLoaded && family.toLowerCase().contains('roboto')) {
+          loadedRoboto = true;
+        }
+      }
     } catch (_) {
-      return;
+      // App may not ship a FontManifest; fall through to SDK Roboto.
     }
 
-    for (final familyEntry in manifest.whereType<Map>()) {
-      final family = familyEntry['family']?.toString();
-      final fonts = familyEntry['fonts'];
-      if (family == null || fonts is! List) continue;
+    await _loadSdkRoboto(includeRoboto: !loadedRoboto);
+  }
 
-      for (final alias in _fontFamilyAliases(family)) {
-        await _loadFontFamily(alias, fonts);
+  static String? _flutterSdkRoot() {
+    final env = Platform.environment['FLUTTER_ROOT'];
+    if (env != null &&
+        env.isNotEmpty &&
+        Directory('$env/bin/cache/artifacts/material_fonts').existsSync()) {
+      return env;
+    }
+    var dir = File(Platform.resolvedExecutable).absolute.parent;
+    for (var i = 0; i < 8; i++) {
+      if (Directory('${dir.path}/bin/cache/artifacts/material_fonts')
+          .existsSync()) {
+        return dir.path;
       }
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+    return null;
+  }
+
+  static const _sdkRobotoFiles = [
+    'Roboto-Regular.ttf',
+    'Roboto-Medium.ttf',
+    'Roboto-Bold.ttf',
+  ];
+
+  /// Families that widget tests otherwise paint as Ahem until a network font
+  /// arrives. Ensemble's default theme asks Google Fonts for Inter (`Inter_regular`,
+  /// `Inter_500`, …). Login/macOS Material uses SF Pro.
+  static const _sdkFallbackFamilies = [
+    'Roboto',
+    'roboto',
+    'Inter',
+    'inter',
+    'Inter_regular',
+    'Inter_500',
+    'Inter_600',
+    'Inter_700',
+    '.SF Pro Text',
+    '.SF Pro Display',
+    '.SF UI Text',
+    '.SF UI Display',
+  ];
+
+  static Future<void> _loadSdkRoboto({required bool includeRoboto}) async {
+    final root = _flutterSdkRoot();
+    if (root == null) return;
+    final fontsDir = '$root/bin/cache/artifacts/material_fonts';
+    final payloads = <ByteData>[];
+    for (final name in _sdkRobotoFiles) {
+      final file = File('$fontsDir/$name');
+      if (!file.existsSync()) continue;
+      payloads.add(ByteData.sublistView(file.readAsBytesSync()));
+    }
+    if (payloads.isEmpty) return;
+    for (final family in _sdkFallbackFamilies) {
+      if (!includeRoboto && (family == 'Roboto' || family == 'roboto')) {
+        continue;
+      }
+      final loader = FontLoader(family);
+      for (final data in payloads) {
+        loader.addFont(Future.value(data));
+      }
+      await loader.load();
     }
   }
 
@@ -601,7 +759,7 @@ class EnsembleTestHarness {
     return candidates.toList(growable: false);
   }
 
-  static Future<void> _loadFontFamily(
+  static Future<bool> _loadFontFamily(
     String family,
     List<dynamic> fontEntries,
   ) async {
@@ -628,6 +786,7 @@ class EnsembleTestHarness {
     if (hasFonts) {
       await loader.load();
     }
+    return hasFonts;
   }
 
   Future<EnsembleConfig> loadScreen({

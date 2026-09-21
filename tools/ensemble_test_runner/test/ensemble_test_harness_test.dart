@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/encrypted_storage_manager.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -78,11 +79,59 @@ appName=KPN InHome Dev
     }
   });
 
+  test('device info mock matches the host platform shape', () {
+    final map = EnsembleTestHarness.deviceInfoMockForTest();
+    if (Platform.isIOS) {
+      expect(map['name'], isA<String>());
+      expect(map['systemName'], isA<String>());
+      expect(map['systemVersion'], isA<String>());
+      expect(map['utsname'], isA<Map>());
+      expect(map['computerName'], isNull);
+    } else if (Platform.isAndroid) {
+      expect(map['name'], isA<String>());
+      expect(map['model'], isA<String>());
+      expect(map['version'], isA<Map>());
+      expect(map['computerName'], isNull);
+    } else {
+      expect(map['computerName'], isA<String>());
+      expect(map['hostName'], isA<String>());
+      expect(map['osRelease'], isA<String>());
+    }
+  });
+
   testWidgets('app font bootstrap is safe when font manifest is unavailable',
       (tester) async {
     EnsembleTestHarness.ensureTestPlugins();
 
     await EnsembleTestHarness.ensureAppFontsLoaded();
+  });
+
+  testWidgets('SDK Roboto is registered when the app does not ship it',
+      (tester) async {
+    EnsembleTestHarness.ensureTestPlugins();
+    await tester.runAsync(EnsembleTestHarness.ensureAppFontsLoaded);
+
+    final painter = TextPainter(
+      text: const TextSpan(
+        text: 'Sign in',
+        style: TextStyle(fontSize: 20, fontFamily: 'Roboto'),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    // Ahem renders every glyph as a 1em square, so "Sign in" would be 140px.
+    expect(painter.width, lessThan(120));
+    expect(painter.width, greaterThan(40));
+
+    final inter = TextPainter(
+      text: const TextSpan(
+        text: 'Sign in',
+        style: TextStyle(fontSize: 20, fontFamily: 'Inter_regular'),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    expect(inter.width, lessThan(120));
+    expect(inter.width, greaterThan(40));
   });
 
   testWidgets('initial keychain state is written to secure storage',

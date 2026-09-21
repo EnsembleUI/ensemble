@@ -1,6 +1,7 @@
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/assertions/test_assertion.dart';
+import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/yaml/yaml_step_migration_matrix.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
@@ -31,13 +32,12 @@ class YamlStepDispatcher {
     }
 
     if (path == YamlStepPath.act) {
-      final action = _toAction(step, canonical) ??
-          GenericAction(name: canonical, args: Map<String, dynamic>.from(step.args));
+      final action = _actionForStep(step, canonical);
       final result = await session.act(action);
       if (!result.succeeded) {
-        throw EnsembleTestFailure(
-          result.error?.message ?? 'Action ${action.type} failed',
-        );
+        final error = result.error;
+        if (error != null) throw error;
+        throw EnsembleTestFailure('Action ${action.type} failed');
       }
       return;
     }
@@ -55,9 +55,9 @@ class YamlStepDispatcher {
             : null,
       );
       if (!result.satisfied) {
-        throw EnsembleTestFailure(
-          result.error?.message ?? 'Wait ${condition.type} failed',
-        );
+        final error = result.error;
+        if (error != null) throw error;
+        throw EnsembleTestFailure('Wait ${condition.type} failed');
       }
       return;
     }
@@ -67,10 +67,10 @@ class YamlStepDispatcher {
       if (assertion != null) {
         final result = await session.assertCondition(assertion);
         if (!result.passed) {
+          final error = result.error;
+          if (error != null) throw error;
           throw EnsembleTestFailure(
-            result.message ??
-                result.error?.message ??
-                'Assertion ${assertion.type} failed',
+            result.message ?? 'Assertion ${assertion.type} failed',
           );
         }
         return;
@@ -100,14 +100,22 @@ class YamlStepDispatcher {
             await execute(nested);
           }
         } on EnsembleTestFailure {
-          // best-effort
+          // Best-effort: missing banners / opportunistic waits must not fail.
+        } on TestExecutionError {
+          // Session path surfaces structured errors instead of EnsembleTestFailure.
         }
       case 'ifVisible':
-        final id = step.args['id']?.toString();
-        if (id == null || id.isEmpty) {
-          throw EnsembleTestFailure('ifVisible requires "id"');
+        final target = _targetFromArgs(step.args);
+        var visible = false;
+        try {
+          visible = session.resolver
+              .resolveFinder(target)
+              .evaluate()
+              .any(session.assertions.isElementVisuallyActionable);
+        } catch (_) {
+          visible = false;
         }
-        if (session.assertions.finderForId(id).evaluate().isNotEmpty) {
+        if (visible) {
           for (final nested in step.nestedSteps) {
             await execute(nested);
           }
@@ -117,16 +125,36 @@ class YamlStepDispatcher {
     }
   }
 
+  /// Plain id / vocabulary acts keep full YAML args (including timeoutMs).
+  /// Structured locator / snapshot targets use typed [TestAction]s.
+  TestAction _actionForStep(TestStep step, String canonical) {
+    final target = _targetFromArgs(step.args);
+    if (target.usesSnapshotElement ||
+        target.occurrence != null ||
+        target.locator != null) {
+      return _toAction(step, canonical) ??
+          GenericAction(
+            name: canonical,
+            args: Map<String, dynamic>.from(step.args),
+          );
+    }
+    return GenericAction(
+      name: canonical,
+      args: Map<String, dynamic>.from(step.args),
+    );
+  }
+
   TestAction? _toAction(TestStep step, String type) {
     final id = step.args['id']?.toString();
-    final target = ElementTarget(testId: id);
+    final target = _targetFromArgs(step.args);
+    final timeoutMs = step.args['timeoutMs'] as int?;
     switch (type) {
       case 'tap':
-        return TapAction(target);
+        return TapAction(target, timeoutMs: timeoutMs);
       case 'doubleTap':
-        return DoubleTapAction(target);
+        return DoubleTapAction(target, timeoutMs: timeoutMs);
       case 'longPress':
-        return LongPressAction(target);
+        return LongPressAction(target, timeoutMs: timeoutMs);
       case 'enterText':
         return EnterTextAction(
           target: target,
@@ -211,8 +239,8 @@ class YamlStepDispatcher {
       case 'pump':
         return PumpWait(
           duration: Duration(
-            milliseconds: step.args['durationMs'] as int? ??
-                (type == 'pump' ? 0 : 500),
+            milliseconds:
+                step.args['durationMs'] as int? ?? (type == 'pump' ? 0 : 500),
           ),
         );
       case 'settle':
@@ -222,24 +250,24 @@ class YamlStepDispatcher {
               : null,
         );
       case 'waitFor':
-        return ElementWait(testId: step.args['id']?.toString() ?? '');
+        return ElementWait.target(_targetFromArgs(step.args));
       case 'waitForGone':
-        return ElementWait(
-          testId: step.args['id']?.toString() ?? '',
+        return ElementWait.target(
+          _targetFromArgs(step.args),
           gone: true,
         );
       case 'waitForText':
         return TextWait(
           text: step.args['text']?.toString(),
-          anyOf: (step.args['anyOf'] as List?)?.map((e) => e.toString()).toList(),
+          anyOf:
+              (step.args['anyOf'] as List?)?.map((e) => e.toString()).toList(),
         );
       case 'waitForNavigation':
         return ScreenWait(screen: step.args['screen']?.toString() ?? '');
       case 'waitForApi':
         return ApiWait(
           name: step.args['name']?.toString(),
-          args: Map<String, dynamic>.from(step.args)
-            ..remove('name'),
+          args: Map<String, dynamic>.from(step.args)..remove('name'),
         );
       default:
         return null;
@@ -247,20 +275,20 @@ class YamlStepDispatcher {
   }
 
   TestAssertion? _toAssertion(TestStep step, String type) {
-    final id = step.args['id']?.toString() ?? '';
+    final target = _targetFromArgs(step.args);
     switch (type) {
       case 'expectVisible':
-        return ElementVisibleAssertion(testId: id);
+        return ElementVisibleAssertion.target(target);
       case 'expectNotVisible':
-        return ElementVisibleAssertion(testId: id, visible: false);
+        return ElementVisibleAssertion.target(target, visible: false);
       case 'expectExists':
-        return ElementExistsAssertion(testId: id);
+        return ElementExistsAssertion.target(target);
       case 'expectNotExists':
-        return ElementExistsAssertion(testId: id, exists: false);
+        return ElementExistsAssertion.target(target, exists: false);
       case 'expectEnabled':
-        return ElementEnabledAssertion(testId: id);
+        return ElementEnabledAssertion.target(target);
       case 'expectDisabled':
-        return ElementEnabledAssertion(testId: id, enabled: false);
+        return ElementEnabledAssertion.target(target, enabled: false);
       case 'expectScreen':
         return ScreenAssertion(
           screen: step.args['screen']?.toString() ??
@@ -275,6 +303,16 @@ class YamlStepDispatcher {
           args: step.args,
         );
     }
+  }
+
+  ElementTarget _targetFromArgs(Map<String, dynamic> args) {
+    final raw = args['target'];
+    if (raw is Map) {
+      return ElementTarget(
+        locator: ElementLocator.fromJson(Map<String, dynamic>.from(raw)),
+      );
+    }
+    return ElementTarget(testId: args['id']?.toString());
   }
 
   String _assertDomain(String type) {
