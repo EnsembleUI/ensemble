@@ -39,10 +39,8 @@ class TabBarController extends BoxController {
   /// If not set, tabs are in an isolated focus group.
   double? tvRow;
 
-  /// TV: whether the first tab auto-focuses when the TabBar is mounted.
-  /// Defaults to true to preserve existing behavior. Set false on screens
-  /// where another widget (e.g. a BackArrow) should own the initial focus.
-  bool autoFocusFirstTab = true;
+  /// TV: reveal the whole TabBar when a tab receives focus.
+  bool revealTabBarOnFocus = false;
 
   EnsembleAction? onTabSelection;
   String? onTabSelectionHaptic;
@@ -88,8 +86,8 @@ class TabBarController extends BoxController {
     setters.addAll({
       'items': (values) => items = values,
       'tvRow': (value) => tvRow = Utils.optionalDouble(value),
-      'autoFocusFirstTab': (value) =>
-          autoFocusFirstTab = Utils.getBool(value, fallback: true),
+      'revealTabBarOnFocus': (value) =>
+          revealTabBarOnFocus = Utils.getBool(value, fallback: false),
     });
     return setters;
   }

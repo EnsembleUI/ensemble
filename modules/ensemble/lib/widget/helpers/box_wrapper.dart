@@ -665,8 +665,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = findNearestVerticalScrollable(context);
     if (verticalScrollable != null) {
-      // Keep the route-scoped active scroller fresh so focus targets rendered
-      // outside this scrollable (e.g. a pinned BackArrow) can reset it.
       rememberActiveVerticalScrollable(
           ModalRoute.of(context), verticalScrollable);
       final verticalPadding =
@@ -676,12 +674,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       scrollVerticalOnly(verticalScrollable, itemBox,
           verticalPadding: verticalPadding,
           animationDurationMs: scrollAnimationDuration,
-          curve: verticalCurve,
-          always: tvOptions?.alwaysScrollIntoView ?? false);
-    } else if (tvOptions?.alwaysScrollIntoView == true) {
-      // This target lives outside any vertical scrollable (e.g. a pinned
-      // BackArrow). Reset the last active page scroller so the section it
-      // scrolled away from is visible again (initial state).
+          curve: verticalCurve);
+    } else if (tvOptions?.resetScrollOnFocus == true) {
       final activeScrollable = activeVerticalScrollable(ModalRoute.of(context));
       if (activeScrollable != null &&
           activeScrollable.mounted &&

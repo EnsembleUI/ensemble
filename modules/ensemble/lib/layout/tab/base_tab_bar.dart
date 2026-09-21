@@ -220,8 +220,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 index: index,
                 tabRow: tvRow,
                 isSelected: tabController.index == index,
-                autofocus: index == 0 &&
-                    widget.controller.autoFocusFirstTab, // First tab autofocuses unless opted out
+                autofocus: index == 0 && widget.controller.autofocus,
                 activeColor: activeColor,
                 inactiveColor: inactiveColor,
                 indicatorColor: indicatorColor,
@@ -232,6 +231,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 tabFontWeight: widget.controller.tabFontWeight,
                 tabPadding: widget.controller.tabPadding,
                 scrollPadding: widget.controller.tvOptions?.verticalScrollPadding,
+                revealTabBarOnFocus: widget.controller.revealTabBarOnFocus,
                 onTap: () {
                   tabController.animateTo(index);
                   onTabChanged(index);
@@ -417,6 +417,7 @@ class _TVTabButton extends StatefulWidget {
     this.tabFontWeight,
     this.tabPadding,
     this.scrollPadding,
+    this.revealTabBarOnFocus = false,
   });
 
   final TabItem tabItem;
@@ -438,6 +439,7 @@ class _TVTabButton extends StatefulWidget {
   /// From tvOptions.verticalScrollPadding: how far from the viewport edge the
   /// revealed TabBar (strip + active body) should sit.
   final double? scrollPadding;
+  final bool revealTabBarOnFocus;
 
   @override
   State<_TVTabButton> createState() => _TVTabButtonState();
@@ -462,20 +464,21 @@ class _TVTabButtonState extends State<_TVTabButton> {
   }
 
   void _onFocusChange() {
-    // Remember the enclosing page scroller so a pinned focus target outside it
-    // (e.g. a BackArrow) can reset the page when the list has no scrollbar.
-    if (_focusNode.hasFocus && mounted) {
+    if (_focusNode.hasFocus) {
+      // Tabs are custom focusables rather than BoxWrapper widgets. Remember
+      // their enclosing page scroller so resetScrollOnFocus also works when
+      // focus returns from the tab strip itself.
       final scrollable = findNearestVerticalScrollable(context);
       if (scrollable != null) {
-        rememberActiveVerticalScrollable(ModalRoute.of(context), scrollable);
+        rememberActiveVerticalScrollable(
+            ModalRoute.of(context), scrollable);
       }
     }
-    // Scroll when focus is gained. The first-focus guard only matters for an
-    // autofocused tab (initial load would otherwise yank the page); when the
-    // tab is not autofocused, the first focus is already user-initiated, so
-    // scroll immediately (e.g. NewsCarousel's TabBar reveals the related row).
+
+    // Preserve the legacy initial-focus guard unless whole-Bar reveal is
+    // explicitly enabled for this TabBar.
     if (_focusNode.hasFocus &&
-        (_hasReceivedFocus || !widget.autofocus) &&
+        (_hasReceivedFocus || widget.revealTabBarOnFocus) &&
         mounted) {
       _scrollIntoView();
     }
@@ -488,25 +491,29 @@ class _TVTabButtonState extends State<_TVTabButton> {
   void _scrollIntoView() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // Vertical: same axis-restricted, padding-aware rule as other focusables.
-      // `Scrollable.ensureVisible(keepVisibleAtStart)` no-ops when the tab is
-      // already partially visible, so the page never revealed the TabBar.
-      //
-      // Target the enclosing TabBar's render box (tab strip + active tab body)
-      // instead of this small button, so focusing the tabs also reveals the
-      // tab content (e.g. the "Gerelateerd" row) rather than just the label.
-      // Only for a flowing (non-expanded) TabBar: an expanded body fills the
-      // viewport, where bottom-aligning it would be meaningless.
+      if (!widget.revealTabBarOnFocus) {
+        // Keep the legacy target and scrolling behavior unchanged.
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.0,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+        );
+        return;
+      }
+
+      // Opt-in behavior: reveal the enclosing TabBar instead of only the
+      // focused tab. Expanded TabBars still use the focused tab as target.
       final tabBarState = context.findAncestorStateOfType<BaseTabBarState>();
-      final tabBarController = tabBarState?.widget.controller;
-      // ignore: deprecated_member_use_from_same_package
-      final revealWholeBar = tabBarController != null && !tabBarController.expanded;
-      final targetContext = revealWholeBar ? tabBarState!.context : context;
+      final targetContext = tabBarState != null &&
+              !tabBarState.widget.controller.expanded
+          ? tabBarState.context
+          : context;
       scrollWidgetIntoView(
         targetContext,
         verticalPadding: widget.scrollPadding ?? kTVVerticalScrollPadding,
       );
-      // Horizontal: still reveal the tab when the tab strip overflows.
       _scrollHorizontalIntoView();
     });
   }

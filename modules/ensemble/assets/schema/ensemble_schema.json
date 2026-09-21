@@ -6805,6 +6805,10 @@
                 "indicatorThickness": {
                   "type": "integer",
                   "description": "The thickness of the selected tab's indicator"
+                },
+                "revealTabBarOnFocus": {
+                  "type": "boolean",
+                  "description": "Reveal the whole TabBar when a tab receives focus"
                 }
               }
             },

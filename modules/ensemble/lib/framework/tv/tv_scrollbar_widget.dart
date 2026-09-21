@@ -57,7 +57,6 @@ class TVScrollbarWidget extends StatefulWidget {
     this.verticalScrollPadding,
     this.scrollAnimationDuration,
     this.scrollAnimationCurve,
-    this.alwaysScrollIntoView = false,
   });
 
   /// ScrollController from the scrollable content (ListView/Column)
@@ -77,11 +76,6 @@ class TVScrollbarWidget extends StatefulWidget {
   final double? verticalScrollPadding;
   final int? scrollAnimationDuration;
   final String? scrollAnimationCurve;
-
-  /// When true, re-align the enclosing scrollable on focus-gain even if the
-  /// scrollbar is already fully visible, so content above it (e.g. a title
-  /// block) becomes visible. Inherited from the owning ListView's tvOptions.
-  final bool alwaysScrollIntoView;
 
   @override
   State<TVScrollbarWidget> createState() => TVScrollbarWidgetState();
@@ -373,8 +367,6 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 // Re-check `_isFocused` at callback time in case focus has
                 // already moved away before the frame completes.
                 if (hasFocus) {
-                  // Keep the route-scoped active scroller fresh so a pinned
-                  // focus target outside it (e.g. a BackArrow) can reset it.
                   final activeScrollable =
                       findNearestVerticalScrollable(context);
                   if (activeScrollable != null) {
@@ -391,7 +383,6 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                             kTVScrollAnimationDurationMs,
                         curve: curveFromName(widget.scrollAnimationCurve,
                             defaultCurve: Curves.easeInOut),
-                        always: widget.alwaysScrollIntoView,
                       );
                     }
                   });

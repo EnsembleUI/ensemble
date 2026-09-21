@@ -84,4 +84,25 @@ void main() {
     expect(controller.items, hasLength(2));
     expect(controller.items.first.label, 'A');
   });
+
+  test('TabBar keeps legacy autofocus and accepts the existing autofocus option',
+      () {
+    final controller = TabBarController();
+
+    expect(controller.autofocus, isTrue);
+
+    controller.getBaseSetters()['autofocus']!(false);
+
+    expect(controller.autofocus, isFalse);
+  });
+
+  test('TabBar does not reveal the whole bar unless enabled', () {
+    final controller = TabBarController();
+
+    expect(controller.revealTabBarOnFocus, isFalse);
+
+    controller.getBaseSetters()['revealTabBarOnFocus']!(true);
+
+    expect(controller.revealTabBarOnFocus, isTrue);
+  });
 }

@@ -597,7 +597,6 @@ class ListViewState extends EWidgetState<ListView>
           verticalScrollPadding: tvOptions.verticalScrollPadding,
           scrollAnimationDuration: tvOptions.scrollAnimationDuration,
           scrollAnimationCurve: tvOptions.scrollAnimationCurve,
-          alwaysScrollIntoView: tvOptions.alwaysScrollIntoView,
         );
         final effectiveScrollbarWidget = fallbackFocus == null
             ? flutter.FocusTraversalGroup(

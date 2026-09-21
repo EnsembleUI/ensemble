@@ -80,7 +80,6 @@ void scrollVerticalOnly(
   double verticalPadding = kTVVerticalScrollPadding,
   int animationDurationMs = kTVScrollAnimationDurationMs,
   Curve curve = Curves.easeInOut,
-  bool always = false,
 }) {
   final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
   if (scrollableBox == null || !scrollableBox.hasSize) return;
@@ -100,27 +99,19 @@ void scrollVerticalOnly(
   final bool isAboveScreen = itemTop < viewportTop;
   final bool isBelowScreen = itemBottom > viewportBottom;
 
-  double scrollDelta = 0.0;
-  if (always) {
-    // Opt-in: re-align the item's leading edge even when it is already fully
-    // visible, so a tall focus target (e.g. a ListView scrollbar) also reveals
-    // content rendered above it. Default false keeps the visibility-only rule.
-    scrollDelta = itemTop - (viewportTop + verticalPadding);
-  } else {
-    // If fully visible vertically, no need to scroll
-    if (!isAboveScreen && !isBelowScreen) {
-      return;
-    }
+  // If fully visible vertically, no need to scroll
+  if (!isAboveScreen && !isBelowScreen) {
+    return;
+  }
 
-    // Calculate how much to scroll
-    // Use verticalPadding to position the item nicely within the viewport,
-    // not as a trigger threshold - so horizontal navigation doesn't jitter.
-    if (isAboveScreen) {
-      // Item is above visible area - scroll up (decrease scroll position)
-      scrollDelta = itemTop - (viewportTop + verticalPadding);
-    } else if (isBelowScreen) {
-      scrollDelta = itemBottom - (viewportBottom - verticalPadding);
-    }
+  // Calculate how much to scroll. Use verticalPadding to position the item
+  // nicely within the viewport, not as a trigger threshold.
+  double scrollDelta = 0.0;
+  if (isAboveScreen) {
+    // Item is above visible area - scroll up (decrease scroll position)
+    scrollDelta = itemTop - (viewportTop + verticalPadding);
+  } else if (isBelowScreen) {
+    scrollDelta = itemBottom - (viewportBottom - verticalPadding);
   }
 
   final double targetScroll =
@@ -144,7 +135,6 @@ void scrollWidgetIntoView(
   double verticalPadding = kTVVerticalScrollPadding,
   int animationDurationMs = kTVScrollAnimationDurationMs,
   Curve curve = Curves.easeInOut,
-  bool always = false,
 }) {
   final scrollable = findNearestVerticalScrollable(widgetContext);
   if (scrollable == null) return;
@@ -158,36 +148,26 @@ void scrollWidgetIntoView(
     verticalPadding: verticalPadding,
     animationDurationMs: animationDurationMs,
     curve: curve,
-    always: always,
   );
 }
 
 // =============================================================================
 // TV Focus - Active Vertical Scrollable Memory (route-scoped)
 // =============================================================================
-// A focus target rendered OUTSIDE a vertical scrollable (e.g. a pinned
-// BackArrow) has no scrollable ancestor, so [scrollWidgetIntoView] cannot
-// reach the page scroller. We remember the last vertical scrollable that
-// hosted focus per route so such targets can still reset the page position
-// (e.g. back to the top / initial state). Scoped per route and cleared when
-// the route leaves the stack, mirroring TVFocusWidget's row-position memory.
 
 final Map<Object, ScrollableState> _activeVerticalScrollables = {};
 
 Object _activeScrollableRouteKey(Route<dynamic>? route) =>
     route == null ? 'noRoute' : identityHashCode(route);
 
-/// Records the vertical scrollable that currently hosts focus for [route].
 void rememberActiveVerticalScrollable(
     Route<dynamic>? route, ScrollableState scrollable) {
   _activeVerticalScrollables[_activeScrollableRouteKey(route)] = scrollable;
 }
 
-/// Returns the last vertical scrollable that hosted focus in [route], if any.
 ScrollableState? activeVerticalScrollable(Route<dynamic>? route) =>
     _activeVerticalScrollables[_activeScrollableRouteKey(route)];
 
-/// Frees a screen's active-scrollable reference when its route leaves the stack.
 void clearActiveVerticalScrollableForRoute(Route<dynamic>? route) {
   _activeVerticalScrollables.remove(_activeScrollableRouteKey(route));
 }
