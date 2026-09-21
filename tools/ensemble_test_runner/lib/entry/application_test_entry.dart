@@ -11,6 +11,7 @@ import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/entry/host_test_artifacts.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
@@ -298,6 +299,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   StackTrace? primaryStack;
   Object? cleanupError;
   StackTrace? cleanupStack;
+  final secondaryFailures = <TestFailureDetails>[];
   var prepareAttempted = false;
   var failedStepIndex = -1;
   final stepDurationsMs = <int>[];
@@ -335,10 +337,17 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
           await tester.runAsync(
             () => EnsembleTestHarness.applyInPlaceSetup(context),
           );
-          _ensureHostFixturesSupported(context);
+          // Ensemble overlay path can be verified before launch. Pure Flutter
+          // ApiMockingTestService attachment is confirmed right after launch.
+          ensureHostFixturesSupported(context);
           final launched = await driver.launch(tester, launchContext);
           handle = launched;
           await tester.pump();
+          ensureHostFixturesSupported(
+            context,
+            services: launched.services,
+            requireResolved: true,
+          );
 
           final assertions = AssertionEngine(
             tester: tester,
@@ -370,29 +379,25 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             final stepWatch = Stopwatch()..start();
             try {
               await dispatcher.execute(step);
-              context.runtime.flutterErrors
-                  .removeWhere(isHostScreenshotDiagnostic);
-              if (context.runtime.flutterErrors.isNotEmpty) {
-                throw ApplicationTestCrash(
-                  'Application error: ${context.runtime.flutterErrors.first}',
-                );
-              }
-              await captureHostStepScreenshot(
+              _throwIfHostApplicationError(context);
+              await _captureHostStepScreenshotSafely(
                 tester: tester,
                 context: context,
                 step: step,
                 stepIndex: i,
+                secondaryFailures: secondaryFailures,
               );
-              context.runtime.flutterErrors
-                  .removeWhere(isHostScreenshotDiagnostic);
-            } catch (error) {
-              await captureHostStepScreenshot(
+              _throwIfHostApplicationError(context);
+            } catch (error, stackTrace) {
+              await _captureHostStepScreenshotSafely(
                 tester: tester,
                 context: context,
                 step: step,
                 stepIndex: i,
+                secondaryFailures: secondaryFailures,
               );
-              rethrow;
+              // Preserve the step failure — screenshot diagnostics are secondary.
+              Error.throwWithStackTrace(error, stackTrace);
             } finally {
               stepDurationsMs.add(stepWatch.elapsedMilliseconds);
               stepStartTimes.add(startedAt.toIso8601String());
@@ -400,6 +405,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
           }
           failedStepIndex = -1;
           context.runtime.currentStepIndex = null;
+          _throwIfHostApplicationError(context);
           if (captureCheckpoint) {
             final checkpointDriver = driver as ApplicationCheckpointDriver;
             onCheckpoint(
@@ -418,11 +424,35 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       if (primaryError != null &&
           handle != null &&
           context.runtime.screenshotSheetFrames.isEmpty) {
-        await captureHostEmergencyScreenshot(
-          tester: tester,
-          context: context,
-        );
-        context.runtime.flutterErrors.removeWhere(isHostScreenshotDiagnostic);
+        try {
+          await captureHostEmergencyScreenshot(
+            tester: tester,
+            context: context,
+          );
+        } catch (error) {
+          if (!isHostScreenshotDiagnostic(error) &&
+              !isHostScreenshotCaptureFailure(error)) {
+            secondaryFailures.add(
+              TestFailureDetails(
+                kind: TestFailureKind.assertion,
+                message: 'Screenshot failed: $error',
+                phase: 'screenshot',
+              ),
+            );
+          }
+        }
+        // Errors raised while pumping for the emergency frame must not vanish
+        // or replace the original step failure.
+        final emergencyAppError = pendingHostApplicationError(context);
+        if (emergencyAppError != null) {
+          secondaryFailures.add(
+            TestFailureDetails(
+              kind: TestFailureKind.crash,
+              message: 'Application error: $emergencyAppError',
+              phase: 'screenshot',
+            ),
+          );
+        }
       }
       await attachHostDebugArtifacts(
         tester: tester,
@@ -461,6 +491,14 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     }
   }
   stopwatch.stop();
+  // Final gate: screenshot pumps after the last step must not leave a pass.
+  if (primaryError == null) {
+    final lateAppError = pendingHostApplicationError(context);
+    if (lateAppError != null) {
+      primaryError = ApplicationTestCrash('Application error: $lateAppError');
+      primaryStack = StackTrace.current;
+    }
+  }
   final report = _hostReport(
     test,
     handle?.services,
@@ -488,6 +526,15 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   if (locator is Map) {
     failureTarget = Map<String, dynamic>.from(locator);
   }
+  final secondaries = <TestFailureDetails>[
+    ...secondaryFailures,
+    if (cleanupError != null && primaryError != null)
+      TestFailureDetails(
+        kind: TestFailureKind.cleanup,
+        message: cleanupError.toString(),
+        phase: 'cleanup',
+      ),
+  ];
   return EnsembleSingleTestResult.failed(
     testId: test.id,
     metadata: test.metadataJson,
@@ -505,15 +552,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       phase: primaryError == null ? 'cleanup' : 'execution',
       target: failureTarget,
     ),
-    secondaryFailures: cleanupError != null && primaryError != null
-        ? [
-            TestFailureDetails(
-              kind: TestFailureKind.cleanup,
-              message: cleanupError.toString(),
-              phase: 'cleanup',
-            ),
-          ]
-        : const [],
+    secondaryFailures: secondaries,
     capabilityStatus: _capabilityStatus(handle?.services),
     report: report,
   );
@@ -582,14 +621,144 @@ Future<void> _executeHostSetup(EnsembleTestCase test) async {
   }
 }
 
-/// Rejects YAML mocks that cannot attach to a real API provider.
+/// True when suite config.yaml declares API mocks (files or inline).
+bool suiteDeclaresApiMocks(EnsembleTestConfig config) =>
+    config.inlineMocks.isNotEmpty || config.mockFiles.isNotEmpty;
+
+/// True when the test or suite declares storage fixtures.
+bool hostDeclaresStorageFixtures(EnsembleTestContext context) {
+  bool hasStorageKeys(Map<String, dynamic> state) =>
+      state.containsKey('storage') ||
+      state.containsKey('secureStorage') ||
+      state.containsKey('keychain');
+  return hasStorageKeys(context.testCase.initialState) ||
+      hasStorageKeys(context.config.initialState) ||
+      context.setup.initialPublicStorage != null ||
+      context.setup.initialSecureStorage != null ||
+      context.setup.initialKeychain != null;
+}
+
+/// Effective API mocks after suite + test composition (planner-merged).
+Map<String, MockAPIResponse> effectiveHostApiMocks(
+  EnsembleTestContext context,
+) =>
+    Map<String, MockAPIResponse>.from(context.testCase.mocks.apis);
+
+/// Whether Ensemble's HTTP provider currently carries the test API overlay.
+bool ensembleApiOverlayAttached(EnsembleTestContext context) {
+  final providers = Ensemble().getConfig()?.apiProviders;
+  final http = providers?['http'];
+  return identical(http, context.apiOverlay) || http is TestApiProviderOverlay;
+}
+
+/// First non-diagnostic Flutter error recorded for this host attempt.
+String? pendingHostApplicationError(EnsembleTestContext context) {
+  context.runtime.flutterErrors.removeWhere(isHostScreenshotDiagnostic);
+  if (context.runtime.flutterErrors.isEmpty) return null;
+  return context.runtime.flutterErrors.first;
+}
+
+void _throwIfHostApplicationError(EnsembleTestContext context) {
+  final pending = pendingHostApplicationError(context);
+  if (pending == null) return;
+  throw ApplicationTestCrash('Application error: $pending');
+}
+
+/// Test hook for the post-screenshot / end-of-attempt application-error gate.
+void assertNoPendingHostApplicationError(EnsembleTestContext context) =>
+    _throwIfHostApplicationError(context);
+
+Future<void> _captureHostStepScreenshotSafely({
+  required WidgetTester tester,
+  required EnsembleTestContext context,
+  required TestStep step,
+  required int stepIndex,
+  required List<TestFailureDetails> secondaryFailures,
+}) async {
+  try {
+    await captureHostStepScreenshot(
+      tester: tester,
+      context: context,
+      step: step,
+      stepIndex: stepIndex,
+    );
+  } catch (error) {
+    if (isHostScreenshotDiagnostic(error) ||
+        isHostScreenshotCaptureFailure(error)) {
+      return;
+    }
+    secondaryFailures.add(
+      TestFailureDetails(
+        kind: TestFailureKind.assertion,
+        message: 'Screenshot failed: $error',
+        phase: 'screenshot',
+      ),
+    );
+  }
+}
+
+/// Rejects YAML mocks/fixtures that cannot attach to the application under test.
 ///
-/// Ensemble overlay installation requires [Ensemble.getConfig]. Pure Flutter
-/// hosts without Ensemble must not declare API mocks that silently no-op.
-void _ensureHostFixturesSupported(EnsembleTestContext context) {
-  if (context.testCase.mocks.apis.isEmpty) return;
-  if (Ensemble().getConfig() != null) return;
-  throw const UnsupportedApplicationCapability('apiMocking');
+/// Effective fixtures come from suite `config.yaml` and the individual test
+/// (already merged into [EnsembleTestContext.testCase] by the planner). A host
+/// must either expose [ApiMockingTestService] / [StorageTestService] or have the
+/// Ensemble API overlay installed on the real HTTP provider — otherwise we fail
+/// closed before steps run.
+///
+/// When [requireResolved] is false (pre-launch), Ensemble overlay attachment is
+/// checked immediately; pure-Flutter hosts may defer until launch returns
+/// services. When [requireResolved] is true (post-launch), unresolved fixtures
+/// always throw.
+void ensureHostFixturesSupported(
+  EnsembleTestContext context, {
+  ApplicationTestServices? services,
+  bool requireResolved = false,
+}) {
+  final apiMocks = effectiveHostApiMocks(context);
+  final suiteDeclaresMocks = suiteDeclaresApiMocks(context.config);
+  final needsApiMocking = apiMocks.isNotEmpty || suiteDeclaresMocks;
+  final needsStorage = hostDeclaresStorageFixtures(context);
+
+  if (suiteDeclaresMocks && apiMocks.isEmpty) {
+    throw EnsembleTestFailure(
+      'Suite config declares API mocks but none were resolved onto the test. '
+      'Check suite mocks / profiles composition.',
+    );
+  }
+
+  if (needsApiMocking) {
+    final api = services?.api;
+    if (api is ApiMockingTestService) {
+      api.applyMocks(TestMocks(apis: apiMocks));
+    } else if (api != null) {
+      throw const UnsupportedApplicationCapability('apiMocking');
+    } else if (ensembleApiOverlayAttached(context)) {
+      // Ensemble HTTP provider owns the overlay installed by applyInPlaceSetup.
+      for (final entry in apiMocks.entries) {
+        context.apiOverlay.setMock(entry.key, entry.value);
+      }
+    } else if (requireResolved || Ensemble().getConfig() != null) {
+      // Ensemble was initialized but the overlay never attached, or we are
+      // past launch with no host ApiMockingTestService.
+      throw const UnsupportedApplicationCapability('apiMocking');
+    }
+    // else: pure Flutter pre-launch — wait for services after launch.
+  }
+
+  if (needsStorage) {
+    if (services?.storage != null) {
+      // Host-owned storage fixtures are applied by the driver's storage service
+      // during prepare/launch; presence of the capability is enough here.
+      return;
+    }
+    if (Ensemble().getConfig() != null) {
+      // applyInPlaceSetup already ran applyYamlTestBootstrap when config exists.
+      return;
+    }
+    if (requireResolved) {
+      throw const UnsupportedApplicationCapability('storage');
+    }
+  }
 }
 
 void _validateHostPlan(

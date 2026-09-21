@@ -323,6 +323,159 @@ void main() {
       sample,
     );
   });
+
+  test('suite and test API mocks fail closed without a host mocking capability',
+      () {
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'needs-mocks',
+        mocks: TestMocks(
+          apis: {
+            'hostLogin': MockAPIResponse(body: {'token': 'x'}),
+          },
+        ),
+        steps: [],
+      ),
+      config: const EnsembleTestConfig(
+        inlineMocks: {
+          'hostLogin': {
+            'statusCode': 200,
+            'body': {'token': 'x'},
+          },
+        },
+      ),
+    );
+
+    expect(
+      () => ensureHostFixturesSupported(context, requireResolved: true),
+      throwsA(
+        isA<UnsupportedApplicationCapability>().having(
+          (error) => error.capability,
+          'capability',
+          'apiMocking',
+        ),
+      ),
+    );
+  });
+
+  test('pendingHostApplicationError ignores screenshot diagnostics', () {
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'errors', steps: []),
+    );
+    context.runtime.flutterErrors.addAll([
+      'Screenshot skipped because secure content is visible',
+      'Null check operator used on a null value',
+    ]);
+    expect(
+      pendingHostApplicationError(context),
+      'Null check operator used on a null value',
+    );
+  });
+
+  testWidgets(
+      'declared API mocks without host capability fail before steps run',
+      (tester) async {
+    final driver = _FlutterDriver();
+    const plan = EnsembleTestExecutionPlan(
+      config: EnsembleTestConfig(
+        inlineMocks: {
+          'hostLogin': {
+            'statusCode': 200,
+            'body': {'token': 'x'},
+          },
+        },
+      ),
+      ordered: [
+        EnsembleTestDefinition(
+          assetPath: 'tests/config.yaml',
+          testCase: EnsembleTestCase(
+            id: 'unused-mocks',
+            mocks: TestMocks(
+              apis: {
+                'hostLogin': MockAPIResponse(body: {'token': 'x'}),
+              },
+            ),
+            steps: [
+              TestStep(type: 'expectText', args: {'text': 'Continue'}),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final result = await runApplicationTestPlan(
+      driver: driver,
+      plan: plan,
+      tester: tester,
+      mode: ExecutionMode.widget,
+    );
+
+    expect(result.failedCount, 1);
+    expect(
+      result.results.single.failure?.kind,
+      TestFailureKind.unsupportedCapability,
+    );
+    expect(driver.events, ['suite+', 'prepare:0', 'launch:0', 'cleanup:0', 'suite-']);
+  });
+
+  testWidgets(
+      'host ApiMockingTestService accepts suite-level API mocks',
+      (tester) async {
+    final driver = _MockingApiDriver();
+    const plan = EnsembleTestExecutionPlan(
+      config: EnsembleTestConfig(
+        inlineMocks: {
+          'hostLogin': {
+            'statusCode': 200,
+            'body': {'token': 'x'},
+          },
+        },
+      ),
+      ordered: [
+        EnsembleTestDefinition(
+          assetPath: 'tests/config.yaml',
+          testCase: EnsembleTestCase(
+            id: 'mocked',
+            mocks: TestMocks(
+              apis: {
+                'hostLogin': MockAPIResponse(body: {'token': 'x'}),
+              },
+            ),
+            steps: [
+              TestStep(type: 'expectText', args: {'text': 'Continue'}),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final result = await runApplicationTestPlan(
+      driver: driver,
+      plan: plan,
+      tester: tester,
+      mode: ExecutionMode.widget,
+    );
+
+    expect(result.failedCount, 0, reason: result.toJson().toString());
+    expect(driver.api.applied?.apis.keys, ['hostLogin']);
+  });
+
+  test('pending application errors after screenshots classify as crashes', () {
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'late-error', steps: []),
+    );
+    context.runtime.flutterErrors.add('screenshot-frame application error');
+    expect(
+      () => assertNoPendingHostApplicationError(context),
+      throwsA(
+        isA<ApplicationTestCrash>().having(
+          (error) => error.message,
+          'message',
+          contains('screenshot-frame application error'),
+        ),
+      ),
+    );
+  });
 }
 
 class _FlutterDriver implements ApplicationTestDriver {
@@ -368,6 +521,42 @@ class _FlutterDriver implements ApplicationTestDriver {
   Future<void> tearDownSuite() async {
     events.add('suite-');
   }
+}
+
+class _MockApiService implements ApiMockingTestService {
+  TestMocks? applied;
+
+  @override
+  void applyMocks(TestMocks mocks) => applied = mocks;
+
+  @override
+  void resetCalls() {}
+
+  @override
+  int callCount(String name) => 0;
+}
+
+class _MockingApiDriver extends _FlutterDriver {
+  final api = _MockApiService();
+
+  @override
+  Future<TestApplicationHandle> launch(
+    WidgetTester tester,
+    TestLaunchContext context,
+  ) async {
+    events.add('launch:${context.attempt}');
+    await tester.pumpWidget(const _FlutterFixture());
+    return _MockingHandle(api);
+  }
+}
+
+class _MockingHandle implements TestApplicationHandle {
+  const _MockingHandle(this._api);
+
+  final ApiMockingTestService _api;
+
+  @override
+  ApplicationTestServices get services => ApplicationTestServices(api: _api);
 }
 
 class _Handle implements TestApplicationHandle {
