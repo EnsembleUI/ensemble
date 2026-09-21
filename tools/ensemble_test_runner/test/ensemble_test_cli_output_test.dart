@@ -153,6 +153,12 @@ When the exception was thrown, this was the stack:
     );
     expect(
       filter.shouldEmit(
+        'ENSEMBLE_TEST_ARTIFACT_V1:{"event":"chunk","data":"AAAA"}',
+      ),
+      isFalse,
+    );
+    expect(
+      filter.shouldEmit(
         '(The following exception is now available via WidgetTester.takeException:)',
       ),
       isFalse,

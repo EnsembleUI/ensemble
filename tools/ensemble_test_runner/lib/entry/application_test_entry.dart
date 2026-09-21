@@ -51,23 +51,44 @@ Future<void> registerApplicationYamlTests({
         ),
   );
 
+  final resolved = _resolvedExecutionMode(mode);
+  final transport =
+      resolved == ExecutionMode.integration && usesDeviceArtifactTransport;
+  var transportCompleted = false;
+  void completeTransportIfNeeded() {
+    if (!transport || transportCompleted) return;
+    transportCompleted = true;
+    emitEnsembleTestArtifactTransportComplete();
+  }
+
+  // Uncaught plugin errors can finish the Flutter test before the suite
+  // `finally` runs. tearDown still emits complete so the CLI gets a report.
+  tearDown(completeTransportIfNeeded);
+
   testWidgets('Application *.test.yaml', (tester) async {
-    final plan = await EnsembleTestExecutionPlanner.build(
-      testsAssetPrefix: prefix,
-      inputs: _inputsFromEnvironment(),
-      selection: _selectionFromEnvironment(),
-    );
-    final runResult = await runApplicationTestPlan(
-      driver: driver,
-      plan: plan,
-      tester: tester,
-      mode: mode,
-    );
-    final reporter = TestReporter();
-    print(reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'));
-    _emitMachineReport(runResult);
-    if (runResult.failedCount > 0) {
-      fail(reporter.formatFailureSummary(runResult));
+    if (transport) {
+      emitEnsembleTestArtifactTransportBegin();
+    }
+    try {
+      final plan = await EnsembleTestExecutionPlanner.build(
+        testsAssetPrefix: prefix,
+        inputs: _inputsFromEnvironment(),
+        selection: _selectionFromEnvironment(),
+      );
+      final runResult = await runApplicationTestPlan(
+        driver: driver,
+        plan: plan,
+        tester: tester,
+        mode: mode,
+      );
+      final reporter = TestReporter();
+      print(reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'));
+      _emitMachineReport(runResult);
+      if (runResult.failedCount > 0) {
+        fail(reporter.formatFailureSummary(runResult));
+      }
+    } finally {
+      completeTransportIfNeeded();
     }
   });
 }

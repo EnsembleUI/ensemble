@@ -4,8 +4,9 @@ import 'package:ensemble_test_runner_host_example/host_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Pumps the Flutter host. Ensemble plugins are mocked here; [EnsembleHost]
-/// still initializes (or reuses) the runtime after login.
+/// Pumps the Flutter host. Widget mode mocks MethodChannels; integration
+/// mode keeps the simulator/device plugins. [EnsembleHost] still initializes
+/// (or reuses) the runtime after login.
 class HostAppTestDriver implements ApplicationTestDriver {
   @override
   Future<void> setUpSuite(TestSuiteContext context) async {

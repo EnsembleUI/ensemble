@@ -67,7 +67,11 @@ host (`hostLogin`, `hostSession`) and Ensemble shop (`getCatalog`,
 `getFeaturedItem`) APIs plus `debugPrint` / `console.log` lines so those
 report tabs are populated.
 
-Integration mode uses the same YAML and entry:
+Integration mode uses the same YAML and `--test-entry`. The CLI passes
+`--dart-define=ensembleTestExecutionMode=integration` and
+`application_yaml_tests.dart` selects `runApplicationIntegrationYamlTests`.
+On device, native plugins (`device_info_plus`, sqflite, path_provider) stay
+real — widget-test MethodChannel mocks are not installed.
 
 ```bash
 dart run ensemble_test_runner:ensemble_test \

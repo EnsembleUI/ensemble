@@ -79,6 +79,26 @@ appName=KPN InHome Dev
     }
   });
 
+  test('device info mock matches the host platform shape', () {
+    final map = EnsembleTestHarness.deviceInfoMockForTest();
+    if (Platform.isIOS) {
+      expect(map['name'], isA<String>());
+      expect(map['systemName'], isA<String>());
+      expect(map['systemVersion'], isA<String>());
+      expect(map['utsname'], isA<Map>());
+      expect(map['computerName'], isNull);
+    } else if (Platform.isAndroid) {
+      expect(map['name'], isA<String>());
+      expect(map['model'], isA<String>());
+      expect(map['version'], isA<Map>());
+      expect(map['computerName'], isNull);
+    } else {
+      expect(map['computerName'], isA<String>());
+      expect(map['hostName'], isA<String>());
+      expect(map['osRelease'], isA<String>());
+    }
+  });
+
   testWidgets('app font bootstrap is safe when font manifest is unavailable',
       (tester) async {
     EnsembleTestHarness.ensureTestPlugins();

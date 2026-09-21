@@ -6,9 +6,10 @@ The same YAML vocabulary runs against standalone Ensemble, pure Flutter, and
 mixed Flutter/Ensemble applications. Standalone tests require `startScreen`.
 Host-driven tests normally omit it and launch through `ApplicationTestDriver`.
 Use `--tests-dir=tests --test-entry=test/application_yaml_tests.dart` for host
-suites. The runner never modifies a custom entry file. `example_host/` is a
-runnable Flutter login → 3-tab shell with Ensemble opened from the bottom nav
-or a host card.
+suites. The runner never modifies a custom entry file. `--mode=integration`
+reuses that entry from a generated `integration_test/` wrapper. `example_host/`
+is a runnable Flutter login → 3-tab shell with Ensemble opened from the bottom
+nav or a host card.
 
 ## Element targets
 

@@ -76,6 +76,8 @@ Future<void> main() async {
   bool _removeTestEntryOnRestore = false;
   bool _pubspecChanged = false;
   ExecutionMode _mode = ExecutionMode.widget;
+  String? _generatedIntegrationEntryRelativePath;
+  var _createdIntegrationTestDir = false;
 
   bool get pubspecChanged => _pubspecChanged;
 
@@ -93,12 +95,22 @@ Future<void> main() async {
   }
 
   String get _pubspecPath => p.join(appDir, 'pubspec.yaml');
-  String get activeEntryRelativePath =>
+
+  /// User-owned or generated entry on disk. Never the temporary integration
+  /// adapter written beside a widget-mode host file.
+  String get configuredEntryRelativePath =>
       _explicitTestEntry ??
       (_mode == ExecutionMode.integration
           ? integrationTestEntryRelativePath
           : testEntryRelativePath);
-  String get _testEntryPath => p.join(appDir, activeEntryRelativePath);
+
+  /// Path passed to `flutter test`. Host widget entries in integration mode
+  /// run from a generated file under `integration_test/` so Flutter wires the
+  /// native plugin.
+  String get activeEntryRelativePath =>
+      _generatedIntegrationEntryRelativePath ?? configuredEntryRelativePath;
+
+  String get _testEntryPath => p.join(appDir, configuredEntryRelativePath);
   String get _testDirPath => p.dirname(_testEntryPath);
   String get _ensembleConfigPath =>
       p.join(appDir, 'ensemble', 'ensemble-config.yaml');
@@ -152,6 +164,8 @@ Future<void> main() async {
           _backups[_testEntryPath] = upgraded;
           _removeTestEntryOnRestore = false;
         }
+      } else if (mode == ExecutionMode.integration) {
+        _materializeApplicationIntegrationEntry();
       }
 
       if (mode == ExecutionMode.integration && targetPlatform == 'ios') {
@@ -202,6 +216,14 @@ Future<void> main() async {
     _removeTestEntryOnRestore = false;
     _pubspecChanged = false;
     _mode = ExecutionMode.widget;
+    _generatedIntegrationEntryRelativePath = null;
+    if (_createdIntegrationTestDir) {
+      final dir = Directory(p.join(appDir, 'integration_test'));
+      if (dir.existsSync() && dir.listSync().isEmpty) {
+        dir.deleteSync();
+      }
+    }
+    _createdIntegrationTestDir = false;
   }
 
   void _validateBeforeMutation({required ExecutionMode mode}) {
@@ -220,18 +242,153 @@ Future<void> main() async {
       return;
     }
 
-    final expectedCall = usesApplicationEntry
-        ? (mode == ExecutionMode.integration
-            ? 'runApplicationIntegrationYamlTests'
-            : 'runApplicationYamlTests')
-        : (mode == ExecutionMode.integration
-            ? 'runEnsembleIntegrationYamlTests'
-            : 'runEnsembleYamlTests');
+    if (usesApplicationEntry) {
+      final hasWidget =
+          entryPointCallsFunction(content, 'runApplicationYamlTests');
+      final hasIntegration = entryPointCallsFunction(
+        content,
+        'runApplicationIntegrationYamlTests',
+      );
+      if (mode == ExecutionMode.integration) {
+        if (!hasWidget && !hasIntegration) {
+          throw StateError(
+            '$configuredEntryRelativePath must call '
+            'runApplicationYamlTests() or '
+            'runApplicationIntegrationYamlTests().',
+          );
+        }
+        return;
+      }
+      if (!hasWidget) {
+        throw StateError(
+          '$configuredEntryRelativePath must call runApplicationYamlTests().',
+        );
+      }
+      return;
+    }
+
+    final expectedCall = mode == ExecutionMode.integration
+        ? 'runEnsembleIntegrationYamlTests'
+        : 'runEnsembleYamlTests';
     if (!entryPointCallsFunction(content, expectedCall)) {
       throw StateError(
-        '$activeEntryRelativePath must call $expectedCall().',
+        '$configuredEntryRelativePath must call $expectedCall().',
       );
     }
+  }
+
+  /// Writes an `integration_test/` entry so Flutter detects the native plugin.
+  ///
+  /// The user-owned `--test-entry` is never rewritten. Relative imports are
+  /// rewritten when the adapter is a copy, or preserved via a thin wrapper
+  /// that re-exports the original `main`.
+  void _materializeApplicationIntegrationEntry() {
+    final sourceRel = configuredEntryRelativePath.replaceAll('\\', '/');
+    final source = File(_testEntryPath).readAsStringSync();
+    final alreadyIntegrationDir =
+        p.posix.split(p.posix.normalize(sourceRel)).first == 'integration_test';
+    final hasIntegration = entryPointCallsFunction(
+      source,
+      'runApplicationIntegrationYamlTests',
+    );
+    if (alreadyIntegrationDir && hasIntegration) {
+      return;
+    }
+
+    final destRel = alreadyIntegrationDir
+        ? applicationIntegrationAdapterRelativePath(sourceRel)
+        : p.posix.join('integration_test', p.basename(sourceRel));
+    final dest = p.join(appDir, destRel);
+    final integrationDir = Directory(p.join(appDir, 'integration_test'));
+    if (!alreadyIntegrationDir && !integrationDir.existsSync()) {
+      _createdIntegrationTestDir = true;
+    }
+    _backup(dest, optional: true);
+    Directory(p.dirname(dest)).createSync(recursive: true);
+    final contents = hasIntegration && !alreadyIntegrationDir
+        ? applicationIntegrationWrapperContents(sourceRel)
+        : adaptEntryForIntegration(
+            relocateDartImports(
+              source: source,
+              fromRelative: sourceRel,
+              toRelative: destRel,
+            ),
+            _readPackageName(),
+          );
+    File(dest).writeAsStringSync(contents);
+    _generatedIntegrationEntryRelativePath = destRel;
+    if ((_backups[dest] ?? '').isEmpty) {
+      _createdPaths.add(dest);
+    }
+  }
+
+  /// Thin `integration_test/` wrapper that keeps relative imports on the
+  /// original host entry.
+  static String applicationIntegrationWrapperContents(
+      String widgetEntryRelative) {
+    final importUri = posixRelativeImportUri(
+      fromFile:
+          p.posix.join('integration_test', p.basename(widgetEntryRelative)),
+      toFile: widgetEntryRelative.replaceAll('\\', '/'),
+    );
+    return '''
+// Generated by ensemble_test_runner — do not edit.
+import '$importUri' as application_yaml_tests;
+
+Future<void> main() => application_yaml_tests.main();
+''';
+  }
+
+  /// Rewrites relative Dart imports when a file is copied to a new folder.
+  static String relocateDartImports({
+    required String source,
+    required String fromRelative,
+    required String toRelative,
+  }) {
+    return source.replaceAllMapped(
+      RegExp(r'''^(\s*import\s+)(['"])([^'"]+)\2(.*)$''', multiLine: true),
+      (match) {
+        final uri = match.group(3)!;
+        if (uri.startsWith('dart:') ||
+            uri.startsWith('package:') ||
+            uri.startsWith('http:') ||
+            uri.startsWith('https:')) {
+          return match.group(0)!;
+        }
+        final fromDir = p.posix.dirname(
+          p.posix.normalize(fromRelative.replaceAll('\\', '/')),
+        );
+        final resolved = p.posix.normalize(p.posix.join(fromDir, uri));
+        final relocated = posixRelativeImportUri(
+          fromFile: toRelative.replaceAll('\\', '/'),
+          toFile: resolved,
+        );
+        return '${match.group(1)}${match.group(2)}$relocated${match.group(2)}${match.group(4)}';
+      },
+    );
+  }
+
+  /// Dart import URI from [fromFile] to [toFile], both app-root relative.
+  static String posixRelativeImportUri({
+    required String fromFile,
+    required String toFile,
+  }) {
+    final fromDir = p.posix.dirname(p.posix.normalize(fromFile));
+    final relative = p.posix.relative(
+      p.posix.normalize(toFile),
+      from: fromDir,
+    );
+    return relative.startsWith('.') ? relative : './$relative';
+  }
+
+  /// Adapter next to [widgetEntryRelative] so `import 'foo.dart'` still works.
+  static String applicationIntegrationAdapterRelativePath(
+    String widgetEntryRelative,
+  ) {
+    final dir = p.dirname(widgetEntryRelative);
+    final base = p.basenameWithoutExtension(widgetEntryRelative);
+    final ext = p.extension(widgetEntryRelative);
+    return p.normalize(p.join(dir, '$base.integration$ext'));
   }
 
   /// Whether [source] invokes [functionName] outside comments.
@@ -444,7 +601,8 @@ Future<void> main() async {
       'runApplicationIntegrationYamlTests(',
     );
     if (entryPointCallsFunction(adapted, 'runEnsembleIntegrationYamlTests') ||
-        entryPointCallsFunction(adapted, 'runApplicationIntegrationYamlTests')) {
+        entryPointCallsFunction(
+            adapted, 'runApplicationIntegrationYamlTests')) {
       return adapted;
     }
     return integrationTestEntryContentsFor(packageName);
@@ -831,7 +989,8 @@ Future<void> main() async {
     }
 
     // Empty list form: `assets: []` (common in minimal host fixtures).
-    final emptyAssets = RegExp(r'^([ \t]*)assets:\s*\[\s*\]\s*$', multiLine: true);
+    final emptyAssets =
+        RegExp(r'^([ \t]*)assets:\s*\[\s*\]\s*$', multiLine: true);
     final emptyMatch = emptyAssets.firstMatch(content);
     if (emptyMatch != null) {
       final indent = emptyMatch.group(1) ?? '  ';

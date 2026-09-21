@@ -196,8 +196,15 @@ class EnsembleTestHarness {
     );
   }
 
+  /// Widget tests mock MethodChannels because there is no host OS plugin.
+  /// Integration runs inside a real Android/iOS binary; those plugins must
+  /// stay registered. Host drivers call this in both modes.
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    if (_usesNativeHostPlugins) {
+      ensureIntegrationRuntime();
+      return;
+    }
     if (!_sqfliteInitialized) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -264,22 +271,7 @@ class EnsembleTestHarness {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(deviceInfoChannel, (call) async {
       if (call.method == 'getDeviceInfo') {
-        return {
-          'computerName': 'Ensemble Test',
-          'hostName': 'ensemble-test',
-          'arch': 'arm64',
-          'model': 'Mac',
-          'modelName': 'Mac',
-          'kernelVersion': 'test',
-          'osRelease': 'test',
-          'majorVersion': 15,
-          'minorVersion': 0,
-          'patchVersion': 0,
-          'activeCPUs': 8,
-          'memorySize': 8589934592,
-          'cpuFrequency': 0,
-          'systemGUID': 'ensemble-test-device',
-        };
+        return deviceInfoMockForTest();
       }
       return null;
     });
@@ -340,6 +332,99 @@ class EnsembleTestHarness {
   static void ensureIntegrationRuntime() {
     TestWidgetsFlutterBinding.ensureInitialized();
     YamlTestSession.navigationFlow.startListening();
+  }
+
+  static bool get _usesNativeHostPlugins =>
+      const String.fromEnvironment(
+        'ensembleTestExecutionMode',
+        defaultValue: 'widget',
+      ) ==
+      'integration';
+
+  /// Platform-shaped `device_info_plus` map. A macOS payload on iOS makes
+  /// `IosDeviceInfo.fromMap` throw `type 'Null' is not a subtype of type
+  /// 'String'` because required fields such as `name` are missing.
+  @visibleForTesting
+  static Map<String, Object?> deviceInfoMockForTest() {
+    if (Platform.isIOS) {
+      return {
+        'name': 'iPhone',
+        'systemName': 'iOS',
+        'systemVersion': '17.0',
+        'model': 'iPhone',
+        'modelName': 'iPhone',
+        'localizedModel': 'iPhone',
+        'identifierForVendor': 'ensemble-test-device',
+        'isPhysicalDevice': false,
+        'isiOSAppOnMac': false,
+        'isiOSAppOnVision': false,
+        'physicalRamSize': 4096,
+        'availableRamSize': 2048,
+        'freeDiskSize': 1024,
+        'totalDiskSize': 2048,
+        'utsname': {
+          'sysname': 'Darwin',
+          'nodename': 'ensemble-test',
+          'release': '23.0.0',
+          'version': 'test',
+          'machine': 'iPhone15,2',
+        },
+      };
+    }
+    if (Platform.isAndroid) {
+      return {
+        'version': {
+          'baseOS': '',
+          'sdkInt': 34,
+          'release': '14',
+          'codename': 'REL',
+          'incremental': '1',
+          'previewSdkInt': 0,
+          'securityPatch': '2024-01-01',
+        },
+        'board': 'goldfish',
+        'bootloader': 'unknown',
+        'brand': 'google',
+        'device': 'generic',
+        'display': 'test',
+        'fingerprint': 'google/test',
+        'hardware': 'ranchu',
+        'host': 'ensemble-test',
+        'id': 'TEST',
+        'manufacturer': 'Google',
+        'model': 'sdk',
+        'product': 'sdk',
+        'name': 'Ensemble Test',
+        'supported32BitAbis': <String>[],
+        'supported64BitAbis': <String>['arm64-v8a'],
+        'supportedAbis': <String>['arm64-v8a'],
+        'tags': 'test',
+        'type': 'user',
+        'isPhysicalDevice': false,
+        'freeDiskSize': 1024,
+        'totalDiskSize': 2048,
+        'systemFeatures': <String>[],
+        'isLowRamDevice': false,
+        'physicalRamSize': 4096,
+        'availableRamSize': 2048,
+      };
+    }
+    return {
+      'computerName': 'Ensemble Test',
+      'hostName': 'ensemble-test',
+      'arch': 'arm64',
+      'model': 'Mac',
+      'modelName': 'Mac',
+      'kernelVersion': 'test',
+      'osRelease': 'test',
+      'majorVersion': 15,
+      'minorVersion': 0,
+      'patchVersion': 0,
+      'activeCPUs': 8,
+      'memorySize': 8589934592,
+      'cpuFrequency': 0,
+      'systemGUID': 'ensemble-test-device',
+    };
   }
 
   final String appPath;

@@ -279,6 +279,26 @@ paths must remain inside `--app-dir`. Supplying `--tests-dir` alone in an
 existing Ensemble app continues to use the generated legacy entry; a pure
 Flutter app must provide `--test-entry`.
 
+`--mode=integration` uses that same host entry. The CLI writes a temporary
+`integration_test/<entry>.dart` wrapper so Flutter detects the native plugin,
+then deletes it when the run finishes. Widget-only entries
+(`runApplicationYamlTests`) are adapted in that wrapper; relative imports are
+rewritten to keep resolving.
+
+The CLI already passes `--dart-define=ensembleTestExecutionMode=integration`, so
+the entry can also dispatch itself:
+
+```dart
+Future<void> main() {
+  const integration =
+      String.fromEnvironment('ensembleTestExecutionMode') == 'integration';
+  if (integration) {
+    return runApplicationIntegrationYamlTests(driver: MyAppTestDriver());
+  }
+  return runApplicationYamlTests(driver: MyAppTestDriver());
+}
+```
+
 See [`example_host/`](example_host/) for a complete Flutter-host + Ensemble-child
 app: login, bottom nav, and a host card that opens the same Ensemble screen.
 

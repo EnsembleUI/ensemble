@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -39,6 +40,145 @@ steps: []
     patcher.restore();
     expect(entryFile.readAsStringSync(), entry);
     expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+  });
+
+  test('integration mode adapts a widget host entry beside it, then restores',
+      () {
+    final dir = Directory.systemTemp.createTempSync('yaml_host_integration_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    const pubspec = '''
+name: sample_host
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets: []
+''';
+    const entry = '''
+import 'package:ensemble_test_runner/ensemble_test_runner.dart';
+import 'host_app_test_driver.dart';
+Future<void> main() => runApplicationYamlTests(driver: createDriver());
+''';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    Directory('${dir.path}/specs').createSync();
+    File('${dir.path}/specs/login.test.yaml').writeAsStringSync('''
+id: login
+steps: []
+''');
+    Directory('${dir.path}/test').createSync();
+    final entryFile = File('${dir.path}/test/application_yaml_tests.dart')
+      ..writeAsStringSync(entry);
+
+    final patcher = YamlTestAppPatcher(
+      dir.path,
+      testsDirRelative: 'specs',
+      testEntryRelativePath: 'test/application_yaml_tests.dart',
+    );
+    patcher.enable(mode: ExecutionMode.integration);
+
+    expect(entryFile.readAsStringSync(), entry);
+    expect(
+      patcher.activeEntryRelativePath,
+      'integration_test/application_yaml_tests.dart',
+    );
+    final adapter = File('${dir.path}/${patcher.activeEntryRelativePath}');
+    expect(adapter.existsSync(), isTrue);
+    expect(
+      adapter.readAsStringSync(),
+      contains('runApplicationIntegrationYamlTests('),
+    );
+    expect(
+      adapter.readAsStringSync(),
+      contains("import '../test/host_app_test_driver.dart';"),
+    );
+    expect(
+      File('${dir.path}/pubspec.yaml').readAsStringSync(),
+      contains('integration_test:'),
+    );
+
+    patcher.restore();
+    expect(entryFile.readAsStringSync(), entry);
+    expect(adapter.existsSync(), isFalse);
+    expect(
+      Directory('${dir.path}/integration_test').existsSync(),
+      isFalse,
+    );
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+  });
+
+  test('integration mode keeps a host entry that already selects the binding',
+      () {
+    final dir = Directory.systemTemp.createTempSync('yaml_host_dual_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_host
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+flutter:
+  assets: []
+''');
+    Directory('${dir.path}/specs').createSync();
+    File('${dir.path}/specs/login.test.yaml').writeAsStringSync('''
+id: login
+steps: []
+''');
+    Directory('${dir.path}/test').createSync();
+    const entry = '''
+import 'package:ensemble_test_runner/ensemble_test_runner.dart';
+Future<void> main() {
+  const integration =
+      String.fromEnvironment('ensembleTestExecutionMode') == 'integration';
+  if (integration) {
+    return runApplicationIntegrationYamlTests(driver: createDriver());
+  }
+  return runApplicationYamlTests(driver: createDriver());
+}
+''';
+    File('${dir.path}/test/application_yaml_tests.dart')
+        .writeAsStringSync(entry);
+
+    final patcher = YamlTestAppPatcher(
+      dir.path,
+      testsDirRelative: 'specs',
+      testEntryRelativePath: 'test/application_yaml_tests.dart',
+    );
+    patcher.enable(mode: ExecutionMode.integration);
+
+    expect(
+      patcher.activeEntryRelativePath,
+      'integration_test/application_yaml_tests.dart',
+    );
+    expect(
+      File('${dir.path}/integration_test/application_yaml_tests.dart')
+          .readAsStringSync(),
+      contains("import '../test/application_yaml_tests.dart'"),
+    );
+    expect(
+      File('${dir.path}/test/application_yaml_tests.dart').readAsStringSync(),
+      entry,
+    );
+    patcher.restore();
+    expect(
+      File('${dir.path}/integration_test/application_yaml_tests.dart')
+          .existsSync(),
+      isFalse,
+    );
+  });
+
+  test('relocateDartImports rewrites sibling imports for integration_test', () {
+    expect(
+      YamlTestAppPatcher.relocateDartImports(
+        source: "import 'host_app_test_driver.dart';\n"
+            "import 'package:ensemble_test_runner/ensemble_test_runner.dart';\n",
+        fromRelative: 'test/application_yaml_tests.dart',
+        toRelative: 'integration_test/application_yaml_tests.dart',
+      ),
+      "import '../test/host_app_test_driver.dart';\n"
+      "import 'package:ensemble_test_runner/ensemble_test_runner.dart';\n",
+    );
   });
 
   test('custom paths cannot escape the application root', () {

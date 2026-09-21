@@ -2746,8 +2746,11 @@ Future<ProcessResult> _runFlutterTestProcess(
       if (!_isArtifactProtocolLine(line)) {
         _appendAppConsoleLogLine(appLog, 'stdout', line);
       }
+      if (_isArtifactProtocolLine(line)) {
+        return;
+      }
       if (verbose) {
-        if (!_isArtifactProtocolLine(line)) stdout.writeln(line);
+        stdout.writeln(line);
       } else if (streamOutput && _isIntegrationProgressLine(line)) {
         lastLiveOutput = DateTime.now();
         stderr.writeln(_formatIntegrationProgressLine(line));
@@ -3155,8 +3158,20 @@ void _writeStatus(
 }
 
 void _writeProcessStreams(ProcessResult result) {
-  final out = result.stdout?.toString() ?? '';
-  final err = result.stderr?.toString() ?? '';
+  final out = _withoutArtifactProtocolLines(result.stdout?.toString() ?? '');
+  final err = _withoutArtifactProtocolLines(result.stderr?.toString() ?? '');
   if (out.isNotEmpty) stdout.write(out);
   if (err.isNotEmpty) stderr.write(err);
+}
+
+String _withoutArtifactProtocolLines(String output) {
+  if (output.isEmpty) return output;
+  final kept = const LineSplitter()
+      .convert(output)
+      .where((line) => !_isArtifactProtocolLine(line))
+      .toList();
+  if (kept.isEmpty) return '';
+  final buffer = StringBuffer(kept.join('\n'));
+  if (output.endsWith('\n')) buffer.writeln();
+  return buffer.toString();
 }
