@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -8,6 +9,7 @@ import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
@@ -47,6 +49,26 @@ void main() {
     });
   });
 
+  group('consoleCaptureZone', () {
+    testWidgets('records debugPrint and print once each', (tester) async {
+      final runtime = TestRuntimeState();
+      runZoned(() {
+        debugPrint('host: Continue tapped');
+        print('plain print');
+      }, zoneSpecification: runtime.consoleCaptureZone);
+
+      expect(
+        runtime.consoleLogs
+            .where((line) => line.contains('host: Continue tapped')),
+        hasLength(1),
+      );
+      expect(
+        runtime.consoleLogs.where((line) => line.contains('plain print')),
+        hasLength(1),
+      );
+    });
+  });
+
   group('groupLogsByStep', () {
     test('prefers stepIndex over timestamps', () {
       final grouped = groupLogsByStep(
@@ -77,6 +99,27 @@ void main() {
         (grouped[1]['appLogs'] as List).single,
         contains('during home wait'),
       );
+    });
+
+    test('attaches unattributed console lines to the first step', () {
+      final grouped = groupLogsByStep(
+        stepsOutline: ['tap(login)', 'expectText(Home)'],
+        stepDurationsMs: [50, 20],
+        stepStartTimes: [
+          '2026-07-22T12:00:01.000',
+          '2026-07-22T12:00:01.050',
+        ],
+        apiEvents: const [],
+        rawConsoleLines: [
+          '[2026-07-22T12:00:00.100] Started login_shop_from_nav',
+        ],
+      );
+
+      expect(
+        (grouped[0]['appLogs'] as List).single,
+        contains('Started login_shop_from_nav'),
+      );
+      expect(grouped[1]['appLogs'], isEmpty);
     });
 
     test('maps nested outline lines to parent top-level step', () {

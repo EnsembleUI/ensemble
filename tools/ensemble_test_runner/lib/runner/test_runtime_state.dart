@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -56,6 +57,18 @@ class TestRuntimeState {
     if (step == null) return '[$ts] $message';
     return '[$ts][step=$step] $message';
   }
+
+  /// Zone interceptor that records [print] (and therefore [debugPrint]) once.
+  ///
+  /// Flutter's test binding sets [debugPrint] to [debugPrintSynchronously],
+  /// which forwards to [print]. Hooking both the global [debugPrint] callback
+  /// and this zone interceptor would duplicate every `debugPrint` line.
+  ZoneSpecification get consoleCaptureZone => ZoneSpecification(
+        print: (self, parent, zone, line) {
+          consoleLogs.add(formatConsoleLine(line));
+          parent.print(zone, line);
+        },
+      );
 
   void addFrameTimings(List<ui.FrameTiming> timings) {
     for (final timing in timings) {

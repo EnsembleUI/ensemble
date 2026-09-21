@@ -1,4 +1,5 @@
 import 'package:ensemble_test_runner_host_example/ensemble_host.dart';
+import 'package:ensemble_test_runner_host_example/host_demo.dart';
 import 'package:flutter/material.dart';
 
 /// Flutter host: login, then a 3-tab shell with Ensemble as a child screen.
@@ -20,6 +21,10 @@ class _HostAppState extends State<HostApp> {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
           useMaterial3: true,
+          // Widget tests substitute Ahem for missing platform fonts (SF Pro on
+          // macOS/iOS). Pin Roboto — the harness loads it from the Flutter SDK.
+          fontFamily: 'Roboto',
+          typography: Typography.material2021(platform: TargetPlatform.android),
         ),
         home: LoginScreen(onLogin: () => setState(() => _loggedIn = true)),
       );
@@ -42,10 +47,22 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController(text: 'password');
 
   @override
+  void initState() {
+    super.initState();
+    HostDemoTraffic.log('login screen');
+  }
+
+  @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  Future<void> _continue() async {
+    HostDemoTraffic.log('Continue tapped');
+    await HostDemoTraffic.login(context, email: _email.text);
+    widget.onLogin();
   }
 
   @override
@@ -76,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 24),
             FilledButton(
               key: const ValueKey('login_button'),
-              onPressed: widget.onLogin,
+              onPressed: _continue,
               child: const Text('Continue'),
             ),
           ],
@@ -99,6 +116,7 @@ class _AppShellState extends State<AppShell> {
   static const _titles = ['Home', 'Shop', 'Account'];
 
   void _openShopFromCard() {
+    HostDemoTraffic.log('open shop from Home card');
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const ShopRoutePage()),
     );
@@ -117,7 +135,10 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: BottomNavigationBar(
         key: const ValueKey('host_bottom_nav'),
         currentIndex: _index,
-        onTap: (index) => setState(() => _index = index),
+        onTap: (index) {
+          HostDemoTraffic.log('nav ${_titles[index]}');
+          setState(() => _index = index);
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined, key: ValueKey('nav_home')),
@@ -140,10 +161,25 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onOpenShop});
 
   final VoidCallback onOpenShop;
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    HostDemoTraffic.log('Home tab');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      HostDemoTraffic.session(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +197,7 @@ class HomeScreen extends StatelessWidget {
         Card(
           child: InkWell(
             key: const ValueKey('open_shop_card'),
-            onTap: onOpenShop,
+            onTap: widget.onOpenShop,
             child: const ListTile(
               leading: Icon(Icons.storefront),
               title: Text('Open Shop'),
@@ -175,8 +211,19 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
+
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  @override
+  void initState() {
+    super.initState();
+    HostDemoTraffic.log('Account tab');
+  }
 
   @override
   Widget build(BuildContext context) {

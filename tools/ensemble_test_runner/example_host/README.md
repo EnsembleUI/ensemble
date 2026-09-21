@@ -60,6 +60,13 @@ dart run ensemble_test_runner:ensemble_test \
   --mode=widget
 ```
 
+The HTML report is `build/ensemble_test_runner/report/index.html`. Suite
+`tests/config.yaml` enables per-step screenshots; the host runner also writes
+app console, API, and storage logs into that report. The example fires dummy
+host (`hostLogin`, `hostSession`) and Ensemble shop (`getCatalog`,
+`getFeaturedItem`) APIs plus `debugPrint` / `console.log` lines so those
+report tabs are populated.
+
 Integration mode uses the same YAML and entry:
 
 ```bash

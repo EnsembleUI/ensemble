@@ -255,19 +255,12 @@ class EnsembleTestRunner {
     );
     final previousOnError = FlutterError.onError;
 
-    final previousDebugPrint = debugPrint;
     final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
     final previousDrainPendingExceptions =
         LiveAsyncCallSupport.drainPendingExceptions;
     try {
       FlutterError.onError = (details) {
         ctx.runtime.flutterErrors.add(_formatFlutterError(details));
-      };
-      debugPrint = (String? message, {int? wrapWidth}) {
-        if (message != null) {
-          ctx.runtime.consoleLogs.add(ctx.runtime.formatConsoleLine(message));
-        }
-        previousDebugPrint(message, wrapWidth: wrapWidth);
       };
       applyWifiTestConfig(suiteConfig.wifi);
       timingsCallback = (List<ui.FrameTiming> timings) {
@@ -334,12 +327,7 @@ class EnsembleTestRunner {
           await _settleLiveApiWorkBestEffort(tester, ctx);
           return (result: result, config: config, context: ctx);
         },
-        zoneSpecification: ZoneSpecification(
-          print: (self, parent, zone, line) {
-            ctx.runtime.consoleLogs.add(ctx.runtime.formatConsoleLine(line));
-            parent.print(zone, line);
-          },
-        ),
+        zoneSpecification: ctx.runtime.consoleCaptureZone,
       );
     } catch (error, stackTrace) {
       final config = existingConfig ?? Ensemble().getConfig();
@@ -388,7 +376,6 @@ class EnsembleTestRunner {
         context: ctx,
       );
     } finally {
-      debugPrint = previousDebugPrint;
       final callback = timingsCallback;
       if (callback != null) {
         SchedulerBinding.instance.removeTimingsCallback(callback);

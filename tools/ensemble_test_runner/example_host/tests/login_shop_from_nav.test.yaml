@@ -29,3 +29,5 @@ steps:
       id: shop_title
   - expectVisible:
       id: shop_featured_button
+  - tap:
+      id: shop_featured_button

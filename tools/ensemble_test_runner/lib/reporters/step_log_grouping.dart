@@ -164,7 +164,7 @@ List<Map<String, dynamic>> groupLogsByStep({
         }
       }
     }
-    if (targetTopLevel == null) continue;
+    targetTopLevel ??= 0;
     final outlineIndex = outlineIndexForTopLevel(targetTopLevel);
     if (outlineIndex == null) continue;
     (buckets[outlineIndex]['appLogs'] as List<String>).add(line);

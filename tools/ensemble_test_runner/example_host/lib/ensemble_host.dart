@@ -31,13 +31,12 @@ class _EnsembleHostState extends State<EnsembleHost> {
 
   Future<void> _initialize() async {
     try {
-      final config = await Ensemble().initialize();
+      await Ensemble().initialize();
       if (!mounted) return;
+      // Do not pass `ensembleConfig:` — EnsembleApp.initApp() would call
+      // initializeAPIProviders again and replace the test HTTP overlay.
       setState(() {
-        _ensembleApp = EnsembleApp(
-          ensembleConfig: config,
-          child: widget.child,
-        );
+        _ensembleApp = EnsembleApp(child: widget.child);
       });
     } catch (error) {
       if (!mounted) return;

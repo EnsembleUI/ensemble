@@ -611,15 +611,18 @@ class ExtendedStepHandlers {
     final screenRect = screenPath.getBounds();
     canvas.save();
     canvas.clipPath(screenPath);
+    canvas.drawRect(screenRect, Paint()..color = const Color(0xFFFFFFFF));
+    final imageSize = Size(
+      screenImage.width.toDouble(),
+      screenImage.height.toDouble(),
+    );
     canvas.drawImageRect(
       screenImage,
-      Rect.fromLTWH(
-        0,
-        0,
-        screenImage.width.toDouble(),
-        screenImage.height.toDouble(),
+      Offset.zero & imageSize,
+      screenshotFittedScreenRect(
+        imageSize: imageSize,
+        screenRect: screenRect,
       ),
-      screenRect,
       Paint()..filterQuality = FilterQuality.high,
     );
     canvas.restore();

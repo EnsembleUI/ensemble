@@ -1,4 +1,31 @@
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
 mode: widget
 screenshots:
-  enabled: false
+  enabled: true
+  secureContent: allow
+logApiCalls:
+  enabled: true
+mocks:
+  hostLogin:
+    statusCode: 200
+    body:
+      token: dummy-host-token
+      user: host-user
+  hostSession:
+    statusCode: 200
+    body:
+      tabs: [Home, Shop, Account]
+  getCatalog:
+    statusCode: 200
+    body:
+      items:
+        - id: lamp
+          title: Featured lamp
+        - id: chair
+          title: Oak chair
+  getFeaturedItem:
+    statusCode: 200
+    body:
+      id: lamp
+      title: Featured lamp
+      price: 42

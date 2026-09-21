@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -470,22 +471,94 @@ class EnsembleTestHarness {
     if (_appFontsLoaded) return;
     _appFontsLoaded = true;
 
-    List<dynamic> manifest;
+    var loadedRoboto = false;
     try {
       final rawManifest = await rootBundle.loadString('FontManifest.json');
-      manifest = jsonDecode(rawManifest) as List<dynamic>;
+      final manifest = jsonDecode(rawManifest) as List<dynamic>;
+      for (final familyEntry in manifest.whereType<Map>()) {
+        final family = familyEntry['family']?.toString();
+        final fonts = familyEntry['fonts'];
+        if (family == null || fonts is! List) continue;
+        var familyLoaded = false;
+        for (final alias in _fontFamilyAliases(family)) {
+          familyLoaded =
+              await _loadFontFamily(alias, fonts) || familyLoaded;
+        }
+        if (familyLoaded && family.toLowerCase().contains('roboto')) {
+          loadedRoboto = true;
+        }
+      }
     } catch (_) {
-      return;
+      // App may not ship a FontManifest; fall through to SDK Roboto.
     }
 
-    for (final familyEntry in manifest.whereType<Map>()) {
-      final family = familyEntry['family']?.toString();
-      final fonts = familyEntry['fonts'];
-      if (family == null || fonts is! List) continue;
+    await _loadSdkRoboto(includeRoboto: !loadedRoboto);
+  }
 
-      for (final alias in _fontFamilyAliases(family)) {
-        await _loadFontFamily(alias, fonts);
+  static String? _flutterSdkRoot() {
+    final env = Platform.environment['FLUTTER_ROOT'];
+    if (env != null &&
+        env.isNotEmpty &&
+        Directory('$env/bin/cache/artifacts/material_fonts').existsSync()) {
+      return env;
+    }
+    var dir = File(Platform.resolvedExecutable).absolute.parent;
+    for (var i = 0; i < 8; i++) {
+      if (Directory('${dir.path}/bin/cache/artifacts/material_fonts')
+          .existsSync()) {
+        return dir.path;
       }
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+    return null;
+  }
+
+  static const _sdkRobotoFiles = [
+    'Roboto-Regular.ttf',
+    'Roboto-Medium.ttf',
+    'Roboto-Bold.ttf',
+  ];
+
+  /// Families that widget tests otherwise paint as Ahem until a network font
+  /// arrives. Ensemble's default theme asks Google Fonts for Inter (`Inter_regular`,
+  /// `Inter_500`, …). Login/macOS Material uses SF Pro.
+  static const _sdkFallbackFamilies = [
+    'Roboto',
+    'roboto',
+    'Inter',
+    'inter',
+    'Inter_regular',
+    'Inter_500',
+    'Inter_600',
+    'Inter_700',
+    '.SF Pro Text',
+    '.SF Pro Display',
+    '.SF UI Text',
+    '.SF UI Display',
+  ];
+
+  static Future<void> _loadSdkRoboto({required bool includeRoboto}) async {
+    final root = _flutterSdkRoot();
+    if (root == null) return;
+    final fontsDir = '$root/bin/cache/artifacts/material_fonts';
+    final payloads = <ByteData>[];
+    for (final name in _sdkRobotoFiles) {
+      final file = File('$fontsDir/$name');
+      if (!file.existsSync()) continue;
+      payloads.add(ByteData.sublistView(file.readAsBytesSync()));
+    }
+    if (payloads.isEmpty) return;
+    for (final family in _sdkFallbackFamilies) {
+      if (!includeRoboto && (family == 'Roboto' || family == 'roboto')) {
+        continue;
+      }
+      final loader = FontLoader(family);
+      for (final data in payloads) {
+        loader.addFont(Future.value(data));
+      }
+      await loader.load();
     }
   }
 
@@ -602,7 +675,7 @@ class EnsembleTestHarness {
     return candidates.toList(growable: false);
   }
 
-  static Future<void> _loadFontFamily(
+  static Future<bool> _loadFontFamily(
     String family,
     List<dynamic> fontEntries,
   ) async {
@@ -629,6 +702,7 @@ class EnsembleTestHarness {
     if (hasFonts) {
       await loader.load();
     }
+    return hasFonts;
   }
 
   Future<EnsembleConfig> loadScreen({

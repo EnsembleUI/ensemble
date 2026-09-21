@@ -28,6 +28,8 @@ All supplied fields are conjunctive. `within` must resolve to one ancestor.
 Without `occurrence`, multiple matches are an error. There is no heuristic
 fallback. Secure editable values are removed from observations and masked in
 screenshots unless `screenshots.secureContent: allow` is explicitly selected.
+`skip` omits the frame when a password field is on screen; that must not fail
+the test. The default `mask` keeps the screenshot and covers the field.
 
 `ensemble_test_runner` can act as the execution backend for test authoring. The recommended loop is:
 
@@ -131,6 +133,11 @@ test-level `storage` / `keychain` / `env` keys override suite values.
 
 When `screenshots.enabled` is true, the runner captures automatic step
 screenshots as per-step PNGs under `build/ensemble_test_runner/report/screenshots/`.
+Host suites (`ApplicationTestDriver` / `example_host`) use the same config
+flag and attach those frames plus app console, API, and storage logs on each
+test result so the HTML report gallery is populated. Host widget tests also
+resize the surface to the screenshot device (default iPhone 15 Pro) before
+launch so the capture is not stretched into the bezel.
 Frame manifests (`*_frames.json`) are written under
 `build/ensemble_test_runner/frames/` and folded into `report/results.json.gz`
 (no leftover manifests after report generation).
