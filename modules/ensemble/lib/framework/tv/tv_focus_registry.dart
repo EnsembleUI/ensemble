@@ -105,6 +105,23 @@ class TVFocusRegistry {
   }
 }
 
+/// Marks a decorative subtree (e.g. a page background) as excluded from TV
+/// focus. Any [TVFocusTargetRegistrar] inside it is kept out of
+/// [TVFocusRegistry], so D-pad navigation never targets it.
+///
+/// This is needed because the host navigates via [TVFocusRegistry] rather than
+/// the Flutter focus tree, so [ExcludeFocus] alone is not sufficient.
+class TVFocusExclusion extends InheritedWidget {
+  const TVFocusExclusion({super.key, required super.child});
+
+  static bool isExcluded(BuildContext context) =>
+      context.getElementForInheritedWidgetOfExactType<TVFocusExclusion>() !=
+      null;
+
+  @override
+  bool updateShouldNotify(TVFocusExclusion oldWidget) => false;
+}
+
 /// Registers a focus target while its widget subtree is mounted.
 class TVFocusTargetRegistrar extends StatefulWidget {
   const TVFocusTargetRegistrar({
@@ -163,6 +180,11 @@ class _TVFocusTargetRegistrarState extends State<TVFocusTargetRegistrar> {
   }
 
   void _register() {
+    // Decorative subtrees (e.g. page backgrounds) opt out of the TV focus grid.
+    if (TVFocusExclusion.isExcluded(context)) {
+      TVFocusRegistry.unregister(widget.focusNode);
+      return;
+    }
     TVFocusRegistry.register(
       TVFocusTarget(
         focusNode: widget.focusNode,
