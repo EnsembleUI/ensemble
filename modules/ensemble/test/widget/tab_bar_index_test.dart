@@ -105,4 +105,16 @@ void main() {
 
     expect(controller.revealTabBarOnFocus, isTrue);
   });
+
+  test('TabBar recognizes flex-based stretched layouts', () {
+    final controller = TabBarController();
+
+    expect(controller.isStretched, isFalse);
+
+    controller.getBaseSetters()['flexMode']!('expanded');
+    expect(controller.isStretched, isTrue);
+
+    controller.getBaseSetters()['flexMode']!('none');
+    expect(controller.isStretched, isFalse);
+  });
 }

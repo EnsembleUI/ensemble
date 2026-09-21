@@ -160,6 +160,13 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
   bool get _isFallbackFocusTarget => widget.fallbackFocus != null;
 
+  ScrollableState? _owningScrollable() {
+    if (!widget.scrollController.hasClients) return null;
+    final storageContext =
+        widget.scrollController.position.context.storageContext;
+    return Scrollable.maybeOf(storageContext);
+  }
+
   bool get _canScrollUp {
     if (!widget.scrollController.hasClients) return false;
     final position = widget.scrollController.position;
@@ -255,6 +262,9 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           _didAutofocusScrollbar ||
           !_isScrollable ||
           _focusNode.hasFocus) {
+        if (mounted && _focusNode.hasFocus) {
+          _didAutofocusScrollbar = true;
+        }
         return;
       }
       // Only autofocus when the scrollbar is a real TV focus target (the
@@ -367,8 +377,13 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 // Re-check `_isFocused` at callback time in case focus has
                 // already moved away before the frame completes.
                 if (hasFocus) {
-                  final activeScrollable =
-                      findNearestVerticalScrollable(context);
+                  final owningScrollable = _owningScrollable();
+                  final activeScrollable = owningScrollable == null
+                      ? findOutermostVerticalScrollable(context)
+                      : findOutermostVerticalScrollable(
+                              widget.scrollController.position.context
+                                  .storageContext) ??
+                          owningScrollable;
                   if (activeScrollable != null) {
                     rememberActiveVerticalScrollable(
                         ModalRoute.of(context), activeScrollable);

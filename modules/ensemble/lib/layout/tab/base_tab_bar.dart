@@ -468,7 +468,7 @@ class _TVTabButtonState extends State<_TVTabButton> {
       // Tabs are custom focusables rather than BoxWrapper widgets. Remember
       // their enclosing page scroller so resetScrollOnFocus also works when
       // focus returns from the tab strip itself.
-      final scrollable = findNearestVerticalScrollable(context);
+      final scrollable = findOutermostVerticalScrollable(context);
       if (scrollable != null) {
         rememberActiveVerticalScrollable(
             ModalRoute.of(context), scrollable);
@@ -506,8 +506,9 @@ class _TVTabButtonState extends State<_TVTabButton> {
       // Opt-in behavior: reveal the enclosing TabBar instead of only the
       // focused tab. Expanded TabBars still use the focused tab as target.
       final tabBarState = context.findAncestorStateOfType<BaseTabBarState>();
+      final isStretched = tabBarState?.widget.controller.isStretched ?? false;
       final targetContext = tabBarState != null &&
-              !tabBarState.widget.controller.expanded
+              !isStretched
           ? tabBarState.context
           : context;
       scrollWidgetIntoView(

@@ -42,6 +42,18 @@ class TabBarController extends BoxController {
   /// TV: reveal the whole TabBar when a tab receives focus.
   bool revealTabBarOnFocus = false;
 
+  /// Whether the TabBar body occupies the available flex height.
+  bool get isStretched {
+    if (flexMode == FlexMode.expanded ||
+        flexMode == FlexMode.flexible ||
+        (flex != null && flexMode != FlexMode.none)) {
+      return true;
+    }
+    // Preserve the legacy layout flag without adding deprecated accesses at
+    // each call site.
+    return (this as dynamic).expanded == true;
+  }
+
   EnsembleAction? onTabSelection;
   String? onTabSelectionHaptic;
   TabBarAction? tabBarAction;

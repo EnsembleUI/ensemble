@@ -68,6 +68,26 @@ ScrollableState? findNearestVerticalScrollable(BuildContext context) {
   return scrollable;
 }
 
+/// Finds the outermost vertical scrollable ancestor for route-scoped memory.
+ScrollableState? findOutermostVerticalScrollable(BuildContext context) {
+  ScrollableState? scrollable;
+
+  context.visitAncestorElements((element) {
+    if (element.widget is Scrollable) {
+      final state = (element as StatefulElement).state;
+      if (state is ScrollableState) {
+        final axis = state.axisDirection;
+        if (axis == AxisDirection.up || axis == AxisDirection.down) {
+          scrollable = state;
+        }
+      }
+    }
+    return true;
+  });
+
+  return scrollable;
+}
+
 /// Scrolls ONLY [scrollable] so that [itemBox] is fully visible vertically.
 /// Unlike Scrollable.ensureVisible(), this does NOT affect horizontal scroll.
 /// [verticalPadding] controls the threshold from viewport edges (use larger

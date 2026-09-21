@@ -666,7 +666,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final verticalScrollable = findNearestVerticalScrollable(context);
     if (verticalScrollable != null) {
       rememberActiveVerticalScrollable(
-          ModalRoute.of(context), verticalScrollable);
+          ModalRoute.of(context),
+          findOutermostVerticalScrollable(context) ?? verticalScrollable);
       final verticalPadding =
           tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
       final verticalCurve =
@@ -675,7 +676,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
           verticalPadding: verticalPadding,
           animationDurationMs: scrollAnimationDuration,
           curve: verticalCurve);
-    } else if (tvOptions?.resetScrollOnFocus == true) {
+    }
+
+    if (tvOptions?.resetScrollOnFocus == true) {
       final activeScrollable = activeVerticalScrollable(ModalRoute.of(context));
       if (activeScrollable != null &&
           activeScrollable.mounted &&

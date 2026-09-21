@@ -255,6 +255,8 @@ class ListViewState extends EWidgetState<ListView>
               ? geometry.scrollExtent
               : extent!.clamp(geometry.scrollExtent, double.infinity);
         }
+        // Nested viewports are descendants of the outer sliver.
+        return;
       }
       node.visitChildren(visit);
     }
@@ -526,9 +528,7 @@ class ListViewState extends EWidgetState<ListView>
     // would cause an error, so we check for that in Studio mode.
     // Note that we don't need to check for explicit height since that will
     // already cause the height constraint to be constrained.
-    if (StudioDebugger().debugMode &&
-        widget._controller.shrinkWrap != true &&
-        !_usesFitContent) {
+    if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
       listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
           listView, ListView.type, context, widget._controller);
     }
@@ -646,15 +646,30 @@ class ListViewState extends EWidgetState<ListView>
       );
     }
 
-    if (widget._controller.shrinkWrap == true &&
-        widget._controller.maxHeight != null) {
-      if (_usesFitContent) _scheduleFitMeasure();
-      listView = flutter.SizedBox(
-        height: _usesFitContent
-            ? (_fittedHeight ?? widget._controller.maxHeight!.toDouble())
-            : widget._controller.maxHeight!.toDouble(),
-        child: listView,
-      );
+    if (widget._controller.shrinkWrap == true) {
+      final maxHeight = widget._controller.maxHeight == null
+          ? null
+          : widget._controller.maxHeight!.clamp(0, double.infinity).toDouble();
+      final minHeight = widget._controller.minHeight == null
+          ? null
+          : widget._controller.minHeight!
+              .clamp(0, maxHeight ?? double.infinity)
+              .toDouble();
+      if (_usesFitContent) {
+        _scheduleFitMeasure();
+        listView = flutter.SizedBox(
+          height: _fittedHeight ?? maxHeight!,
+          child: listView,
+        );
+      } else if (minHeight != null || maxHeight != null) {
+        listView = flutter.ConstrainedBox(
+          constraints: flutter.BoxConstraints(
+            minHeight: minHeight ?? 0.0,
+            maxHeight: maxHeight ?? double.infinity,
+          ),
+          child: listView,
+        );
+      }
     }
 
     return BoxWrapper(
