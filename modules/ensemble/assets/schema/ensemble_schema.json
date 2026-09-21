@@ -3322,6 +3322,10 @@
                     "reverse": {
                       "type": "boolean",
                       "description": "Show list in reverse order. Default is false"
+                    },
+                    "minHeight": {
+                      "type": "integer",
+                      "description": "Minimum height of the list"
                     }
                   }
                 }
