@@ -484,10 +484,24 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 type: visible ? 'expectVisible' : 'expectNotVisible',
                 args: {'id': target.testId},
               ));
+            } else if (!visible) {
+              final matches = resolver.resolveMatches(
+                target,
+                requireInteractive: false,
+                allowEmpty: true,
+              );
+              final anyVisible = matches.any(
+                assertions.isElementVisuallyActionable,
+              );
+              if (anyVisible) {
+                throw EnsembleTestFailure(
+                  'Expected resolved element to be not visible.',
+                );
+              }
             } else {
               assertions.expectVisibleFinder(
                 resolver.resolveFinder(target),
-                visible: visible,
+                visible: true,
               );
             }
           case ElementExistsAssertion(
@@ -499,18 +513,22 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 type: exists ? 'expectExists' : 'expectNotExists',
                 args: {'id': target.testId},
               ));
-            } else {
-              try {
-                assertions.expectExistsFinder(
-                  resolver.resolveFinder(target, requireInteractive: false),
-                  exists: exists,
+            } else if (!exists) {
+              final matches = resolver.resolveMatches(
+                target,
+                requireInteractive: false,
+                allowEmpty: true,
+              );
+              if (matches.isNotEmpty) {
+                throw EnsembleTestFailure(
+                  'Expected resolved element to not exist.',
                 );
-              } on TestExecutionError catch (error) {
-                if (exists ||
-                    error.code != TestExecutionErrorCode.elementNotFound) {
-                  rethrow;
-                }
               }
+            } else {
+              assertions.expectExistsFinder(
+                resolver.resolveFinder(target, requireInteractive: false),
+                exists: true,
+              );
             }
           case ElementTextAssertion(
               :final target,

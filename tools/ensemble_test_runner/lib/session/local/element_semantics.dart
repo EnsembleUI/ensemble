@@ -81,7 +81,14 @@ bool isSemanticLocatorCandidate(Element element) {
     return false;
   }
   return widget is Semantics ||
-      widget is ElevatedButton ||
+      isActionableControl(element);
+}
+
+/// Interactive controls suitable as the primary target of a text locator.
+/// Excludes bare [Semantics] wrappers that may span multiple controls.
+bool isActionableControl(Element element) {
+  final widget = element.widget;
+  return widget is ElevatedButton ||
       widget is TextButton ||
       widget is OutlinedButton ||
       widget is FilledButton ||

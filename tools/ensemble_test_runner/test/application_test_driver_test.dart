@@ -286,6 +286,43 @@ void main() {
     expect(tester.view.physicalSize, Devices.ios.iPhone15Pro.screenSize);
     expect(tester.view.devicePixelRatio, 1.0);
   });
+
+  testWidgets('integration mode preserves the physical viewport',
+      (tester) async {
+    final original = tester.view.physicalSize;
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'viewport-integration', steps: []),
+      config: const EnsembleTestConfig(
+        screenshots: ScreenshotConfig(enabled: true),
+      ),
+    );
+    await applyHostScreenshotViewport(
+      tester,
+      context,
+      mode: ExecutionMode.integration,
+    );
+
+    expect(tester.view.physicalSize, original);
+    expect(context.runtime.deviceSize, original);
+  });
+
+  test('host process services are skipped when the CLI owns fixtures', () {
+    const sample = [
+      TestServiceConfig(
+        name: 'api',
+        command: 'dart',
+        arguments: ['run', 'fake'],
+      ),
+    ];
+    expect(
+      hostProcessServiceConfigs(sample, hostOwnsServices: true),
+      isEmpty,
+    );
+    expect(
+      hostProcessServiceConfigs(sample, hostOwnsServices: false),
+      sample,
+    );
+  });
 }
 
 class _FlutterDriver implements ApplicationTestDriver {

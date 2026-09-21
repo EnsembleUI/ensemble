@@ -20,6 +20,15 @@ bool isHostScreenshotDiagnostic(Object? error) {
       text.contains('screenshot requires a painted render view');
 }
 
+/// Raster / encode failures from host screenshot capture (not app crashes).
+bool isHostScreenshotCaptureFailure(Object? error) {
+  final text = error?.toString() ?? '';
+  return text.contains('toImageSync') ||
+      text.contains('RenderRepaintBoundary') ||
+      text.contains('debugNeedsPaint') ||
+      text.contains('Cannot capture screenshot');
+}
+
 /// Captures one report frame for a host YAML step.
 ///
 /// Failures here must not change the test result — the HTML gallery is
@@ -56,8 +65,13 @@ Future<void> captureHostStepScreenshot({
         model: device?.model,
       ),
     );
-  } catch (_) {
-    tester.takeException();
+  } catch (error) {
+    if (!isHostScreenshotDiagnostic(error) &&
+        !isHostScreenshotCaptureFailure(error)) {
+      rethrow;
+    }
+    // Do not call tester.takeException() — that would drain unrelated
+    // application FlutterErrors recorded for the host attempt.
   }
 }
 
@@ -85,8 +99,11 @@ Future<void> captureHostEmergencyScreenshot({
         model: device?.model,
       ),
     );
-  } catch (_) {
-    tester.takeException();
+  } catch (error) {
+    if (!isHostScreenshotDiagnostic(error) &&
+        !isHostScreenshotCaptureFailure(error)) {
+      rethrow;
+    }
   }
 }
 
@@ -106,10 +123,18 @@ TestDeviceTarget? hostScreenshotDevice(EnsembleTestContext ctx) {
 ///
 /// Without this, widget tests layout at the default 800×600 (or the live
 /// window) and the encoder stretches that bitmap into an iPhone frame.
+///
+/// Integration mode must not override the physical display — read the real
+/// size into [EnsembleTestContext.runtime] for reporting only.
 Future<void> applyHostScreenshotViewport(
   WidgetTester tester,
-  EnsembleTestContext context,
-) async {
+  EnsembleTestContext context, {
+  ExecutionMode mode = ExecutionMode.widget,
+}) async {
+  if (mode == ExecutionMode.integration) {
+    context.runtime.deviceSize = tester.view.physicalSize;
+    return;
+  }
   final device = screenshotDeviceForTestCase(context.testCase, context.config);
   if (device == null) return;
   await tester.binding.setSurfaceSize(device.screenSize);

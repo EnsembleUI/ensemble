@@ -6,7 +6,7 @@ import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
-import 'package:flutter/widgets.dart' show Element, Offset, ValueKey;
+import 'package:flutter/widgets.dart' show Element, Offset, Text, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Resolves [ElementTarget] for local execution.
@@ -72,9 +72,38 @@ class FlutterTargetResolver {
   ///
   /// When [requireInteractive] is true (default for actions), offstage and
   /// non-rendered matches are excluded. Existence checks pass false.
+  ///
+  /// When [allowEmpty] is true, zero matches return a finder that evaluates
+  /// empty instead of throwing [TestExecutionErrorCode.elementNotFound]. Used
+  /// by negative assertions (`expectNotVisible` / `expectNotExists`).
   Finder resolveFinder(
     ElementTarget target, {
     bool requireInteractive = true,
+    bool allowEmpty = false,
+  }) {
+    final matches = resolveMatches(
+      target,
+      requireInteractive: requireInteractive,
+      allowEmpty: allowEmpty,
+    );
+    if (matches.isEmpty) {
+      return find.byElementPredicate((_) => false);
+    }
+    final selected = matches.length == 1
+        ? matches.single
+        : matches[target.normalizedLocator?.occurrence ?? 0];
+    return find.byElementPredicate(
+      (candidate) => identical(candidate, selected),
+    );
+  }
+
+  /// Candidate elements for [target], after semantic/text collapse and
+  /// optional interactive filtering. Throws on ambiguity for positive
+  /// resolution; returns `[]` when [allowEmpty] and nothing matches.
+  List<Element> resolveMatches(
+    ElementTarget target, {
+    bool requireInteractive = true,
+    bool allowEmpty = false,
   }) {
     if (target.usesSnapshotElement) {
       final observationId = target.observationId;
@@ -89,7 +118,7 @@ class FlutterTargetResolver {
         elementId: target.elementId!,
         liveFingerprint: liveFingerprint,
       );
-      return find.byElementPredicate((e) => identical(e, handle.element));
+      return [handle.element];
     }
 
     final locator = target.normalizedLocator;
@@ -101,15 +130,14 @@ class FlutterTargetResolver {
     }
     final finder = _finderForLocator(locator);
     var matches = finder.evaluate().toList();
-    if (locator.label != null || locator.role != null) {
-      matches = _deduplicateSemanticMatches(matches);
-    }
+    matches = _collapseOverlappingMatches(matches, locator);
     if (requireInteractive) {
       matches = matches
           .where((element) => assertions.isElementVisuallyActionable(element))
           .toList();
     }
     if (matches.isEmpty) {
+      if (allowEmpty) return const [];
       throw TestExecutionError(
         code: TestExecutionErrorCode.elementNotFound,
         message: '${_describeLocator(locator)} not found.',
@@ -127,6 +155,7 @@ class FlutterTargetResolver {
       );
     }
     if (occurrence < 0 || occurrence >= matches.length) {
+      if (allowEmpty) return const [];
       throw TestExecutionError(
         code: TestExecutionErrorCode.elementNotFound,
         message: 'occurrence $occurrence out of range for '
@@ -135,8 +164,32 @@ class FlutterTargetResolver {
         details: {'locator': locator.toJson(), 'occurrence': occurrence},
       );
     }
-    if (matches.length == 1) return find.byWidget(matches.single.widget);
-    return find.byWidget(matches[occurrence].widget);
+    if (matches.length == 1) return matches;
+    return [matches[occurrence]];
+  }
+
+  /// Collapses ancestor/descendant and same-semantics-node duplicates so a
+  /// single button containing [Text] is one logical target.
+  List<Element> _collapseOverlappingMatches(
+    List<Element> matches,
+    ElementLocator locator,
+  ) {
+    if (matches.length <= 1) return matches;
+
+    var collapsed = List<Element>.from(matches);
+    // Text locators: promote nested Text → actionable ancestor first, then
+    // drop descendants. Do not semantics-node-dedup — Material may report
+    // unstable/shared nodes and erase distinct sibling buttons.
+    if (locator.text != null) {
+      collapsed = _preferActionableAncestorsForText(collapsed);
+      collapsed = _dropDescendantsOfOtherMatches(collapsed);
+      return collapsed;
+    }
+    if (locator.label != null || locator.role != null) {
+      collapsed = _deduplicateSemanticMatches(collapsed);
+    }
+    collapsed = _dropDescendantsOfOtherMatches(collapsed);
+    return collapsed;
   }
 
   List<Element> _deduplicateSemanticMatches(List<Element> matches) {
@@ -154,6 +207,47 @@ class FlutterTargetResolver {
       byNode.putIfAbsent(identity, () => element);
     }
     return byNode.values.toList(growable: false);
+  }
+
+  /// For text locators, keep the nearest actionable ancestor when both the
+  /// [Text] and its button/gesture parent matched.
+  ///
+  /// Bare [Semantics] wrappers are not preferred — a high tree Semantics can
+  /// wrap multiple buttons and would incorrectly collapse distinct targets.
+  List<Element> _preferActionableAncestorsForText(List<Element> matches) {
+    if (matches.length <= 1) return matches;
+    final preferred = <Element>[];
+    for (final element in matches) {
+      Element? actionableAncestor;
+      element.visitAncestorElements((ancestor) {
+        if (matches.any((m) => identical(m, ancestor)) &&
+            isActionableControl(ancestor)) {
+          actionableAncestor = ancestor;
+          return false;
+        }
+        return true;
+      });
+      final chosen = actionableAncestor ??
+          (isActionableControl(element) || element.widget is Text
+              ? element
+              : null);
+      if (chosen == null) continue;
+      if (!preferred.any((e) => identical(e, chosen))) {
+        preferred.add(chosen);
+      }
+    }
+    return preferred.isEmpty ? matches : preferred;
+  }
+
+  List<Element> _dropDescendantsOfOtherMatches(List<Element> matches) {
+    if (matches.length <= 1) return matches;
+    return matches.where((element) {
+      for (final other in matches) {
+        if (identical(other, element)) continue;
+        if (_isDescendantOf(element, other)) return false;
+      }
+      return true;
+    }).toList(growable: false);
   }
 
   Finder _finderForLocator(ElementLocator locator) {
@@ -302,23 +396,35 @@ class LocalActionExecutor {
 
   Future<void> execute(TestAction action) async {
     switch (action) {
-      case TapAction(:final target):
+      case TapAction(:final target, :final timeoutMs):
         await _withTarget(
           target,
+          timeoutMs: timeoutMs,
           onSnapshot: executor.tapFinder,
-          onTestId: (id) => _step('tap', {'id': id}),
+          onTestId: (id) => _step('tap', {
+            'id': id,
+            if (timeoutMs != null) 'timeoutMs': timeoutMs,
+          }),
         );
-      case DoubleTapAction(:final target):
+      case DoubleTapAction(:final target, :final timeoutMs):
         await _withTarget(
           target,
+          timeoutMs: timeoutMs,
           onSnapshot: executor.doubleTapFinder,
-          onTestId: (id) => _step('doubleTap', {'id': id}),
+          onTestId: (id) => _step('doubleTap', {
+            'id': id,
+            if (timeoutMs != null) 'timeoutMs': timeoutMs,
+          }),
         );
-      case LongPressAction(:final target):
+      case LongPressAction(:final target, :final timeoutMs):
         await _withTarget(
           target,
+          timeoutMs: timeoutMs,
           onSnapshot: executor.longPressFinder,
-          onTestId: (id) => _step('longPress', {'id': id}),
+          onTestId: (id) => _step('longPress', {
+            'id': id,
+            if (timeoutMs != null) 'timeoutMs': timeoutMs,
+          }),
         );
       case EnterTextAction(:final target, :final value):
         await _withTarget(
@@ -480,18 +586,49 @@ class LocalActionExecutor {
   }
 
   /// Snapshot elementId and occurrence targets keep the resolved Finder.
+  ///
+  /// When [timeoutMs] is set for a structured locator, poll until the target
+  /// appears (same wait semantics as plain `id:` taps).
   Future<void> _withTarget(
     ElementTarget target, {
     required Future<void> Function(Finder finder) onSnapshot,
     required Future<void> Function(String id) onTestId,
+    int? timeoutMs,
   }) async {
     if (target.usesSnapshotElement ||
         target.occurrence != null ||
         target.locator != null) {
+      if (timeoutMs != null && timeoutMs > 0 && !target.usesSnapshotElement) {
+        await _waitForStructuredTarget(target, timeoutMs: timeoutMs);
+      }
       await onSnapshot(resolver.resolveFinder(target));
       return;
     }
     await onTestId(resolver.requireTestId(target));
+  }
+
+  Future<void> _waitForStructuredTarget(
+    ElementTarget target, {
+    required int timeoutMs,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    while (true) {
+      final matches = resolver.resolveMatches(
+        target,
+        requireInteractive: true,
+        allowEmpty: true,
+      );
+      if (matches.isNotEmpty) return;
+      if (stopwatch.elapsedMilliseconds >= timeoutMs) {
+        throw TestExecutionError(
+          code: TestExecutionErrorCode.elementNotFound,
+          message:
+              'Timed out after ${timeoutMs}ms waiting for structured target.',
+          details: {'locator': target.normalizedLocator?.toJson()},
+        );
+      }
+      await executor.tester.pump(const Duration(milliseconds: 50));
+    }
   }
 
   Future<void> _step(String type, Map<String, dynamic> args) =>

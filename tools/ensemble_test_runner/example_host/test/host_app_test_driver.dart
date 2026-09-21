@@ -5,18 +5,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Pumps the Flutter host. Widget mode mocks MethodChannels; integration
-/// mode keeps the simulator/device plugins. [EnsembleHost] still initializes
-/// (or reuses) the runtime after login.
+/// mode keeps the simulator/device plugins. [EnsembleHost] still mounts the
+/// Ensemble shell after login; runtime init happens in [prepareTest] so API
+/// mocks can attach before [launch].
 class HostAppTestDriver implements ApplicationTestDriver {
+  static bool get _isIntegration =>
+      const String.fromEnvironment('ensembleTestExecutionMode') ==
+      'integration';
+
+  void _ensureRuntime() {
+    if (_isIntegration) {
+      EnsembleTestHarness.ensureIntegrationRuntime();
+    } else {
+      EnsembleTestHarness.ensureTestPlugins();
+    }
+  }
+
   @override
   Future<void> setUpSuite(TestSuiteContext context) async {
-    EnsembleTestHarness.ensureTestPlugins();
+    _ensureRuntime();
   }
 
   @override
   Future<void> prepareTest(TestLaunchContext context) async {
-    EnsembleTestHarness.ensureTestPlugins();
+    _ensureRuntime();
     EnsembleTestHarness.resetTestRuntime();
+    // Initialize Ensemble before launch so applyInPlaceSetup can install the
+    // API mock overlay onto the real config before the widget tree mounts.
+    await Ensemble().initialize();
   }
 
   @override
@@ -24,8 +40,7 @@ class HostAppTestDriver implements ApplicationTestDriver {
     WidgetTester tester,
     TestLaunchContext context,
   ) async {
-    EnsembleTestHarness.ensureTestPlugins();
-    await tester.runAsync(Ensemble().initialize);
+    _ensureRuntime();
     await tester.pumpWidget(const HostApp());
     await tester.pump();
     return const _Handle();

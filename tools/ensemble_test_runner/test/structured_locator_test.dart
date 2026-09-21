@@ -126,6 +126,152 @@ void main() {
     await session.close();
   });
 
+  testWidgets('structured expectNotVisible passes when absent or offstage',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Column(
+          children: [
+            Offstage(
+              child: ElevatedButton(
+                key: ValueKey('hidden_btn'),
+                onPressed: null,
+                child: Text('Hidden'),
+              ),
+            ),
+            ElevatedButton(
+              key: ValueKey('visible_btn'),
+              onPressed: null,
+              child: Text('Visible'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final session = _attach(tester);
+
+    final absent = await session.assertCondition(
+      const ElementVisibleAssertion.target(
+        ElementTarget(
+          locator: ElementLocator(id: 'nonexistent_button'),
+        ),
+        visible: false,
+      ),
+    );
+    expect(absent.passed, isTrue, reason: absent.message);
+
+    final offstage = await session.assertCondition(
+      const ElementVisibleAssertion.target(
+        ElementTarget(
+          locator: ElementLocator(id: 'hidden_btn'),
+        ),
+        visible: false,
+      ),
+    );
+    expect(offstage.passed, isTrue, reason: offstage.message);
+
+    final stillVisible = await session.assertCondition(
+      const ElementVisibleAssertion.target(
+        ElementTarget(
+          locator: ElementLocator(id: 'visible_btn'),
+        ),
+        visible: false,
+      ),
+    );
+    expect(stillVisible.passed, isFalse);
+    await session.close();
+  });
+
+  testWidgets('const child within scope keeps element identity', (tester) async {
+    const shared = Text('Continue');
+    final taps = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Column(
+          children: [
+            Container(
+              key: const ValueKey('left'),
+              child: ElevatedButton(
+                onPressed: () => taps.add('left'),
+                child: shared,
+              ),
+            ),
+            Container(
+              key: const ValueKey('right'),
+              child: ElevatedButton(
+                onPressed: () => taps.add('right'),
+                child: shared,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    final session = _attach(tester);
+    final left = await session.act(
+      const TapAction(
+        ElementTarget(
+          locator: ElementLocator(
+            text: 'Continue',
+            within: ElementLocator(id: 'left'),
+          ),
+        ),
+      ),
+    );
+    expect(left.succeeded, isTrue, reason: left.error?.toString());
+    expect(taps, ['left']);
+    await session.close();
+  });
+
+  testWidgets('text-only locator collapses button and nested Text',
+      (tester) async {
+    final taps = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ElevatedButton(
+          onPressed: () => taps.add('one'),
+          child: const Text('Continue'),
+        ),
+      ),
+    );
+    final session = _attach(tester);
+    final single = await session.act(
+      const TapAction(
+        ElementTarget(locator: ElementLocator(text: 'Continue')),
+      ),
+    );
+    expect(single.succeeded, isTrue, reason: single.error?.toString());
+    expect(taps, ['one']);
+    await session.close();
+  });
+
+  testWidgets('two text Continue buttons remain ambiguous', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Column(
+          children: [
+            ElevatedButton(
+              onPressed: () {},
+              child: const Text('Continue'),
+            ),
+            ElevatedButton(
+              onPressed: () {},
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final session = _attach(tester);
+    final ambiguous = await session.act(
+      const TapAction(
+        ElementTarget(locator: ElementLocator(text: 'Continue')),
+      ),
+    );
+    expect(ambiguous.error?.code.name, 'ambiguousTarget');
+    await session.close();
+  });
+
   testWidgets('modal overlay resolves the foreground button uniquely',
       (tester) async {
     await tester.pumpWidget(

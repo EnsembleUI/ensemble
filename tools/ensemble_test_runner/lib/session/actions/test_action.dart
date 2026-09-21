@@ -217,35 +217,50 @@ sealed class TestAction {
 
 class TapAction extends TestAction {
   final ElementTarget target;
-  const TapAction(this.target);
+  final int? timeoutMs;
+  const TapAction(this.target, {this.timeoutMs});
   @override
   String get type => 'tap';
   @override
   ElementTarget? get primaryTarget => target;
   @override
-  Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'target': target.toJson(),
+        if (timeoutMs != null) 'timeoutMs': timeoutMs,
+      };
 }
 
 class DoubleTapAction extends TestAction {
   final ElementTarget target;
-  const DoubleTapAction(this.target);
+  final int? timeoutMs;
+  const DoubleTapAction(this.target, {this.timeoutMs});
   @override
   String get type => 'doubleTap';
   @override
   ElementTarget? get primaryTarget => target;
   @override
-  Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'target': target.toJson(),
+        if (timeoutMs != null) 'timeoutMs': timeoutMs,
+      };
 }
 
 class LongPressAction extends TestAction {
   final ElementTarget target;
-  const LongPressAction(this.target);
+  final int? timeoutMs;
+  const LongPressAction(this.target, {this.timeoutMs});
   @override
   String get type => 'longPress';
   @override
   ElementTarget? get primaryTarget => target;
   @override
-  Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'target': target.toJson(),
+        if (timeoutMs != null) 'timeoutMs': timeoutMs,
+      };
 }
 
 class EnterTextAction extends TestAction {

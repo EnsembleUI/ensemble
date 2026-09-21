@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
@@ -93,6 +94,19 @@ Future<void> registerApplicationYamlTests({
   });
 }
 
+/// Services started inside the test process.
+///
+/// When [ensembleTestHostOwnsServices] is true (CLI integration backend), the
+/// development machine already started fixtures and the device must not spawn
+/// them again.
+List<TestServiceConfig> hostProcessServiceConfigs(
+  List<TestServiceConfig> configured, {
+  bool hostOwnsServices = const bool.fromEnvironment(
+    'ensembleTestHostOwnsServices',
+  ),
+}) =>
+    hostOwnsServices ? const [] : configured;
+
 /// Executes an already-resolved plan through an application driver.
 Future<EnsembleTestRunResult> runApplicationTestPlan({
   required ApplicationTestDriver driver,
@@ -109,7 +123,9 @@ Future<EnsembleTestRunResult> runApplicationTestPlan({
         ? TestApplicationLaunchKind.standaloneEnsemble
         : TestApplicationLaunchKind.applicationProvided,
   );
-  final services = TestServiceManager(plan.config.services);
+  final services = TestServiceManager(
+    hostProcessServiceConfigs(plan.config.services),
+  );
   final results = <EnsembleSingleTestResult>[];
   final checkpoints = <String, Object>{};
   final requestedSessions = plan.ordered
@@ -119,12 +135,12 @@ Future<EnsembleTestRunResult> runApplicationTestPlan({
   Object? suiteFailure;
   StackTrace? suiteStack;
   var servicesStarted = false;
-  var suiteStarted = false;
+  var suiteSetupStarted = false;
   try {
     await tester.runAsync(services.startAll);
     servicesStarted = true;
+    suiteSetupStarted = true;
     await driver.setUpSuite(suiteContext);
-    suiteStarted = true;
     for (final definition in plan.ordered) {
       final test = definition.testCase;
       final dependency = test.session;
@@ -147,6 +163,7 @@ Future<EnsembleTestRunResult> runApplicationTestPlan({
         test: test,
         config: plan.config,
         runId: runId,
+        mode: mode,
         checkpoint: checkpoint,
         captureCheckpoint: requestedSessions.contains(test.id),
         onCheckpoint: (value) => checkpoints[test.id] = value,
@@ -156,7 +173,7 @@ Future<EnsembleTestRunResult> runApplicationTestPlan({
     suiteFailure = error;
     suiteStack = stackTrace;
   } finally {
-    if (suiteStarted) {
+    if (suiteSetupStarted) {
       try {
         await driver.tearDownSuite();
       } catch (error, stackTrace) {
@@ -202,11 +219,13 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
   required EnsembleTestCase test,
   required EnsembleTestConfig config,
   required String runId,
+  required ExecutionMode mode,
   required Object? checkpoint,
   required bool captureCheckpoint,
   required void Function(Object checkpoint) onCheckpoint,
 }) async {
   EnsembleSingleTestResult? last;
+  var totalDurationMs = 0;
   for (var attempt = 0; attempt <= test.retry; attempt++) {
     last = await _runHostAttempt(
       tester: tester,
@@ -214,16 +233,18 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
       test: test,
       config: config,
       runId: runId,
+      mode: mode,
       attempt: attempt,
       checkpoint: checkpoint,
       captureCheckpoint: captureCheckpoint,
       onCheckpoint: onCheckpoint,
     );
+    totalDurationMs += last.durationMs;
     if (last.status == TestStatus.passed) {
       return EnsembleSingleTestResult.passed(
         testId: last.testId,
         metadata: last.metadata,
-        durationMs: last.durationMs,
+        durationMs: totalDurationMs,
         attempts: attempt + 1,
         retry: test.retry,
         logs: last.logs,
@@ -235,7 +256,7 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
   return EnsembleSingleTestResult.failed(
     testId: last!.testId,
     metadata: last.metadata,
-    durationMs: last.durationMs,
+    durationMs: totalDurationMs,
     attempts: test.retry + 1,
     retry: test.retry,
     failedStepIndex: last.failedStepIndex,
@@ -256,6 +277,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   required EnsembleTestCase test,
   required EnsembleTestConfig config,
   required String runId,
+  required ExecutionMode mode,
   required int attempt,
   required Object? checkpoint,
   required bool captureCheckpoint,
@@ -276,7 +298,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   StackTrace? primaryStack;
   Object? cleanupError;
   StackTrace? cleanupStack;
-  var prepared = false;
+  var prepareAttempted = false;
   var failedStepIndex = -1;
   final stepDurationsMs = <int>[];
   final stepStartTimes = <String>[];
@@ -296,13 +318,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     context.runtime.formatConsoleLine('Started ${test.id}'),
   );
   try {
-    await applyHostScreenshotViewport(tester, context);
+    await applyHostScreenshotViewport(tester, context, mode: mode);
     await tester.runAsync(EnsembleTestHarness.ensureAppFontsLoaded);
     await runZoned(
       () async {
         try {
+          prepareAttempted = true;
           await driver.prepareTest(launchContext);
-          prepared = true;
           if (checkpoint != null) {
             await (driver as ApplicationCheckpointDriver).restoreCheckpoint(
               launchContext,
@@ -310,12 +332,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             );
           }
           await _executeHostSetup(test);
-          final launched = await driver.launch(tester, launchContext);
-          handle = launched;
-          await tester.pump();
           await tester.runAsync(
             () => EnsembleTestHarness.applyInPlaceSetup(context),
           );
+          _ensureHostFixturesSupported(context);
+          final launched = await driver.launch(tester, launchContext);
+          handle = launched;
+          await tester.pump();
 
           final assertions = AssertionEngine(
             tester: tester,
@@ -399,6 +422,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
           tester: tester,
           context: context,
         );
+        context.runtime.flutterErrors.removeWhere(isHostScreenshotDiagnostic);
       }
       await attachHostDebugArtifacts(
         tester: tester,
@@ -421,7 +445,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
         cleanupStack ??= stackTrace;
       }
     }
-    if (prepared) {
+    if (prepareAttempted) {
       try {
         await driver.tearDownTest(tester, launchContext, handle);
       } catch (error, stackTrace) {
@@ -432,7 +456,9 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     FlutterError.onError = previousOnError;
     LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
     context.apiOverlay.liveAsyncRunner = null;
-    await resetHostScreenshotViewport(tester);
+    if (mode != ExecutionMode.integration) {
+      await resetHostScreenshotViewport(tester);
+    }
   }
   stopwatch.stop();
   final report = _hostReport(
@@ -554,6 +580,16 @@ Future<void> _executeHostSetup(EnsembleTestCase test) async {
     }
     await HttpRequestAction.execute(step.args);
   }
+}
+
+/// Rejects YAML mocks that cannot attach to a real API provider.
+///
+/// Ensemble overlay installation requires [Ensemble.getConfig]. Pure Flutter
+/// hosts without Ensemble must not declare API mocks that silently no-op.
+void _ensureHostFixturesSupported(EnsembleTestContext context) {
+  if (context.testCase.mocks.apis.isEmpty) return;
+  if (Ensemble().getConfig() != null) return;
+  throw const UnsupportedApplicationCapability('apiMocking');
 }
 
 void _validateHostPlan(

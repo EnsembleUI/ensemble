@@ -147,13 +147,14 @@ class YamlStepDispatcher {
   TestAction? _toAction(TestStep step, String type) {
     final id = step.args['id']?.toString();
     final target = _targetFromArgs(step.args);
+    final timeoutMs = step.args['timeoutMs'] as int?;
     switch (type) {
       case 'tap':
-        return TapAction(target);
+        return TapAction(target, timeoutMs: timeoutMs);
       case 'doubleTap':
-        return DoubleTapAction(target);
+        return DoubleTapAction(target, timeoutMs: timeoutMs);
       case 'longPress':
-        return LongPressAction(target);
+        return LongPressAction(target, timeoutMs: timeoutMs);
       case 'enterText':
         return EnterTextAction(
           target: target,
