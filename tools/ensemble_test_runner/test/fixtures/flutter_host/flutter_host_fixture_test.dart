@@ -154,7 +154,10 @@ void main() {
           testCase: EnsembleTestCase(
             id: 'missing_target',
             steps: [
-              TestStep(type: 'tap', args: {'id': 'does_not_exist'}),
+              TestStep(
+                type: 'tap',
+                args: {'id': 'does_not_exist', 'timeoutMs': 1},
+              ),
             ],
           ),
         ),

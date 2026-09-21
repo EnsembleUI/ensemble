@@ -712,6 +712,13 @@ class TestStepExecutor {
     if (tappableFinder == null) {
       final baseFinder = assertions.finderForId(id);
       if (baseFinder.evaluate().isEmpty) {
+        if (assertions.finderForIdIncludingOffstage(id).evaluate().isNotEmpty) {
+          throw EnsembleTestFailure(
+            'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
+            'hit-testable. It may be off-screen, disabled, or covered by another widget. '
+            '${assertions.widgetIdFailureHint(id)}',
+          );
+        }
         throw EnsembleTestFailure(
           'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
           '${assertions.widgetIdFailureHint(id)}',

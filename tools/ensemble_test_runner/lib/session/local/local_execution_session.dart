@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
@@ -22,6 +21,7 @@ import 'package:ensemble_test_runner/session/observation/observation_options.dar
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_test_runner/session/test_execution_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Local [TestExecutionSession] over [WidgetTester].
@@ -306,7 +306,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
         );
       } on EnsembleTestFailure catch (error) {
         await observer.syncRevisionAfterMutation();
-        final mapped = _mapExecutorFailure(error);
+        final mapped = mapExecutorFailure(error);
         return ActionResult(
           actionId: actionId,
           status: mapped.code == TestExecutionErrorCode.actionTimeout
@@ -323,24 +323,36 @@ class LocalTestExecutionSession implements TestExecutionSession {
 
   /// Maps executor [EnsembleTestFailure] into structured session errors,
   /// preserving the full diagnostic message.
-  static TestExecutionError _mapExecutorFailure(EnsembleTestFailure error) {
+  ///
+  /// Tap/wait-for-id timeouts mean the widget never became available, so they
+  /// classify as [TestExecutionErrorCode.elementNotFound] (or
+  /// [TestExecutionErrorCode.elementNotInteractable] when it existed but was
+  /// not hit-testable). Generic "timed out" is reserved for wait steps such as
+  /// waitForApi / waitForNavigation.
+  @visibleForTesting
+  static TestExecutionError mapExecutorFailure(EnsembleTestFailure error) {
     final message = error.message;
     final lower = message.toLowerCase();
-    final code = lower.contains('timed out')
-        ? TestExecutionErrorCode.actionTimeout
-        : (lower.contains('not found') ||
-                lower.contains('could not find') ||
-                lower.contains('is detached') ||
-                lower.contains('not in the tree'))
-            ? TestExecutionErrorCode.elementNotFound
-            : (lower.contains('not hit-testable') ||
-                    lower.contains('not interactable'))
-                ? TestExecutionErrorCode.elementNotInteractable
-                : (lower.contains('exactly one') ||
-                        lower.contains('ambiguous') ||
-                        lower.contains('multiple'))
-                    ? TestExecutionErrorCode.ambiguousTarget
-                    : TestExecutionErrorCode.internalError;
+    final TestExecutionErrorCode code;
+    if (lower.contains('not hit-testable') ||
+        lower.contains('not interactable') ||
+        lower.contains('to become hit-testable')) {
+      code = TestExecutionErrorCode.elementNotInteractable;
+    } else if (lower.contains('not found') ||
+        lower.contains('could not find') ||
+        lower.contains('is detached') ||
+        lower.contains('not in the tree') ||
+        lower.contains('waiting for id')) {
+      code = TestExecutionErrorCode.elementNotFound;
+    } else if (lower.contains('exactly one') ||
+        lower.contains('ambiguous') ||
+        lower.contains('multiple')) {
+      code = TestExecutionErrorCode.ambiguousTarget;
+    } else if (lower.contains('timed out')) {
+      code = TestExecutionErrorCode.actionTimeout;
+    } else {
+      code = TestExecutionErrorCode.internalError;
+    }
     return TestExecutionError(
       code: code,
       message: message,
@@ -442,7 +454,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
           error: error,
         );
       } on EnsembleTestFailure catch (error) {
-        final mapped = _mapExecutorFailure(error);
+        final mapped = LocalTestExecutionSession.mapExecutorFailure(error);
         return WaitResult(
           waitId: waitId,
           status: mapped.code == TestExecutionErrorCode.actionTimeout
@@ -547,7 +559,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
           error: error,
         );
       } on EnsembleTestFailure catch (error) {
-        final mapped = _mapExecutorFailure(error);
+        final mapped = LocalTestExecutionSession.mapExecutorFailure(error);
         return AssertionResult(
           assertionId: assertionId,
           status: AssertionStatus.failed,

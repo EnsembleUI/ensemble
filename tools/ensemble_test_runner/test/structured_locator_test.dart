@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -11,7 +12,10 @@ import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-LocalTestExecutionSession _attach(WidgetTester tester) =>
+LocalTestExecutionSession _attach(
+  WidgetTester tester, {
+  TestExecutionConfig? executionConfig,
+}) =>
     LocalTestExecutionSession.attach(
       tester: tester,
       harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
@@ -22,6 +26,7 @@ LocalTestExecutionSession _attach(WidgetTester tester) =>
         setup: const EnsembleTestSetup(),
       ),
       permissions: SessionPermissions.restrictedUi,
+      executionConfig: executionConfig,
     );
 
 void main() {
@@ -101,7 +106,12 @@ void main() {
         ),
       ),
     );
-    final session = _attach(tester);
+    final session = _attach(
+      tester,
+      executionConfig: const TestExecutionConfig(
+        defaultWaitTimeout: Duration(milliseconds: 200),
+      ),
+    );
 
     final tapHidden = await session.act(
       const TapAction(ElementTarget(testId: 'hidden_btn')),
