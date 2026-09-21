@@ -18,6 +18,18 @@ const _executionMode = String.fromEnvironment(
   defaultValue: 'widget',
 );
 const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
+const ensembleTestJsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
+const ensembleTestJunitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
+
+/// Runner↔CLI protocol lines printed to stdout (not application console output).
+bool isEnsembleTestProtocolLine(String line) {
+  final trimmed = line.trimLeft();
+  return trimmed.startsWith(ensembleTestArtifactProtocolPrefix) ||
+      trimmed.startsWith(ensembleTestProgressProtocolPrefix) ||
+      trimmed.startsWith(ensembleTestJsonReportPrefix) ||
+      trimmed.startsWith(ensembleTestJunitReportPrefix) ||
+      trimmed.contains(ensembleTestArtifactProtocolPrefix);
+}
 
 /// Host path for the machine JSON report transported from an integration device.
 const ensembleTestMachineResultRelativePath =

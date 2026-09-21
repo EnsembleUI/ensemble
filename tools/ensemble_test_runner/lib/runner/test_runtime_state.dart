@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
+import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:flutter/material.dart';
 
 /// Mutable runtime flags and logs for declarative test steps.
@@ -63,9 +64,14 @@ class TestRuntimeState {
   /// Flutter's test binding sets [debugPrint] to [debugPrintSynchronously],
   /// which forwards to [print]. Hooking both the global [debugPrint] callback
   /// and this zone interceptor would duplicate every `debugPrint` line.
+  ///
+  /// Device→host protocol lines ([isEnsembleTestProtocolLine]) still go to
+  /// stdout for the CLI, but are not stored as application console logs.
   ZoneSpecification get consoleCaptureZone => ZoneSpecification(
         print: (self, parent, zone, line) {
-          consoleLogs.add(formatConsoleLine(line));
+          if (!isEnsembleTestProtocolLine(line)) {
+            consoleLogs.add(formatConsoleLine(line));
+          }
           parent.print(zone, line);
         },
       );
