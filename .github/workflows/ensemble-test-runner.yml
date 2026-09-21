@@ -1,11 +1,6 @@
 name: Ensemble Test Runner
 
 on:
-  push:
-    paths:
-      - 'tools/ensemble_test_runner/**'
-      - '.github/workflows/ensemble-test-runner.yml'
-      - '.github/actions/setup-flutter/**'
   pull_request:
     branches: [main]
     paths:
