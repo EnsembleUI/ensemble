@@ -569,6 +569,10 @@ class PageState extends State<Page>
     if (headerModel.leadingWidget != null) {
       leadingWidget = _scopeManager.buildWidget(headerModel.leadingWidget!);
     }
+    final double? leadingWidth = Utils.optionalInt(
+      _scopeManager.dataContext.eval(evaluatedHeader?['leadingWidth']),
+      min: 0,
+    )?.toDouble();
 
     bool centerTitle =
         Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);
@@ -674,6 +678,33 @@ class PageState extends State<Page>
       final fixedHeaderHeight = _tvFocusCollapseEnabled
           ? (_headerExpanded ? expandedHeight : compactHeight)
           : titleBarHeight;
+
+      // Cross-swap the two header slots based on focus: while expanded (focus
+      // in the header) the compact title shifts out of the bar and the
+      // flexibleBackground sits in place; once focus moves to the body the
+      // title shifts back in and the background shifts out of view. Mirrors the
+      // scrollable mobile header, driven by `_headerExpanded` instead of scroll.
+      Widget? animatedTitle = titleWidget;
+      if (_tvFocusCollapseEnabled && animationEnabled && titleWidget != null) {
+        final slotDuration = Duration(milliseconds: duration ?? 200);
+        final slotCurve = curve ?? Curves.easeInOut;
+        animatedTitle = switch (animationType) {
+          AnimationType.fade => AnimatedOpacity(
+              opacity: _headerExpanded ? 0.0 : 1.0,
+              duration: slotDuration,
+              curve: slotCurve,
+              child: titleWidget,
+            ),
+          AnimationType.drop => AnimatedSlide(
+              offset: _headerExpanded ? const Offset(0, -2) : Offset.zero,
+              duration: slotDuration,
+              curve: slotCurve,
+              child: titleWidget,
+            ),
+          _ => titleWidget,
+        };
+      }
+
       return PreferredSize(
         preferredSize: Size.fromHeight(fixedHeaderHeight),
         child: AnimatedContainer(
@@ -685,7 +716,8 @@ class PageState extends State<Page>
             automaticallyImplyLeading:
                 leadingWidget == null && showNavigationIcon != false,
             leading: leadingWidget,
-            title: titleWidget,
+            leadingWidth: leadingWidth,
+            title: animatedTitle,
             centerTitle: centerTitle,
             backgroundColor: backgroundColor,
             surfaceTintColor: surfaceTintColor,
@@ -707,6 +739,7 @@ class PageState extends State<Page>
               duration: Duration(milliseconds: duration ?? 200),
               curve: curve ?? Curves.easeInOut,
               expandedHeight: expandedHeight,
+              animationType: animationType,
             ),
           ),
         ),
@@ -717,6 +750,7 @@ class PageState extends State<Page>
         automaticallyImplyLeading:
             leadingWidget == null && showNavigationIcon != false,
         leading: leadingWidget,
+        leadingWidth: leadingWidth,
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
@@ -1331,26 +1365,61 @@ class PageState extends State<Page>
     required Duration duration,
     required Curve curve,
     required double expandedHeight,
+    AnimationType? animationType,
   }) {
     if (backgroundWidget == null || !enabled) return backgroundWidget;
 
     // Lay out flexible content at its finite expanded height, then clip it
     // to the compact/intermediate AppBar. This avoids transient RenderFlex
     // overflows without giving Column/Flexible children an unbounded height.
+    //
+    // The background shifts out of view while collapsed (focus in the body)
+    // and back in while expanded (focus in the header), mirroring the mobile
+    // collapse. `fade` keeps the legacy opacity transition; the default `drop`
+    // translates it the full height so title and background cross-swap.
+    // Keep the legacy tree unchanged outside the TV focus-collapse path.
+    if (!_tvFocusCollapseEnabled) {
+      return ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.topCenter,
+          minHeight: expandedHeight,
+          maxHeight: expandedHeight,
+          child: SizedBox(
+            height: expandedHeight,
+            child: AnimatedOpacity(
+              opacity: visible ? 1.0 : 0.0,
+              duration: duration,
+              curve: curve,
+              child: backgroundWidget,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final sizedBackground = SizedBox(
+      height: expandedHeight,
+      child: backgroundWidget,
+    );
+    final animatedBackground = animationType == AnimationType.fade
+        ? AnimatedOpacity(
+            opacity: visible ? 1.0 : 0.0,
+            duration: duration,
+            curve: curve,
+            child: sizedBackground,
+          )
+        : AnimatedSlide(
+            offset: visible ? Offset.zero : const Offset(0, -1),
+            duration: duration,
+            curve: curve,
+            child: sizedBackground,
+          );
     Widget content = ClipRect(
       child: OverflowBox(
         alignment: Alignment.topCenter,
         minHeight: expandedHeight,
         maxHeight: expandedHeight,
-        child: SizedBox(
-          height: expandedHeight,
-          child: AnimatedOpacity(
-            opacity: visible ? 1.0 : 0.0,
-            duration: duration,
-            curve: curve,
-            child: backgroundWidget,
-          ),
-        ),
+        child: animatedBackground,
       ),
     );
     if (!visible) {
