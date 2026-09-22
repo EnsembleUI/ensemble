@@ -20,6 +20,8 @@ const _executionMode = String.fromEnvironment(
 const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
 const ensembleTestJsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 const ensembleTestJunitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
+const ensembleTestObserveBeginPrefix = 'ENSEMBLE_TEST_OBSERVE_V1_BEGIN';
+const ensembleTestObserveEndPrefix = 'ENSEMBLE_TEST_OBSERVE_V1_END';
 
 /// Runner↔CLI protocol lines printed to stdout (not application console output).
 bool isEnsembleTestProtocolLine(String line) {
@@ -28,6 +30,8 @@ bool isEnsembleTestProtocolLine(String line) {
       trimmed.startsWith(ensembleTestProgressProtocolPrefix) ||
       trimmed.startsWith(ensembleTestJsonReportPrefix) ||
       trimmed.startsWith(ensembleTestJunitReportPrefix) ||
+      trimmed.startsWith(ensembleTestObserveBeginPrefix) ||
+      trimmed.startsWith(ensembleTestObserveEndPrefix) ||
       trimmed.contains(ensembleTestArtifactProtocolPrefix);
 }
 

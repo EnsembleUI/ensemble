@@ -544,6 +544,12 @@ Future<void> main() => application_yaml_tests.main();
         timers['maxRepeatIntervalSeconds'],
         fallback: 1,
       ),
+      maxNumberOfTimes: timers['maxNumberOfTimes'] == null
+          ? null
+          : _parseNonNegativeInt(
+              timers['maxNumberOfTimes'],
+              fallback: 0,
+            ),
     );
   }
 
@@ -555,7 +561,9 @@ Future<void> main() => application_yaml_tests.main();
         RegExp(r'^(\s*startAfter:\s*)(\d+)(\s*)$', multiLine: true);
     final repeatInterval =
         RegExp(r'^(\s*repeatInterval:\s*)(\d+)(\s*)$', multiLine: true);
-    return content
+    final maxNumberOfTimes =
+        RegExp(r'^(\s*maxNumberOfTimes:\s*)(\d+)(\s*)$', multiLine: true);
+    var rewritten = content
         .replaceAllMapped(
           startAfter,
           (match) => _capTimerLine(match, config.maxStartAfterSeconds),
@@ -564,6 +572,14 @@ Future<void> main() => application_yaml_tests.main();
           repeatInterval,
           (match) => _capTimerLine(match, config.maxRepeatIntervalSeconds),
         );
+    final maxTimes = config.maxNumberOfTimes;
+    if (maxTimes != null) {
+      rewritten = rewritten.replaceAllMapped(
+        maxNumberOfTimes,
+        (match) => _capTimerLine(match, maxTimes),
+      );
+    }
+    return rewritten;
   }
 
   static String _capTimerLine(Match match, int maxValue) {

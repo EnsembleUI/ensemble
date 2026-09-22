@@ -10,6 +10,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/test_execution_session.dart';
 import 'package:ensemble_test_runner/session/test_session_factory.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Standalone (YAML-independent) session factory for Flutter test contexts.
@@ -39,11 +40,21 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
       );
     }
 
+    final device = config.deviceTarget;
+    final locale = _localeFromDevice(device);
+    final initialState = <String, dynamic>{};
+    final deviceLocale = device?.locale?.trim();
+    if (deviceLocale != null && deviceLocale.isNotEmpty) {
+      initialState['env'] = {'APP_LOCALE': deviceLocale};
+    }
+
     final testCase = EnsembleTestCase(
       id: config.sessionId ?? 'standalone',
       startScreen: startScreen,
       startScreenInputs: config.startScreenInputs,
       steps: const [],
+      deviceTarget: device,
+      initialState: initialState,
     );
     final overlay = TestApiProviderOverlay(mocks: const {});
     final logger = TestLogger();
@@ -54,12 +65,17 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
       logger: logger,
       setup: const EnsembleTestSetup(),
     );
+    if (deviceLocale != null && deviceLocale.isNotEmpty) {
+      context.setEnv('APP_LOCALE', deviceLocale);
+      context.runtime.locale = locale;
+    }
 
     await harness.loadScreen(
       tester: tester,
       testCase: testCase,
       context: context,
       suiteConfig: suiteConfig,
+      forcedLocale: locale,
     );
 
     final assertions = AssertionEngine(tester: tester, context: context);
@@ -80,11 +96,21 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
       tester: tester,
       harness: harness,
       context: context,
-      sessionId: config.sessionId,
-      permissions: config.permissions,
-      assertions: assertions,
       executor: executor,
+      assertions: assertions,
       services: services,
+      sessionId: config.sessionId ?? 'standalone',
+      permissions: config.permissions,
     );
   }
+}
+
+Locale? _localeFromDevice(TestDeviceTarget? device) {
+  final locale = device?.locale?.trim();
+  if (locale == null || locale.isEmpty) return null;
+  final normalized = locale.replaceAll('-', '_');
+  final parts = normalized.split('_');
+  final languageCode = parts.first;
+  if (languageCode.isEmpty) return null;
+  return Locale(languageCode, parts.length > 1 ? parts[1] : null);
 }

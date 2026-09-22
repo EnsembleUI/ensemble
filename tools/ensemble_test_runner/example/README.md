@@ -52,6 +52,12 @@ dart run ensemble_test_runner:ensemble_test
 
 # Host-side widget tests, no native project required.
 dart run ensemble_test_runner:ensemble_test --mode=widget
+
+# Launch once and print live UI elements (no YAML run).
+# Add --screenshots to also write framed PNGs under
+# build/ensemble_test_runner/inspect-ui/{screen}_{theme}_{locale}.png.
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home" --mode=widget
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home" --mode=widget --screenshots
 ```
 
 The tests start on `Hello Home`, verify its greeting, navigate to the

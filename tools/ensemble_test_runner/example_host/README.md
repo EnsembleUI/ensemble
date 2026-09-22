@@ -58,6 +58,12 @@ dart run ensemble_test_runner:ensemble_test \
   --tests-dir=tests \
   --test-entry=test/application_yaml_tests.dart \
   --mode=widget
+
+# Launch once and print live UI elements (no YAML run).
+# Add --screenshots for framed PNGs under build/ensemble_test_runner/inspect-ui/.
+dart run ensemble_test_runner:ensemble_test --inspect-ui \
+  --test-entry=test/application_yaml_tests.dart \
+  --mode=widget
 ```
 
 The HTML report is `build/ensemble_test_runner/report/index.html`. Suite

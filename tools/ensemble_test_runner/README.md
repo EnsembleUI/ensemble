@@ -409,11 +409,56 @@ dart run ensemble_test_runner:ensemble_test --validate-only --report=json
 
 ### App inspection and scaffolding
 
-Emit app metadata for test authors:
+`--inspect-app` is a static EDL walk (no Flutter launch). It prints screens,
+widget IDs, APIs, and navigation targets from YAML definitions — useful when
+authoring tests offline:
 
 ```bash
 dart run ensemble_test_runner:ensemble_test --inspect-app
 ```
+
+`--inspect-ui` launches the app once, calls the live UI observer, prints
+elements, and exits. Pass `--screenshots` to also write highlighted PNGs
+(password fields masked). Standalone apps require `--screen`; host apps use
+`--test-entry`.
+
+Each control line includes a verified `selector:` (for example
+`id=login_btn` or `label="Log in", role=button`) suitable for YAML `id:` /
+`target:` authoring. Selectors prefer a stable `id` whenever one exists;
+label/role is used only when there is no id. When no unique locator exists,
+output shows `selector: unavailable` plus a `warning:`. State uses `enabled:`
+only when known (not `interactive:`). With `--format=json`, stdout is only the
+observation JSON; Flutter setup noise goes to stderr.
+
+(The flag is `--inspect-ui`, not `--observe`: `dart run` treats any `--observe*`
+argument as the VM Observatory option and never forwards it to the program.)
+
+```bash
+# Standalone Ensemble (elements only)
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home"
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home" --format=json
+
+# With framed PNGs under build/ensemble_test_runner/inspect-ui/
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home" --screenshots
+
+# Host app (ApplicationTestDriver)
+dart run ensemble_test_runner:ensemble_test --inspect-ui \
+  --test-entry=test/application_yaml_tests.dart \
+  --mode=widget
+```
+
+With `--screenshots` in widget mode, a framed PNG is written per suite
+`devices` entry (theme and locale applied) under
+`build/ensemble_test_runner/inspect-ui/`, named `{screen}_{theme}_{locale}.png`.
+Observed controls are highlighted on the image; console output lists `file://`
+links to each PNG. With no `devices` in `config.yaml`, a default iPhone frame
+is used (`…_default_default.png`). Password-field masking follows
+`screenshots.secureContent` in `config.yaml` (`mask` / `allow` / `skip`), same
+as YAML test screenshots. `--screenshots` requires widget mode.
+
+Standalone inspect-ui runs through the normal `test/ensemble_tests.dart` entry
+(`runEnsembleYamlTests`) with observe dart-defines — the same bootstrap as the
+suite. Host apps keep using `--test-entry`.
 
 Create a starter test under `definitions.local.path/tests/`:
 

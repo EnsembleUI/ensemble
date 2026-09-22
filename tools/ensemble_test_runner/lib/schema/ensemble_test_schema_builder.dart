@@ -165,6 +165,8 @@ class EnsembleTestSchemaBuilder {
               'checkbox',
               'switch',
               'slider',
+              'dropdown',
+              'icon',
               'widget',
             ],
           },
@@ -491,6 +493,12 @@ class EnsembleTestSchemaBuilder {
             'enabled': {'type': 'boolean'},
             'maxStartAfterSeconds': {'type': 'integer', 'minimum': 0},
             'maxRepeatIntervalSeconds': {'type': 'integer', 'minimum': 0},
+            'maxNumberOfTimes': {
+              'type': 'integer',
+              'minimum': 0,
+              'description':
+                  'Cap on YAML timer maxNumberOfTimes. Must outlive mid-test mock waits that rely on later polls.',
+            },
           },
         },
         'dumpTree': {

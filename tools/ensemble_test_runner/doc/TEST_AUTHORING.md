@@ -117,6 +117,7 @@ timers:
   enabled: true
   maxStartAfterSeconds: 1
   maxRepeatIntervalSeconds: 1
+  maxNumberOfTimes: 15
 dumpTree:
   enabled: true
 logApiCalls:
@@ -172,12 +173,16 @@ For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 ```
 
 When `timers.enabled` is true, the CLI temporarily caps numeric
-`startAfter` and `repeatInterval` values in local app screen YAML while the test
-process runs, then restores the original files.
+`startAfter`, `repeatInterval`, and optional `maxNumberOfTimes` values in local
+app screen YAML while the test process runs, then restores the original files.
+Set `maxNumberOfTimes` high enough to cover the whole screen visit — including
+mid-test `mocks` steps that wait for a later poll.
 
 ## App Context
 
-`--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints.
+`--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints (static EDL walk — no Flutter launch).
+
+For a live UI dump after launch, use `--inspect-ui` instead (see the runner README).
 
 ## Mocks
 

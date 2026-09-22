@@ -7,6 +7,7 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
+import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +23,21 @@ EnsembleTestHarness _harness() => EnsembleTestHarness(
       appPath: 'unused/',
       appHome: 'Home',
     );
+
+List<UiElement> _flattenElements(List<UiElement> roots) {
+  final out = <UiElement>[];
+  void walk(UiElement e) {
+    out.add(e);
+    for (final child in e.children) {
+      walk(child);
+    }
+  }
+
+  for (final root in roots) {
+    walk(root);
+  }
+  return out;
+}
 
 void main() {
   testWidgets('session observe redacts password fields', (tester) async {
@@ -141,7 +157,9 @@ void main() {
         synchronization: ObservationSynchronization.immediate,
       ),
     );
-    final dups = obs.elements.where((e) => e.testId == 'dup').toList();
+    final dups = _flattenElements(obs.elements)
+        .where((e) => e.testId == 'dup')
+        .toList();
     expect(dups.length, greaterThanOrEqualTo(2));
     final second = dups.last;
 

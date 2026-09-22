@@ -1,8 +1,10 @@
 View:
+  styles:
+    useSafeArea: false
   body:
     Column:
       styles:
-        padding: 24
+        padding: ${ device.safeAreaTop + 24 } 16 32 16
         gap: 16
       children:
         - Text:

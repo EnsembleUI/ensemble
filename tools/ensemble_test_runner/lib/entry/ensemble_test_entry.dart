@@ -95,6 +95,18 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
     YamlTestSession.dispose();
   });
 
+  if (isStandaloneInspectUiRequested) {
+    testWidgets('ensemble test --inspect-ui', (tester) async {
+      await executeStandaloneInspectUi(
+        tester: tester,
+        mode: options.mode,
+        bootstrap: options.bootstrap,
+        externalMethods: options.externalMethods,
+      );
+    });
+    return;
+  }
+
   testWidgets(
     'Ensemble app *.test.yaml',
     (tester) async {

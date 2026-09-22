@@ -3,6 +3,7 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
+import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
@@ -146,6 +147,10 @@ class FlutterUiObserver implements UiObserver {
         role: element.role,
         label: element.label,
         text: element.text,
+        hint: element.hint,
+        options: element.options,
+        suggestedLocator: element.suggestedLocator,
+        locatorWarning: element.locatorWarning,
         state: element.state,
         bounds: null,
         supportedActions: element.supportedActions,
@@ -171,38 +176,54 @@ class FlutterUiObserver implements UiObserver {
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
       _buildElements({required bool includeBounds, bool keyedOnly = false}) {
-    final elements = <UiElement>[];
+    final kept = <({Element element, UiElement ui})>[];
     final handles = <String, SnapshotElementHandle>{};
     var index = 0;
     final seenRenderObjects = <Object>{};
 
+    final claimedOwnedIds = <String>{};
     final semantics = tester.ensureSemantics();
     try {
       for (final element in tester.allElements) {
-        final key = element.widget.key;
-        final value = key is ValueKey ? key.value : null;
-        final testId = value is String ? _compactTestId(value) : '';
-        if (keyedOnly && testId.isEmpty) continue;
+        // Inherited Invokable.id must NOT force-keep every descendant — that
+        // exploded inspect-ui into dozens of duplicate rows per control.
+        final ownedKey = hasCompactValueKey(element);
+        final ownedId = readOwnedWidgetLocatorId(element);
+        if (keyedOnly && ownedKey == false && ownedId == null) continue;
 
-        final actionable = testId.isEmpty &&
-            (isSemanticLocatorCandidate(element) ||
-                isTextLocatorCandidate(element));
-        if (testId.isEmpty && !actionable && !keyedOnly) {
-          final type = inferWidgetType(element);
-          if (type == 'widget') continue;
+        final underKeyed = _hasCompactKeyedAncestor(element);
+        final ancestorOwnedId = nearestOwnedLocatorIdAncestor(element);
+
+        var keep = false;
+        if (ownedKey) {
+          keep = true;
+          if (ownedId != null) claimedOwnedIds.add(ownedId);
+        } else if (underKeyed) {
+          keep = false;
+        } else if (isPrimaryControlElement(element) &&
+            !hasPrimaryControlAncestor(element)) {
+          // testId (KeyedSubtree under Invokable) owns the locator — skip host.
+          if (readInvokableLocatorId(element) != null &&
+              nearestDescendantValueKeyLocatorId(element) != null) {
+            keep = false;
+          } else if (ancestorOwnedId != null) {
+            // One primary per Invokable/YAML id owner (e.g. Dropdown, Switch).
+            keep = claimedOwnedIds.add(ancestorOwnedId);
+          } else if (ownedId != null) {
+            keep = claimedOwnedIds.add(ownedId);
+          } else {
+            keep = true;
+          }
+        } else if (isStandaloneTextElement(element) &&
+            ancestorOwnedId == null) {
+          // Skip label Text under id'd Ensemble controls; absorbFormFieldLabels
+          // covers the rest when labels sit beside fields.
+          keep = true;
         }
+        if (!keep) continue;
 
-        final type = inferWidgetType(element);
-        final label = keyedOnly || testId.isNotEmpty
-            ? null
-            : readSemanticsLabel(tester, element);
-        final text = keyedOnly || testId.isNotEmpty ? null : readText(element);
-        final relevant = testId.isNotEmpty ||
-            label != null ||
-            text != null ||
-            actionable ||
-            type != 'widget';
-        if (!relevant) continue;
+        final testId = readWidgetLocatorId(element) ?? '';
+
         final renderObject = element.renderObject;
         if (testId.isEmpty &&
             renderObject != null &&
@@ -219,7 +240,7 @@ class FlutterUiObserver implements UiObserver {
           tester: tester,
           includeBounds: includeBounds,
         );
-        elements.add(uiElement);
+        kept.add((element: element, ui: uiElement));
         handles[elementId] = SnapshotElementHandle(
           observationId: '',
           elementId: elementId,
@@ -232,7 +253,154 @@ class FlutterUiObserver implements UiObserver {
       semantics.dispose();
     }
 
-    return (elements: elements, handles: handles);
+    final absorbed = _absorbFormFieldLabels(kept);
+    final remainingIds = <String>{
+      for (final item in absorbed) item.ui.elementId,
+    };
+    handles.removeWhere((id, _) => !remainingIds.contains(id));
+    for (final item in absorbed) {
+      handles[item.ui.elementId] = SnapshotElementHandle(
+        observationId: '',
+        elementId: item.ui.elementId,
+        testId: item.ui.testId,
+        element: item.element,
+        observableFingerprint: fingerprintForElement(item.ui),
+      );
+    }
+    return (elements: _nestKeptElements(absorbed), handles: handles);
+  }
+
+  /// Fold nearby standalone label [Text] into form controls and drop duplicates.
+  ///
+  /// Ensemble often renders `Text('Label')` above/beside a field instead of
+  /// [InputDecoration.labelText].
+  static List<({Element element, UiElement ui})> _absorbFormFieldLabels(
+    List<({Element element, UiElement ui})> kept,
+  ) {
+    const formTypes = {'textInput', 'switch', 'toggle', 'dropdown'};
+    final claimed = <int>{};
+    final updated = List<({Element element, UiElement ui})>.of(kept);
+
+    for (var i = 0; i < kept.length; i++) {
+      final control = kept[i].ui;
+      if (!formTypes.contains(control.type)) continue;
+      final controlBounds = control.bounds;
+      if (controlBounds == null) continue;
+
+      int? bestTextIndex;
+      var bestScore = double.infinity;
+      for (var j = 0; j < kept.length; j++) {
+        if (i == j || claimed.contains(j)) continue;
+        final textUi = kept[j].ui;
+        if (textUi.type != 'text') continue;
+        if (textUi.testId != null && textUi.testId!.isNotEmpty) continue;
+        final textBounds = textUi.bounds;
+        if (textBounds == null) continue;
+        final label = (textUi.text ?? textUi.label)?.trim();
+        if (label == null || label.isEmpty) continue;
+        final score = _labelAssociationScore(textBounds, controlBounds);
+        if (score != null && score < bestScore) {
+          bestScore = score;
+          bestTextIndex = j;
+        }
+      }
+
+      if (bestTextIndex == null) continue;
+      claimed.add(bestTextIndex);
+      final labelText =
+          (kept[bestTextIndex].ui.text ?? kept[bestTextIndex].ui.label)!
+              .trim();
+      // Prefer the nearby Text label over semantics (often concatenates hint).
+      updated[i] = (
+        element: kept[i].element,
+        ui: control.copyWith(label: labelText),
+      );
+    }
+
+    return [
+      for (var i = 0; i < updated.length; i++)
+        if (!claimed.contains(i)) updated[i],
+    ];
+  }
+
+  /// Lower is better; null when the text is not a plausible label for [control].
+  static double? _labelAssociationScore(UiBounds text, UiBounds control) {
+    final textRect = Rect.fromLTWH(text.left, text.top, text.width, text.height);
+    final controlRect =
+        Rect.fromLTWH(control.left, control.top, control.width, control.height);
+
+    // Same-row label to the left of the control (switch / compact fields).
+    final verticalOverlap = textRect.bottom > controlRect.top &&
+        textRect.top < controlRect.bottom;
+    final leftOfControl = textRect.right <= controlRect.left + 8;
+    if (verticalOverlap && leftOfControl) {
+      final gap = controlRect.left - textRect.right;
+      if (gap >= -8 && gap <= 48) return gap.abs();
+    }
+
+    // Label stacked above the control (common Ensemble form layout).
+    final above = textRect.bottom <= controlRect.top + 12;
+    if (!above) return null;
+    final gap = controlRect.top - textRect.bottom;
+    if (gap < -12 || gap > 40) return null;
+    final horizontalOverlap = textRect.left < controlRect.right &&
+        textRect.right > controlRect.left;
+    final leftAligned = (textRect.left - controlRect.left).abs() <= 24;
+    if (!horizontalOverlap && !leftAligned) return null;
+    return 100 + gap;
+  }
+
+  /// Nests kept nodes under their nearest kept Flutter ancestor.
+  static List<UiElement> _nestKeptElements(
+    List<({Element element, UiElement ui})> kept,
+  ) {
+    if (kept.isEmpty) return const [];
+
+    final elementToIndex = <Element, int>{
+      for (var i = 0; i < kept.length; i++) kept[i].element: i,
+    };
+    final childIndexes = List.generate(kept.length, (_) => <int>[]);
+    final isRoot = List<bool>.filled(kept.length, true);
+
+    for (var i = 0; i < kept.length; i++) {
+      kept[i].element.visitAncestorElements((ancestor) {
+        final parentIndex = elementToIndex[ancestor];
+        if (parentIndex == null) return true;
+        childIndexes[parentIndex].add(i);
+        isRoot[i] = false;
+        return false;
+      });
+    }
+
+    UiElement build(int i) {
+      final children = [
+        for (final childIndex in childIndexes[i]) build(childIndex),
+      ];
+      final ui = kept[i].ui;
+      if (children.isEmpty) return ui;
+      return ui.copyWith(children: children);
+    }
+
+    return [
+      for (var i = 0; i < kept.length; i++)
+        if (isRoot[i]) build(i),
+    ];
+  }
+
+  /// True when an ancestor already carries a compact string [ValueKey] (EDL id).
+  ///
+  /// Invokable-only YAML `id`s are not treated as keyed ancestors — those ids
+  /// are attached onto the primary control via [readWidgetLocatorId] instead.
+  bool _hasCompactKeyedAncestor(Element element) {
+    var found = false;
+    element.visitAncestorElements((ancestor) {
+      if (hasCompactValueKey(ancestor)) {
+        found = true;
+        return false;
+      }
+      return true;
+    });
+    return found;
   }
 
   Map<String, SnapshotElementHandle> rebindHandles(
@@ -249,16 +417,5 @@ class FlutterUiObserver implements UiObserver {
           observableFingerprint: e.value.observableFingerprint,
         ),
     };
-  }
-
-  String _compactTestId(String value) {
-    final singleLine = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (singleLine.isEmpty || singleLine.length > 120) return '';
-    if (singleLine.startsWith('_')) return '';
-    if (RegExp(r'\s').hasMatch(singleLine)) return '';
-    if (!RegExp(r'^[A-Za-z][A-Za-z0-9_:.:-]*$').hasMatch(singleLine)) {
-      return '';
-    }
-    return singleLine;
   }
 }

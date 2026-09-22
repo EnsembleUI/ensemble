@@ -25,6 +25,7 @@ import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/host_screenshot_optimizer.dart';
+import 'package:ensemble_test_runner/session/observation/observe_formatter.dart';
 import 'package:ensemble_test_runner/src/worker_capacity.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
@@ -59,6 +60,10 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --doctor           Validate test setup without running Flutter tests
 ///   --fix             With --doctor, raise iOS deployment target permanently
 ///   --inspect-app      Print app metadata JSON for test generation
+///   --inspect-ui       Launch app, observe UI, print elements, exit
+///   --screenshots      With --inspect-ui: also write highlighted PNGs
+///   --format=text|json Inspect-ui output format (default: text)
+///   --screen=<name>    Standalone inspect-ui: screen to open
 ///   --validate-only    Validate YAML tests without running Flutter tests
 ///   --scaffold-test=<id> Create a starter test file
 ///   --report=json      Print JSON run results instead of the boxed report
@@ -212,6 +217,16 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       stderr.writeln(error.message);
       exit(2);
     }
+  }
+
+  if (arguments.contains('--inspect-ui')) {
+    final exitCode = await _runObserveCommand(
+      arguments: arguments,
+      appDir: appDir,
+      patcher: patcher,
+      verbose: verbose,
+    );
+    exit(exitCode);
   }
 
   if (arguments.contains('--validate-only')) {
@@ -1003,6 +1018,8 @@ Future<ProcessResult> _runParallelFlutterTests(
   final workerResults = await Future.wait(futures);
   runDone = true;
   await progressPoller;
+  // Live ✓/✗ streaming is done — progress files have finished their job.
+  _deleteArtifactSubdir(appDir, 'worker_progress');
 
   try {
     for (var i = 0; i < workerReportFiles.length; i++) {
@@ -1019,6 +1036,8 @@ Future<ProcessResult> _runParallelFlutterTests(
     reportFiles: workerReportFiles,
     appDir: appDir,
   );
+  // Shard JSONs are merged into memory — drop per-worker report files.
+  _deleteArtifactSubdir(appDir, 'worker_reports');
   merged = _mergeParallelSuiteArtifacts(merged);
   merged = await _withHtmlReport(
     appDir,
@@ -1213,6 +1232,17 @@ void _cleanParallelRunArtifacts(String appDir) {
       Directory(p.join(root.path, 'report', 'screenshots'));
   if (reportScreenshots.existsSync()) {
     reportScreenshots.deleteSync(recursive: true);
+  }
+}
+
+/// Deletes one subdirectory under `build/ensemble_test_runner/` when its job
+/// is finished (progress after live polling, reports after merge).
+void _deleteArtifactSubdir(String appDir, String name) {
+  final directory = Directory(
+    p.join(appDir, 'build', 'ensemble_test_runner', name),
+  );
+  if (directory.existsSync()) {
+    directory.deleteSync(recursive: true);
   }
 }
 
@@ -2696,6 +2726,217 @@ List<String> _optionValues(List<String> arguments, String name) {
       .toList();
 }
 
+/// Inspection-only path for `ensemble test --inspect-ui`.
+///
+/// Named `--inspect-ui` (not `--observe`) because `dart run` steals any flag
+/// that starts with `--observe` as the VM Observatory convenience option.
+Future<int> _runObserveCommand({
+  required List<String> arguments,
+  required String appDir,
+  required YamlTestAppPatcher patcher,
+  required bool verbose,
+}) async {
+  if (arguments.contains('--inspect-app') ||
+      arguments.contains('--validate-only') ||
+      arguments.contains('--doctor')) {
+    stderr.writeln(
+      '--inspect-ui cannot be combined with --inspect-app, --validate-only, or '
+      '--doctor.',
+    );
+    return 2;
+  }
+
+  final ObserveFormat format;
+  try {
+    final formats = _optionValues(arguments, '--format');
+    if (formats.length > 1) {
+      stderr.writeln('--format may be specified only once.');
+      return 2;
+    }
+    format = ObserveFormat.parse(formats.isEmpty ? 'text' : formats.single);
+  } catch (error) {
+    stderr.writeln(error);
+    return 2;
+  }
+
+  final screens = _optionValues(arguments, '--screen');
+  if (screens.length > 1) {
+    stderr.writeln('--screen may be specified only once.');
+    return 2;
+  }
+  final screen = screens.isEmpty ? null : screens.single;
+
+  if (!patcher.usesApplicationEntry && (screen == null || screen.isEmpty)) {
+    stderr.writeln(
+      'Standalone --inspect-ui requires --screen=<name>.\n'
+      'Host apps: pass --test-entry=<path> instead.',
+    );
+    return 2;
+  }
+  if (patcher.usesApplicationEntry && screen != null && screen.isNotEmpty) {
+    stderr.writeln(
+      '--screen is only valid for standalone Ensemble --inspect-ui. '
+      'Host apps launch via ApplicationTestDriver.',
+    );
+    return 2;
+  }
+
+  late final ExecutionMode executionMode;
+  try {
+    executionMode = _resolveExecutionMode(arguments, ExecutionMode.widget);
+    _validateExecutionModeOptions(
+      arguments,
+      mode: executionMode,
+      config: const EnsembleTestConfig(),
+      jobs: 1,
+    );
+  } catch (error) {
+    stderr.writeln(error);
+    return 2;
+  }
+
+  // Framed PNGs are opt-in via --screenshots (widget mode only — integration
+  // devices cannot write a host path the CLI can open).
+  final wantScreenshots = arguments.contains('--screenshots');
+  if (wantScreenshots && executionMode != ExecutionMode.widget) {
+    stderr.writeln(
+      '--screenshots requires --mode=widget (default). Integration devices '
+      'cannot write inspect-ui PNGs to the host.',
+    );
+    return 2;
+  }
+  String? screenshotDir;
+  if (wantScreenshots) {
+    screenshotDir = p.normalize(
+      p.join(appDir, 'build', 'ensemble_test_runner', 'inspect-ui'),
+    );
+    Directory(screenshotDir).createSync(recursive: true);
+  }
+  final testsDir = patcher.testsDirPath;
+  final suiteConfig = testsDir != null ? _readTestsConfig(testsDir) : null;
+  final selected = _optionValueSet(arguments, '--device');
+  if (selected.isNotEmpty) {
+    final devices = suiteConfig?.devices ?? const <TestDeviceTarget>[];
+    if (devices.isEmpty) {
+      stderr.writeln(
+        '`--device` was set but tests/config.yaml has no devices.',
+      );
+      return 2;
+    }
+    final known = {for (final d in devices) d.id};
+    final unknown = selected.difference(known);
+    if (unknown.isNotEmpty) {
+      stderr.writeln(
+        'Unknown --device id(s): ${unknown.join(', ')}. '
+        'Known: ${known.join(', ')}',
+      );
+      return 2;
+    }
+  }
+
+  final executionBackend = executionBackendFor(executionMode);
+  FlutterDevice? integrationDevice;
+  try {
+    integrationDevice = await executionBackend.selectDevice(arguments);
+    if (integrationDevice != null) {
+      _validatePlatformProject(appDir, integrationDevice.platform);
+    }
+  } catch (error) {
+    stderr.writeln(error);
+    return 2;
+  }
+
+  var exitCode = 0;
+  try {
+    try {
+      patcher.enable(
+        mode: executionMode,
+        targetPlatform: integrationDevice?.platform,
+      );
+    } catch (error) {
+      stderr.writeln(error);
+      return 2;
+    }
+
+    final entryRelativePath = patcher.activeEntryRelativePath;
+
+    // Skip pub get when the package graph is already resolved — inspect-ui is
+    // latency-sensitive and flutter test is invoked with --no-pub anyway.
+    final packageConfig =
+        File(p.join(appDir, '.dart_tool', 'package_config.json'));
+    if (!packageConfig.existsSync()) {
+      final pubGet = await _runProcess(
+        'flutter',
+        ['pub', 'get'],
+        workingDirectory: appDir,
+      );
+      if (pubGet.exitCode != 0) {
+        if (!verbose) _writeProcessStreams(pubGet);
+        return pubGet.exitCode == 0 ? 1 : pubGet.exitCode;
+      }
+    }
+
+    final testArgs = <String>[
+      'test',
+      entryRelativePath,
+      '--no-pub',
+      if (integrationDevice != null) ...['-d', integrationDevice.id],
+      if (integrationDevice != null)
+        '--dart-define=ensembleTestExecutionMode=integration',
+      '--dart-define=ensembleTestObserveOnly=true',
+      if (!patcher.usesApplicationEntry && screen != null)
+        '--dart-define=ensembleTestObserveScreen=$screen',
+      '--dart-define=ensembleTestObserveFormat=${format.name}',
+      if (screenshotDir != null) ...[
+        '--dart-define=ensembleTestObserveScreenshotDir=$screenshotDir',
+      ],
+      ..._selectionDartDefines(arguments)
+          .where((d) => d.contains('ensembleTestDevice=')),
+      '--reporter',
+      verbose ? 'expanded' : 'silent',
+    ];
+
+    // JSON mode keeps stdout payload-only: never stream Flutter noise there.
+    final jsonStdout = format == ObserveFormat.json;
+    final testRun = await _runFlutterTestProcess(
+      'flutter',
+      testArgs,
+      workingDirectory: appDir,
+      streamOutput: verbose && !jsonStdout,
+      verbose: verbose && !jsonStdout,
+    );
+
+    final combined = '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}';
+    final payload = extractObservePayload(combined);
+    if (payload != null && payload.trim().isNotEmpty) {
+      stdout.writeln(payload);
+      if (jsonStdout && verbose) {
+        _writeProcessStreams(testRun, toStderr: true);
+      }
+    } else {
+      stderr.writeln(
+        'Observe completed without a payload. Flutter output follows.',
+      );
+      if (!verbose || jsonStdout) {
+        _writeProcessStreams(testRun, toStderr: jsonStdout);
+      }
+      exitCode = testRun.exitCode == 0 ? 2 : testRun.exitCode;
+      return exitCode;
+    }
+
+    if (testRun.exitCode != 0) {
+      if (!verbose || jsonStdout) {
+        final known = extractKnownFailure(combined);
+        if (known.isNotEmpty) stderr.writeln(known);
+      }
+      exitCode = testRun.exitCode;
+    }
+  } finally {
+    patcher.restore();
+  }
+  return exitCode;
+}
+
 Set<String> _optionValueSet(List<String> arguments, String name) {
   return {
     for (final value in _optionValues(arguments, name))
@@ -2785,7 +3026,9 @@ Future<ProcessResult> _runFlutterTestProcess(
 }
 
 bool _isArtifactProtocolLine(String line) =>
-    line.contains(ensembleTestArtifactProtocolPrefix);
+    line.contains(ensembleTestArtifactProtocolPrefix) ||
+    line.contains(ensembleTestObserveBegin) ||
+    line.contains(ensembleTestObserveEnd);
 
 bool _isIntegrationProgressLine(String line) =>
     line.contains(ensembleTestProgressProtocolPrefix);
@@ -3157,10 +3400,19 @@ void _writeStatus(
   stderr.writeln(message);
 }
 
-void _writeProcessStreams(ProcessResult result) {
+void _writeProcessStreams(
+  ProcessResult result, {
+  bool toStderr = false,
+}) {
   final out = _withoutArtifactProtocolLines(result.stdout?.toString() ?? '');
   final err = _withoutArtifactProtocolLines(result.stderr?.toString() ?? '');
-  if (out.isNotEmpty) stdout.write(out);
+  if (out.isNotEmpty) {
+    if (toStderr) {
+      stderr.write(out);
+    } else {
+      stdout.write(out);
+    }
+  }
   if (err.isNotEmpty) stderr.write(err);
 }
 

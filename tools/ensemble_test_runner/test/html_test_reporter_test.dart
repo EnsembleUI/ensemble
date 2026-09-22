@@ -72,6 +72,9 @@ void main() {
     expect(shell, contains('applyProfileFilter'));
     expect(shell, contains('features.length > 1'));
     expect(shell, contains('profiles.length > 1'));
+    expect(shell, contains('modal-step-error'));
+    expect(shell, contains('stepFailureMessage'));
+    expect(shell, contains('window.stepMeta'));
     expect(shell.length, lessThan(200000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);

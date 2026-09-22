@@ -318,6 +318,7 @@ const ensembleHtmlTestReportAppJs = r'''
     }
 
     window.stepData = {};
+    window.stepMeta = {};
     window.storageSnapshots = {};
     const listPane = document.getElementById('test-list-pane');
     const detailPane = document.getElementById('test-detail-pane');
@@ -796,6 +797,10 @@ const ensembleHtmlTestReportAppJs = r'''
     runs.forEach((test, i) => {
       const stepKey = cardId + '-' + i;
       window.stepData[stepKey] = test.steps || [];
+      window.stepMeta[stepKey] = {
+        message: test.message || null,
+        failedStepIndex: test.failedStepIndex != null ? test.failedStepIndex : null,
+      };
       window.storageSnapshots[stepKey] = test.storage || {};
       html += buildRunBlock(base, test, cardId, i, stepKey);
     });
@@ -1188,6 +1193,25 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   // --- Step modal (retargeted to window.stepData) ---
+  function stepFailureMessage(deviceData, stepIndex, meta) {
+    const message = meta && meta.message;
+    const failedStepIndex = meta && meta.failedStepIndex;
+    if (!message || failedStepIndex == null) return null;
+    const step = deviceData[stepIndex];
+    if (!step) return null;
+    if (String(step.stepText || '').startsWith('  ')) return null;
+    let top = -1;
+    const keys = Object.keys(deviceData)
+      .map(k => parseInt(k, 10))
+      .filter(n => !isNaN(n) && n <= stepIndex)
+      .sort((a, b) => a - b);
+    for (const key of keys) {
+      const text = String((deviceData[key] && deviceData[key].stepText) || '');
+      if (!text.startsWith('  ')) top++;
+    }
+    return top === failedStepIndex ? message : null;
+  }
+
   function getStorageStateAtStep(cardId, targetStepIndex, field) {
     const deviceData = window.stepData && window.stepData[cardId];
     if (!deviceData) return {};
@@ -1226,6 +1250,17 @@ const ensembleHtmlTestReportAppJs = r'''
 
     const titleText = (data.stepText || '').trim();
     document.getElementById('modal-step-title').textContent = titleText;
+
+    const errorEl = document.getElementById('modal-step-error');
+    const meta = (window.stepMeta && window.stepMeta[cardId]) || {};
+    const stepError = stepFailureMessage(deviceData, currentModalStepIndex, meta);
+    if (stepError) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = stepError;
+    } else {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
 
     const apiList = document.getElementById('modal-api-list');
     apiList.innerHTML = '';

@@ -328,10 +328,15 @@ class TimerRewriteConfig {
   final int maxStartAfterSeconds;
   final int maxRepeatIntervalSeconds;
 
+  /// When set, caps YAML `maxNumberOfTimes` on timers (keeps long poll loops
+  /// like firmware disconnect waits from running for minutes under tests).
+  final int? maxNumberOfTimes;
+
   const TimerRewriteConfig({
     this.enabled = false,
     this.maxStartAfterSeconds = 1,
     this.maxRepeatIntervalSeconds = 1,
+    this.maxNumberOfTimes,
   });
 }
 

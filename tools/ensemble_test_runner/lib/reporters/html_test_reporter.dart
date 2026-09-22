@@ -236,6 +236,7 @@ class HtmlTestReporter {
       <button class="modal-close-btn" onclick="closeStepDialog(event)">&times;</button>
     </div>
     <div class="modal-body">
+      <div id="modal-step-error" class="modal-step-error" style="display: none;"></div>
       <div class="modal-tabs">
         <button class="modal-tab-btn active" data-tab="api" onclick="switchModalTab('api')">🌐 API Calls (<span id="modal-api-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="logs" onclick="switchModalTab('logs')">📝 Console Logs (<span id="modal-logs-count">0</span>)</button>

@@ -16,24 +16,57 @@ UiElement describeElement({
   required WidgetTester tester,
   required bool includeBounds,
 }) {
-  final type = inferWidgetType(element);
-  final secure = looksSecure(element, testId);
+  final type = resolveObservedWidgetType(element, testId: testId);
+  final primary = type != 'widget' && testId != null && testId.isNotEmpty
+      ? findPrimaryControlDescendant(element)
+      : null;
+  final semanticsSource = primary ?? element;
+  final secure = looksSecure(semanticsSource, testId);
   final bounds = boundsFor(element);
   final visible = assertions.isElementVisuallyActionable(element);
   final offscreen = bounds != null && !inViewport(tester, bounds);
-  final enabled = readEnabled(element);
-  final text = secure ? null : readText(element);
-  final label = secure ? null : readSemanticsLabel(tester, element);
-  final checked = readChecked(element);
+  // Icons: only report enabled for real icon buttons — do not inherit
+  // `onTap` from a parent InkWell that wraps a larger control.
+  final enabled = type == 'icon'
+      ? readIconButtonEnabled(semanticsSource)
+      : readEnabled(semanticsSource);
+  final checked = readChecked(semanticsSource);
+  var text = secure ? null : readText(semanticsSource);
+  var label = secure ? null : readControlLabel(semanticsSource, tester);
+  final hint = secure ? null : readHint(semanticsSource);
+  // Icons rarely have Text; fall back to tooltip / semanticLabel.
+  if (type == 'icon' &&
+      (text == null || text.isEmpty) &&
+      (label == null || label.isEmpty)) {
+    final iconName = readIconName(semanticsSource);
+    if (iconName != null && iconName.isNotEmpty) {
+      text = iconName;
+    }
+  }
+  // Switches/checkboxes shouldn't inherit nearby label Text as "value".
+  if ((type == 'switch' || type == 'toggle') && checked != null) {
+    text = null;
+  }
+  // textInput value is editable content only — never hint/label Text.
+  if (type == 'textInput' &&
+      hint != null &&
+      text != null &&
+      text.trim() == hint.trim()) {
+    text = null;
+  }
+  final options =
+      type == 'dropdown' ? readDropdownOptions(semanticsSource) : const <String>[];
   final interactable = visible && !offscreen && enabled != false;
 
   return UiElement(
     elementId: elementId,
     testId: testId,
     type: type,
-    role: inferSemanticRole(element, type),
+    role: inferSemanticRole(semanticsSource, type),
     label: label,
     text: text,
+    hint: hint,
+    options: options,
     state: UiElementState(
       exists: true,
       visible: visible,
@@ -47,6 +80,53 @@ UiElement describeElement({
     bounds: includeBounds ? bounds : null,
     supportedActions: supportedActionsFor(type, secure: secure),
   );
+}
+
+/// Nearest primary-control descendant, if any.
+///
+/// Prefers specific controls (switch, dropdown, icon, …) over generic
+/// [GestureDetector]/[InkWell] wrappers that often wrap them.
+Element? findPrimaryControlDescendant(Element element) {
+  Element? specific;
+  Element? generic;
+  void visit(Element e) {
+    if (isPrimaryControlElement(e)) {
+      if (_isGenericTapTarget(e.widget)) {
+        generic ??= e;
+      } else {
+        specific ??= e;
+      }
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return specific ?? generic;
+}
+
+/// When a keyed Ensemble wrapper is typed `widget`, prefer the logical control
+/// type of its nearest primary control (then standalone text).
+String resolveObservedWidgetType(Element element, {required String? testId}) {
+  final type = inferWidgetType(element);
+  if (type != 'widget') return type;
+  if (testId == null || testId.isEmpty) return type;
+  final primary = findPrimaryControlDescendant(element);
+  if (primary != null) {
+    return inferWidgetType(primary);
+  }
+  String? textType;
+  void visitText(Element e) {
+    if (textType != null) return;
+    if (isStandaloneTextElement(e)) {
+      textType = 'text';
+      return;
+    }
+    e.visitChildren(visitText);
+  }
+
+  element.visitChildren(visitText);
+  return textType ?? type;
 }
 
 String inferSemanticRole(Element element, String type) {
@@ -72,16 +152,10 @@ String inferSemanticRole(Element element, String type) {
 /// implementation descendants that resolve to the same merged semantics node.
 bool isSemanticLocatorCandidate(Element element) {
   final widget = element.widget;
-  if ((widget is GestureDetector || widget is InkWell) &&
-      (element.findAncestorWidgetOfExactType<ElevatedButton>() != null ||
-          element.findAncestorWidgetOfExactType<TextButton>() != null ||
-          element.findAncestorWidgetOfExactType<OutlinedButton>() != null ||
-          element.findAncestorWidgetOfExactType<FilledButton>() != null ||
-          element.findAncestorWidgetOfExactType<IconButton>() != null)) {
+  if (_isGenericTapTarget(widget) && _hasSpecificControlAncestor(element)) {
     return false;
   }
-  return widget is Semantics ||
-      isActionableControl(element);
+  return widget is Semantics || isActionableControl(element);
 }
 
 /// Interactive controls suitable as the primary target of a text locator.
@@ -92,16 +166,76 @@ bool isActionableControl(Element element) {
       widget is TextButton ||
       widget is OutlinedButton ||
       widget is FilledButton ||
-      widget is IconButton ||
       widget is GestureDetector ||
       widget is InkWell ||
+      widget is InkResponse ||
       widget is TextField ||
       widget is CupertinoTextField ||
       widget is EditableText ||
       widget is Checkbox ||
       widget is Switch ||
       widget is CupertinoSwitch ||
-      widget is Slider;
+      widget is Slider ||
+      _isIconButtonWidget(widget) ||
+      _isDropdownWidget(widget);
+}
+
+/// True when [element]'s widget **is** the logical control (not a descendant).
+///
+/// Used by observe / inspect-ui so one [TextField] yields one `textInput` row
+/// instead of every child under it.
+bool isPrimaryControlElement(Element element) {
+  final widget = element.widget;
+  if (_isGenericTapTarget(widget) && _hasSpecificControlAncestor(element)) {
+    return false;
+  }
+  if (widget is EditableText) {
+    return element.findAncestorWidgetOfExactType<TextField>() == null &&
+        element.findAncestorWidgetOfExactType<CupertinoTextField>() == null;
+  }
+  return widget is ElevatedButton ||
+      widget is TextButton ||
+      widget is OutlinedButton ||
+      widget is FilledButton ||
+      widget is GestureDetector ||
+      widget is InkWell ||
+      widget is InkResponse ||
+      widget is TextField ||
+      widget is CupertinoTextField ||
+      widget is Checkbox ||
+      widget is Switch ||
+      widget is CupertinoSwitch ||
+      widget is Slider ||
+      _isIconButtonWidget(widget) ||
+      _isDropdownWidget(widget);
+}
+
+/// Non-empty [Text]/[RichText] that is not under a primary control.
+bool isStandaloneTextElement(Element element) {
+  final widget = element.widget;
+  final String? data;
+  if (widget is Text) {
+    data = widget.data;
+  } else if (widget is RichText) {
+    data = widget.text.toPlainText();
+  } else {
+    return false;
+  }
+  if (data == null || data.trim().isEmpty) return false;
+  return !hasPrimaryControlAncestor(element);
+}
+
+/// True when a primary control already wraps [element] (nested InkWell, etc.).
+bool hasPrimaryControlAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    if (isPrimaryControlElement(ancestor)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 bool isTextLocatorCandidate(Element element) {
@@ -118,33 +252,243 @@ T? _selfOrAncestor<T extends Widget>(Element element) {
   return element.findAncestorWidgetOfExactType<T>();
 }
 
+bool _isGenericTapTarget(Widget widget) =>
+    widget is GestureDetector ||
+    widget is InkWell ||
+    widget is InkResponse;
+
+bool _isDropdownWidget(Widget widget) {
+  if (widget is DropdownButton ||
+      widget is DropdownButtonFormField ||
+      widget is DropdownMenu ||
+      widget is PopupMenuButton) {
+    return true;
+  }
+  // Ensemble (and dropdown_button2) use these — not Flutter's DropdownButton.
+  final base = widget.runtimeType.toString().split('<').first;
+  return base == 'DropdownButtonFormField2' ||
+      base == 'EnsembleDropdown' ||
+      base == 'DropdownButton2';
+}
+
+bool _isIconButtonWidget(Widget widget) {
+  if (widget is IconButton) return true;
+  // Ensemble IconButton renders FrameworkIconButton → Material + InkWell.
+  final base = widget.runtimeType.toString().split('<').first;
+  return base == 'FrameworkIconButton' || base == 'EnsembleIconButton';
+}
+
+bool _hasSpecificControlAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (w is ElevatedButton ||
+        w is TextButton ||
+        w is OutlinedButton ||
+        w is FilledButton ||
+        w is Switch ||
+        w is CupertinoSwitch ||
+        w is Checkbox ||
+        w is Slider ||
+        w is TextField ||
+        w is CupertinoTextField ||
+        _isIconButtonWidget(w) ||
+        _isDropdownWidget(w)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
 String inferWidgetType(Element element) {
+  // Prefer the element's own widget so keyed Text under a button stays `text`.
+  final self = _inferElementWidgetType(element);
+  if (self != null) return self;
+
+  // Specific controls before generic tap targets — InkWell wraps switches,
+  // dropdowns, and icon buttons and would otherwise inflate to `button`.
   if (_selfOrAncestor<EditableText>(element) != null ||
       _selfOrAncestor<TextField>(element) != null ||
       _selfOrAncestor<CupertinoTextField>(element) != null) {
     return 'textInput';
   }
-  if (_selfOrAncestor<ElevatedButton>(element) != null ||
-      _selfOrAncestor<TextButton>(element) != null ||
-      _selfOrAncestor<OutlinedButton>(element) != null ||
-      _selfOrAncestor<FilledButton>(element) != null ||
-      _selfOrAncestor<IconButton>(element) != null ||
-      _selfOrAncestor<GestureDetector>(element) != null ||
-      _selfOrAncestor<InkWell>(element) != null) {
-    return 'button';
-  }
   if (_selfOrAncestor<Switch>(element) != null ||
-      _selfOrAncestor<CupertinoSwitch>(element) != null ||
-      _selfOrAncestor<Checkbox>(element) != null) {
+      _selfOrAncestor<CupertinoSwitch>(element) != null) {
+    return 'switch';
+  }
+  if (_selfOrAncestor<Checkbox>(element) != null) {
     return 'toggle';
   }
   if (_selfOrAncestor<Slider>(element) != null) {
     return 'slider';
   }
-  if (element.widget is Text || element.widget is RichText) {
-    return 'text';
+  if (_hasDropdownAncestor(element)) return 'dropdown';
+  if (_hasIconButtonAncestor(element)) return 'icon';
+  if (_selfOrAncestor<ElevatedButton>(element) != null ||
+      _selfOrAncestor<TextButton>(element) != null ||
+      _selfOrAncestor<OutlinedButton>(element) != null ||
+      _selfOrAncestor<FilledButton>(element) != null ||
+      _selfOrAncestor<GestureDetector>(element) != null ||
+      _selfOrAncestor<InkWell>(element) != null ||
+      _selfOrAncestor<InkResponse>(element) != null) {
+    return 'button';
   }
   return 'widget';
+}
+
+bool _hasDropdownAncestor(Element element) {
+  if (_isDropdownWidget(element.widget)) return true;
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    if (_isDropdownWidget(ancestor.widget)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+bool _hasIconButtonAncestor(Element element) {
+  if (_isIconButtonWidget(element.widget)) return true;
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    if (_isIconButtonWidget(ancestor.widget)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+/// Type for [element] based on its own widget (and light child heuristics).
+String? _inferElementWidgetType(Element element) {
+  final widget = element.widget;
+  if (widget is EditableText ||
+      widget is TextField ||
+      widget is CupertinoTextField) {
+    return 'textInput';
+  }
+  if (widget is Switch || widget is CupertinoSwitch) return 'switch';
+  if (widget is Checkbox) return 'toggle';
+  if (widget is Slider) return 'slider';
+  if (_isDropdownWidget(widget)) return 'dropdown';
+  if (_isIconButtonWidget(widget)) return 'icon';
+  if (widget is ElevatedButton ||
+      widget is TextButton ||
+      widget is OutlinedButton ||
+      widget is FilledButton) {
+    return 'button';
+  }
+  if (_isGenericTapTarget(widget)) {
+    // Prefer specific Ensemble/host wrappers over bare InkWell typing.
+    if (_hasDropdownAncestor(element)) return 'dropdown';
+    if (_hasIconButtonAncestor(element)) return 'icon';
+    return _inferGenericTapTargetType(element);
+  }
+  if (widget is Text || widget is RichText) return 'text';
+  return null;
+}
+
+/// Classify InkWell / GestureDetector by contents (Ensemble + host patterns).
+String _inferGenericTapTargetType(Element element) {
+  final hasChevron = _hasDropdownChevronDescendant(element);
+  final text = _longestTextDescendant(element);
+  final hasIcon = _hasIconDescendant(element);
+  final substantialText = text != null && text.trim().length > 2;
+  final compact = _looksLikeCompactIconHitTarget(element);
+
+  // Dropdowns: selected value text + chevron (Ensemble / custom hosts).
+  if (hasChevron) return 'dropdown';
+
+  // Icon buttons: Flutter Icon, or compact glyph-only targets (language "A").
+  if (hasIcon && !substantialText) return 'icon';
+  if (compact && (hasIcon || text == null || text.trim().length <= 1)) {
+    return 'icon';
+  }
+
+  return 'button';
+}
+
+bool _looksLikeCompactIconHitTarget(Element element) {
+  final bounds = boundsFor(element);
+  if (bounds == null) return false;
+  if (bounds.width <= 0 || bounds.height <= 0) return false;
+  final maxSide = bounds.width > bounds.height ? bounds.width : bounds.height;
+  final minSide = bounds.width < bounds.height ? bounds.width : bounds.height;
+  if (maxSide > 72) return false;
+  return maxSide / minSide <= 1.6;
+}
+
+bool _hasIconDescendant(Element element) {
+  var found = false;
+  void visit(Element e) {
+    if (found) return;
+    final w = e.widget;
+    if (w is Icon || w is ImageIcon) {
+      found = true;
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return found;
+}
+
+bool _hasDropdownChevronDescendant(Element element) {
+  var found = false;
+  void visit(Element e) {
+    if (found) return;
+    final w = e.widget;
+    if (w is Icon && _isDropdownChevronIcon(w.icon)) {
+      found = true;
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return found;
+}
+
+bool _isDropdownChevronIcon(IconData? data) {
+  if (data == null) return false;
+  return data == Icons.arrow_drop_down ||
+      data == Icons.arrow_drop_down_rounded ||
+      data == Icons.arrow_drop_down_circle ||
+      data == Icons.arrow_drop_down_circle_outlined ||
+      data == Icons.keyboard_arrow_down ||
+      data == Icons.keyboard_arrow_down_rounded ||
+      data == Icons.expand_more ||
+      data == Icons.expand_more_rounded ||
+      data == Icons.arrow_downward ||
+      data == Icons.arrow_downward_rounded;
+}
+
+String? _longestTextDescendant(Element element) {
+  String? longest;
+  void visit(Element e) {
+    final w = e.widget;
+    String? value;
+    if (w is Text) {
+      value = w.data;
+    } else if (w is RichText) {
+      value = w.text.toPlainText();
+    }
+    if (value != null && value.trim().isNotEmpty) {
+      if (longest == null || value.length > longest!.length) {
+        longest = value;
+      }
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return longest;
 }
 
 bool looksSecure(Element element, String? testId) {
@@ -175,7 +519,32 @@ bool? readEnabled(Element element) {
   if (cupertino != null) return cupertino.onChanged != null;
   final cb = _selfOrAncestor<Checkbox>(element);
   if (cb != null) return cb.onChanged != null;
+
+  // Icon / custom tap targets (Ensemble FrameworkIconButton → InkWell).
+  final inkWell = _selfOrAncestor<InkWell>(element);
+  if (inkWell != null) return inkWell.onTap != null;
+  final inkResponse = _selfOrAncestor<InkResponse>(element);
+  if (inkResponse != null) return inkResponse.onTap != null;
+  final gesture = _selfOrAncestor<GestureDetector>(element);
+  if (gesture != null) {
+    return gesture.onTap != null ||
+        gesture.onTapUp != null ||
+        gesture.onTapDown != null;
+  }
   return null;
+}
+
+/// Enabled state for observed `icon` rows — only when this is an icon button.
+///
+/// Decorative [Icon]s under a parent InkWell must not report `enabled: true`.
+bool? readIconButtonEnabled(Element element) {
+  final iconButton = _selfOrAncestor<IconButton>(element);
+  if (iconButton != null) return iconButton.onPressed != null;
+  if (!_hasIconButtonAncestor(element) &&
+      !_isIconButtonWidget(element.widget)) {
+    return null;
+  }
+  return readEnabled(element);
 }
 
 bool? readChecked(Element element) {
@@ -190,22 +559,243 @@ bool? readChecked(Element element) {
 
 String? readText(Element element) {
   if (looksSecure(element, null)) return null;
+
+  // Prefer the live editable value over labels/hints under the same control.
+  final field = element.widget is TextField
+      ? element.widget as TextField
+      : _selfOrAncestor<TextField>(element);
+  final cupertino = element.widget is CupertinoTextField
+      ? element.widget as CupertinoTextField
+      : _selfOrAncestor<CupertinoTextField>(element);
+  if (field != null || cupertino != null || element.widget is EditableText) {
+    return _readEditableValue(element, field: field, cupertino: cupertino);
+  }
+
+  String? editableText;
   final texts = <String>[];
   void visit(Element e) {
     if (!identical(e, element) && looksSecure(e, null)) return;
     final w = e.widget;
-    if (w is Text && w.data != null && w.data!.isNotEmpty) {
-      texts.add(w.data!);
+    if (w is EditableText) {
+      final value = w.controller.text.trim();
+      if (value.isNotEmpty) editableText ??= value;
+      return;
     }
-    if (w is EditableText && w.controller.text.isNotEmpty) {
-      texts.add(w.controller.text);
+    if (w is Text && w.data != null && w.data!.trim().isNotEmpty) {
+      texts.add(w.data!.trim());
     }
     e.visitChildren(visit);
   }
 
   visit(element);
+  if (editableText != null) return editableText;
   if (texts.isEmpty) return null;
   return texts.first;
+}
+
+/// Typed value currently in a text field (controller / EditableText only).
+String? _readEditableValue(
+  Element element, {
+  TextField? field,
+  CupertinoTextField? cupertino,
+}) {
+  final fromField = field?.controller?.text.trim();
+  if (fromField != null && fromField.isNotEmpty) return fromField;
+  final fromCupertino = cupertino?.controller?.text.trim();
+  if (fromCupertino != null && fromCupertino.isNotEmpty) return fromCupertino;
+
+  String? editableText;
+  void visit(Element e) {
+    if (editableText != null) return;
+    if (!identical(e, element) && looksSecure(e, null)) return;
+    final w = e.widget;
+    if (w is EditableText) {
+      final value = w.controller.text.trim();
+      if (value.isNotEmpty) editableText = value;
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  visit(element);
+  return editableText;
+}
+
+/// InputDecoration / Cupertino placeholder — never used as [readText] value.
+String? readHint(Element element) {
+  final field = element.widget is TextField
+      ? element.widget as TextField
+      : _selfOrAncestor<TextField>(element);
+  if (field != null) {
+    final decoration = field.decoration;
+    final hintText = decoration?.hintText?.trim();
+    if (hintText != null && hintText.isNotEmpty) return hintText;
+    final fromWidget = _plainTextFromWidget(decoration?.hint);
+    if (fromWidget != null) return fromWidget;
+  }
+  final cupertino = element.widget is CupertinoTextField
+      ? element.widget as CupertinoTextField
+      : _selfOrAncestor<CupertinoTextField>(element);
+  final placeholder = cupertino?.placeholder?.trim();
+  if (placeholder != null && placeholder.isNotEmpty) return placeholder;
+  return null;
+}
+
+/// Label for a control: InputDecoration label, then semantics (not the hint).
+String? readControlLabel(Element element, WidgetTester tester) {
+  final field = element.widget is TextField
+      ? element.widget as TextField
+      : _selfOrAncestor<TextField>(element);
+  if (field != null) {
+    final decoration = field.decoration;
+    final labelText = decoration?.labelText?.trim();
+    if (labelText != null && labelText.isNotEmpty) return labelText;
+    final fromWidget = _plainTextFromWidget(decoration?.label);
+    if (fromWidget != null) return fromWidget;
+  }
+  final semantic = readSemanticsLabel(tester, element)?.trim();
+  if (semantic == null || semantic.isEmpty) return null;
+  final hint = readHint(element)?.trim();
+  if (hint != null && hint.isNotEmpty) {
+    if (semantic == hint) return null;
+    // Flutter often merges "Label" + hint into one semantics string.
+    if (semantic.endsWith(hint)) {
+      final stripped =
+          semantic.substring(0, semantic.length - hint.length).trim();
+      return stripped.isEmpty ? null : stripped;
+    }
+  }
+  return semantic;
+}
+
+String? _plainTextFromWidget(Widget? widget) {
+  if (widget == null) return null;
+  if (widget is Text) {
+    final data = widget.data?.trim();
+    return (data != null && data.isNotEmpty) ? data : null;
+  }
+  if (widget is RichText) {
+    final data = widget.text.toPlainText().trim();
+    return data.isEmpty ? null : data;
+  }
+  return null;
+}
+
+/// Walks a widget *configuration* (not the element tree) for visible label text.
+String? _plainTextFromWidgetDeep(Widget? widget) {
+  if (widget == null) return null;
+  final direct = _plainTextFromWidget(widget);
+  if (direct != null) return direct;
+
+  if (widget is Padding) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is Center) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is Align) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is SizedBox) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is DecoratedBox) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is ColoredBox) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is Material) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is InkWell) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is GestureDetector) {
+    return _plainTextFromWidgetDeep(widget.child);
+  }
+  if (widget is SingleChildRenderObjectWidget) {
+    return _plainTextFromWidgetDeep(widget.child);
+  }
+  if (widget is Flexible) return _plainTextFromWidgetDeep(widget.child);
+  if (widget is Expanded) return _plainTextFromWidgetDeep(widget.child);
+
+  List<Widget>? children;
+  if (widget is Row || widget is Column || widget is Flex || widget is Wrap) {
+    children = (widget as dynamic).children as List<Widget>?;
+  } else if (widget is Stack) {
+    children = widget.children;
+  }
+  if (children != null) {
+    for (final child in children) {
+      final text = _plainTextFromWidgetDeep(child);
+      if (text != null) return text;
+    }
+  }
+  return null;
+}
+
+/// Dropdown option labels from widget `items` / menu entries.
+///
+/// Available while the menu is closed — Flutter keeps the item list on the
+/// button widget. Custom InkWell-only dropdowns have no items to read.
+List<String> readDropdownOptions(Element element) {
+  final options = <String>[];
+  var found = false;
+
+  void consider(Widget widget) {
+    if (found && options.isNotEmpty) return;
+    if (widget is DropdownButton) {
+      _collectDropdownMenuItemLabels(widget.items, options);
+      found = true;
+      return;
+    }
+    if (widget is DropdownMenu) {
+      for (final entry in widget.dropdownMenuEntries) {
+        final label = entry.label.trim();
+        if (label.isNotEmpty) options.add(label);
+      }
+      found = true;
+      return;
+    }
+    if (_isDropdownWidget(widget) &&
+        widget is! DropdownButton &&
+        widget is! DropdownMenu) {
+      // EnsembleDropdown / DropdownButtonFormField2 / DropdownButton2 expose
+      // `items` but are not part of material.dart — read dynamically.
+      final items = _dynamicItemsList(widget);
+      if (items != null) {
+        _collectDropdownMenuItemLabels(items, options);
+        found = true;
+      }
+    }
+  }
+
+  consider(element.widget);
+  if (!found || options.isEmpty) {
+    void visit(Element e) {
+      if (found && options.isNotEmpty) return;
+      consider(e.widget);
+      e.visitChildren(visit);
+    }
+
+    element.visitChildren(visit);
+  }
+  if (!found || options.isEmpty) {
+    element.visitAncestorElements((ancestor) {
+      consider(ancestor.widget);
+      return !(found && options.isNotEmpty);
+    });
+  }
+  return List<String>.unmodifiable(options);
+}
+
+void _collectDropdownMenuItemLabels(List<dynamic>? items, List<String> out) {
+  if (items == null) return;
+  for (final item in items) {
+    if (item is! DropdownMenuItem) continue;
+    final fromChild = _plainTextFromWidgetDeep(item.child)?.trim();
+    if (fromChild != null && fromChild.isNotEmpty) {
+      out.add(fromChild);
+      continue;
+    }
+    final value = item.value;
+    if (value == null) continue;
+    final asString = value.toString().trim();
+    if (asString.isNotEmpty) out.add(asString);
+  }
+}
+
+List<dynamic>? _dynamicItemsList(Widget widget) {
+  try {
+    final items = (widget as dynamic).items;
+    if (items is List) return items;
+  } catch (_) {}
+  return null;
 }
 
 String? readSemanticsLabel(WidgetTester tester, Element element) {
@@ -223,6 +813,44 @@ String? readSemanticsLabel(WidgetTester tester, Element element) {
   } catch (_) {
     return null;
   }
+}
+
+/// User-provided name for an icon (id is separate). Never invents Material names.
+String? readIconName(Element element) {
+  Icon? icon;
+  void findIcon(Element e) {
+    if (icon != null) return;
+    if (e.widget is Icon) {
+      icon = e.widget as Icon;
+      return;
+    }
+    e.visitChildren(findIcon);
+  }
+
+  if (element.widget is Icon) {
+    icon = element.widget as Icon;
+  } else {
+    element.visitChildren(findIcon);
+  }
+
+  final semantic = icon?.semanticLabel?.trim();
+  if (semantic != null && semantic.isNotEmpty) return semantic;
+
+  final iconButton = _selfOrAncestor<IconButton>(element);
+  final buttonTooltip = iconButton?.tooltip?.trim();
+  if (buttonTooltip != null && buttonTooltip.isNotEmpty) return buttonTooltip;
+
+  final tooltip = _selfOrAncestor<Tooltip>(element);
+  final tooltipMessage = tooltip?.message?.trim();
+  if (tooltipMessage != null && tooltipMessage.isNotEmpty) {
+    return tooltipMessage;
+  }
+
+  // Text-glyph icons (e.g. language "A") — only if the app literally rendered it.
+  final glyph = readText(element)?.trim();
+  if (glyph != null && glyph.isNotEmpty && glyph.length <= 2) return glyph;
+
+  return null;
 }
 
 UiBounds? boundsFor(Element element) {
@@ -265,6 +893,11 @@ List<String> supportedActionsFor(String? type, {required bool secure}) {
             ];
     case 'button':
       return const ['tap', 'longPress', 'doubleTap'];
+    case 'icon':
+      return const ['tap', 'longPress'];
+    case 'dropdown':
+      return const ['tap'];
+    case 'switch':
     case 'toggle':
       return const ['tap', 'toggle', 'check', 'uncheck'];
     case 'slider':

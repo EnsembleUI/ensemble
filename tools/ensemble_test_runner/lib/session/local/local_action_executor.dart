@@ -6,7 +6,8 @@ import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
-import 'package:flutter/widgets.dart' show Element, Offset, Text, ValueKey;
+import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
+import 'package:flutter/widgets.dart' show Element, Offset, Text;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Resolves [ElementTarget] for local execution.
@@ -269,16 +270,20 @@ class FlutterTargetResolver {
       ancestor = scopeMatches.single;
     }
     final scopedAncestor = ancestor;
+    final id = locator.id;
+    // Resolve id via testId-first finder once; avoid O(n²) Invokable subtree
+    // walks inside the per-element predicate.
+    final idMatches = id == null
+        ? null
+        : finderForLocatorId(id, skipOffstage: false).evaluate().toSet();
     return find.byElementPredicate(
       (element) {
         if (scopedAncestor != null &&
             !_isDescendantOf(element, scopedAncestor)) {
           return false;
         }
-        final id = locator.id;
-        if (id != null) {
-          final key = element.widget.key;
-          if (key is! ValueKey || key.value != id) return false;
+        if (idMatches != null && !idMatches.contains(element)) {
+          return false;
         }
         final text = locator.text;
         if (text != null &&

@@ -1707,6 +1707,22 @@ a:hover {
   min-height: 0;
   padding: 20px 24px;
 }
+.modal-step-error {
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  border-left: 3px solid var(--fail);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+  flex-shrink: 0;
+}
 .modal-tabs {
   display: flex;
   gap: 16px;

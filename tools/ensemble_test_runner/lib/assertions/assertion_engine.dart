@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,7 +35,7 @@ class AssertionEngine {
   }
 
   Finder finderForId(String id, {bool skipOffstage = true}) =>
-      find.byKey(ValueKey(id), skipOffstage: skipOffstage);
+      finderForLocatorId(id, skipOffstage: skipOffstage);
 
   Finder finderForIdIncludingOffstage(String id) =>
       finderForId(id, skipOffstage: false);
@@ -740,34 +741,10 @@ class AssertionEngine {
     final ids = <String>{};
     for (final element in tester.allElements) {
       if (!isElementVisuallyActionable(element)) continue;
-      final key = element.widget.key;
-      if (key is! ValueKey) continue;
-      final value = key.value;
-      if (value is! String) continue;
-      final id = _compactKeyValue(value);
-      if (id.isNotEmpty) ids.add(id);
+      final id = readOwnedWidgetLocatorId(element);
+      if (id != null && id.isNotEmpty) ids.add(id);
     }
     return ids.toList()..sort();
-  }
-
-  String _compactKeyValue(String value) {
-    final singleLine = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (!_looksLikeUserTestId(singleLine)) return '';
-    return singleLine;
-  }
-
-  bool _looksLikeUserTestId(String value) {
-    if (value.isEmpty || value.length > 120) return false;
-    if (value.startsWith('_')) return false;
-    if (RegExp(r'\s').hasMatch(value)) return false;
-    if (value.contains('{') ||
-        value.contains('}') ||
-        value.contains('[') ||
-        value.contains(']') ||
-        value.contains(r'$')) {
-      return false;
-    }
-    return RegExp(r'^[A-Za-z][A-Za-z0-9_:.:-]*$').hasMatch(value);
   }
 
   List<String> _idTokens(String value) => value

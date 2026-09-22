@@ -21,13 +21,21 @@ String fingerprintForObservation({
   buffer.write(screen.isLoading);
   buffer.write('\n');
   for (final el in elements) {
-    buffer.write(_elementDigest(el));
-    buffer.write('\n');
+    _writeElementTreeDigest(buffer, el, 0);
   }
   return sha256.convert(utf8.encode(buffer.toString())).toString();
 }
 
 String fingerprintForElement(UiElement element) => _elementDigest(element);
+
+void _writeElementTreeDigest(StringBuffer buffer, UiElement element, int depth) {
+  buffer.write('  ' * depth);
+  buffer.write(_elementDigest(element));
+  buffer.write('\n');
+  for (final child in element.children) {
+    _writeElementTreeDigest(buffer, child, depth + 1);
+  }
+}
 
 String _elementDigest(UiElement element) {
   final b = element.bounds;
@@ -39,6 +47,8 @@ String _elementDigest(UiElement element) {
     element.role ?? '',
     element.label ?? '',
     element.text ?? '',
+    element.hint ?? '',
+    element.options.join(','),
     element.state.visible,
     element.state.enabled,
     element.state.interactable,

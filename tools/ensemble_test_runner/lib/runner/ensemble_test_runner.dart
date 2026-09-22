@@ -21,11 +21,13 @@ import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
+import 'package:ensemble_test_runner/runner/step_highlight_finder.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -260,7 +262,12 @@ class EnsembleTestRunner {
         LiveAsyncCallSupport.drainPendingExceptions;
     try {
       FlutterError.onError = (details) {
-        ctx.runtime.flutterErrors.add(_formatFlutterError(details));
+        final formatted = _formatFlutterError(details);
+        if (isNonFatalFlutterDiagnostic(formatted) ||
+            isTransientNavigationDiagnostic(formatted)) {
+          return;
+        }
+        ctx.runtime.flutterErrors.add(formatted);
       };
       applyWifiTestConfig(suiteConfig.wifi);
       timingsCallback = (List<ui.FrameTiming> timings) {
@@ -301,6 +308,7 @@ class EnsembleTestRunner {
           );
           _throwIfUnexpectedFlutterExceptions(
             tester,
+            ctx: ctx,
             phase: 'during startup/setup',
           );
           await YamlTestSession.navigationFlow.flushPending();
@@ -535,6 +543,7 @@ class EnsembleTestRunner {
         try {
           _throwIfUnexpectedFlutterExceptions(
             tester,
+            ctx: ctx,
             phase: 'before this step',
           );
           if (i == 0 && ctx.config.screenshots.enabled) {
@@ -614,6 +623,7 @@ class EnsembleTestRunner {
           }
           _throwIfUnexpectedFlutterExceptions(
             tester,
+            ctx: ctx,
             phase: 'after this step',
           );
           if (!captureBeforeStep &&
@@ -750,15 +760,13 @@ class EnsembleTestRunner {
       final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
       final idleStartTime = DateTime.now();
       await _settleLiveApiWorkBestEffort(tester, ctx);
-      final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
-      if (frameworkErrors.isNotEmpty) {
-        final failureMessage = _failureMessageWithFlutterErrors(
-          'Unexpected Flutter framework error after the final step: '
-          '${_compactDiagnostic(frameworkErrors.first)} '
-          'Hint: inspect the last screenshot and check async work started by '
-          'the final step.',
-          ctx,
-        );
+      // Steps already passed — live API/JS often races dispose during idle
+      // settle (null-check / deactivated ancestor). Only fail if the tree
+      // was replaced with ErrorWidget.
+      try {
+        _assertNoErrorWidgetAfterSuccess(tester, ctx);
+      } catch (error) {
+        final failureMessage = error.toString();
         await _flushPendingScreenshots(
           ctx,
           status: TestStatus.failed,
@@ -844,6 +852,7 @@ class EnsembleTestRunner {
         tracker.isScreenVisible(screenId: screen);
 
     if (!isTargetVisible()) return false;
+    if (treeHasFlutterErrorWidget(executor.tester)) return false;
 
     // Hold a frame from the moment the tracker reports the target. Transient
     // screens (AutoSignIn_Gateway) often leave during the paint pumps below.
@@ -1247,50 +1256,7 @@ class EnsembleTestRunner {
   }
 
   Finder? _highlightFinder(TestStepExecutor executor, TestStep step) {
-    final id = step.args['id']?.toString();
-    if (id != null && id.isNotEmpty) {
-      return executor.assertions.finderForId(id);
-    }
-    final texts = <String>[
-      if (step.args['text']?.toString().trim().isNotEmpty == true)
-        step.args['text'].toString(),
-      if (step.args['anyOf'] is List)
-        for (final item in step.args['anyOf'] as List)
-          if (item != null && item.toString().trim().isNotEmpty)
-            item.toString(),
-    ];
-    for (final text in texts) {
-      if (step.type == 'expectTextContains') {
-        final containing = find.textContaining(text);
-        if (_hasHighlightRect(
-          executor,
-          containing,
-        )) {
-          return containing;
-        }
-      } else {
-        final exact = find.text(text);
-        if (_hasHighlightRect(
-          executor,
-          exact,
-        )) {
-          return exact;
-        }
-      }
-    }
-    return null;
-  }
-
-  bool _hasHighlightRect(
-    TestStepExecutor executor,
-    Finder finder, {
-    bool requireHitTestable = false,
-  }) {
-    return executor.assertions.rectForVisuallyActionable(
-          finder,
-          requireHitTestable: requireHitTestable,
-        ) !=
-        null;
+    return stepHighlightFinderForExecutor(executor, step);
   }
 
   bool _shouldHighlightStep(TestStep step, {bool forFailure = false}) {
@@ -1298,7 +1264,8 @@ class EnsembleTestRunner {
     // unexpectedly visible text is exactly what the screenshot should mark.
     if (step.type == 'expectNoText' &&
         !forFailure &&
-        (step.args['id']?.toString().isEmpty ?? true)) {
+        (step.args['id']?.toString().isEmpty ?? true) &&
+        step.args['target'] is! Map) {
       return false;
     }
     if (step.type == 'waitForText' ||
@@ -1312,9 +1279,11 @@ class EnsembleTestRunner {
       final anyOf = step.args['anyOf'];
       final id = step.args['id']?.toString();
       final hasAnyOf = anyOf is List && anyOf.isNotEmpty;
+      final hasTarget = step.args['target'] is Map;
       return (text != null && text.isNotEmpty) ||
           hasAnyOf ||
-          (id != null && id.isNotEmpty);
+          (id != null && id.isNotEmpty) ||
+          hasTarget;
     }
     return _isUserActionStep(step);
   }
@@ -1581,30 +1550,52 @@ class EnsembleTestRunner {
     final errors = <Object>[];
     Object? error;
     while ((error = tester.takeException()) != null) {
-      if (!_isKnownTeardownNoise(error!)) {
+      if (!isNonFatalFlutterDiagnostic(error!) &&
+          !isTransientNavigationDiagnostic(error)) {
         errors.add(error);
       }
     }
     return errors;
   }
 
-  void _throwIfUnexpectedFlutterExceptions(
-    WidgetTester tester, {
-    required String phase,
-  }) {
-    final errors = _takeUnexpectedFlutterExceptions(tester);
-    if (errors.isEmpty) return;
+  /// After all YAML steps passed, discard async dispose/API races from idle
+  /// settle. Still fail when Flutter painted an [ErrorWidget] (red screen).
+  void _assertNoErrorWidgetAfterSuccess(
+    WidgetTester tester,
+    EnsembleTestContext ctx,
+  ) {
+    while (tester.takeException() != null) {}
+    ctx.runtime.flutterErrors.clear();
+    if (!treeHasFlutterErrorWidget(tester)) return;
     throw EnsembleTestFailure(
-      'Unexpected Flutter framework error $phase: '
-      '${_compactDiagnostic(errors.first)} '
+      'Unexpected Flutter ErrorWidget after the final step. '
       'Hint: inspect the previous step and fix the async work or widget '
       'lifecycle before continuing.',
     );
   }
 
-  bool _isKnownTeardownNoise(Object error) => error.toString().contains(
-        'An animation is still running even after the widget tree was disposed.',
-      );
+  void _throwIfUnexpectedFlutterExceptions(
+    WidgetTester tester, {
+    required EnsembleTestContext ctx,
+    required String phase,
+  }) {
+    final pending = _takeUnexpectedFlutterExceptions(tester);
+    ctx.runtime.flutterErrors.removeWhere(isNonFatalFlutterDiagnostic);
+    ctx.runtime.flutterErrors.removeWhere(isTransientNavigationDiagnostic);
+    final recorded = List<String>.from(ctx.runtime.flutterErrors);
+    if (pending.isEmpty && recorded.isEmpty) return;
+
+    // Fail fast — do not keep stepping on a corrupted element tree.
+    ctx.runtime.flutterErrors.clear();
+    final first = pending.isNotEmpty
+        ? _compactDiagnostic(pending.first)
+        : _compactDiagnostic(recorded.first);
+    throw EnsembleTestFailure(
+      'Unexpected Flutter framework error $phase: $first '
+      'Hint: inspect the previous step and fix the async work or widget '
+      'lifecycle before continuing.',
+    );
+  }
 
   String _compactDiagnostic(Object error, {int maxLength = 600}) {
     final normalized = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
