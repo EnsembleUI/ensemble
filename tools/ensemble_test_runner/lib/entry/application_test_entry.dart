@@ -197,7 +197,8 @@ Future<void> _runApplicationObserveOnly({
           sessionId: 'observe_${device.id}',
           permissions: SessionPermissions.restrictedUi,
         );
-        observation = await session.observe(options: inspectUiObservationOptions);
+        observation =
+            await session.observe(options: inspectUiObservationOptions);
         observation = enrichSuggestedLocators(
           observation: observation,
           resolver: session.resolver,

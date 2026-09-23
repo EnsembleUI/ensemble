@@ -262,9 +262,7 @@ void main() {
     );
   });
 
-  testWidgets(
-      'testId ValueKey is what finders resolve',
-      (tester) async {
+  testWidgets('testId ValueKey is what finders resolve', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

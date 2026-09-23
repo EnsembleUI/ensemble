@@ -132,7 +132,8 @@ void main() {
     );
     final flat = _flatten(observation.elements);
     expect(
-      flat.any((e) => (e.text ?? '') == 'Share wifi' || (e.label ?? '') == 'Share wifi'),
+      flat.any((e) =>
+          (e.text ?? '') == 'Share wifi' || (e.label ?? '') == 'Share wifi'),
       isTrue,
       reason: 'unkeyed button under Home shell must be observed',
     );
@@ -206,8 +207,7 @@ void main() {
     await session.close();
   });
 
-  testWidgets('observe types cards separately from buttons',
-      (tester) async {
+  testWidgets('observe types cards separately from buttons', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -289,8 +289,8 @@ void main() {
     final flat = _flatten(observation.elements);
 
     expect(
-      flat.any((e) =>
-          e.type == 'button' && (e.text ?? '').contains('Get started')),
+      flat.any(
+          (e) => e.type == 'button' && (e.text ?? '').contains('Get started')),
       isTrue,
     );
     expect(
@@ -298,13 +298,12 @@ void main() {
       'card',
     );
     expect(
-      flat.any((e) =>
-          e.type == 'card' && (e.text ?? '').contains('Guest wifi')),
+      flat.any(
+          (e) => e.type == 'card' && (e.text ?? '').contains('Guest wifi')),
       isTrue,
     );
     expect(
-      flat.any((e) =>
-          e.type == 'card' && (e.text ?? '').contains('Password')),
+      flat.any((e) => e.type == 'card' && (e.text ?? '').contains('Password')),
       isTrue,
     );
   });
@@ -312,12 +311,73 @@ void main() {
   testWidgets('compact tappable back-arrow image observes as icon',
       (tester) async {
     final png = Uint8List.fromList(<int>[
-      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-      0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-      0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-      0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-      0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+      0x00,
+      0x00,
+      0x00,
+      0x0D,
+      0x49,
+      0x48,
+      0x44,
+      0x52,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x08,
+      0x06,
+      0x00,
+      0x00,
+      0x00,
+      0x1F,
+      0x15,
+      0xC4,
+      0x89,
+      0x00,
+      0x00,
+      0x00,
+      0x0A,
+      0x49,
+      0x44,
+      0x41,
+      0x54,
+      0x78,
+      0x9C,
+      0x63,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x05,
+      0x00,
+      0x01,
+      0x0D,
+      0x0A,
+      0x2D,
+      0xB4,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x49,
+      0x45,
+      0x4E,
+      0x44,
+      0xAE,
+      0x42,
+      0x60,
+      0x82,
     ]);
     await tester.pumpWidget(
       MaterialApp(
@@ -591,8 +651,8 @@ void main() {
         synchronization: ObservationSynchronization.immediate,
       ),
     );
-    final icon = _flatten(observation.elements)
-        .firstWhere((e) => e.type == 'icon');
+    final icon =
+        _flatten(observation.elements).firstWhere((e) => e.type == 'icon');
     expect(icon.text, 'Toggle theme');
     expect(icon.state.enabled, isTrue);
 
@@ -703,12 +763,73 @@ void main() {
       (tester) async {
     // 1x1 PNG
     final png = Uint8List.fromList(<int>[
-      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-      0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-      0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-      0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-      0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+      0x00,
+      0x00,
+      0x00,
+      0x0D,
+      0x49,
+      0x48,
+      0x44,
+      0x52,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x08,
+      0x06,
+      0x00,
+      0x00,
+      0x00,
+      0x1F,
+      0x15,
+      0xC4,
+      0x89,
+      0x00,
+      0x00,
+      0x00,
+      0x0A,
+      0x49,
+      0x44,
+      0x41,
+      0x54,
+      0x78,
+      0x9C,
+      0x63,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x05,
+      0x00,
+      0x01,
+      0x0D,
+      0x0A,
+      0x2D,
+      0xB4,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x49,
+      0x45,
+      0x4E,
+      0x44,
+      0xAE,
+      0x42,
+      0x60,
+      0x82,
     ]);
     final lottie = EnsembleLottie();
     lottie.controller.source = 'assets/anim.json';
@@ -718,13 +839,15 @@ void main() {
         home: Scaffold(
           body: Column(
             children: [
-              Image.memory(png, key: const ValueKey('hero_image'), width: 40, height: 40),
+              Image.memory(png,
+                  key: const ValueKey('hero_image'), width: 40, height: 40),
               Image(
                 key: const ValueKey('spinner_gif'),
                 image: NetworkImage('https://example.com/spinner.gif'),
                 width: 40,
                 height: 40,
-                errorBuilder: (_, __, ___) => const SizedBox(width: 40, height: 40),
+                errorBuilder: (_, __, ___) =>
+                    const SizedBox(width: 40, height: 40),
               ),
               KeyedSubtree(key: const ValueKey('hero_lottie'), child: lottie),
               // Compact tappable media → icon (back/close chrome).

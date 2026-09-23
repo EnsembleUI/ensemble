@@ -76,8 +76,9 @@ UiElement describeElement({
       text.trim() == hint.trim()) {
     text = null;
   }
-  final options =
-      type == 'dropdown' ? readDropdownOptions(semanticsSource) : const <String>[];
+  final options = type == 'dropdown'
+      ? readDropdownOptions(semanticsSource)
+      : const <String>[];
   final interactable = visible && !offscreen && enabled != false;
 
   return UiElement(
@@ -318,7 +319,9 @@ bool _hasMediaHostAncestor(Element element) {
 String _mediaTypeForSource(Object? source, {required String fallback}) {
   final raw = source?.toString().trim().toLowerCase() ?? '';
   if (raw.endsWith('.svg') || raw.contains('.svg?')) return 'svg';
-  if (raw.endsWith('.gif') || raw.contains('.gif?') || raw.contains('image/gif')) {
+  if (raw.endsWith('.gif') ||
+      raw.contains('.gif?') ||
+      raw.contains('image/gif')) {
     return 'gif';
   }
   if (raw.endsWith('.json') ||
@@ -363,8 +366,7 @@ String? _mediaSourceLabel(Object? source) {
   // ImageProvider debug strings — keep short.
   final assetMatch = RegExp(r'AssetImage\(name:\s*"([^"]+)"\)').firstMatch(raw);
   if (assetMatch != null) raw = assetMatch.group(1)!;
-  final networkMatch =
-      RegExp(r'NetworkImage\("([^"]+)"').firstMatch(raw);
+  final networkMatch = RegExp(r'NetworkImage\("([^"]+)"').firstMatch(raw);
   if (networkMatch != null) raw = networkMatch.group(1)!;
   final uri = Uri.tryParse(raw);
   final path = (uri != null && uri.path.isNotEmpty) ? uri.path : raw;
@@ -402,9 +404,7 @@ T? _selfOrAncestor<T extends Widget>(Element element) {
 }
 
 bool _isGenericTapTarget(Widget widget) =>
-    widget is GestureDetector ||
-    widget is InkWell ||
-    widget is InkResponse;
+    widget is GestureDetector || widget is InkWell || widget is InkResponse;
 
 bool _isDropdownWidget(Widget widget) {
   if (widget is DropdownButton ||
