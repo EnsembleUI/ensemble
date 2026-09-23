@@ -156,6 +156,7 @@
           "type": "string",
           "enum": [
             "button",
+            "card",
             "text",
             "textField",
             "checkbox",
@@ -163,6 +164,10 @@
             "slider",
             "dropdown",
             "icon",
+            "image",
+            "svg",
+            "gif",
+            "lottie",
             "widget"
           ]
         },
