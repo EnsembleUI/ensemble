@@ -4,69 +4,69 @@ import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
-import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Bound observe used on failure — prefer a quick snapshot over long settle.
-const failureObserverOptions = ObservationOptions(
-  synchronization: ObservationSynchronization.immediate,
-  includeBounds: true,
-);
-
-/// Live UI dump for a failed step's Observer tab.
+/// Live UI dump for a step's Observer tab (success or failure).
 ///
-/// Does **not** capture a second screenshot and does **not** pump the tester —
-/// that would advance the tree past the failure frame. Overlays are percent
-/// rects mapped onto the existing failure [ScreenshotSheetFrame] for HTML.
-Future<void> captureFailureObserverBestEffort({
+/// Uses [captureDiagnosticUiSnapshot] — no SemanticsHandle, no pump, no leaf
+/// queue. Does **not** capture a second screenshot; call after the step frame
+/// exists so overlays match that PNG.
+///
+/// Mid-wait hooks may still hold the leaf queue — skip then and let the runner
+/// defer until `execute` returns.
+Future<void> captureStepObserverBestEffort({
   required LocalTestExecutionSession session,
   required TestStepExecutor executor,
   required int stepIndex,
 }) async {
   final ctx = executor.context;
   if (!ctx.config.screenshots.enabled) return;
+  if (session.queue.isBusy) return;
+  final frame = _latestScreenshotFrame(ctx, stepIndex);
+  if (frame == null) return;
   try {
-    // No pump: must match the pixels already in screenshotSheetFrames.
-    var observation = await session.observe(options: failureObserverOptions);
-    observation = enrichSuggestedLocators(
-      observation: observation,
-      resolver: session.resolver,
-      registry: session.registry,
+    final snap = captureDiagnosticUiSnapshot(
+      tester: executor.tester,
+      assertions: session.assertions,
+      navigation: session.services.navigation,
     );
     final device = ctx.testCase.deviceTarget;
-    final frame = _latestScreenshotFrame(ctx, stepIndex);
-    final overlays = frame == null
-        ? const <Map<String, dynamic>>[]
-        : observerOverlaysForReport(
-            observation: observation,
-            tester: executor.tester,
-            image: frame.image,
-            device: device,
-          );
-    ctx.runtime.failureObserver?.dispose();
-    ctx.runtime.failureObserver = FailureObserverArtifact(
-      stepIndex: stepIndex,
-      screen: _screenLabel(observation),
-      elements: flattenObservationElementsForReport(observation),
-      overlays: overlays,
-      deviceId: device?.id,
-      deviceLabel: device?.displayLabel,
-      platform: device?.platform,
-      model: device?.model,
+    final overlays = observerOverlaysForReport(
+      observation: snap.observation,
+      tester: executor.tester,
+      image: frame.image,
+      device: device,
+    );
+    ctx.runtime.upsertStepObserver(
+      StepObserverArtifact(
+        stepIndex: stepIndex,
+        screen: snap.screenLabel,
+        elements: flattenObservationElementsForReport(snap.observation),
+        overlays: overlays,
+        deviceId: device?.id,
+        deviceLabel: device?.displayLabel,
+        platform: device?.platform,
+        model: device?.model,
+      ),
     );
   } catch (_) {
-    // Observer capture must never replace the real test failure.
+    // Observer capture must never replace the real test result.
   }
 }
+
+/// True when [stepIndex] already has Observer metadata (e.g. before-step shot).
+bool hasStepObserver(EnsembleTestContext ctx, int stepIndex) =>
+    ctx.runtime.stepObservers.any((o) => o.stepIndex == stepIndex);
 
 ScreenshotSheetFrame? _latestScreenshotFrame(
   EnsembleTestContext ctx,
@@ -77,16 +77,6 @@ ScreenshotSheetFrame? _latestScreenshotFrame(
     if (frame.stepIndex == stepIndex) latest = frame;
   }
   return latest;
-}
-
-String _screenLabel(UiObservation observation) {
-  final screen = observation.screen;
-  if (screen.unknown) return 'Unknown';
-  final name = screen.name?.trim();
-  if (name != null && name.isNotEmpty) return name;
-  final route = screen.routeId?.trim();
-  if (route != null && route.isNotEmpty) return route;
-  return 'Unknown';
 }
 
 /// Percent-of-framed-image overlays for HTML (aligned with failure highlights).
@@ -283,6 +273,7 @@ String? _titleFor(UiElement element) {
       return _firstNonEmpty([element.label, element.testId]);
     case 'button':
     case 'card':
+    case 'toast':
       return _firstNonEmpty([element.text, element.label, element.testId]);
     default:
       return _firstNonEmpty([element.label, element.text, element.testId]);

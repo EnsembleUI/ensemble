@@ -239,8 +239,65 @@ void main() {
     expect(masked, maskFill);
     expect(allowed, isNot(maskFill));
   });
-}
 
+  testWidgets('screenshotImageRegionHasContrast rejects flat empty regions',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          backgroundColor: Color(0xFF131313),
+          body: SizedBox.expand(),
+        ),
+      ),
+    );
+
+    final image = ExtendedStepHandlers.captureScreenshotImage(tester);
+    addTearDown(image.dispose);
+    final hasContrast = await tester.runAsync(
+      () => screenshotImageRegionHasContrast(
+        image: image,
+        region: Rect.fromLTWH(
+          image.width * 0.1,
+          image.height * 0.85,
+          image.width * 0.8,
+          image.height * 0.05,
+        ),
+      ),
+    );
+    expect(hasContrast, isFalse);
+  });
+
+  testWidgets('screenshotImageRegionHasContrast accepts a painted control',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          backgroundColor: Color(0xFF131313),
+          body: Center(
+            child: ColoredBox(
+              key: ValueKey('cta'),
+              color: Color(0xFF4491F7),
+              child: SizedBox(width: 280, height: 48),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final image = ExtendedStepHandlers.captureScreenshotImage(tester);
+    addTearDown(image.dispose);
+    final button = tester.getRect(find.byKey(const ValueKey('cta')));
+    final region = screenshotLogicalRectToImagePixels(
+      logicalRect: button,
+      logicalSize: tester.binding.renderViews.first.size,
+      imageSize: Size(image.width.toDouble(), image.height.toDouble()),
+    );
+    final hasContrast = await tester.runAsync(
+      () => screenshotImageRegionHasContrast(image: image, region: region),
+    );
+    expect(hasContrast, isTrue);
+  });
+}
 Future<Uint8List> _rgba(ui.Image image) async {
   final data = await image.toByteData();
   return data!.buffer.asUint8List();

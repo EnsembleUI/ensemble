@@ -38,9 +38,9 @@ Future<String?> writeScreenshotFrames({
   String? failedStepLabel,
   String? failureMessage,
   String? failedDeviceId,
-  FailureObserverArtifact? failureObserver,
+  List<StepObserverArtifact> stepObservers = const [],
 }) async {
-  if (frames.isEmpty && failureObserver == null) return null;
+  if (frames.isEmpty && stepObservers.isEmpty) return null;
 
   final defaultDevice = resolveScreenshotDevice(const {});
   final manifestDirectory = ensembleTestArtifactDirectory('frames');
@@ -88,15 +88,14 @@ Future<String?> writeScreenshotFrames({
       });
     }
 
-    if (failureObserver != null) {
-      // Metadata only — no second PNG. HTML draws overlays on the failure shot.
+    for (final observer in stepObservers) {
+      // Metadata only — no second PNG. HTML draws overlays on the step shot.
       frameEntries.add({
-        'stepIndex': failureObserver.stepIndex,
+        'stepIndex': observer.stepIndex,
         'role': 'observer',
-        if (failureObserver.screen != null) 'screen': failureObserver.screen,
-        'elements': failureObserver.elements,
-        if (failureObserver.overlays.isNotEmpty)
-          'overlays': failureObserver.overlays,
+        if (observer.screen != null) 'screen': observer.screen,
+        'elements': observer.elements,
+        if (observer.overlays.isNotEmpty) 'overlays': observer.overlays,
       });
     }
   } finally {
@@ -105,7 +104,9 @@ Future<String?> writeScreenshotFrames({
         frame.image.dispose();
       } catch (_) {}
     }
-    failureObserver?.dispose();
+    for (final observer in stepObservers) {
+      observer.dispose();
+    }
   }
 
   if (frameEntries.isEmpty) return null;

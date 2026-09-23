@@ -257,6 +257,11 @@ class LocalTestExecutionSession implements TestExecutionSession {
     ObservationOptions options = const ObservationOptions(),
   }) {
     _ensureOpen();
+    // Mid-wait / mid-act screenshot callbacks already hold [queue]. Nesting
+    // another [queue.run] deadlocks the worker. Observe is a read-only snapshot.
+    if (queue.isBusy) {
+      return observer.observe(options);
+    }
     return queue.run(() => observer.observe(options));
   }
 

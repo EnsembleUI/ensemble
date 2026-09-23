@@ -1,16 +1,23 @@
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
+import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Builds a semantic [UiElement] snapshot from a live Flutter [Element].
 ///
 /// Shared by [FlutterUiObserver] and live fingerprint revalidation so observe
 /// and act agree on observable state.
+///
+/// When [useSemantics] is false (diagnostic / report snapshots), skips
+/// [WidgetTester.getSemantics] label reads. When [registerRouteDependency] is
+/// false, visibility uses a dependency-free current-route check so hot-path
+/// dumps do not subscribe every element to `_ModalScopeStatus`.
 UiElement describeElement({
   required Element element,
   required String elementId,
@@ -18,6 +25,8 @@ UiElement describeElement({
   required AssertionEngine assertions,
   required WidgetTester tester,
   required bool includeBounds,
+  bool useSemantics = true,
+  bool registerRouteDependency = true,
 }) {
   final type = resolveObservedWidgetType(element, testId: testId);
   final primary = type != 'widget' && testId != null && testId.isNotEmpty
@@ -26,16 +35,26 @@ UiElement describeElement({
   final semanticsSource = primary ?? element;
   final secure = looksSecure(semanticsSource, testId);
   final bounds = boundsFor(element);
-  final visible = assertions.isElementVisuallyActionable(element);
+  final visible = registerRouteDependency
+      ? assertions.isElementVisuallyActionable(element)
+      : isElementGeometricallyVisible(element, tester);
   final offscreen = bounds != null && !inViewport(tester, bounds);
   // Icons: only report enabled for real icon buttons — do not inherit
   // `onTap` from a parent InkWell that wraps a larger control.
   final enabled = type == 'icon'
       ? readIconButtonEnabled(semanticsSource)
-      : readEnabled(semanticsSource);
+      : type == 'toast'
+          ? null
+          : type == 'card'
+              ? readCardEnabled(semanticsSource)
+              : readEnabled(semanticsSource);
   final checked = readChecked(semanticsSource);
   var text = secure ? null : readText(semanticsSource);
-  var label = secure ? null : readControlLabel(semanticsSource, tester);
+  var label = secure
+      ? null
+      : (useSemantics
+          ? readControlLabel(semanticsSource, tester)
+          : readControlLabelWithoutSemantics(semanticsSource));
   final hint = secure ? null : readHint(semanticsSource);
   // Icons rarely have Text; fall back to tooltip / semanticLabel.
   if (type == 'icon' &&
@@ -564,6 +583,7 @@ String? _inferElementWidgetType(Element element) {
 /// Classify InkWell / GestureDetector by contents (Ensemble + host patterns).
 ///
 /// Tappable ≠ button. Prefer:
+/// - [toast] for FToast / Ensemble showToast banners
 /// - [dropdown] for value+drop-down chevron
 /// - [card] for tiles and settings rows (Devices / Speedtest / Guest wifi)
 /// - [button] for Material buttons and compact text CTAs ("Get started →")
@@ -582,6 +602,13 @@ String _inferGenericTapTargetType(Element element) {
 
   // Authoring ids often encode the shape: devices_mini_card, wifi_card, …
   if (RegExp(r'card', caseSensitive: false).hasMatch(keyId)) return 'card';
+  if (RegExp(r'toast', caseSensitive: false).hasMatch(keyId)) return 'toast';
+
+  // Ensemble / fluttertoast overlays — before card heuristics (banner bounds
+  // otherwise look like list-row cards, and FToast uses onTap: null → enabled=false).
+  if (_looksLikeToast(element, bounds: bounds, hasNavChevron: hasNavChevron)) {
+    return 'toast';
+  }
 
   // Icon buttons: Flutter Icon, or compact glyph-only targets (language "A").
   // Also compact tappable images (back arrow / close X rendered as SVG/PNG) —
@@ -610,6 +637,50 @@ String _inferGenericTapTargetType(Element element) {
 
   // Compact text CTAs and Material-style actions.
   return 'button';
+}
+
+/// True for Ensemble [ToastController] / fluttertoast FToast overlay banners.
+bool _looksLikeToast(
+  Element element, {
+  required UiBounds? bounds,
+  required bool hasNavChevron,
+}) {
+  if (hasNavChevron) return false;
+  if (!_isUnderToastOverlay(element)) return false;
+  // Toast banners are wide and relatively short (same band as list rows).
+  if (bounds == null) return true;
+  if (bounds.width <= 0 || bounds.height <= 0) return true;
+  return bounds.height <= 160;
+}
+
+/// FToast / Ensemble toast: [Positioned] gravity wrapper or `_ToastStateFul`.
+bool _isUnderToastOverlay(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    final widget = ancestor.widget;
+    final typeName = widget.runtimeType.toString();
+    if (typeName.contains('Toast') && typeName.contains('State')) {
+      found = true;
+      return false;
+    }
+    if (widget is Positioned) {
+      // Ensemble ToastController / FToast gravity builders.
+      final topBanner = widget.top != null &&
+          widget.left != null &&
+          widget.right != null &&
+          widget.bottom == null;
+      final bottomBanner = widget.bottom != null &&
+          widget.left != null &&
+          widget.right != null &&
+          widget.top == null;
+      if (topBanner || bottomBanner) {
+        found = true;
+        return false;
+      }
+    }
+    return true;
+  });
+  return found;
 }
 
 bool _looksLikeIconSizedMedia(UiBounds? bounds) {
@@ -828,6 +899,36 @@ bool? readIconButtonEnabled(Element element) {
   return readEnabled(element);
 }
 
+/// Enabled for observed `card` rows — only when the card itself is tappable.
+///
+/// FToast wraps banners in [GestureDetector] with `onTap: null` (not a disabled
+/// button). Nested close [InkWell]s must not invent an enabled state either.
+bool? readCardEnabled(Element element) {
+  final widget = element.widget;
+  if (widget is InkWell) {
+    return widget.onTap != null ? true : null;
+  }
+  if (widget is InkResponse) {
+    return widget.onTap != null ? true : null;
+  }
+  if (widget is GestureDetector) {
+    final tappable = widget.onTap != null ||
+        widget.onTapUp != null ||
+        widget.onTapDown != null;
+    return tappable ? true : null;
+  }
+  // Material button wrappers used as cards.
+  final elevated = _selfOrAncestor<ElevatedButton>(element);
+  if (elevated != null) return elevated.onPressed != null;
+  final textButton = _selfOrAncestor<TextButton>(element);
+  if (textButton != null) return textButton.onPressed != null;
+  final outlined = _selfOrAncestor<OutlinedButton>(element);
+  if (outlined != null) return outlined.onPressed != null;
+  final filled = _selfOrAncestor<FilledButton>(element);
+  if (filled != null) return filled.onPressed != null;
+  return null;
+}
+
 bool? readChecked(Element element) {
   final sw = _selfOrAncestor<Switch>(element);
   if (sw != null) return sw.value;
@@ -924,16 +1025,8 @@ String? readHint(Element element) {
 
 /// Label for a control: InputDecoration label, then semantics (not the hint).
 String? readControlLabel(Element element, WidgetTester tester) {
-  final field = element.widget is TextField
-      ? element.widget as TextField
-      : _selfOrAncestor<TextField>(element);
-  if (field != null) {
-    final decoration = field.decoration;
-    final labelText = decoration?.labelText?.trim();
-    if (labelText != null && labelText.isNotEmpty) return labelText;
-    final fromWidget = _plainTextFromWidget(decoration?.label);
-    if (fromWidget != null) return fromWidget;
-  }
+  final fromWidgets = readControlLabelWithoutSemantics(element);
+  if (fromWidgets != null) return fromWidgets;
   final semantic = readSemanticsLabel(tester, element)?.trim();
   if (semantic == null || semantic.isEmpty) return null;
   final hint = readHint(element)?.trim();
@@ -947,6 +1040,82 @@ String? readControlLabel(Element element, WidgetTester tester) {
     }
   }
   return semantic;
+}
+
+/// Widget-field label only — never calls [WidgetTester.getSemantics].
+String? readControlLabelWithoutSemantics(Element element) {
+  final field = element.widget is TextField
+      ? element.widget as TextField
+      : _selfOrAncestor<TextField>(element);
+  if (field != null) {
+    final decoration = field.decoration;
+    final labelText = decoration?.labelText?.trim();
+    if (labelText != null && labelText.isNotEmpty) return labelText;
+    final fromWidget = _plainTextFromWidget(decoration?.label);
+    if (fromWidget != null) return fromWidget;
+  }
+  final semanticsWidget = element.widget is Semantics
+      ? element.widget as Semantics
+      : _selfOrAncestor<Semantics>(element);
+  final direct = semanticsWidget?.properties.label?.trim();
+  if (direct != null && direct.isNotEmpty) return direct;
+  return null;
+}
+
+/// Geometry / opacity / current-route visibility without InheritedWidget deps.
+bool isElementGeometricallyVisible(Element element, WidgetTester tester) {
+  if (!isUnderCurrentModalRoute(element)) return false;
+  if (_isUnderOffstageAncestor(element)) return false;
+  final renderObject = element.renderObject;
+  if (renderObject is! RenderBox ||
+      !renderObject.hasSize ||
+      renderObject.size.isEmpty) {
+    return false;
+  }
+  if (_effectiveOpacity(element) <= 0.01) return false;
+  final topLeft = renderObject.localToGlobal(Offset.zero);
+  final rect = topLeft & renderObject.size;
+  if (!rect.isFinite || rect.isEmpty) return false;
+  final viewport = tester.binding.renderViews.first.paintBounds;
+  final visibleRect = rect.intersect(viewport);
+  return visibleRect != Rect.zero &&
+      visibleRect.width > 0 &&
+      visibleRect.height > 0;
+}
+
+bool _isUnderOffstageAncestor(Element element) {
+  var isOffstage = false;
+  element.visitAncestorElements((ancestor) {
+    final renderObject = ancestor.renderObject;
+    if (renderObject is RenderOffstage && renderObject.offstage) {
+      isOffstage = true;
+      return false;
+    }
+    return true;
+  });
+  return isOffstage;
+}
+
+double _effectiveOpacity(Element element) {
+  var opacity = 1.0;
+  element.visitAncestorElements((ancestor) {
+    final renderObject = ancestor.renderObject;
+    if (renderObject is RenderOpacity) {
+      opacity *= renderObject.opacity;
+    } else if (renderObject != null &&
+        renderObject.runtimeType.toString() == 'RenderAnimatedOpacity') {
+      try {
+        final animatedOpacity = (renderObject as dynamic).opacity;
+        if (animatedOpacity is Animation<double>) {
+          opacity *= animatedOpacity.value;
+        } else if (animatedOpacity is double) {
+          opacity *= animatedOpacity;
+        }
+      } catch (_) {}
+    }
+    return opacity > 0.01;
+  });
+  return opacity;
 }
 
 String? _plainTextFromWidget(Widget? widget) {
@@ -1176,6 +1345,8 @@ List<String> supportedActionsFor(String? type, {required bool secure}) {
       return const ['tap', 'longPress', 'doubleTap'];
     case 'card':
       return const ['tap', 'longPress'];
+    case 'toast':
+      return const [];
     case 'icon':
       return const ['tap', 'longPress'];
     case 'dropdown':

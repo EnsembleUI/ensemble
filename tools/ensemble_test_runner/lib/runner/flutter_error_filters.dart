@@ -32,6 +32,15 @@ bool isNonFatalFlutterDiagnostic(Object error) {
   if (text.contains("Looking up a deactivated widget's ancestor")) {
     return true;
   }
+  // Enabling/disposing SemanticsHandle around observe dirties Focus /
+  // MediaQuery inherited scopes; Live-binding pumps may report a one-shot
+  // build assert without replacing the tree with ErrorWidget.
+  if (text.contains('building _FocusInheritedScope')) {
+    return true;
+  }
+  if (text.contains('building _MediaQueryFromView')) {
+    return true;
+  }
   return false;
 }
 

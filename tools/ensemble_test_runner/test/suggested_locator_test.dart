@@ -107,6 +107,7 @@ void main() {
       formatSuggestedSelector(button.suggestedLocator!),
       'id=login_test_token',
     );
+    await session.close();
   });
 
   testWidgets('enrichSuggestedLocators warns on ambiguous duplicates',
@@ -162,6 +163,7 @@ void main() {
         ),
       );
     }
+    await session.close();
   });
 
   testWidgets('observer reports Invokable YAML id without ValueKey',
@@ -197,6 +199,7 @@ void main() {
         .toList();
     expect(inputs, isNotEmpty);
     expect(inputs.any((e) => e.testId == 'rgUrl'), isTrue);
+    await session.close();
   });
 
   testWidgets(
@@ -260,6 +263,7 @@ void main() {
       _flatten(obs.elements).any((e) => e.testId == 'rgUrl'),
       isTrue,
     );
+    await session.close();
   });
 
   testWidgets('testId ValueKey is what finders resolve', (tester) async {
@@ -333,6 +337,7 @@ void main() {
       formatSuggestedSelector(dropdown.suggestedLocator!),
       'id=deviceTypeSelector',
     );
+    await session.close();
   });
 
   testWidgets('enrichSuggestedLocators marks unlabeled icons unavailable',
@@ -375,6 +380,7 @@ void main() {
       expect(icon.suggestedLocator, isNull);
       expect(icon.locatorWarning, 'No stable locator available');
     }
+    await session.close();
   });
 
   testWidgets(
@@ -430,10 +436,13 @@ void main() {
         formatSuggestedSelector(kpn.suggestedLocator!),
         contains('text="KPN"'),
       );
+      await session.close();
     },
   );
 }
 
+// Invokable stores mutable `id` / `definition` — required by the mixin.
+// ignore: must_be_immutable
 class _InvokableHost extends StatefulWidget with Invokable {
   _InvokableHost({required String id, required this.child}) {
     this.id = id;

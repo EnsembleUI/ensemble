@@ -1850,37 +1850,89 @@ const ensembleHtmlTestReportAppJs = r'''
     let html = '<a class="screenshot-image-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">';
     html += '<span class="screenshot-image-wrap">';
     html += '<img src="' + escapeHtml(href) + '" alt="' + escapeHtml(label) + '" loading="lazy"/>';
+
     const highlight = frame.highlight || null;
+    let highlightRect = null;
     if (highlight) {
-      const kind = highlight.kind === 'assertion' || highlight.kind === 'failure'
-        ? highlight.kind
-        : 'action';
       const left = Number(highlight.left || 0);
       const top = Number(highlight.top || 0);
       const width = Number(highlight.width || 0);
       const height = Number(highlight.height || 0);
       if (width > 0 && height > 0) {
-        html += '<span class="screenshot-highlight ' + kind + '" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"><span class="screenshot-highlight-dot"></span></span>';
+        highlightRect = { left: left, top: top, width: width, height: height };
       }
     }
+
+    // Observer boxes for every element except the action/failure target —
+    // that control keeps the step ring; observer only contributes type/id chips.
     const overlays = Array.isArray(observerOverlays) ? observerOverlays : [];
+    const actionChips = [];
     overlays.forEach((overlay) => {
       const left = Number(overlay.left || 0);
       const top = Number(overlay.top || 0);
       const width = Number(overlay.width || 0);
       const height = Number(overlay.height || 0);
       if (!(width > 0 && height > 0)) return;
-      html += '<span class="screenshot-highlight observer" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;">';
-      const chips = [];
-      if (overlay.id) chips.push('<span class="screenshot-observer-chip id">' + escapeHtml(String(overlay.id)) + '</span>');
-      if (overlay.type) chips.push('<span class="screenshot-observer-chip type">' + escapeHtml(String(overlay.type)) + '</span>');
-      if (chips.length) {
-        html += '<span class="screenshot-observer-chips">' + chips.join('') + '</span>';
+      const rect = { left: left, top: top, width: width, height: height };
+      if (highlightRect && observerOverlapsHighlight(rect, highlightRect)) {
+        if (overlay.id) actionChips.push({ kind: 'id', text: String(overlay.id) });
+        if (overlay.type) actionChips.push({ kind: 'type', text: String(overlay.type) });
+        return;
       }
+      html += '<span class="screenshot-highlight observer" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;">';
+      html += renderObserverChips(overlay.id, overlay.type);
       html += '</span>';
     });
+
+    // Action / assertion / failure ring on top — primary focus of the step.
+    if (highlightRect) {
+      const kind = highlight.kind === 'assertion' || highlight.kind === 'failure'
+        ? highlight.kind
+        : 'action';
+      html += '<span class="screenshot-highlight ' + kind + '" style="left:' + highlightRect.left.toFixed(4) + '%;top:' + highlightRect.top.toFixed(4) + '%;width:' + highlightRect.width.toFixed(4) + '%;height:' + highlightRect.height.toFixed(4) + '%;">';
+      html += '<span class="screenshot-highlight-dot"></span>';
+      if (actionChips.length) {
+        const seen = new Set();
+        let chipsHtml = '';
+        actionChips.forEach((chip) => {
+          const key = chip.kind + ':' + chip.text;
+          if (seen.has(key)) return;
+          seen.add(key);
+          chipsHtml += '<span class="screenshot-observer-chip ' + chip.kind + '">' + escapeHtml(chip.text) + '</span>';
+        });
+        if (chipsHtml) {
+          html += '<span class="screenshot-observer-chips">' + chipsHtml + '</span>';
+        }
+      }
+      html += '</span>';
+    }
     html += '</span></a>';
     return html;
+  }
+
+  function renderObserverChips(id, type) {
+    const chips = [];
+    if (id) chips.push('<span class="screenshot-observer-chip id">' + escapeHtml(String(id)) + '</span>');
+    if (type) chips.push('<span class="screenshot-observer-chip type">' + escapeHtml(String(type)) + '</span>');
+    if (!chips.length) return '';
+    return '<span class="screenshot-observer-chips">' + chips.join('') + '</span>';
+  }
+
+  /** True when [observer] mostly covers the same control as [highlight]. */
+  function observerOverlapsHighlight(observer, highlight) {
+    const ox2 = observer.left + observer.width;
+    const oy2 = observer.top + observer.height;
+    const hx2 = highlight.left + highlight.width;
+    const hy2 = highlight.top + highlight.height;
+    const ix = Math.max(0, Math.min(ox2, hx2) - Math.max(observer.left, highlight.left));
+    const iy = Math.max(0, Math.min(oy2, hy2) - Math.max(observer.top, highlight.top));
+    const inter = ix * iy;
+    if (inter <= 0) return false;
+    const oArea = observer.width * observer.height;
+    const hArea = highlight.width * highlight.height;
+    if (oArea <= 0 || hArea <= 0) return false;
+    // Same control: observer covers most of the highlight, or vice versa.
+    return (inter / hArea) >= 0.45 || (inter / oArea) >= 0.45;
   }
 
   let activeScreenTab = 'screen-debugtree';

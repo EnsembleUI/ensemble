@@ -578,6 +578,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 secondaryFailures: secondaryFailures,
               );
               _throwIfHostApplicationError(context);
+              if (!hasStepObserver(context, i)) {
+                await captureStepObserverBestEffort(
+                  session: attached,
+                  executor: executor,
+                  stepIndex: i,
+                );
+              }
             } catch (error, stackTrace) {
               await _captureHostStepScreenshotSafely(
                 tester: tester,
@@ -587,7 +594,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 secondaryFailures: secondaryFailures,
               );
               try {
-                await captureFailureObserverBestEffort(
+                await captureStepObserverBestEffort(
                   session: attached,
                   executor: executor,
                   stepIndex: i,

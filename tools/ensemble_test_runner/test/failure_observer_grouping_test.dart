@@ -18,6 +18,30 @@ void main() {
       rawConsoleLines: const [],
       screenshotFrames: [
         {
+          'stepIndex': 0,
+          'label': '1. tap(login)',
+          'file': 'tap.webp',
+          'href': 'screenshots/tap.webp',
+        },
+        {
+          'stepIndex': 0,
+          'role': 'observer',
+          'screen': 'Login',
+          'elements': [
+            {'index': 1, 'type': 'button', 'title': 'Login', 'id': 'login'},
+          ],
+          'overlays': [
+            {
+              'left': 5.0,
+              'top': 10.0,
+              'width': 20.0,
+              'height': 8.0,
+              'id': 'login',
+              'type': 'button',
+            },
+          ],
+        },
+        {
           'stepIndex': 1,
           'label': '2. waitForNavigation(Home)',
           'file': 'normal.webp',
@@ -45,10 +69,11 @@ void main() {
     );
 
     expect(steps, hasLength(2));
-    expect(steps[0]['observer'], isNull);
-    final shots = steps[1]['screenshots'] as List;
-    expect(shots, hasLength(1));
-    expect(shots.single['file'], 'normal.webp');
+    expect(steps[0]['observer'], isNotNull);
+    expect(steps[0]['observer']['screen'], 'Login');
+    expect(steps[0]['screenshots'], hasLength(1));
+    expect(steps[1]['screenshots'], hasLength(1));
+    expect(steps[1]['screenshots'].single['file'], 'normal.webp');
     final observer = steps[1]['observer'] as Map;
     expect(observer['screen'], 'Home');
     expect(observer.containsKey('screenshot'), isFalse);

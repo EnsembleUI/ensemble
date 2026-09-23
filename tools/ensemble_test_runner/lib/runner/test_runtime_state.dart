@@ -14,8 +14,8 @@ class TestRuntimeState {
   final List<AppFrameTimingEntry> appFrameTimings = [];
   final List<PerformanceMarker> performanceMarkers = [];
   final List<ScreenshotSheetFrame> screenshotSheetFrames = [];
-  /// Live UI dump for the failed step (Observer tab in the HTML report).
-  FailureObserverArtifact? failureObserver;
+  /// Live UI dumps for Step Details → Observer (one per step that was shot).
+  final List<StepObserverArtifact> stepObservers = [];
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
@@ -41,8 +41,10 @@ class TestRuntimeState {
     appFrameTimings.clear();
     performanceMarkers.clear();
     screenshotSheetFrames.clear();
-    failureObserver?.dispose();
-    failureObserver = null;
+    for (final observer in stepObservers) {
+      observer.dispose();
+    }
+    stepObservers.clear();
     authUser = null;
     permissions.clear();
     deviceSize = null;
@@ -98,6 +100,12 @@ class TestRuntimeState {
   void addScreenshotSheetFrame(ScreenshotSheetFrame frame) {
     screenshotSheetFrames.add(frame);
   }
+
+  /// Replace any existing observer for [artifact.stepIndex].
+  void upsertStepObserver(StepObserverArtifact artifact) {
+    stepObservers.removeWhere((o) => o.stepIndex == artifact.stepIndex);
+    stepObservers.add(artifact);
+  }
 }
 
 class ScreenshotSheetFrame {
@@ -123,12 +131,12 @@ class ScreenshotSheetFrame {
   });
 }
 
-/// Observe snapshot for a failed step (elements + HTML overlay percents).
+/// Observe snapshot for a step (elements + HTML overlay percents).
 ///
-/// No second screenshot — overlays are drawn on the failure frame in the
+/// No second screenshot — overlays are drawn on that step's frame in the
 /// HTML report.
-class FailureObserverArtifact {
-  FailureObserverArtifact({
+class StepObserverArtifact {
+  StepObserverArtifact({
     required this.stepIndex,
     required this.elements,
     this.overlays = const [],

@@ -35,6 +35,7 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
+import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
 import 'package:ensemble_test_runner/session/yaml/yaml_step_dispatcher.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -559,6 +560,13 @@ class EnsembleTestRunner {
               waitForTarget: true,
             );
             capturedStep = true;
+            // Queue is free before execute — capture overlays while the tree
+            // still matches the before-step PNG.
+            await captureStepObserverBestEffort(
+              session: session,
+              executor: executor,
+              stepIndex: i,
+            );
           }
           if (step.type == 'waitForText') {
             executor.onWaitForTextMatched = (matchedStep) async {
@@ -595,14 +603,45 @@ class EnsembleTestRunner {
           if (optionalActionStep != null) {
             Future<void> captureOptionalAction(TestStep matchedStep) async {
               if (capturedStep) return;
-              await _captureAutomaticScreenshotForStep(
+              // Optional taps become hit-testable a frame (or more) before the
+              // control has painted — capturing immediately produced empty
+              // loading frames with a phantom highlight (e.g. measuring signal
+              // while fwa_signal_continue_button was not on screen yet).
+              await _waitForScreenshotTarget(executor, matchedStep);
+              final highlightFinder = _highlightFinder(executor, matchedStep);
+              final targetPainted = highlightFinder != null &&
+                  _isHighlightTargetPainted(
+                    executor,
+                    highlightFinder,
+                    _isUserActionStep(matchedStep),
+                  );
+              if (!targetPainted) {
+                // Skip a misleading before-shot; the optional action still runs.
+                return;
+              }
+              final didCapture = await _captureAutomaticScreenshotForStep(
                 executor: executor,
                 step: matchedStep,
                 labelStep: step,
                 stepIndex: i,
-                stabilize: false,
+                pumpBeforeCapture: true,
+                // Already waited above; keep capture fast.
+                waitForTarget: false,
+                // Short settle so pixels match the highlight target without a
+                // long Lottie wait that can leave this optional screen.
+                stabilize: true,
+                waitForLottie: false,
+                requireVisibleActionHighlight: true,
               );
+              if (!didCapture) return;
               capturedStep = true;
+              // Capture Observer with the before-action tree so overlays match
+              // the PNG (post-step observe would show the next screen).
+              await captureStepObserverBestEffort(
+                session: session,
+                executor: executor,
+                stepIndex: i,
+              );
             }
 
             if (_shouldCaptureBeforeStep(optionalActionStep)) {
@@ -641,6 +680,16 @@ class EnsembleTestRunner {
               stabilize: !_isTextVerificationStep(step),
             );
             capturedStep = true;
+          }
+          // Mid-wait / mid-act shots skip observe while the leaf queue is held;
+          // post-step shots also land here. Only fill when no Observer yet so
+          // before-step overlays stay aligned with their PNG.
+          if (!hasStepObserver(ctx, i)) {
+            await captureStepObserverBestEffort(
+              session: session,
+              executor: executor,
+              stepIndex: i,
+            );
           }
           await YamlTestSession.navigationFlow.flushPending();
           await _recordStorageStepDiff(
@@ -700,7 +749,7 @@ class EnsembleTestRunner {
               forFailure: true,
             );
           }
-          await captureFailureObserverBestEffort(
+          await captureStepObserverBestEffort(
             session: session,
             executor: executor,
             stepIndex: i,
@@ -778,7 +827,7 @@ class EnsembleTestRunner {
         final failureIndex =
             test.steps.isEmpty ? null : test.steps.length - 1;
         if (failureIndex != null) {
-          await captureFailureObserverBestEffort(
+          await captureStepObserverBestEffort(
             session: session,
             executor: executor,
             stepIndex: failureIndex,
@@ -935,7 +984,7 @@ class EnsembleTestRunner {
     return true;
   }
 
-  Future<void> _captureAutomaticScreenshotForStep({
+  Future<bool> _captureAutomaticScreenshotForStep({
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
@@ -946,9 +995,12 @@ class EnsembleTestRunner {
     bool waitForLottie = true,
     bool stabilize = true,
     bool forFailure = false,
+    /// When true, skip the frame unless an action highlight lands on pixels
+    /// that are not a flat empty region (avoids phantom optional-tap rings).
+    bool requireVisibleActionHighlight = false,
   }) async {
     final options = executor.context.config.screenshots;
-    if (!options.shouldCaptureStep(step.type)) return;
+    if (!options.shouldCaptureStep(step.type)) return false;
 
     if (pumpBeforeCapture) {
       await executor.tester.pump();
@@ -982,6 +1034,29 @@ class EnsembleTestRunner {
       device: device,
       forFailure: forFailure,
     );
+    if (requireVisibleActionHighlight) {
+      final logicalRect =
+          _highlightRectForStep(executor, step, forFailure: forFailure);
+      final renderView = executor.tester.binding.renderViews.first;
+      final region = logicalRect == null
+          ? null
+          : screenshotLogicalRectToImagePixels(
+              logicalRect: logicalRect,
+              logicalSize: renderView.size,
+              imageSize: Size(image.width.toDouble(), image.height.toDouble()),
+            );
+      final hasContrast = region != null &&
+          highlight != null &&
+          highlight.kind == 'action' &&
+          await screenshotImageRegionHasContrast(
+            image: image,
+            region: region,
+          );
+      if (!hasContrast) {
+        image.dispose();
+        return false;
+      }
+    }
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
         stepIndex: stepIndex,
@@ -994,6 +1069,7 @@ class EnsembleTestRunner {
         highlight: highlight,
       ),
     );
+    return true;
   }
 
   TestDeviceTarget? _screenshotDeviceTarget(EnsembleTestContext ctx) {
@@ -1016,7 +1092,7 @@ class EnsembleTestRunner {
         );
   }
 
-  Future<void> _captureAutomaticScreenshotForStepBestEffort({
+  Future<bool> _captureAutomaticScreenshotForStepBestEffort({
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
@@ -1028,7 +1104,7 @@ class EnsembleTestRunner {
     bool forFailure = false,
   }) async {
     try {
-      await _captureAutomaticScreenshotForStep(
+      return await _captureAutomaticScreenshotForStep(
         executor: executor,
         step: step,
         stepIndex: stepIndex,
@@ -1041,6 +1117,7 @@ class EnsembleTestRunner {
       );
     } catch (_) {
       // Screenshot capture must never replace the real test failure.
+      return false;
     }
   }
 
@@ -1244,8 +1321,7 @@ class EnsembleTestRunner {
     // Scroll a current-route match into view when it exists but is off-screen.
     Element? currentRouteMatch;
     for (final candidate in finder.evaluate()) {
-      final route = ModalRoute.of(candidate);
-      if (route != null && !route.isCurrent) continue;
+      if (!isUnderCurrentModalRoute(candidate)) continue;
       currentRouteMatch = candidate;
       break;
     }
@@ -1650,10 +1726,12 @@ class EnsembleTestRunner {
       ctx.runtime.screenshotSheetFrames,
     );
     ctx.runtime.screenshotSheetFrames.clear();
-    final failureObserver = ctx.runtime.failureObserver;
-    ctx.runtime.failureObserver = null;
+    final stepObservers = List<StepObserverArtifact>.from(
+      ctx.runtime.stepObservers,
+    );
+    ctx.runtime.stepObservers.clear();
     if (sheetFrames.isEmpty &&
-        failureObserver == null &&
+        stepObservers.isEmpty &&
         !ctx.config.hasDeviceMatrix) {
       return;
     }
@@ -1666,7 +1744,7 @@ class EnsembleTestRunner {
       failedStepIndex: failedStepIndex,
       failedStepLabel: failedStepLabel,
       failureMessage: failureMessage,
-      failureObserver: failureObserver,
+      stepObservers: stepObservers,
     );
     if (path != null) {
       // Primary artifact is the frames manifest; HTML builds the gallery from it.

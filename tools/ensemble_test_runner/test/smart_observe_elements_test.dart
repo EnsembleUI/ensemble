@@ -159,6 +159,7 @@ void main() {
       1,
       reason: 'Text+RichText must not produce duplicate observe rows',
     );
+    await session.close();
   });
 
   testWidgets(
@@ -221,6 +222,7 @@ void main() {
       flat.any((e) => (e.text ?? '').contains('Even geduld')),
       isTrue,
     );
+    await session.close();
   });
 
   testWidgets('observe nests keyed child under keyed parent', (tester) async {
@@ -368,7 +370,91 @@ void main() {
       flat.any((e) => e.type == 'card' && (e.text ?? '').contains('Password')),
       isTrue,
     );
+    final tappableCard =
+        flat.firstWhere((e) => e.testId == 'devices_mini_card');
+    expect(tappableCard.state.enabled, isTrue);
+    await session.close();
   });
+
+  testWidgets(
+    'toast banners observe as toast without enabled=false',
+    (tester) async {
+      // Mirrors fluttertoast FToast + Ensemble ToastController: Positioned
+      // gravity wrapper around GestureDetector(onTap: null) + message body.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                const Center(child: Text('Screen body')),
+                Positioned(
+                  top: 100,
+                  left: 24,
+                  right: 24,
+                  child: GestureDetector(
+                    onTap: null,
+                    behavior: HitTestBehavior.translucent,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade900,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.error_outline),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'No token found, please open the app again.',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'toast-observe', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final toast = flat.firstWhere(
+        (e) => (e.text ?? '').contains('No token found'),
+        orElse: () => flat.firstWhere((e) => e.type == 'toast'),
+      );
+      expect(toast.type, 'toast');
+      expect(
+        toast.state.enabled,
+        isNull,
+        reason: 'non-tappable toast must not report enabled=false',
+      );
+      await session.close();
+    },
+  );
 
   testWidgets('compact tappable back-arrow image observes as icon',
       (tester) async {
@@ -487,6 +573,7 @@ void main() {
       reason: 'compact tappable arrow must not observe as decorative image',
     );
     expect(flat.any((e) => e.type == 'icon'), isTrue);
+    await session.close();
   });
 
   testWidgets('observe types icon / switch / dropdown distinctly from button',
@@ -982,6 +1069,7 @@ void main() {
       isTrue,
       reason: 'large tappable illustration should stay image',
     );
+    await session.close();
   });
 }
 

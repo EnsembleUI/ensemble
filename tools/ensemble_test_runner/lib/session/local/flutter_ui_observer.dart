@@ -3,12 +3,12 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
-import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
+import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observer.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Local [UiObserver] over [WidgetTester] + optional navigation metadata.
@@ -103,15 +103,14 @@ class FlutterUiObserver implements UiObserver {
     );
   }
 
-  /// Recomputes the session revision from the live tree after a mutation.
+  /// Recomputes the session revision after a mutation without semantics churn.
   ///
-  /// Does not register a new observation — only refreshes revision tracking
-  /// so [ActionResult.afterRevision] reflects UI changes.
+  /// Uses a lightweight widget-field fingerprint (keyed ids + text) so every
+  /// `act` does not toggle [SemanticsHandle] via a full observe walk.
   Future<void> syncRevisionAfterMutation() async {
-    final built = _buildElements(includeBounds: true, keyedOnly: false);
-    final fingerprint = fingerprintForObservation(
-      screen: _screenObservation(),
-      elements: built.elements,
+    final fingerprint = lightweightMutationFingerprint(
+      tester: tester,
+      routeName: navigation?.currentRoute,
     );
     _applyFingerprint(fingerprint);
   }
@@ -176,297 +175,15 @@ class FlutterUiObserver implements UiObserver {
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
       _buildElements({required bool includeBounds, bool keyedOnly = false}) {
-    final kept = <({Element element, UiElement ui})>[];
-    final handles = <String, SnapshotElementHandle>{};
-    var index = 0;
-    final seenRenderObjects = <Object>{};
-
-    final claimedOwnedIds = <String>{};
-    final semantics = tester.ensureSemantics();
-    try {
-      final viewportSize =
-          tester.view.physicalSize / tester.view.devicePixelRatio;
-      final routeName = navigation?.currentRoute?.trim();
-
-      for (final element in tester.allElements) {
-        // Inherited Invokable.id must NOT force-keep every descendant — that
-        // exploded inspect-ui into dozens of duplicate rows per control.
-        final ownedKey = hasCompactValueKey(element);
-        final ownedId = readOwnedWidgetLocatorId(element);
-        if (keyedOnly && ownedKey == false && ownedId == null) continue;
-
-        final underKeyed = _hasCompactKeyedAncestor(element);
-
-        var keep = false;
-        if (ownedKey) {
-          // Screen KeyedSubtree(id: Home) is ~full viewport — observing it
-          // paints the whole screen green. Also skip when the key matches the
-          // current route name (Ensemble page shell).
-          if (_isPageShellElement(element, ownedId, viewportSize)) {
-            keep = false;
-          } else {
-            keep = true;
-            if (ownedId != null) claimedOwnedIds.add(ownedId);
-          }
-        } else if (underKeyed) {
-          // Page shells wrap the whole screen in KeyedSubtree(id: Home).
-          // Still keep child primaries / standalone text, but do not claim the
-          // shell id (that collapsed every unkeyed control into one row).
-          if (isPrimaryControlElement(element) &&
-              !hasPrimaryControlAncestor(element)) {
-            if (readInvokableLocatorId(element) != null &&
-                nearestDescendantValueKeyLocatorId(element) != null) {
-              keep = false;
-            } else {
-              final scopeId = ownedId ??
-                  nearestExclusiveKeyedWrapperId(
-                    element,
-                    viewport: viewportSize,
-                    routeName: routeName,
-                  );
-              if (scopeId != null) {
-                keep = claimedOwnedIds.add(scopeId);
-              } else {
-                keep = true;
-              }
-            }
-          } else if (isStandaloneTextElement(element)) {
-            keep = true;
-          } else if (isStandaloneMediaElement(element)) {
-            keep = true;
-          }
-        } else if (isPrimaryControlElement(element) &&
-            !hasPrimaryControlAncestor(element)) {
-          // testId (KeyedSubtree under Invokable) owns the locator — skip host.
-          if (readInvokableLocatorId(element) != null &&
-              nearestDescendantValueKeyLocatorId(element) != null) {
-            keep = false;
-          } else {
-            final scopeId = ownedId ??
-                nearestExclusiveKeyedWrapperId(
-                  element,
-                  viewport: viewportSize,
-                  routeName: routeName,
-                );
-            if (scopeId != null) {
-              // One primary per Invokable/YAML id owner (e.g. Dropdown, Switch).
-              keep = claimedOwnedIds.add(scopeId);
-            } else {
-              keep = true;
-            }
-          }
-        } else if (isStandaloneTextElement(element) &&
-            nearestOwnedLocatorIdAncestor(element) == null) {
-          // Skip label Text under id'd Ensemble controls; absorbFormFieldLabels
-          // covers the rest when labels sit beside fields.
-          keep = true;
-        } else if (isStandaloneMediaElement(element) &&
-            nearestOwnedLocatorIdAncestor(element) == null) {
-          keep = true;
-        }
-        if (!keep) continue;
-
-        // Never inherit page-shell ids (Home / AutoSignIn) onto child rows.
-        final testId = observeLocatorId(
-              element,
-              viewport: viewportSize,
-              routeName: routeName,
-            ) ??
-            '';
-
-        final renderObject = element.renderObject;
-        // Dedup unkeyed duplicates (Text/RichText). Keyed hosts may share a
-        // RenderObject with their child (pass-through Container) — keep both.
-        if (testId.isEmpty &&
-            renderObject != null &&
-            !seenRenderObjects.add(renderObject)) {
-          continue;
-        }
-
-        final elementId = 'el_${index++}';
-        final uiElement = describeElement(
-          element: element,
-          elementId: elementId,
-          testId: testId.isEmpty ? null : testId,
-          assertions: assertions,
-          tester: tester,
-          includeBounds: includeBounds,
-        );
-        kept.add((element: element, ui: uiElement));
-        handles[elementId] = SnapshotElementHandle(
-          observationId: '',
-          elementId: elementId,
-          testId: testId.isEmpty ? null : testId,
-          element: element,
-          observableFingerprint: fingerprintForElement(uiElement),
-        );
-      }
-    } finally {
-      semantics.dispose();
-    }
-
-    final absorbed = _absorbFormFieldLabels(kept);
-    final remainingIds = <String>{
-      for (final item in absorbed) item.ui.elementId,
-    };
-    handles.removeWhere((id, _) => !remainingIds.contains(id));
-    for (final item in absorbed) {
-      handles[item.ui.elementId] = SnapshotElementHandle(
-        observationId: '',
-        elementId: item.ui.elementId,
-        testId: item.ui.testId,
-        element: item.element,
-        observableFingerprint: fingerprintForElement(item.ui),
-      );
-    }
-    return (elements: _nestKeptElements(absorbed), handles: handles);
-  }
-
-  /// Fold nearby standalone label [Text] into form controls and drop duplicates.
-  ///
-  /// Ensemble often renders `Text('Label')` above/beside a field instead of
-  /// [InputDecoration.labelText].
-  static List<({Element element, UiElement ui})> _absorbFormFieldLabels(
-    List<({Element element, UiElement ui})> kept,
-  ) {
-    const formTypes = {'textInput', 'switch', 'toggle', 'dropdown'};
-    final claimed = <int>{};
-    final updated = List<({Element element, UiElement ui})>.of(kept);
-
-    for (var i = 0; i < kept.length; i++) {
-      final control = kept[i].ui;
-      if (!formTypes.contains(control.type)) continue;
-      final controlBounds = control.bounds;
-      if (controlBounds == null) continue;
-
-      int? bestTextIndex;
-      var bestScore = double.infinity;
-      for (var j = 0; j < kept.length; j++) {
-        if (i == j || claimed.contains(j)) continue;
-        final textUi = kept[j].ui;
-        if (textUi.type != 'text') continue;
-        if (textUi.testId != null && textUi.testId!.isNotEmpty) continue;
-        final textBounds = textUi.bounds;
-        if (textBounds == null) continue;
-        final label = (textUi.text ?? textUi.label)?.trim();
-        if (label == null || label.isEmpty) continue;
-        final score = _labelAssociationScore(textBounds, controlBounds);
-        if (score != null && score < bestScore) {
-          bestScore = score;
-          bestTextIndex = j;
-        }
-      }
-
-      if (bestTextIndex == null) continue;
-      claimed.add(bestTextIndex);
-      final labelText =
-          (kept[bestTextIndex].ui.text ?? kept[bestTextIndex].ui.label)!
-              .trim();
-      // Prefer the nearby Text label over semantics (often concatenates hint).
-      updated[i] = (
-        element: kept[i].element,
-        ui: control.copyWith(label: labelText),
-      );
-    }
-
-    return [
-      for (var i = 0; i < updated.length; i++)
-        if (!claimed.contains(i)) updated[i],
-    ];
-  }
-
-  /// Lower is better; null when the text is not a plausible label for [control].
-  static double? _labelAssociationScore(UiBounds text, UiBounds control) {
-    final textRect = Rect.fromLTWH(text.left, text.top, text.width, text.height);
-    final controlRect =
-        Rect.fromLTWH(control.left, control.top, control.width, control.height);
-
-    // Same-row label to the left of the control (switch / compact fields).
-    final verticalOverlap = textRect.bottom > controlRect.top &&
-        textRect.top < controlRect.bottom;
-    final leftOfControl = textRect.right <= controlRect.left + 8;
-    if (verticalOverlap && leftOfControl) {
-      final gap = controlRect.left - textRect.right;
-      if (gap >= -8 && gap <= 48) return gap.abs();
-    }
-
-    // Label stacked above the control (common Ensemble form layout).
-    final above = textRect.bottom <= controlRect.top + 12;
-    if (!above) return null;
-    final gap = controlRect.top - textRect.bottom;
-    if (gap < -12 || gap > 40) return null;
-    final horizontalOverlap = textRect.left < controlRect.right &&
-        textRect.right > controlRect.left;
-    final leftAligned = (textRect.left - controlRect.left).abs() <= 24;
-    if (!horizontalOverlap && !leftAligned) return null;
-    return 100 + gap;
-  }
-
-  /// Nests kept nodes under their nearest kept Flutter ancestor.
-  static List<UiElement> _nestKeptElements(
-    List<({Element element, UiElement ui})> kept,
-  ) {
-    if (kept.isEmpty) return const [];
-
-    final elementToIndex = <Element, int>{
-      for (var i = 0; i < kept.length; i++) kept[i].element: i,
-    };
-    final childIndexes = List.generate(kept.length, (_) => <int>[]);
-    final isRoot = List<bool>.filled(kept.length, true);
-
-    for (var i = 0; i < kept.length; i++) {
-      kept[i].element.visitAncestorElements((ancestor) {
-        final parentIndex = elementToIndex[ancestor];
-        if (parentIndex == null) return true;
-        childIndexes[parentIndex].add(i);
-        isRoot[i] = false;
-        return false;
-      });
-    }
-
-    UiElement build(int i) {
-      final children = [
-        for (final childIndex in childIndexes[i]) build(childIndex),
-      ];
-      final ui = kept[i].ui;
-      if (children.isEmpty) return ui;
-      return ui.copyWith(children: children);
-    }
-
-    return [
-      for (var i = 0; i < kept.length; i++)
-        if (isRoot[i]) build(i),
-    ];
-  }
-
-  /// True when an ancestor already carries a compact string [ValueKey] (EDL id).
-  ///
-  /// Invokable-only YAML `id`s are not treated as keyed ancestors — those ids
-  /// are attached onto the primary control via [observeLocatorId] instead.
-  bool _hasCompactKeyedAncestor(Element element) {
-    var found = false;
-    element.visitAncestorElements((ancestor) {
-      if (hasCompactValueKey(ancestor)) {
-        found = true;
-        return false;
-      }
-      return true;
-    });
-    return found;
-  }
-
-  /// Full-screen / route-named KeyedSubtree shells must not be kept.
-  bool _isPageShellElement(
-    Element element,
-    String? ownedId,
-    Size viewport,
-  ) {
-    if (ownedId == null) return false;
-    return isStructuralPageShell(
-      element,
-      ownedId,
-      viewport: viewport,
-      routeName: navigation?.currentRoute,
+    // Brief enable only for this snapshot — keeping semantics on for the whole
+    // session changes hit-testing / focus and flakes YAML waits.
+    return buildObservedElementTree(
+      tester: tester,
+      assertions: assertions,
+      navigation: navigation,
+      includeBounds: includeBounds,
+      keyedOnly: keyedOnly,
+      enableSemantics: true,
     );
   }
 

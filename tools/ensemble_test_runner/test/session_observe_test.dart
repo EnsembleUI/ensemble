@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -186,6 +188,45 @@ void main() {
     expect(stale.error?.code, TestExecutionErrorCode.staleObservation);
     expect(taps, ['second']);
 
+    await session.close();
+  });
+
+  testWidgets(
+      'nested observe while leaf queue is busy does not deadlock',
+      (tester) async {
+    // Mid-wait screenshot callbacks hold the session queue, then call observe
+    // for overlays. Nested queue.run used to hang the worker forever.
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Text('Hello', key: ValueKey('hello')),
+        ),
+      ),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: _harness(),
+      context: _ctx('nested-observe'),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final nested = session.queue.run(() async {
+      final obs = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      return obs.observationId;
+    });
+
+    final observationId = await nested.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => throw TimeoutException(
+        'observe nested under LeafCommandQueue deadlocked',
+      ),
+    );
+    expect(observationId, isNotEmpty);
     await session.close();
   });
 

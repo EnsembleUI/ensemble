@@ -1327,6 +1327,7 @@ body {
   background: transparent;
   border: none;
   outline-offset: 4px;
+  z-index: 2;
 }
 .screenshot-highlight::before,
 .screenshot-highlight::after {
@@ -1335,22 +1336,26 @@ body {
 .screenshot-highlight.action {
   outline: 3px solid #ff3f6f;
   filter: drop-shadow(0 0 7px rgba(244, 63, 94, 0.55));
+  z-index: 4;
 }
 .screenshot-highlight.assertion {
   outline: 3px solid #00d5ff;
   filter: drop-shadow(0 0 7px rgba(6, 182, 212, 0.55));
+  z-index: 4;
 }
 .screenshot-highlight.failure {
   outline: 3px dashed var(--fail);
   background: rgba(244, 63, 94, 0.14);
   filter: drop-shadow(0 0 9px rgba(244, 63, 94, 0.75));
   animation: failure-highlight-pulse 1.5s infinite;
+  z-index: 4;
 }
 .screenshot-highlight.observer {
   outline: 2px solid #00b4d8;
   background: rgba(0, 180, 216, 0.08);
   border-radius: 4px;
   filter: none;
+  z-index: 1;
 }
 .screenshot-observer-chips {
   position: absolute;

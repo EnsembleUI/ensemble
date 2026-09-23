@@ -20,4 +20,19 @@ void main() {
       isFalse,
     );
   });
+
+  test('semantics dispose Focus/MediaQuery rebuild races are non-fatal', () {
+    expect(
+      isNonFatalFlutterDiagnostic(
+        "building _FocusInheritedScope: 'package:flutter/src/widgets/framework.dart'",
+      ),
+      isTrue,
+    );
+    expect(
+      isNonFatalFlutterDiagnostic(
+        "building _MediaQueryFromView(state: _MediaQueryFromViewState#abc)",
+      ),
+      isTrue,
+    );
+  });
 }

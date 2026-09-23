@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -342,8 +343,9 @@ class AssertionEngine {
   }
 
   bool _isElementInViewport(Element element) {
-    final route = ModalRoute.of(element);
-    if (route != null && !route.isCurrent) return false;
+    // Never use ModalRoute.of — that registers InheritedWidget dependents on
+    // every checked element and poisons Live-binding workers on navigation.
+    if (!isUnderCurrentModalRoute(element)) return false;
     if (_isUnderOffstageAncestor(element)) return false;
 
     final renderObject = element.renderObject;
