@@ -2204,11 +2204,57 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   /** Place labels inside the image with collision avoidance (no off-screen clip). */
-  function scheduleScreenshotChipLayout(root) {
+  /** Scale modal phone shots into available space and keep overlay % boxes
+   *  locked to the image (wrap must match img pixel box, not letterbox). */
+  function fitScreenshotFrames(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const cards = scope.querySelectorAll(
+      '#modal-tab-screenshots .modal-screenshot-card.single-layout, #modal-tab-screenshots .modal-screenshot-card'
+    );
+    cards.forEach((card) => {
+      const container = card.closest('.single-screenshot-container') ||
+          card.closest('.modal-screenshots-centered') ||
+          card.parentElement;
+      const wrap = card.querySelector('.screenshot-image-wrap');
+      const img = card.querySelector('img');
+      if (!container || !wrap || !img) return;
+
+      const apply = () => {
+        const nw = img.naturalWidth || 0;
+        const nh = img.naturalHeight || 0;
+        if (!(nw > 0 && nh > 0)) return;
+        const availW = Math.max(container.clientWidth - 8, 80);
+        const availH = Math.max(container.clientHeight - 8, 80);
+        if (!(availW > 0 && availH > 0)) return;
+        const scale = Math.min(availW / nw, availH / nh, 1);
+        const w = Math.max(1, Math.floor(nw * scale));
+        const h = Math.max(1, Math.floor(nh * scale));
+        img.style.width = w + 'px';
+        img.style.height = h + 'px';
+        img.style.maxWidth = 'none';
+        img.style.maxHeight = 'none';
+        wrap.style.width = w + 'px';
+        wrap.style.height = h + 'px';
+      };
+
+      if (img.complete && img.naturalWidth > 0) {
+        apply();
+      } else {
+        img.addEventListener('load', apply, { once: true });
+      }
+    });
+  }
+
+  function scheduleScreenshotFitAndLayout(root) {
     const target = root || document;
     requestAnimationFrame(() => {
+      fitScreenshotFrames(target);
       requestAnimationFrame(() => layoutScreenshotChips(target));
     });
+  }
+
+  function scheduleScreenshotChipLayout(root) {
+    scheduleScreenshotFitAndLayout(root);
   }
 
   function layoutScreenshotChips(root) {

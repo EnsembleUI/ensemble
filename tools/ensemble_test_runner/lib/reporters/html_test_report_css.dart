@@ -1338,18 +1338,18 @@ html.hide-action-highlights .screenshot-highlight.failure {
 }
 .screenshot-overlay-toolbar-host {
   flex-shrink: 0;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   width: 100%;
 }
 .screenshot-overlay-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 18px;
-  padding: 10px 12px;
+  gap: 14px 22px;
+  padding: 12px 16px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1357,7 +1357,7 @@ html.hide-action-highlights .screenshot-highlight.failure {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 20px;
+  gap: 14px 24px;
   flex: 1;
   min-width: 0;
 }
@@ -1365,14 +1365,16 @@ html.hide-action-highlights .screenshot-highlight.failure {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   user-select: none;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   flex: 0 0 auto;
+  line-height: 1.2;
+  padding: 4px 2px;
 }
 .screenshot-overlay-switch input {
   position: absolute;
@@ -1384,31 +1386,32 @@ html.hide-action-highlights .screenshot-highlight.failure {
 }
 .screenshot-overlay-switch-ui {
   position: relative;
-  width: 32px;
-  height: 18px;
+  width: 48px;
+  height: 28px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   flex: 0 0 auto;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .screenshot-overlay-switch-ui::after {
   content: '';
   position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 14px;
-  height: 14px;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #cbd5e1;
+  background: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .screenshot-overlay-switch input:checked + .screenshot-overlay-switch-ui {
-  background: rgba(6, 182, 212, 0.35);
-  border-color: rgba(6, 182, 212, 0.55);
+  background: rgba(6, 182, 212, 0.4);
+  border-color: rgba(6, 182, 212, 0.65);
 }
 .screenshot-overlay-switch input:checked + .screenshot-overlay-switch-ui::after {
-  transform: translateX(14px);
+  transform: translateX(20px);
   background: var(--accent);
 }
 .screenshot-overlay-switch:hover {
@@ -1970,11 +1973,25 @@ a:hover {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .modal-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 8px;
+}
+/* Screenshots tab: scale phone to remaining dialog space (no vertical scroll). */
+#modal-tab-screenshots {
+  overflow: hidden;
+}
+#modal-tab-screenshots #modal-screenshots-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-right: 0;
 }
 .modal-screenshots-grid {
   display: flex;
@@ -1984,13 +2001,16 @@ a:hover {
   justify-content: center;
 }
 .modal-screenshots-centered {
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 10px 0;
+  padding: 4px 0;
+  overflow: hidden;
 }
 .modal-screenshot-card {
   width: fit-content;
@@ -2021,6 +2041,9 @@ a:hover {
   overflow: hidden;
   border-radius: 0;
 }
+.modal-screenshot-card.single-layout a {
+  overflow: visible;
+}
 .modal-screenshot-card a::after {
   content: '🔍 Open Full Size';
   position: absolute;
@@ -2039,32 +2062,102 @@ a:hover {
   transition: opacity 0.2s ease;
   backdrop-filter: blur(2px);
 }
+.modal-screenshot-card.single-layout a::after {
+  display: none;
+}
 .modal-screenshot-card a:hover::after {
   opacity: 1;
 }
 .single-screenshot-container {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 10px 0;
+  padding: 0;
+  overflow: hidden;
 }
 .modal-screenshot-card.single-layout {
-  width: fit-content;
-  max-width: min(42vw, 420px);
+  /* Shrink-wrap the phone — never stretch the overlay host taller than the image
+     (that detaches highlight % boxes from the screenshot pixels). */
+  width: auto;
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
   border: none;
   border-radius: 0;
   box-shadow: none;
   transition: none;
+  display: block;
+  min-height: 0;
+  overflow: visible;
 }
 .modal-screenshot-card.single-layout:hover {
   transform: none;
   border-color: transparent;
   box-shadow: none;
 }
+.modal-screenshot-card.single-layout .screenshot-image-link,
+.modal-screenshot-card.single-layout .screenshot-image-wrap {
+  position: relative;
+  display: block;
+  width: fit-content;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0 auto;
+  line-height: 0;
+}
 .modal-screenshot-card.single-layout img {
-  max-height: min(68vh, 720px);
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  /* Fallback before JS fitScreenshotFrames runs */
+  max-height: calc(88vh - 260px);
+  object-fit: contain;
+}
+#modal-tab-screenshots .screenshot-overlay-switch {
+  font-size: 0.95rem;
+  gap: 12px;
+  padding: 6px 4px;
+}
+#modal-tab-screenshots .screenshot-overlay-switch-ui {
+  width: 52px;
+  height: 30px;
+}
+#modal-tab-screenshots .screenshot-overlay-switch-ui::after {
+  width: 24px;
+  height: 24px;
+  top: 2px;
+  left: 2px;
+}
+#modal-tab-screenshots .screenshot-overlay-switch input:checked + .screenshot-overlay-switch-ui::after {
+  transform: translateX(22px);
+}
+@media (max-width: 900px) {
+  .modal-screenshot-card.single-layout img {
+    max-height: calc(92vh - 280px);
+  }
+  .screenshot-overlay-switch {
+    font-size: 0.82rem;
+  }
+}
+@media (max-height: 760px) {
+  .modal-header {
+    padding: 14px 20px;
+  }
+  .modal-body {
+    padding: 14px 18px;
+  }
+  .screenshot-overlay-toolbar {
+    padding: 10px 14px;
+  }
+  .modal-screenshot-card.single-layout img {
+    max-height: calc(100vh - 240px);
+  }
 }
 .modal-observer-panel {
   flex: 1;
