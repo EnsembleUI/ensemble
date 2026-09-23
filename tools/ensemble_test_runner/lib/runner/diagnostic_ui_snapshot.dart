@@ -30,9 +30,9 @@ class DiagnosticUiSnapshot {
 
 /// Sync element walk for a step screenshot (no semantics / pump / queue).
 ///
-/// Call only when the leaf queue is free (or never held). Mid-wait paths must
-/// defer until `execute` returns so overlays may drift slightly on transient
-/// screens — preferred over suite breakage.
+/// Safe during mid-wait while the leaf queue is held — diagnostic capture never
+/// enters the queue. Pair with the mid-wait PNG via [captureStepReportArtifacts]
+/// so report overlays do not drift to the next screen after `execute` returns.
 DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   required WidgetTester tester,
   required AssertionEngine assertions,

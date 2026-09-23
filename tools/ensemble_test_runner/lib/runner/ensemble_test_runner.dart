@@ -19,6 +19,7 @@ import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
 import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
+import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
@@ -29,6 +30,7 @@ import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
 import 'package:ensemble_test_runner/runner/step_highlight_finder.dart';
+import 'package:ensemble_test_runner/runner/step_report_capture.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -553,33 +555,27 @@ class EnsembleTestRunner {
           }
           final captureBeforeStep = _shouldCaptureBeforeStep(step);
           if (captureBeforeStep) {
-            await _captureAutomaticScreenshotForStep(
+            final didCapture = await _captureStepReportArtifacts(
+              session: session,
               executor: executor,
               step: step,
               stepIndex: i,
-              waitForTarget: true,
+              options: StepScreenshotOptions.beforeAction(),
             );
-            capturedStep = true;
-            // Queue is free before execute — capture overlays while the tree
-            // still matches the before-step PNG.
-            await captureStepObserverBestEffort(
-              session: session,
-              executor: executor,
-              stepIndex: i,
-            );
+            if (didCapture) capturedStep = true;
           }
           if (step.type == 'waitForText') {
             executor.onWaitForTextMatched = (matchedStep) async {
               if (capturedStep) return;
               await _waitForHighlightTargetToPaint(executor, matchedStep);
-              await _captureAutomaticScreenshotForStepBestEffort(
+              final didCapture = await _captureStepReportArtifacts(
+                session: session,
                 executor: executor,
                 step: matchedStep,
                 stepIndex: i,
-                pumpBeforeCapture: true,
-                stabilize: false,
+                options: StepScreenshotOptions.waitForTextMatched(),
               );
-              capturedStep = true;
+              if (didCapture) capturedStep = true;
             };
           }
           if (step.type == 'waitForNavigation') {
@@ -589,59 +585,35 @@ class EnsembleTestRunner {
             // (AutoSignIn_Gateway → Home). Paint briefly, then choose.
             executor.onWaitForNavigationMatched = (matchedStep) async {
               if (capturedStep) return;
-              final didCapture = await _captureWaitForNavigationScreenshot(
+              final didCapture = await _captureStepReportArtifacts(
+                session: session,
                 executor: executor,
                 step: matchedStep,
                 stepIndex: i,
+                options: StepScreenshotOptions.waitForNavigationMatched(),
+                captureScreenshot: () => _captureWaitForNavigationScreenshot(
+                  session: session,
+                  executor: executor,
+                  step: matchedStep,
+                  stepIndex: i,
+                ),
               );
-              if (didCapture) {
-                capturedStep = true;
-              }
+              if (didCapture) capturedStep = true;
             };
           }
           final optionalActionStep = _singleNestedOptionalAction(step);
           if (optionalActionStep != null) {
             Future<void> captureOptionalAction(TestStep matchedStep) async {
               if (capturedStep) return;
-              // Optional taps become hit-testable a frame (or more) before the
-              // control has painted — capturing immediately produced empty
-              // loading frames with a phantom highlight (e.g. measuring signal
-              // while fwa_signal_continue_button was not on screen yet).
-              await _waitForScreenshotTarget(executor, matchedStep);
-              final highlightFinder = _highlightFinder(executor, matchedStep);
-              final targetPainted = highlightFinder != null &&
-                  _isHighlightTargetPainted(
-                    executor,
-                    highlightFinder,
-                    _isUserActionStep(matchedStep),
-                  );
-              if (!targetPainted) {
-                // Skip a misleading before-shot; the optional action still runs.
-                return;
-              }
-              final didCapture = await _captureAutomaticScreenshotForStep(
+              final didCapture = await _captureStepReportArtifacts(
+                session: session,
                 executor: executor,
                 step: matchedStep,
                 labelStep: step,
                 stepIndex: i,
-                pumpBeforeCapture: true,
-                // Already waited above; keep capture fast.
-                waitForTarget: false,
-                // Short settle so pixels match the highlight target without a
-                // long Lottie wait that can leave this optional screen.
-                stabilize: true,
-                waitForLottie: false,
-                requireVisibleActionHighlight: true,
+                options: StepScreenshotOptions.beforeAction(),
               );
-              if (!didCapture) return;
-              capturedStep = true;
-              // Capture Observer with the before-action tree so overlays match
-              // the PNG (post-step observe would show the next screen).
-              await captureStepObserverBestEffort(
-                session: session,
-                executor: executor,
-                stepIndex: i,
-              );
+              if (didCapture) capturedStep = true;
             }
 
             if (_shouldCaptureBeforeStep(optionalActionStep)) {
@@ -669,26 +641,23 @@ class EnsembleTestRunner {
           if (!captureBeforeStep &&
               !capturedStep &&
               optionalActionStep == null) {
-            await _captureAutomaticScreenshotForStep(
+            final didCapture = await _captureStepReportArtifacts(
+              session: session,
               executor: executor,
               step: step,
               stepIndex: i,
-              pumpBeforeCapture: _shouldPumpBeforePostStepCapture(step),
-              // Prefer mid-wait capture for navigation; if we missed it, still
-              // avoid a long Lottie wait that advances to the next screen.
-              waitForLottie: step.type != 'waitForNavigation',
-              stabilize: !_isTextVerificationStep(step),
+              options: StepScreenshotOptions.afterCondition(step),
             );
-            capturedStep = true;
+            if (didCapture) capturedStep = true;
           }
-          // Mid-wait / mid-act shots skip observe while the leaf queue is held;
-          // post-step shots also land here. Only fill when no Observer yet so
-          // before-step overlays stay aligned with their PNG.
-          if (!hasStepObserver(ctx, i)) {
+          // Pairs already wrote Observer. Fill only when a shot exists without
+          // overlays (should be rare after mid-wait allowWhileQueueBusy).
+          if (capturedStep && !hasStepObserver(ctx, i)) {
             await captureStepObserverBestEffort(
               session: session,
               executor: executor,
               stepIndex: i,
+              allowWhileQueueBusy: true,
             );
           }
           await YamlTestSession.navigationFlow.flushPending();
@@ -738,22 +707,21 @@ class EnsembleTestRunner {
           // Freeze failure evidence before settle/pumps advance the tree.
           final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
           if (!capturedStep) {
-            await _captureAutomaticScreenshotForStepBestEffort(
+            await _captureStepReportArtifacts(
+              session: session,
               executor: executor,
               step: step,
               stepIndex: i,
-              pumpBeforeCapture: false,
-              ensureTargetVisible: false,
-              waitForLottie: false,
-              stabilize: false,
-              forFailure: true,
+              options: StepScreenshotOptions.onFailure(),
+            );
+          } else if (!hasStepObserver(ctx, i)) {
+            await captureStepObserverBestEffort(
+              session: session,
+              executor: executor,
+              stepIndex: i,
+              allowWhileQueueBusy: true,
             );
           }
-          await captureStepObserverBestEffort(
-            session: session,
-            executor: executor,
-            stepIndex: i,
-          );
           await _settleLiveApiWorkBestEffort(tester, ctx);
           var failureMessage = _failureMessageWithFlutterErrors(
             error.toString(),
@@ -901,8 +869,11 @@ class EnsembleTestRunner {
   /// Screenshots for [waitForNavigation]: durable screens need a paint pass;
   /// transient screens must keep a pre-navigation frame.
   ///
-  /// Returns whether a frame was recorded.
+  /// Returns whether a frame was recorded. For transient (early-frame) paths,
+  /// also writes Observer from a snapshot taken while the target was visible
+  /// so overlays do not drift to the next route.
   Future<bool> _captureWaitForNavigationScreenshot({
+    required LocalTestExecutionSession session,
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
@@ -921,16 +892,24 @@ class EnsembleTestRunner {
     if (!isTargetVisible()) return false;
     if (treeHasFlutterErrorWidget(executor.tester)) return false;
 
-    // Hold a frame from the moment the tracker reports the target. Transient
-    // screens (AutoSignIn_Gateway) often leave during the paint pumps below.
+    // Hold a frame + Observer tree from the moment the tracker reports the
+    // target. Transient screens (AutoSignIn_Gateway) often leave during the
+    // paint pumps below — re-observing then would label the next route.
     ui.Image? earlyImage;
+    DiagnosticUiSnapshot? earlySnap;
     try {
       earlyImage = ExtendedStepHandlers.captureScreenshotImage(
         executor.tester,
         secureContent: executor.context.config.screenshots.secureContent,
       );
+      earlySnap = captureDiagnosticUiSnapshot(
+        tester: executor.tester,
+        assertions: session.assertions,
+        navigation: session.services.navigation,
+      );
     } catch (_) {
       earlyImage = null;
+      earlySnap = null;
     }
 
     try {
@@ -953,6 +932,7 @@ class EnsembleTestRunner {
       // Still on target after paint — prefer the painted frame (Home, etc.).
       earlyImage?.dispose();
       earlyImage = null;
+      earlySnap = null;
       await _captureAutomaticScreenshotForStepBestEffort(
         executor: executor,
         step: step,
@@ -981,7 +961,55 @@ class EnsembleTestRunner {
         model: device?.model,
       ),
     );
+    if (earlySnap != null) {
+      upsertStepObserverFromSnapshot(
+        ctx: executor.context,
+        tester: executor.tester,
+        stepIndex: stepIndex,
+        snap: earlySnap,
+      );
+    }
     return true;
+  }
+
+  /// Screenshot + Observer as one pair. Skipped shots never write Observer.
+  Future<bool> _captureStepReportArtifacts({
+    required LocalTestExecutionSession session,
+    required TestStepExecutor executor,
+    required TestStep step,
+    required int stepIndex,
+    required StepScreenshotOptions options,
+    TestStep? labelStep,
+    Future<bool> Function()? captureScreenshot,
+  }) {
+    return captureStepReportArtifacts(
+      captureScreenshot: captureScreenshot ??
+          () => _captureAutomaticScreenshotForStepBestEffort(
+                executor: executor,
+                step: step,
+                stepIndex: stepIndex,
+                labelStep: labelStep,
+                pumpBeforeCapture: options.pumpBeforeCapture,
+                ensureTargetVisible: options.ensureTargetVisible,
+                waitForTarget: options.waitForTarget,
+                waitForLottie: options.waitForLottie,
+                stabilize: options.stabilize,
+                forFailure: options.forFailure,
+                requireVisibleActionHighlight:
+                    options.requireVisibleActionHighlight,
+              ),
+      captureObserver: () async {
+        // Transient waitForNavigation may have already paired Observer with
+        // the early frame; do not overwrite with the next route's tree.
+        if (hasStepObserver(executor.context, stepIndex)) return;
+        await captureStepObserverBestEffort(
+          session: session,
+          executor: executor,
+          stepIndex: stepIndex,
+          allowWhileQueueBusy: options.allowObserveWhileQueueBusy,
+        );
+      },
+    );
   }
 
   Future<bool> _captureAutomaticScreenshotForStep({
@@ -1096,24 +1124,28 @@ class EnsembleTestRunner {
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
+    TestStep? labelStep,
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
     bool waitForTarget = false,
     bool waitForLottie = true,
     bool stabilize = true,
     bool forFailure = false,
+    bool requireVisibleActionHighlight = false,
   }) async {
     try {
       return await _captureAutomaticScreenshotForStep(
         executor: executor,
         step: step,
         stepIndex: stepIndex,
+        labelStep: labelStep,
         pumpBeforeCapture: pumpBeforeCapture,
         ensureTargetVisible: ensureTargetVisible,
         waitForTarget: waitForTarget,
         waitForLottie: waitForLottie,
         stabilize: stabilize,
         forFailure: forFailure,
+        requireVisibleActionHighlight: requireVisibleActionHighlight,
       );
     } catch (_) {
       // Screenshot capture must never replace the real test failure.
@@ -1134,9 +1166,6 @@ class EnsembleTestRunner {
     final nested = step.nestedSteps.single;
     return _isUserActionStep(nested) ? nested : null;
   }
-
-  bool _shouldPumpBeforePostStepCapture(TestStep step) =>
-      step.type != 'waitForText';
 
   bool _isTextVerificationStep(TestStep step) =>
       step.type == 'expectText' ||

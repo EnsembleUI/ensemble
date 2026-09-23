@@ -20,6 +20,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:ensemble_test_runner/runner/step_report_capture.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
@@ -570,36 +571,26 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             try {
               await dispatcher.execute(step);
               _throwIfHostApplicationError(context);
-              await _captureHostStepScreenshotSafely(
+              await _captureHostStepReportArtifactsSafely(
                 tester: tester,
                 context: context,
+                session: attached,
+                executor: executor,
                 step: step,
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
               );
               _throwIfHostApplicationError(context);
-              if (!hasStepObserver(context, i)) {
-                await captureStepObserverBestEffort(
-                  session: attached,
-                  executor: executor,
-                  stepIndex: i,
-                );
-              }
             } catch (error, stackTrace) {
-              await _captureHostStepScreenshotSafely(
+              await _captureHostStepReportArtifactsSafely(
                 tester: tester,
                 context: context,
+                session: attached,
+                executor: executor,
                 step: step,
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
               );
-              try {
-                await captureStepObserverBestEffort(
-                  session: attached,
-                  executor: executor,
-                  stepIndex: i,
-                );
-              } catch (_) {}
               // Preserve the step failure — screenshot diagnostics are secondary.
               Error.throwWithStackTrace(error, stackTrace);
             } finally {
@@ -873,6 +864,45 @@ void _throwIfHostApplicationError(EnsembleTestContext context) {
 /// Test hook for the post-screenshot / end-of-attempt application-error gate.
 void assertNoPendingHostApplicationError(EnsembleTestContext context) =>
     _throwIfHostApplicationError(context);
+
+Future<void> _captureHostStepReportArtifactsSafely({
+  required WidgetTester tester,
+  required EnsembleTestContext context,
+  required LocalTestExecutionSession session,
+  required TestStepExecutor executor,
+  required TestStep step,
+  required int stepIndex,
+  required List<TestFailureDetails> secondaryFailures,
+}) async {
+  try {
+    await captureStepReportArtifacts(
+      captureScreenshot: () async {
+        final before = context.runtime.screenshotSheetFrames
+            .where((f) => f.stepIndex == stepIndex)
+            .length;
+        await _captureHostStepScreenshotSafely(
+          tester: tester,
+          context: context,
+          step: step,
+          stepIndex: stepIndex,
+          secondaryFailures: secondaryFailures,
+        );
+        final after = context.runtime.screenshotSheetFrames
+            .where((f) => f.stepIndex == stepIndex)
+            .length;
+        return after > before;
+      },
+      captureObserver: () => captureStepObserverBestEffort(
+        session: session,
+        executor: executor,
+        stepIndex: stepIndex,
+        allowWhileQueueBusy: true,
+      ),
+    );
+  } catch (_) {
+    // Report capture must never replace the real test failure.
+  }
+}
 
 Future<void> _captureHostStepScreenshotSafely({
   required WidgetTester tester,

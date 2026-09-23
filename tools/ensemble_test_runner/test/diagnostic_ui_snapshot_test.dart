@@ -154,7 +154,8 @@ void main() {
 
       var midWaitCaptured = false;
       await session.queue.run(() async {
-        // Mid-wait style: queue held — must not hang and must skip.
+        // Mid-wait style: queue held — default skips so live observe never
+        // nests under the leaf queue.
         await captureStepObserverBestEffort(
           session: session,
           executor: session.executor,
@@ -164,13 +165,27 @@ void main() {
       });
       expect(midWaitCaptured, isFalse);
 
+      await session.queue.run(() async {
+        // Report mid-wait pair: diagnostic snapshot is queue-free, so allow
+        // overlays to match the mid-wait PNG before navigation advances.
+        await captureStepObserverBestEffort(
+          session: session,
+          executor: session.executor,
+          stepIndex: 0,
+          allowWhileQueueBusy: true,
+        );
+      });
+      expect(hasStepObserver(ctx, 0), isTrue);
+      expect(ctx.runtime.stepObservers.single.elements, isNotEmpty);
+
+      // Idempotent when already present (post-step fill must not replace).
+      final elementCount = ctx.runtime.stepObservers.single.elements.length;
       await captureStepObserverBestEffort(
         session: session,
         executor: session.executor,
         stepIndex: 0,
       );
-      expect(hasStepObserver(ctx, 0), isTrue);
-      expect(ctx.runtime.stepObservers.single.elements, isNotEmpty);
+      expect(ctx.runtime.stepObservers.single.elements.length, elementCount);
     },
   );
 

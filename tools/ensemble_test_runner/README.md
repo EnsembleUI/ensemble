@@ -179,6 +179,22 @@ integration mode the same matrix is filtered to the connected target's
 platform: locale/theme still apply, viewport/model do not, and other platforms
 are skipped with a warning.
 
+## Report step capture (screenshot + Observer)
+
+Per-step report artifacts are written as an **atomic pair**: screenshot first,
+then Observer overlays mapped onto that PNG. If the shot is skipped, Observer
+is not written for that step.
+
+- **User actions** (tap, toggle, …): capture **before** the act so the gallery
+  shows the control that was targeted.
+- **Asserts / waits**: capture **after** the condition matches (or mid-wait for
+  `waitForText` / `waitForNavigation`) so overlays match the verified screen.
+- **Runtime observe** (`DiagnosticUiSnapshot` for locators / waits) is separate
+  from the report Observer tab and is not required to match a PNG.
+
+See `lib/runner/step_report_capture.dart` for the policy flags
+(`beforeAction`, `afterCondition`, `onFailure`).
+
 ## App setup
 
 1. Add `*.test.yaml` files under `definitions.local.path/tests/`, for example

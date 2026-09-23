@@ -22,16 +22,18 @@ import 'package:flutter_test/flutter_test.dart';
 /// queue. Does **not** capture a second screenshot; call after the step frame
 /// exists so overlays match that PNG.
 ///
-/// Mid-wait hooks may still hold the leaf queue — skip then and let the runner
-/// defer until `execute` returns.
+/// Prefer [captureStepReportArtifacts] so shot + Observer stay paired. Mid-wait
+/// hooks hold the leaf queue — pass [allowWhileQueueBusy] so report overlays
+/// match the mid-wait PNG instead of drifting to the next screen.
 Future<void> captureStepObserverBestEffort({
   required LocalTestExecutionSession session,
   required TestStepExecutor executor,
   required int stepIndex,
+  bool allowWhileQueueBusy = false,
 }) async {
   final ctx = executor.context;
   if (!ctx.config.screenshots.enabled) return;
-  if (session.queue.isBusy) return;
+  if (session.queue.isBusy && !allowWhileQueueBusy) return;
   final frame = _latestScreenshotFrame(ctx, stepIndex);
   if (frame == null) return;
   try {
@@ -67,6 +69,45 @@ Future<void> captureStepObserverBestEffort({
 /// True when [stepIndex] already has Observer metadata (e.g. before-step shot).
 bool hasStepObserver(EnsembleTestContext ctx, int stepIndex) =>
     ctx.runtime.stepObservers.any((o) => o.stepIndex == stepIndex);
+
+/// Write report Observer from a previously taken [snap] onto the latest frame.
+///
+/// Used when the tree may advance after the PNG was frozen (transient
+/// `waitForNavigation` screens) — re-walking now would label the next route.
+void upsertStepObserverFromSnapshot({
+  required EnsembleTestContext ctx,
+  required WidgetTester tester,
+  required int stepIndex,
+  required DiagnosticUiSnapshot snap,
+}) {
+  if (!ctx.config.screenshots.enabled) return;
+  final frame = _latestScreenshotFrame(ctx, stepIndex);
+  if (frame == null) return;
+  try {
+    final device = ctx.testCase.deviceTarget;
+    final overlays = observerOverlaysForReport(
+      observation: snap.observation,
+      tester: tester,
+      image: frame.image,
+      device: device,
+    );
+    ctx.runtime.upsertStepObserver(
+      StepObserverArtifact(
+        stepIndex: stepIndex,
+        screen: snap.screenLabel,
+        elements: flattenObservationElementsForReport(snap.observation),
+        overlays: overlays,
+        deviceId: device?.id,
+        deviceLabel: device?.displayLabel,
+        platform: device?.platform,
+        model: device?.model,
+      ),
+    );
+  } catch (_) {
+    // Observer capture must never replace the real test result.
+  }
+}
+
 
 ScreenshotSheetFrame? _latestScreenshotFrame(
   EnsembleTestContext ctx,
