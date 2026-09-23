@@ -686,15 +686,17 @@ class EnsembleTestRunner {
           _captureScreenArtifacts(ctx);
           final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
           final idleStartTime = DateTime.now();
-          await _settleLiveApiWorkBestEffort(tester, ctx);
+          // Freeze failure evidence before settle/pumps advance the tree.
           final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
           if (!capturedStep) {
             await _captureAutomaticScreenshotForStepBestEffort(
               executor: executor,
               step: step,
               stepIndex: i,
-              pumpBeforeCapture: true,
+              pumpBeforeCapture: false,
               ensureTargetVisible: false,
+              waitForLottie: false,
+              stabilize: false,
               forFailure: true,
             );
           }
@@ -703,6 +705,7 @@ class EnsembleTestRunner {
             executor: executor,
             stepIndex: i,
           );
+          await _settleLiveApiWorkBestEffort(tester, ctx);
           var failureMessage = _failureMessageWithFlutterErrors(
             error.toString(),
             ctx,

@@ -201,19 +201,14 @@ List<Map<String, dynamic>> groupLogsByStep({
     final outlineIndex = outlineIndexForTopLevel(targetTopLevel);
     if (outlineIndex == null) continue;
     if (frame['role']?.toString() == 'observer') {
-      final screenshot = {
-        for (final entry in frame.entries)
-          if (entry.key != 'elements' && entry.key != 'role')
-            entry.key: entry.value,
-      };
-      // Show the highlighted observe shot in Screenshots; elements stay on
-      // the Observer tab only.
-      (buckets[outlineIndex]['screenshots'] as List).add(screenshot);
+      // Elements + overlays only — no separate observer PNG in Screenshots.
       buckets[outlineIndex]['observer'] = {
         'elements': frame['elements'] is List
             ? List<dynamic>.from(frame['elements'] as List)
             : const [],
         if (frame['screen'] != null) 'screen': frame['screen'],
+        if (frame['overlays'] is List)
+          'overlays': List<dynamic>.from(frame['overlays'] as List),
       };
       continue;
     }

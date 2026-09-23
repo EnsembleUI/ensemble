@@ -2,7 +2,8 @@ import 'package:ensemble_test_runner/reporters/step_log_grouping.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('groupLogsByStep attaches observer frames to the failed step', () {
+  test('groupLogsByStep attaches observer metadata without a second screenshot',
+      () {
     final steps = groupLogsByStep(
       stepsOutline: const [
         'tap(login)',
@@ -25,12 +26,19 @@ void main() {
         {
           'stepIndex': 1,
           'role': 'observer',
-          'label': 'Home',
-          'file': 'observer.webp',
-          'href': 'screenshots/observer.webp',
           'screen': 'Home',
           'elements': [
             {'index': 1, 'type': 'button', 'title': 'Continue', 'id': 'go'},
+          ],
+          'overlays': [
+            {
+              'left': 10.0,
+              'top': 20.0,
+              'width': 15.0,
+              'height': 5.0,
+              'id': 'go',
+              'type': 'button',
+            },
           ],
         },
       ],
@@ -39,12 +47,15 @@ void main() {
     expect(steps, hasLength(2));
     expect(steps[0]['observer'], isNull);
     final shots = steps[1]['screenshots'] as List;
-    expect(shots, hasLength(2));
-    expect(shots.map((s) => s['file']), containsAll(['normal.webp', 'observer.webp']));
+    expect(shots, hasLength(1));
+    expect(shots.single['file'], 'normal.webp');
     final observer = steps[1]['observer'] as Map;
     expect(observer['screen'], 'Home');
     expect(observer.containsKey('screenshot'), isFalse);
+    expect(observer.containsKey('file'), isFalse);
     expect(observer['elements'], hasLength(1));
     expect(observer['elements'].single['id'], 'go');
+    expect(observer['overlays'], hasLength(1));
+    expect(observer['overlays'].single['id'], 'go');
   });
 }

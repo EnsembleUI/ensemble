@@ -1262,7 +1262,8 @@ const ensembleHtmlTestReportAppJs = r'''
       errorEl.style.display = 'block';
       errorEl.textContent = stepError;
       if (data.observer && typeof data.observer === 'object') {
-        activeModalTab = 'observer';
+        // Overlays live on the failure screenshot — open that tab by default.
+        activeModalTab = 'screenshots';
       }
     } else {
       errorEl.style.display = 'none';
@@ -1523,6 +1524,9 @@ const ensembleHtmlTestReportAppJs = r'''
     const shotsList = document.getElementById('modal-screenshots-list');
     shotsList.innerHTML = '';
     const screenshots = data.screenshots || [];
+    const observerOverlays = (data.observer && Array.isArray(data.observer.overlays))
+      ? data.observer.overlays
+      : [];
     document.getElementById('modal-screenshots-count').textContent = screenshots.length;
     if (!screenshots.length) {
       shotsList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no screenshot for this step&gt;</div>';
@@ -1543,7 +1547,7 @@ const ensembleHtmlTestReportAppJs = r'''
             let cleanLabel = getCleanScreenshotLabel(rawLabel, titleText) || ('Screenshot ' + (index + 1));
             labelHtml = '<div class="modal-screenshot-label">' + escapeHtml(cleanLabel) + '</div>';
           }
-          card.innerHTML = renderScreenshotImage(shot, rawLabel) + labelHtml;
+          card.innerHTML = renderScreenshotImage(shot, rawLabel, observerOverlays) + labelHtml;
         } else {
           card.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">' + escapeHtml(rawLabel) + '</div>';
         }
@@ -1840,7 +1844,7 @@ const ensembleHtmlTestReportAppJs = r'''
     return clean;
   }
 
-  function renderScreenshotImage(frame, label) {
+  function renderScreenshotImage(frame, label, observerOverlays) {
     const href = frame.href || '';
     if (!href) return '';
     let html = '<a class="screenshot-image-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">';
@@ -1859,6 +1863,22 @@ const ensembleHtmlTestReportAppJs = r'''
         html += '<span class="screenshot-highlight ' + kind + '" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"><span class="screenshot-highlight-dot"></span></span>';
       }
     }
+    const overlays = Array.isArray(observerOverlays) ? observerOverlays : [];
+    overlays.forEach((overlay) => {
+      const left = Number(overlay.left || 0);
+      const top = Number(overlay.top || 0);
+      const width = Number(overlay.width || 0);
+      const height = Number(overlay.height || 0);
+      if (!(width > 0 && height > 0)) return;
+      html += '<span class="screenshot-highlight observer" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;">';
+      const chips = [];
+      if (overlay.id) chips.push('<span class="screenshot-observer-chip id">' + escapeHtml(String(overlay.id)) + '</span>');
+      if (overlay.type) chips.push('<span class="screenshot-observer-chip type">' + escapeHtml(String(overlay.type)) + '</span>');
+      if (chips.length) {
+        html += '<span class="screenshot-observer-chips">' + chips.join('') + '</span>';
+      }
+      html += '</span>';
+    });
     html += '</span></a>';
     return html;
   }

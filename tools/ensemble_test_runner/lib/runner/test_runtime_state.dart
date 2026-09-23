@@ -123,12 +123,15 @@ class ScreenshotSheetFrame {
   });
 }
 
-/// Highlighted observe snapshot attached to a failed step.
+/// Observe snapshot for a failed step (elements + HTML overlay percents).
+///
+/// No second screenshot — overlays are drawn on the failure frame in the
+/// HTML report.
 class FailureObserverArtifact {
   FailureObserverArtifact({
     required this.stepIndex,
-    required this.image,
     required this.elements,
+    this.overlays = const [],
     this.screen,
     this.deviceId,
     this.deviceLabel,
@@ -138,22 +141,14 @@ class FailureObserverArtifact {
 
   final int stepIndex;
   final String? screen;
-  final ui.Image image;
   final List<Map<String, dynamic>> elements;
+  final List<Map<String, dynamic>> overlays;
   final String? deviceId;
   final String? deviceLabel;
   final String? platform;
   final String? model;
-  EncodedScreenshotImage? encodedReportImage;
-  bool _disposed = false;
 
-  void dispose() {
-    if (_disposed) return;
-    _disposed = true;
-    try {
-      image.dispose();
-    } catch (_) {}
-  }
+  void dispose() {}
 }
 
 class ScreenshotHighlight {

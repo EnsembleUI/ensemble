@@ -186,6 +186,7 @@ class FlutterUiObserver implements UiObserver {
     try {
       final viewportSize =
           tester.view.physicalSize / tester.view.devicePixelRatio;
+      final routeName = navigation?.currentRoute?.trim();
 
       for (final element in tester.allElements) {
         // Inherited Invokable.id must NOT force-keep every descendant — that
@@ -217,8 +218,12 @@ class FlutterUiObserver implements UiObserver {
                 nearestDescendantValueKeyLocatorId(element) != null) {
               keep = false;
             } else {
-              final scopeId =
-                  ownedId ?? nearestExclusiveKeyedWrapperId(element);
+              final scopeId = ownedId ??
+                  nearestExclusiveKeyedWrapperId(
+                    element,
+                    viewport: viewportSize,
+                    routeName: routeName,
+                  );
               if (scopeId != null) {
                 keep = claimedOwnedIds.add(scopeId);
               } else {
@@ -237,7 +242,12 @@ class FlutterUiObserver implements UiObserver {
               nearestDescendantValueKeyLocatorId(element) != null) {
             keep = false;
           } else {
-            final scopeId = ownedId ?? nearestExclusiveKeyedWrapperId(element);
+            final scopeId = ownedId ??
+                nearestExclusiveKeyedWrapperId(
+                  element,
+                  viewport: viewportSize,
+                  routeName: routeName,
+                );
             if (scopeId != null) {
               // One primary per Invokable/YAML id owner (e.g. Dropdown, Switch).
               keep = claimedOwnedIds.add(scopeId);
@@ -256,8 +266,13 @@ class FlutterUiObserver implements UiObserver {
         }
         if (!keep) continue;
 
-        // Never inherit page-shell ids (Home) onto child rows.
-        final testId = observeLocatorId(element) ?? '';
+        // Never inherit page-shell ids (Home / AutoSignIn) onto child rows.
+        final testId = observeLocatorId(
+              element,
+              viewport: viewportSize,
+              routeName: routeName,
+            ) ??
+            '';
 
         final renderObject = element.renderObject;
         // Dedup unkeyed duplicates (Text/RichText). Keyed hosts may share a
@@ -446,22 +461,13 @@ class FlutterUiObserver implements UiObserver {
     String? ownedId,
     Size viewport,
   ) {
-    final route = navigation?.currentRoute?.trim();
-    if (ownedId != null &&
-        route != null &&
-        route.isNotEmpty &&
-        ownedId == route) {
-      return true;
-    }
-    return _isViewportSizedShell(element, viewport);
-  }
-
-  static bool _isViewportSizedShell(Element element, Size viewport) {
-    final box = element.renderObject;
-    if (box is! RenderBox || !box.hasSize) return false;
-    if (viewport.width <= 0 || viewport.height <= 0) return false;
-    return box.size.width >= viewport.width * 0.8 &&
-        box.size.height >= viewport.height * 0.8;
+    if (ownedId == null) return false;
+    return isStructuralPageShell(
+      element,
+      ownedId,
+      viewport: viewport,
+      routeName: navigation?.currentRoute,
+    );
   }
 
   Map<String, SnapshotElementHandle> rebindHandles(

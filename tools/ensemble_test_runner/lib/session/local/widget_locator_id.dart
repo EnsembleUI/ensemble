@@ -1,4 +1,5 @@
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,29 +25,73 @@ String? readWidgetLocatorId(Element element) {
 /// Locator id for observe / inspect-ui / failure Observer rows.
 ///
 /// Same owned-id rules as [readWidgetLocatorId], but does **not** inherit a
-/// structural page/card shell key (e.g. screen `Home`) onto every descendant —
-/// that made every text row look like `id=Home`.
-String? observeLocatorId(Element element) {
+/// structural page/card shell key (e.g. screen `Home` / `AutoSignIn`) onto
+/// every descendant — that made every text row look like `id=Home`.
+///
+/// Pass [viewport] / [routeName] so full-screen route KeyedSubtrees are
+/// rejected even when they wrap only unkeyed content (loading screens).
+String? observeLocatorId(
+  Element element, {
+  Size? viewport,
+  String? routeName,
+}) {
   final owned = readOwnedWidgetLocatorId(element);
   if (owned != null) return owned;
-  return nearestExclusiveKeyedWrapperId(element);
+  return nearestExclusiveKeyedWrapperId(
+    element,
+    viewport: viewport,
+    routeName: routeName,
+  );
 }
 
 /// Nearest keyed/Invokable ancestor that wraps only this element's lineage
 /// (no other keyed widgets under the same wrapper).
-String? nearestExclusiveKeyedWrapperId(Element element) {
+///
+/// Never inherits [isStructuralPageShell] ancestors (route-named or
+/// ~full-viewport KeyedSubtree).
+String? nearestExclusiveKeyedWrapperId(
+  Element element, {
+  Size? viewport,
+  String? routeName,
+}) {
   String? found;
   element.visitAncestorElements((ancestor) {
     final id = readOwnedWidgetLocatorId(ancestor);
     if (id == null) return true;
+    if (isStructuralPageShell(
+      ancestor,
+      id,
+      viewport: viewport,
+      routeName: routeName,
+    )) {
+      // Ensemble page shell — stop without inheriting.
+      return false;
+    }
     if (_keyedWrapperHasOtherKeyedDescendant(ancestor, element)) {
-      // Page / section shell — stop without inheriting.
+      // Section shell with sibling keyed widgets — stop without inheriting.
       return false;
     }
     found = id;
     return false;
   });
   return found;
+}
+
+/// Route-named or ~full-viewport keyed host (Ensemble screen KeyedSubtree).
+bool isStructuralPageShell(
+  Element element,
+  String id, {
+  Size? viewport,
+  String? routeName,
+}) {
+  final route = routeName?.trim();
+  if (route != null && route.isNotEmpty && id == route) return true;
+  if (viewport == null) return false;
+  if (viewport.width <= 0 || viewport.height <= 0) return false;
+  final box = element.renderObject;
+  if (box is! RenderBox || !box.hasSize) return false;
+  return box.size.width >= viewport.width * 0.8 &&
+      box.size.height >= viewport.height * 0.8;
 }
 
 bool _keyedWrapperHasOtherKeyedDescendant(Element ancestor, Element self) {

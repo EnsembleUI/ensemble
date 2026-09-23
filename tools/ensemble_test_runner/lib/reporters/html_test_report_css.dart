@@ -1346,6 +1346,41 @@ body {
   filter: drop-shadow(0 0 9px rgba(244, 63, 94, 0.75));
   animation: failure-highlight-pulse 1.5s infinite;
 }
+.screenshot-highlight.observer {
+  outline: 2px solid #00b4d8;
+  background: rgba(0, 180, 216, 0.08);
+  border-radius: 4px;
+  filter: none;
+}
+.screenshot-observer-chips {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 2px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: min(220px, 70vw);
+  pointer-events: none;
+}
+.screenshot-observer-chip {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.screenshot-observer-chip.id {
+  background: rgba(0, 95, 135, 0.92);
+}
+.screenshot-observer-chip.type {
+  background: rgba(161, 98, 7, 0.92);
+}
 @keyframes failure-highlight-pulse {
   0% { outline-offset: 4px; opacity: 1; }
   50% { outline-offset: 7px; opacity: 0.75; }

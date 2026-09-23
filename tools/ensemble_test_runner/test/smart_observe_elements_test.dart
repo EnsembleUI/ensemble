@@ -161,6 +161,68 @@ void main() {
     );
   });
 
+  testWidgets(
+      'observe does not stamp page-shell id when shell has only unkeyed kids',
+      (tester) async {
+    // Loading screens often wrap only Text/Lottie under KeyedSubtree(id:
+    // AutoSignIn) with no sibling keyed widgets — exclusive-wrapper used to
+    // inherit the route name onto every child (overlay chips showed
+    // AutoSignIn as id while Selector correctly used text=).
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyedSubtree(
+            key: const ValueKey('AutoSignIn'),
+            child: SizedBox.expand(
+              child: Column(
+                children: const [
+                  Text('Even geduld..'),
+                  Text('We halen de gegevens op.'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(
+        appPath: 'unused/',
+        appHome: 'AutoSignIn',
+      ),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(
+          id: 'shell-unkeyed-observe',
+          steps: [],
+        ),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+    expect(flat.length, greaterThanOrEqualTo(2));
+    expect(
+      flat.where((e) => e.testId == 'AutoSignIn'),
+      isEmpty,
+      reason: 'route shell id must not attach when only unkeyed children',
+    );
+    expect(
+      flat.any((e) => (e.text ?? '').contains('Even geduld')),
+      isTrue,
+    );
+  });
+
   testWidgets('observe nests keyed child under keyed parent', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
