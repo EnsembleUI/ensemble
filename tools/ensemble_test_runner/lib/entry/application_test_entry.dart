@@ -17,6 +17,7 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
@@ -584,6 +585,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
               );
+              try {
+                await captureFailureObserverBestEffort(
+                  session: attached,
+                  executor: executor,
+                  stepIndex: i,
+                );
+              } catch (_) {}
               // Preserve the step failure — screenshot diagnostics are secondary.
               Error.throwWithStackTrace(error, stackTrace);
             } finally {

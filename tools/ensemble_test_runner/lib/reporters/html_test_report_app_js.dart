@@ -86,7 +86,8 @@ const ensembleHtmlTestReportAppJs = r'''
             storageChanges: step.storageChanges || [],
             secureStorageChanges: step.secureStorageChanges || [],
             keychainChanges: step.keychainChanges || [],
-            screenshots: step.screenshots || []
+            screenshots: step.screenshots || [],
+            observer: step.observer || null
           };
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
@@ -94,6 +95,7 @@ const ensembleHtmlTestReportAppJs = r'''
           step.secureStorageChanges = parent.secureStorageChanges;
           step.keychainChanges = parent.keychainChanges;
           step.screenshots = parent.screenshots;
+          step.observer = parent.observer;
         } else if (parent) {
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
@@ -101,6 +103,7 @@ const ensembleHtmlTestReportAppJs = r'''
           step.secureStorageChanges = parent.secureStorageChanges;
           step.keychainChanges = parent.keychainChanges;
           step.screenshots = parent.screenshots;
+          step.observer = parent.observer;
         } else {
           step.apiCalls = [];
           step.appLogs = [];
@@ -108,6 +111,7 @@ const ensembleHtmlTestReportAppJs = r'''
           step.secureStorageChanges = [];
           step.keychainChanges = [];
           step.screenshots = [];
+          step.observer = null;
         }
         steps[i] = step;
       }
@@ -1093,7 +1097,7 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<div class="screenshot-gallery">';
     frames.forEach((frame, idx) => {
       const href = frame.href || '';
-      const label = frame.label || frame.file || ('Frame ' + (idx + 1));
+      const label = frame.screen || frame.label || frame.file || ('Frame ' + (idx + 1));
       const failed = frame.failed === true;
       let pillIndex = idx + 1;
       let cleanLabel = label;
@@ -1257,6 +1261,9 @@ const ensembleHtmlTestReportAppJs = r'''
     if (stepError) {
       errorEl.style.display = 'block';
       errorEl.textContent = stepError;
+      if (data.observer && typeof data.observer === 'object') {
+        activeModalTab = 'observer';
+      }
     } else {
       errorEl.style.display = 'none';
       errorEl.textContent = '';
@@ -1520,11 +1527,16 @@ const ensembleHtmlTestReportAppJs = r'''
     if (!screenshots.length) {
       shotsList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no screenshot for this step&gt;</div>';
     } else {
+      const container = document.createElement('div');
+      container.className = screenshots.length === 1
+        ? 'single-screenshot-container'
+        : 'modal-screenshots-centered';
+      const useSingleLayout = screenshots.length <= 2;
       screenshots.forEach((shot, index) => {
         const href = shot.href || '';
-        const rawLabel = shot.label || shot.file || 'Screenshot';
+        const rawLabel = shot.screen || shot.label || shot.file || 'Screenshot';
         const card = document.createElement('div');
-        card.className = 'modal-screenshot-card' + (screenshots.length === 1 ? ' single-layout' : '');
+        card.className = 'modal-screenshot-card' + (useSingleLayout ? ' single-layout' : '');
         if (href) {
           let labelHtml = '';
           if (screenshots.length > 1) {
@@ -1535,19 +1547,69 @@ const ensembleHtmlTestReportAppJs = r'''
         } else {
           card.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">' + escapeHtml(rawLabel) + '</div>';
         }
-        if (screenshots.length === 1) {
-          const container = document.createElement('div');
-          container.className = 'single-screenshot-container';
-          container.appendChild(card);
-          shotsList.appendChild(container);
-        } else {
-          shotsList.appendChild(card);
-        }
+        container.appendChild(card);
       });
+      shotsList.appendChild(container);
     }
+
+    renderObserverTab(data);
 
     switchModalTab(activeModalTab);
     document.getElementById('step-modal-overlay').style.display = 'flex';
+  }
+
+  function renderObserverTab(data) {
+    const panel = document.getElementById('modal-observer-panel');
+    const countEl = document.getElementById('modal-observer-count');
+    const observerBtn = document.querySelector('.modal-tab-btn[data-tab="observer"]');
+    panel.innerHTML = '';
+    const observer = data.observer;
+    if (!observer || typeof observer !== 'object') {
+      countEl.textContent = '0';
+      if (observerBtn) observerBtn.style.display = 'none';
+      panel.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no observer capture for this step&gt;</div>';
+      if (activeModalTab === 'observer') activeModalTab = 'screenshots';
+      return;
+    }
+    if (observerBtn) observerBtn.style.display = '';
+    const elements = Array.isArray(observer.elements) ? observer.elements : [];
+    countEl.textContent = String(elements.length);
+    const screen = observer.screen || '';
+    let html = '';
+    if (screen) {
+      html += '<div class="observer-screen-label">Screen: ' + escapeHtml(String(screen)) + '</div>';
+    }
+    html += '<div class="observer-elements-heading">Elements (' + elements.length + ')</div>';
+    if (!elements.length) {
+      html += '<div class="terminal-row" style="color: var(--text-muted);">&lt;no elements&gt;</div>';
+    } else {
+      html += '<div class="observer-table-wrap"><table class="observer-elements-table"><thead><tr>';
+      html += '<th>#</th><th>Type</th><th>Title</th><th>Selector</th><th>State</th>';
+      html += '</tr></thead><tbody>';
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements[i] || {};
+        const idx = el.index != null ? el.index : (i + 1);
+        const type = el.type || 'widget';
+        const title = el.title ? String(el.title) : '—';
+        let selector = '—';
+        if (el.selector) selector = String(el.selector);
+        const stateBits = [];
+        if (el.enabled != null) stateBits.push('enabled=' + el.enabled);
+        if (el.checked != null) stateBits.push('checked=' + el.checked);
+        if (el.value) stateBits.push('value=' + String(el.value));
+        if (Array.isArray(el.options) && el.options.length) {
+          stateBits.push('options=[' + el.options.map(String).join(', ') + ']');
+        }
+        const state = stateBits.length ? stateBits.join(' · ') : '—';
+        html += '<tr><td>' + escapeHtml(String(idx)) + '</td>';
+        html += '<td><code>' + escapeHtml(String(type)) + '</code></td>';
+        html += '<td>' + escapeHtml(title) + '</td>';
+        html += '<td><code>' + escapeHtml(selector) + '</code></td>';
+        html += '<td>' + escapeHtml(state) + '</td></tr>';
+      }
+      html += '</tbody></table></div>';
+    }
+    panel.innerHTML = html;
   }
 
   function toggleApiDetails(headerEl) {

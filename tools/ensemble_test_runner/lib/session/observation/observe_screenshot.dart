@@ -135,7 +135,7 @@ Future<String?> writeInspectUiScreenshotForDevice({
     secureContent: secureContent,
   );
   try {
-    final highlighted = await _paintObservationHighlights(
+    final highlighted = await paintObservationHighlights(
       source: image,
       observation: observation,
       tester: tester,
@@ -162,7 +162,8 @@ Future<String?> writeInspectUiScreenshotForDevice({
   }
 }
 
-Future<ui.Image> _paintObservationHighlights({
+/// Draws inspect-ui style outlines + id/type chips onto [source].
+Future<ui.Image> paintObservationHighlights({
   required ui.Image source,
   required UiObservation observation,
   required WidgetTester tester,

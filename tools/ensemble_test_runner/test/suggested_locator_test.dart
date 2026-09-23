@@ -378,6 +378,62 @@ void main() {
       expect(icon.locatorWarning, 'No stable locator available');
     }
   });
+
+  testWidgets(
+    'adjacent text nodes get distinct text= selectors, not a merged label',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MergeSemantics(
+              child: const Column(
+                children: [
+                  Text('Wifi naam'),
+                  Text('KPN'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: _harness(),
+        context: _ctx('merged_text_label'),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final obs = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final enriched = enrichSuggestedLocators(
+        observation: obs,
+        resolver: session.resolver,
+        registry: session.registry,
+      );
+      final texts = _flatten(enriched.elements)
+          .where((e) => (e.type ?? '').toLowerCase() == 'text')
+          .toList();
+      final wifi = texts.firstWhere((e) => e.text == 'Wifi naam');
+      final kpn = texts.firstWhere((e) => e.text == 'KPN');
+      expect(wifi.suggestedLocator?.text, 'Wifi naam');
+      expect(wifi.suggestedLocator?.label, isNull);
+      expect(kpn.suggestedLocator?.text, 'KPN');
+      expect(kpn.suggestedLocator?.label, isNull);
+      expect(
+        formatSuggestedSelector(wifi.suggestedLocator!),
+        contains('text="Wifi naam"'),
+      );
+      expect(
+        formatSuggestedSelector(kpn.suggestedLocator!),
+        contains('text="KPN"'),
+      );
+    },
+  );
 }
 
 class _InvokableHost extends StatefulWidget with Invokable {

@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -78,6 +81,85 @@ void main() {
     },
   );
 
+  testWidgets('observe keeps unkeyed primaries under a keyed page shell',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyedSubtree(
+            key: const ValueKey('Home'),
+            child: SizedBox.expand(
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    child: const Text('Share wifi'),
+                  ),
+                  const Text('Your network is online'),
+                  ElevatedButton(
+                    key: const ValueKey('devices_mini_card'),
+                    onPressed: () {},
+                    child: const Text('Devices'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(
+        appPath: 'unused/',
+        appHome: 'Home',
+      ),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'keyed-shell-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+    expect(
+      flat.any((e) => (e.text ?? '') == 'Share wifi' || (e.label ?? '') == 'Share wifi'),
+      isTrue,
+      reason: 'unkeyed button under Home shell must be observed',
+    );
+    expect(
+      flat.any((e) => (e.text ?? '').contains('network is online')),
+      isTrue,
+      reason: 'standalone text under Home shell must be observed',
+    );
+    expect(
+      flat.any((e) => e.testId == 'devices_mini_card'),
+      isTrue,
+    );
+    expect(
+      flat.where((e) => e.testId == 'Home'),
+      isEmpty,
+      reason: 'page-shell id must not attach to child rows or be kept itself',
+    );
+    final networkText = flat.where(
+      (e) => (e.text ?? '').contains('network is online'),
+    );
+    expect(
+      networkText.length,
+      1,
+      reason: 'Text+RichText must not produce duplicate observe rows',
+    );
+  });
+
   testWidgets('observe nests keyed child under keyed parent', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -122,6 +204,167 @@ void main() {
     );
 
     await session.close();
+  });
+
+  testWidgets('observe types cards separately from buttons',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              TextButton(
+                onPressed: () {},
+                child: const Text('Get started →'),
+              ),
+              SizedBox(
+                width: 160,
+                height: 100,
+                child: InkWell(
+                  key: const ValueKey('devices_mini_card'),
+                  onTap: () {},
+                  child: const Column(
+                    children: [
+                      Text('Devices'),
+                      Text('2'),
+                      Icon(Icons.chevron_right),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 360,
+                height: 56,
+                child: InkWell(
+                  onTap: () {},
+                  child: const Row(
+                    children: [
+                      Expanded(child: Text('Guest wifi')),
+                      Text('KPN_Gast'),
+                      Icon(Icons.chevron_right),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 360,
+                height: 56,
+                child: InkWell(
+                  onTap: () {},
+                  child: const Row(
+                    children: [
+                      Expanded(child: Text('Password')),
+                      Icon(Icons.visibility),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(
+        appPath: 'unused/',
+        appHome: 'Home',
+      ),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'tap-shapes', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+
+    expect(
+      flat.any((e) =>
+          e.type == 'button' && (e.text ?? '').contains('Get started')),
+      isTrue,
+    );
+    expect(
+      flat.firstWhere((e) => e.testId == 'devices_mini_card').type,
+      'card',
+    );
+    expect(
+      flat.any((e) =>
+          e.type == 'card' && (e.text ?? '').contains('Guest wifi')),
+      isTrue,
+    );
+    expect(
+      flat.any((e) =>
+          e.type == 'card' && (e.text ?? '').contains('Password')),
+      isTrue,
+    );
+  });
+
+  testWidgets('compact tappable back-arrow image observes as icon',
+      (tester) async {
+    final png = Uint8List.fromList(<int>[
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+      0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+      0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+      0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ]);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: InkWell(
+              onTap: () {},
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Image.memory(png, fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(
+        appPath: 'unused/',
+        appHome: 'Home',
+      ),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'back-icon', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+    expect(
+      flat.where((e) => e.type == 'image'),
+      isEmpty,
+      reason: 'compact tappable arrow must not observe as decorative image',
+    );
+    expect(flat.any((e) => e.type == 'icon'), isTrue);
   });
 
   testWidgets('observe types icon / switch / dropdown distinctly from button',
@@ -454,6 +697,106 @@ void main() {
     expect(stub.text, isNull);
 
     await session.close();
+  });
+
+  testWidgets('observe recognizes image / gif / lottie (and tappable media)',
+      (tester) async {
+    // 1x1 PNG
+    final png = Uint8List.fromList(<int>[
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+      0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+      0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+      0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ]);
+    final lottie = EnsembleLottie();
+    lottie.controller.source = 'assets/anim.json';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              Image.memory(png, key: const ValueKey('hero_image'), width: 40, height: 40),
+              Image(
+                key: const ValueKey('spinner_gif'),
+                image: NetworkImage('https://example.com/spinner.gif'),
+                width: 40,
+                height: 40,
+                errorBuilder: (_, __, ___) => const SizedBox(width: 40, height: 40),
+              ),
+              KeyedSubtree(key: const ValueKey('hero_lottie'), child: lottie),
+              // Compact tappable media → icon (back/close chrome).
+              GestureDetector(
+                onTap: () {},
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Image.memory(png, fit: BoxFit.contain),
+                ),
+              ),
+              // Larger tappable illustration → stays image.
+              GestureDetector(
+                onTap: () {},
+                child: SizedBox(
+                  width: 180,
+                  height: 180,
+                  child: Image.memory(png, fit: BoxFit.contain),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(
+        appPath: 'unused/',
+        appHome: 'Home',
+      ),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'media-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+
+    expect(
+      flat.firstWhere((e) => e.testId == 'hero_image').type,
+      'image',
+    );
+    expect(
+      flat.firstWhere((e) => e.testId == 'spinner_gif').type,
+      'gif',
+    );
+    expect(
+      flat.firstWhere((e) => e.testId == 'hero_lottie').type,
+      'lottie',
+    );
+    expect(
+      flat.any((e) => e.type == 'icon' && e.testId == null),
+      isTrue,
+      reason: 'compact tappable image (back arrow) should be icon',
+    );
+    expect(
+      flat.any((e) => e.type == 'image' && e.testId == null),
+      isTrue,
+      reason: 'large tappable illustration should stay image',
+    );
   });
 }
 

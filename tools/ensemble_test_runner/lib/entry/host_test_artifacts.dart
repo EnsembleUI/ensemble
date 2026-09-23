@@ -178,8 +178,12 @@ Future<void> attachHostDebugArtifacts({
       context.runtime.screenshotSheetFrames,
     );
     context.runtime.screenshotSheetFrames.clear();
+    final failureObserver = context.runtime.failureObserver;
+    context.runtime.failureObserver = null;
     if (context.config.screenshots.enabled &&
-        (frames.isNotEmpty || context.config.devices.isNotEmpty)) {
+        (frames.isNotEmpty ||
+            failureObserver != null ||
+            context.config.devices.isNotEmpty)) {
       final path = await tester.runAsync(() async {
         final previousRunner = LiveAsyncCallSupport.runner;
         LiveAsyncCallSupport.runner = null;
@@ -195,6 +199,7 @@ Future<void> attachHostDebugArtifacts({
             failedStepIndex: failedStepIndex,
             failedStepLabel: failedStepLabel,
             failureMessage: failureMessage,
+            failureObserver: failureObserver,
           );
         } finally {
           LiveAsyncCallSupport.runner = previousRunner;
@@ -205,6 +210,7 @@ Future<void> attachHostDebugArtifacts({
         context.logger.log('screenshotFrames: $path');
       }
     } else {
+      failureObserver?.dispose();
       for (final frame in frames) {
         try {
           frame.image.dispose();

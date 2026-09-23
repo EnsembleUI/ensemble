@@ -242,6 +242,7 @@ class HtmlTestReporter {
         <button class="modal-tab-btn" data-tab="logs" onclick="switchModalTab('logs')">📝 Console Logs (<span id="modal-logs-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="storage" onclick="switchModalTab('storage')">💾 Storage (<span id="modal-storage-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="screenshots" onclick="switchModalTab('screenshots')">🖼️ Screenshots (<span id="modal-screenshots-count">0</span>)</button>
+        <button class="modal-tab-btn" data-tab="observer" onclick="switchModalTab('observer')">🔭 Observer (<span id="modal-observer-count">0</span>)</button>
       </div>
       <div class="modal-tab-content" id="modal-tab-api">
         <div id="modal-api-list" class="modal-list"></div>
@@ -254,6 +255,9 @@ class HtmlTestReporter {
       </div>
       <div class="modal-tab-content" id="modal-tab-screenshots" style="display: none;">
         <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
+      </div>
+      <div class="modal-tab-content" id="modal-tab-observer" style="display: none;">
+        <div id="modal-observer-panel" class="modal-observer-panel"></div>
       </div>
     </div>
   </div>

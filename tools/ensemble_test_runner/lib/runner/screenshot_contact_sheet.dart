@@ -38,8 +38,9 @@ Future<String?> writeScreenshotFrames({
   String? failedStepLabel,
   String? failureMessage,
   String? failedDeviceId,
+  FailureObserverArtifact? failureObserver,
 }) async {
-  if (frames.isEmpty) return null;
+  if (frames.isEmpty && failureObserver == null) return null;
 
   final defaultDevice = resolveScreenshotDevice(const {});
   final manifestDirectory = ensembleTestArtifactDirectory('frames');
@@ -86,12 +87,43 @@ Future<String?> writeScreenshotFrames({
         if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
       });
     }
+
+    if (failureObserver != null) {
+      final observerDevice = _deviceForObserver(failureObserver, defaultDevice);
+      final encoded = failureObserver.encodedReportImage ??
+          await _encodeObserverImage(failureObserver, observerDevice);
+      failureObserver.encodedReportImage ??= encoded;
+      final frameFileName = _dedupedImageFileName(encoded);
+      final frameFile = File(p.join(imageDirectory.path, frameFileName));
+      if (usesDeviceArtifactTransport || !frameFile.existsSync()) {
+        await writeEnsembleTestArtifactBytes(
+          p.join('report', 'screenshots'),
+          frameFileName,
+          encoded.bytes,
+          mimeType: _mimeTypeForExtension(encoded.extension),
+        );
+      }
+      frameEntries.add({
+        'stepIndex': failureObserver.stepIndex,
+        'role': 'observer',
+        'label': _observerScreenshotLabel(failureObserver),
+        'file': frameFileName,
+        'failed': true,
+        if (failureObserver.screen != null) 'screen': failureObserver.screen,
+        if (failureObserver.deviceId != null)
+          'deviceId': failureObserver.deviceId,
+        if (failureObserver.deviceLabel != null)
+          'deviceLabel': failureObserver.deviceLabel,
+        'elements': failureObserver.elements,
+      });
+    }
   } finally {
     for (final frame in frames) {
       try {
         frame.image.dispose();
       } catch (_) {}
     }
+    failureObserver?.dispose();
   }
 
   if (frameEntries.isEmpty) return null;
@@ -169,6 +201,47 @@ DeviceInfo _deviceForFrame(
     if (platform != null && platform.isNotEmpty) 'platform': platform,
     if (model != null && model.isNotEmpty) 'model': model,
   });
+}
+
+DeviceInfo _deviceForObserver(
+  FailureObserverArtifact observer,
+  DeviceInfo fallback,
+) {
+  final platform = observer.platform;
+  final model = observer.model;
+  if ((platform == null || platform.isEmpty) &&
+      (model == null || model.isEmpty)) {
+    return fallback;
+  }
+  return resolveScreenshotDevice({
+    if (platform != null && platform.isNotEmpty) 'platform': platform,
+    if (model != null && model.isNotEmpty) 'model': model,
+  });
+}
+
+Future<EncodedScreenshotImage> _encodeObserverImage(
+  FailureObserverArtifact observer,
+  DeviceInfo device,
+) {
+  // Reuse frame encoding by wrapping as a sheet frame (no CSS highlight).
+  return _encodeFrameImage(
+    ScreenshotSheetFrame(
+      stepIndex: observer.stepIndex,
+      label: _observerScreenshotLabel(observer),
+      image: observer.image,
+      deviceId: observer.deviceId,
+      deviceLabel: observer.deviceLabel,
+      platform: observer.platform,
+      model: observer.model,
+    ),
+    device,
+  );
+}
+
+String _observerScreenshotLabel(FailureObserverArtifact observer) {
+  final screen = observer.screen?.trim();
+  if (screen != null && screen.isNotEmpty) return screen;
+  return 'Observer';
 }
 
 Future<EncodedScreenshotImage> _encodeFrameImage(

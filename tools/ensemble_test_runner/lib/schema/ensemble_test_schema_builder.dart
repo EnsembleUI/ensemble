@@ -160,6 +160,7 @@ class EnsembleTestSchemaBuilder {
             'type': 'string',
             'enum': [
               'button',
+              'card',
               'text',
               'textField',
               'checkbox',
@@ -167,6 +168,10 @@ class EnsembleTestSchemaBuilder {
               'slider',
               'dropdown',
               'icon',
+              'image',
+              'svg',
+              'gif',
+              'lottie',
               'widget',
             ],
           },

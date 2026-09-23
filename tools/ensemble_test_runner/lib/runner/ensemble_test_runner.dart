@@ -21,6 +21,7 @@ import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
@@ -697,6 +698,11 @@ class EnsembleTestRunner {
               forFailure: true,
             );
           }
+          await captureFailureObserverBestEffort(
+            session: session,
+            executor: executor,
+            stepIndex: i,
+          );
           var failureMessage = _failureMessageWithFlutterErrors(
             error.toString(),
             ctx,
@@ -766,12 +772,21 @@ class EnsembleTestRunner {
       try {
         _assertNoErrorWidgetAfterSuccess(tester, ctx);
       } catch (error) {
+        final failureIndex =
+            test.steps.isEmpty ? null : test.steps.length - 1;
+        if (failureIndex != null) {
+          await captureFailureObserverBestEffort(
+            session: session,
+            executor: executor,
+            stepIndex: failureIndex,
+          );
+        }
         final failureMessage = error.toString();
         await _flushPendingScreenshots(
           ctx,
           status: TestStatus.failed,
           durationMs: stopwatch.elapsedMilliseconds,
-          failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+          failedStepIndex: failureIndex,
           failedStepLabel:
               test.steps.isEmpty ? null : formatStepBrief(test.steps.last),
           failureMessage: failureMessage,
@@ -1632,7 +1647,11 @@ class EnsembleTestRunner {
       ctx.runtime.screenshotSheetFrames,
     );
     ctx.runtime.screenshotSheetFrames.clear();
-    if (sheetFrames.isEmpty && !ctx.config.hasDeviceMatrix) {
+    final failureObserver = ctx.runtime.failureObserver;
+    ctx.runtime.failureObserver = null;
+    if (sheetFrames.isEmpty &&
+        failureObserver == null &&
+        !ctx.config.hasDeviceMatrix) {
       return;
     }
 
@@ -1644,6 +1663,7 @@ class EnsembleTestRunner {
       failedStepIndex: failedStepIndex,
       failedStepLabel: failedStepLabel,
       failureMessage: failureMessage,
+      failureObserver: failureObserver,
     );
     if (path != null) {
       // Primary artifact is the frames manifest; HTML builds the gallery from it.

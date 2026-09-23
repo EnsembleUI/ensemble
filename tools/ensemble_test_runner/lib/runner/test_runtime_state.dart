@@ -14,6 +14,8 @@ class TestRuntimeState {
   final List<AppFrameTimingEntry> appFrameTimings = [];
   final List<PerformanceMarker> performanceMarkers = [];
   final List<ScreenshotSheetFrame> screenshotSheetFrames = [];
+  /// Live UI dump for the failed step (Observer tab in the HTML report).
+  FailureObserverArtifact? failureObserver;
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
@@ -39,6 +41,8 @@ class TestRuntimeState {
     appFrameTimings.clear();
     performanceMarkers.clear();
     screenshotSheetFrames.clear();
+    failureObserver?.dispose();
+    failureObserver = null;
     authUser = null;
     permissions.clear();
     deviceSize = null;
@@ -117,6 +121,39 @@ class ScreenshotSheetFrame {
     this.model,
     this.highlight,
   });
+}
+
+/// Highlighted observe snapshot attached to a failed step.
+class FailureObserverArtifact {
+  FailureObserverArtifact({
+    required this.stepIndex,
+    required this.image,
+    required this.elements,
+    this.screen,
+    this.deviceId,
+    this.deviceLabel,
+    this.platform,
+    this.model,
+  });
+
+  final int stepIndex;
+  final String? screen;
+  final ui.Image image;
+  final List<Map<String, dynamic>> elements;
+  final String? deviceId;
+  final String? deviceLabel;
+  final String? platform;
+  final String? model;
+  EncodedScreenshotImage? encodedReportImage;
+  bool _disposed = false;
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    try {
+      image.dispose();
+    } catch (_) {}
+  }
 }
 
 class ScreenshotHighlight {

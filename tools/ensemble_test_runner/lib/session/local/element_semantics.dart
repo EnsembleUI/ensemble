@@ -1,4 +1,7 @@
+import 'package:ensemble/widget/image.dart';
+import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
+import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +44,25 @@ UiElement describeElement({
     final iconName = readIconName(semanticsSource);
     if (iconName != null && iconName.isNotEmpty) {
       text = iconName;
+    }
+  }
+  // Standalone text: never keep a merged semantics label (e.g. "Wifi naam KPN"
+  // shared by both the label and value Text nodes).
+  if (type == 'text') {
+    final trimmedText = text?.trim();
+    final trimmedLabel = label?.trim();
+    if (trimmedLabel != null &&
+        trimmedText != null &&
+        trimmedLabel != trimmedText) {
+      label = null;
+    }
+  }
+  // Images / SVG / GIF / Lottie: surface source basename when there is no
+  // semantic label (common for decorative Ensemble Image widgets).
+  if (_isMediaObserveType(type)) {
+    final desc = readMediaDescription(semanticsSource);
+    if ((text == null || text.isEmpty) && desc != null && desc.isNotEmpty) {
+      text = desc;
     }
   }
   // Switches/checkboxes shouldn't inherit nearby label Text as "value".
@@ -106,7 +128,7 @@ Element? findPrimaryControlDescendant(Element element) {
 }
 
 /// When a keyed Ensemble wrapper is typed `widget`, prefer the logical control
-/// type of its nearest primary control (then standalone text).
+/// type of its nearest primary control (then standalone text / media).
 String resolveObservedWidgetType(Element element, {required String? testId}) {
   final type = inferWidgetType(element);
   if (type != 'widget') return type;
@@ -115,18 +137,22 @@ String resolveObservedWidgetType(Element element, {required String? testId}) {
   if (primary != null) {
     return inferWidgetType(primary);
   }
-  String? textType;
-  void visitText(Element e) {
-    if (textType != null) return;
+  String? nestedType;
+  void visitNested(Element e) {
+    if (nestedType != null) return;
     if (isStandaloneTextElement(e)) {
-      textType = 'text';
+      nestedType = 'text';
       return;
     }
-    e.visitChildren(visitText);
+    if (isStandaloneMediaElement(e)) {
+      nestedType = mediaWidgetType(e.widget) ?? 'image';
+      return;
+    }
+    e.visitChildren(visitNested);
   }
 
-  element.visitChildren(visitText);
-  return textType ?? type;
+  element.visitChildren(visitNested);
+  return nestedType ?? type;
 }
 
 String inferSemanticRole(Element element, String type) {
@@ -217,12 +243,135 @@ bool isStandaloneTextElement(Element element) {
   if (widget is Text) {
     data = widget.data;
   } else if (widget is RichText) {
+    // [Text] builds a child [RichText] — keep only the Text host.
+    if (element.findAncestorWidgetOfExactType<Text>() != null) return false;
     data = widget.text.toPlainText();
   } else {
     return false;
   }
   if (data == null || data.trim().isEmpty) return false;
   return !hasPrimaryControlAncestor(element);
+}
+
+/// Visible image / SVG / GIF / Lottie host (not an inner leaf under Ensemble*).
+bool isStandaloneMediaElement(Element element) {
+  final type = mediaWidgetType(element.widget);
+  if (type == null) return false;
+  if (_hasMediaHostAncestor(element)) return false;
+  if (hasPrimaryControlAncestor(element)) return false;
+  return true;
+}
+
+/// Observed type for [widget] when it is image/svg/gif/lottie media.
+String? mediaWidgetType(Widget widget) {
+  if (widget is EnsembleImage) {
+    return _mediaTypeForSource(widget.controller.source, fallback: 'image');
+  }
+  if (widget is EnsembleLottie) return 'lottie';
+  if (widget is Image || widget is RawImage) {
+    return _mediaTypeForImageProvider(
+      widget is Image ? widget.image : null,
+      fallback: 'image',
+    );
+  }
+  final base = widget.runtimeType.toString().split('<').first;
+  switch (base) {
+    case 'SvgPicture':
+      return 'svg';
+    case 'CachedNetworkImage':
+    case 'FadeInImage':
+      return 'image';
+    case 'Lottie':
+    case 'LottieBuilder':
+      return 'lottie';
+    default:
+      return null;
+  }
+}
+
+String? _mediaTypeFromDescendant(Element element) {
+  String? found;
+  void visit(Element e) {
+    if (found != null) return;
+    found = mediaWidgetType(e.widget);
+    if (found != null) return;
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return found;
+}
+
+bool _hasMediaHostAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (w is EnsembleImage || w is EnsembleLottie) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+String _mediaTypeForSource(Object? source, {required String fallback}) {
+  final raw = source?.toString().trim().toLowerCase() ?? '';
+  if (raw.endsWith('.svg') || raw.contains('.svg?')) return 'svg';
+  if (raw.endsWith('.gif') || raw.contains('.gif?') || raw.contains('image/gif')) {
+    return 'gif';
+  }
+  if (raw.endsWith('.json') ||
+      raw.contains('.json?') ||
+      raw.contains('lottie')) {
+    return 'lottie';
+  }
+  return fallback;
+}
+
+String _mediaTypeForImageProvider(
+  ImageProvider? provider, {
+  required String fallback,
+}) {
+  if (provider == null) return fallback;
+  final desc = provider.toString().toLowerCase();
+  if (desc.contains('.gif') || desc.contains('image/gif')) return 'gif';
+  if (desc.contains('.svg')) return 'svg';
+  return fallback;
+}
+
+/// Basename / short label for media source (observe Title column).
+String? readMediaDescription(Element element) {
+  final widget = element.widget;
+  if (widget is EnsembleImage) {
+    return _mediaSourceLabel(widget.controller.source);
+  }
+  if (widget is EnsembleLottie) {
+    return _mediaSourceLabel(widget.controller.source);
+  }
+  if (widget is Image) {
+    return _mediaSourceLabel(widget.image);
+  }
+  return null;
+}
+
+String? _mediaSourceLabel(Object? source) {
+  if (source == null) return null;
+  if (source is List) return 'memory';
+  var raw = source.toString().trim();
+  if (raw.isEmpty) return null;
+  // ImageProvider debug strings — keep short.
+  final assetMatch = RegExp(r'AssetImage\(name:\s*"([^"]+)"\)').firstMatch(raw);
+  if (assetMatch != null) raw = assetMatch.group(1)!;
+  final networkMatch =
+      RegExp(r'NetworkImage\("([^"]+)"').firstMatch(raw);
+  if (networkMatch != null) raw = networkMatch.group(1)!;
+  final uri = Uri.tryParse(raw);
+  final path = (uri != null && uri.path.isNotEmpty) ? uri.path : raw;
+  final segments = path.split('/');
+  final base = segments.isNotEmpty ? segments.last : path;
+  final cleaned = base.split('?').first.trim();
+  return cleaned.isEmpty ? null : cleaned;
 }
 
 /// True when a primary control already wraps [element] (nested InkWell, etc.).
@@ -326,13 +475,25 @@ String inferWidgetType(Element element) {
   }
   if (_hasDropdownAncestor(element)) return 'dropdown';
   if (_hasIconButtonAncestor(element)) return 'icon';
+  // Classify the nearest generic tap target by contents — do not stamp every
+  // InkWell/GestureDetector as `button` (cards / list rows are common).
+  Element? tapTarget;
+  if (_isGenericTapTarget(element.widget)) {
+    tapTarget = element;
+  } else {
+    element.visitAncestorElements((ancestor) {
+      if (_isGenericTapTarget(ancestor.widget)) {
+        tapTarget = ancestor;
+        return false;
+      }
+      return true;
+    });
+  }
+  if (tapTarget != null) return _inferGenericTapTargetType(tapTarget!);
   if (_selfOrAncestor<ElevatedButton>(element) != null ||
       _selfOrAncestor<TextButton>(element) != null ||
       _selfOrAncestor<OutlinedButton>(element) != null ||
-      _selfOrAncestor<FilledButton>(element) != null ||
-      _selfOrAncestor<GestureDetector>(element) != null ||
-      _selfOrAncestor<InkWell>(element) != null ||
-      _selfOrAncestor<InkResponse>(element) != null) {
+      _selfOrAncestor<FilledButton>(element) != null) {
     return 'button';
   }
   return 'widget';
@@ -377,6 +538,13 @@ String? _inferElementWidgetType(Element element) {
   if (widget is Slider) return 'slider';
   if (_isDropdownWidget(widget)) return 'dropdown';
   if (_isIconButtonWidget(widget)) return 'icon';
+  final mediaType = mediaWidgetType(widget);
+  if (mediaType != null) {
+    // Compact Image/SVG used as back/close chrome should observe as `icon`,
+    // not decorative `image` — especially Ensemble Image with onTap.
+    if (_isCompactActionableMedia(element)) return 'icon';
+    return mediaType;
+  }
   if (widget is ElevatedButton ||
       widget is TextButton ||
       widget is OutlinedButton ||
@@ -394,23 +562,136 @@ String? _inferElementWidgetType(Element element) {
 }
 
 /// Classify InkWell / GestureDetector by contents (Ensemble + host patterns).
+///
+/// Tappable ≠ button. Prefer:
+/// - [dropdown] for value+drop-down chevron
+/// - [card] for tiles and settings rows (Devices / Speedtest / Guest wifi)
+/// - [button] for Material buttons and compact text CTAs ("Get started →")
 String _inferGenericTapTargetType(Element element) {
-  final hasChevron = _hasDropdownChevronDescendant(element);
+  final hasDropdownChevron = _hasDropdownChevronDescendant(element);
+  final hasNavChevron = _hasNavigationChevronDescendant(element);
   final text = _longestTextDescendant(element);
   final hasIcon = _hasIconDescendant(element);
   final substantialText = text != null && text.trim().length > 2;
   final compact = _looksLikeCompactIconHitTarget(element);
+  final bounds = boundsFor(element);
+  final keyId = readValueKeyLocatorId(element) ?? '';
 
-  // Dropdowns: selected value text + chevron (Ensemble / custom hosts).
-  if (hasChevron) return 'dropdown';
+  // Dropdowns: selected value text + drop-down chevron (not a list-row `>`).
+  if (hasDropdownChevron) return 'dropdown';
+
+  // Authoring ids often encode the shape: devices_mini_card, wifi_card, …
+  if (RegExp(r'card', caseSensitive: false).hasMatch(keyId)) return 'card';
 
   // Icon buttons: Flutter Icon, or compact glyph-only targets (language "A").
+  // Also compact tappable images (back arrow / close X rendered as SVG/PNG) —
+  // those are actionable controls, not decorative `image` rows.
   if (hasIcon && !substantialText) return 'icon';
   if (compact && (hasIcon || text == null || text.trim().length <= 1)) {
     return 'icon';
   }
 
+  // Tappable illustration without a text label.
+  final mediaType = _mediaTypeFromDescendant(element);
+  if (mediaType != null && !substantialText) {
+    // Small hit targets stay `icon` (nav / chrome). Larger surfaces keep the
+    // media type (hero image / Lottie with onTap).
+    if (compact || _looksLikeIconSizedMedia(bounds)) return 'icon';
+    return mediaType;
+  }
+
+  // Tile / mini-card / settings row — all observe as `card` for now.
+  if (substantialText &&
+      (_looksLikeCardHitTarget(bounds) ||
+          _looksLikeListRowHitTarget(bounds) ||
+          hasNavChevron)) {
+    return 'card';
+  }
+
+  // Compact text CTAs and Material-style actions.
   return 'button';
+}
+
+bool _looksLikeIconSizedMedia(UiBounds? bounds) {
+  if (bounds == null) return false;
+  if (bounds.width <= 0 || bounds.height <= 0) return false;
+  final maxSide = bounds.width > bounds.height ? bounds.width : bounds.height;
+  final minSide = bounds.width < bounds.height ? bounds.width : bounds.height;
+  if (maxSide > 72) return false;
+  return maxSide / minSide <= 1.6;
+}
+
+/// Compact media used as a control (back arrow, close) rather than decoration.
+bool _isCompactActionableMedia(Element element) {
+  final bounds = boundsFor(element);
+  if (!_looksLikeIconSizedMedia(bounds) &&
+      !_looksLikeCompactIconHitTarget(element)) {
+    return false;
+  }
+  final widget = element.widget;
+  if (widget is EnsembleImage && widget.controller.onTap != null) return true;
+  if (_isGenericTapTarget(widget)) return true;
+  var childTap = false;
+  element.visitChildren((child) {
+    if (_isGenericTapTarget(child.widget)) childTap = true;
+  });
+  if (childTap) return true;
+  return hasPrimaryControlAncestor(element);
+}
+
+bool _looksLikeCardHitTarget(UiBounds? bounds) {
+  if (bounds == null) return false;
+  if (bounds.width <= 0 || bounds.height <= 0) return false;
+  // Mini cards (Devices / Speedtest): roughly square-ish or tall tiles.
+  if (bounds.height >= 72 && bounds.width >= 96) return true;
+  final ratio = bounds.width / bounds.height;
+  return bounds.width >= 110 &&
+      bounds.height >= 56 &&
+      ratio >= 0.7 &&
+      ratio <= 2.4;
+}
+
+bool _looksLikeListRowHitTarget(UiBounds? bounds) {
+  if (bounds == null) return false;
+  if (bounds.width <= 0 || bounds.height <= 0) return false;
+  // Full-width settings rows: wide and relatively short.
+  final ratio = bounds.width / bounds.height;
+  return bounds.width >= 180 &&
+      bounds.height >= 36 &&
+      bounds.height <= 96 &&
+      ratio >= 2.4;
+}
+
+bool _hasNavigationChevronDescendant(Element element) {
+  var found = false;
+  void visit(Element e) {
+    if (found) return;
+    final w = e.widget;
+    if (w is Icon && _isNavigationChevronIcon(w.icon)) {
+      found = true;
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return found;
+}
+
+bool _isNavigationChevronIcon(IconData? data) {
+  if (data == null) return false;
+  return data == Icons.chevron_right ||
+      data == Icons.chevron_right_rounded ||
+      data == Icons.chevron_right_outlined ||
+      data == Icons.arrow_forward ||
+      data == Icons.arrow_forward_ios ||
+      data == Icons.arrow_forward_rounded ||
+      data == Icons.arrow_right ||
+      data == Icons.arrow_right_alt ||
+      data == Icons.keyboard_arrow_right ||
+      data == Icons.keyboard_arrow_right_rounded ||
+      data == Icons.navigate_next ||
+      data == Icons.navigate_next_rounded;
 }
 
 bool _looksLikeCompactIconHitTarget(Element element) {
@@ -893,6 +1174,8 @@ List<String> supportedActionsFor(String? type, {required bool secure}) {
             ];
     case 'button':
       return const ['tap', 'longPress', 'doubleTap'];
+    case 'card':
+      return const ['tap', 'longPress'];
     case 'icon':
       return const ['tap', 'longPress'];
     case 'dropdown':
@@ -904,7 +1187,24 @@ List<String> supportedActionsFor(String? type, {required bool secure}) {
       return const ['tap', 'setSlider'];
     case 'text':
       return const ['tap'];
+    case 'image':
+    case 'svg':
+    case 'gif':
+    case 'lottie':
+      return const ['tap'];
     default:
       return const ['tap'];
+  }
+}
+
+bool _isMediaObserveType(String type) {
+  switch (type) {
+    case 'image':
+    case 'svg':
+    case 'gif':
+    case 'lottie':
+      return true;
+    default:
+      return false;
   }
 }

@@ -184,6 +184,9 @@ class FlutterUiObserver implements UiObserver {
     final claimedOwnedIds = <String>{};
     final semantics = tester.ensureSemantics();
     try {
+      final viewportSize =
+          tester.view.physicalSize / tester.view.devicePixelRatio;
+
       for (final element in tester.allElements) {
         // Inherited Invokable.id must NOT force-keep every descendant — that
         // exploded inspect-ui into dozens of duplicate rows per control.
@@ -192,39 +195,73 @@ class FlutterUiObserver implements UiObserver {
         if (keyedOnly && ownedKey == false && ownedId == null) continue;
 
         final underKeyed = _hasCompactKeyedAncestor(element);
-        final ancestorOwnedId = nearestOwnedLocatorIdAncestor(element);
 
         var keep = false;
         if (ownedKey) {
-          keep = true;
-          if (ownedId != null) claimedOwnedIds.add(ownedId);
+          // Screen KeyedSubtree(id: Home) is ~full viewport — observing it
+          // paints the whole screen green. Also skip when the key matches the
+          // current route name (Ensemble page shell).
+          if (_isPageShellElement(element, ownedId, viewportSize)) {
+            keep = false;
+          } else {
+            keep = true;
+            if (ownedId != null) claimedOwnedIds.add(ownedId);
+          }
         } else if (underKeyed) {
-          keep = false;
+          // Page shells wrap the whole screen in KeyedSubtree(id: Home).
+          // Still keep child primaries / standalone text, but do not claim the
+          // shell id (that collapsed every unkeyed control into one row).
+          if (isPrimaryControlElement(element) &&
+              !hasPrimaryControlAncestor(element)) {
+            if (readInvokableLocatorId(element) != null &&
+                nearestDescendantValueKeyLocatorId(element) != null) {
+              keep = false;
+            } else {
+              final scopeId =
+                  ownedId ?? nearestExclusiveKeyedWrapperId(element);
+              if (scopeId != null) {
+                keep = claimedOwnedIds.add(scopeId);
+              } else {
+                keep = true;
+              }
+            }
+          } else if (isStandaloneTextElement(element)) {
+            keep = true;
+          } else if (isStandaloneMediaElement(element)) {
+            keep = true;
+          }
         } else if (isPrimaryControlElement(element) &&
             !hasPrimaryControlAncestor(element)) {
           // testId (KeyedSubtree under Invokable) owns the locator — skip host.
           if (readInvokableLocatorId(element) != null &&
               nearestDescendantValueKeyLocatorId(element) != null) {
             keep = false;
-          } else if (ancestorOwnedId != null) {
-            // One primary per Invokable/YAML id owner (e.g. Dropdown, Switch).
-            keep = claimedOwnedIds.add(ancestorOwnedId);
-          } else if (ownedId != null) {
-            keep = claimedOwnedIds.add(ownedId);
           } else {
-            keep = true;
+            final scopeId = ownedId ?? nearestExclusiveKeyedWrapperId(element);
+            if (scopeId != null) {
+              // One primary per Invokable/YAML id owner (e.g. Dropdown, Switch).
+              keep = claimedOwnedIds.add(scopeId);
+            } else {
+              keep = true;
+            }
           }
         } else if (isStandaloneTextElement(element) &&
-            ancestorOwnedId == null) {
+            nearestOwnedLocatorIdAncestor(element) == null) {
           // Skip label Text under id'd Ensemble controls; absorbFormFieldLabels
           // covers the rest when labels sit beside fields.
+          keep = true;
+        } else if (isStandaloneMediaElement(element) &&
+            nearestOwnedLocatorIdAncestor(element) == null) {
           keep = true;
         }
         if (!keep) continue;
 
-        final testId = readWidgetLocatorId(element) ?? '';
+        // Never inherit page-shell ids (Home) onto child rows.
+        final testId = observeLocatorId(element) ?? '';
 
         final renderObject = element.renderObject;
+        // Dedup unkeyed duplicates (Text/RichText). Keyed hosts may share a
+        // RenderObject with their child (pass-through Container) — keep both.
         if (testId.isEmpty &&
             renderObject != null &&
             !seenRenderObjects.add(renderObject)) {
@@ -390,7 +427,7 @@ class FlutterUiObserver implements UiObserver {
   /// True when an ancestor already carries a compact string [ValueKey] (EDL id).
   ///
   /// Invokable-only YAML `id`s are not treated as keyed ancestors — those ids
-  /// are attached onto the primary control via [readWidgetLocatorId] instead.
+  /// are attached onto the primary control via [observeLocatorId] instead.
   bool _hasCompactKeyedAncestor(Element element) {
     var found = false;
     element.visitAncestorElements((ancestor) {
@@ -401,6 +438,30 @@ class FlutterUiObserver implements UiObserver {
       return true;
     });
     return found;
+  }
+
+  /// Full-screen / route-named KeyedSubtree shells must not be kept.
+  bool _isPageShellElement(
+    Element element,
+    String? ownedId,
+    Size viewport,
+  ) {
+    final route = navigation?.currentRoute?.trim();
+    if (ownedId != null &&
+        route != null &&
+        route.isNotEmpty &&
+        ownedId == route) {
+      return true;
+    }
+    return _isViewportSizedShell(element, viewport);
+  }
+
+  static bool _isViewportSizedShell(Element element, Size viewport) {
+    final box = element.renderObject;
+    if (box is! RenderBox || !box.hasSize) return false;
+    if (viewport.width <= 0 || viewport.height <= 0) return false;
+    return box.size.width >= viewport.width * 0.8 &&
+        box.size.height >= viewport.height * 0.8;
   }
 
   Map<String, SnapshotElementHandle> rebindHandles(

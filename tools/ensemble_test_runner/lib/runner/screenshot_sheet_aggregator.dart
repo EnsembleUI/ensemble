@@ -30,12 +30,16 @@ class ScreenshotSheetAggregator {
     int? failedStepIndex,
     String? failedStepLabel,
     String? failureMessage,
+    FailureObserverArtifact? failureObserver,
   }) async {
     if (!screenshots.enabled) {
       _disposeFrames(frames);
+      failureObserver?.dispose();
       return null;
     }
-    if (frames.isEmpty && devices.isEmpty) return null;
+    if (frames.isEmpty && devices.isEmpty && failureObserver == null) {
+      return null;
+    }
 
     final sheetId = testCase.resolvedScreenshotSheetId;
     final runId = testCase.id;
@@ -53,6 +57,10 @@ class ScreenshotSheetAggregator {
     }
 
     group.frames.addAll(frames);
+    if (failureObserver != null) {
+      group.failureObserver?.dispose();
+      group.failureObserver = failureObserver;
+    }
     group.durationByRunId[runId] = durationMs;
     if (status == TestStatus.failed) {
       group.status = TestStatus.failed;
@@ -84,7 +92,9 @@ class ScreenshotSheetAggregator {
       failedStepLabel: group.failedStepLabel,
       failureMessage: group.failureMessage,
       failedDeviceId: group.failedDeviceId,
+      failureObserver: group.failureObserver,
     );
+    group.failureObserver = null;
     _groups.remove(sheetId);
     return path;
   }
@@ -108,7 +118,9 @@ class ScreenshotSheetAggregator {
             'Incomplete device matrix '
                 '(${group.completedRunIds.length}/$expectedRunsPerSheet runs)',
         failedDeviceId: group.failedDeviceId,
+        failureObserver: group.failureObserver,
       );
+      group.failureObserver = null;
       _groups.remove(sheetId);
     }
   }
@@ -134,6 +146,7 @@ class _SheetGroup {
   String? failedStepLabel;
   String? failureMessage;
   String? failedDeviceId;
+  FailureObserverArtifact? failureObserver;
 
   int get totalDurationMs =>
       durationByRunId.values.fold<int>(0, (sum, value) => sum + value);

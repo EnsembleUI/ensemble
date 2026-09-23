@@ -12,10 +12,76 @@ import 'package:flutter_test/flutter_test.dart';
 /// getter, so steps must wait for that key — matching bare [Invokable] too early
 /// (before State builds the KeyedSubtree) caused mid-transition taps and
 /// framework build-scope errors.
+///
+/// Prefer [observeLocatorId] when attaching `testId` on observe / inspect-ui
+/// rows — this helper inherits any ancestor id (including page shells).
 String? readWidgetLocatorId(Element element) {
   final direct = readOwnedWidgetLocatorId(element);
   if (direct != null) return direct;
   return nearestOwnedLocatorIdAncestor(element);
+}
+
+/// Locator id for observe / inspect-ui / failure Observer rows.
+///
+/// Same owned-id rules as [readWidgetLocatorId], but does **not** inherit a
+/// structural page/card shell key (e.g. screen `Home`) onto every descendant —
+/// that made every text row look like `id=Home`.
+String? observeLocatorId(Element element) {
+  final owned = readOwnedWidgetLocatorId(element);
+  if (owned != null) return owned;
+  return nearestExclusiveKeyedWrapperId(element);
+}
+
+/// Nearest keyed/Invokable ancestor that wraps only this element's lineage
+/// (no other keyed widgets under the same wrapper).
+String? nearestExclusiveKeyedWrapperId(Element element) {
+  String? found;
+  element.visitAncestorElements((ancestor) {
+    final id = readOwnedWidgetLocatorId(ancestor);
+    if (id == null) return true;
+    if (_keyedWrapperHasOtherKeyedDescendant(ancestor, element)) {
+      // Page / section shell — stop without inheriting.
+      return false;
+    }
+    found = id;
+    return false;
+  });
+  return found;
+}
+
+bool _keyedWrapperHasOtherKeyedDescendant(Element ancestor, Element self) {
+  var foreign = false;
+  void walk(Element node) {
+    if (foreign) return;
+    node.visitChildren((child) {
+      if (foreign) return;
+      if (_isSelfOrAncestorOf(child, self)) {
+        if (!identical(child, self)) walk(child);
+        return;
+      }
+      if (readOwnedWidgetLocatorId(child) != null) {
+        foreign = true;
+        return;
+      }
+      walk(child);
+    });
+  }
+
+  walk(ancestor);
+  return foreign;
+}
+
+bool _isSelfOrAncestorOf(Element candidate, Element self) {
+  if (identical(candidate, self)) return true;
+  var found = false;
+  self.visitAncestorElements((ancestor) {
+    if (identical(ancestor, candidate)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 /// Nearest ancestor (not [element] itself) that owns a locator id.

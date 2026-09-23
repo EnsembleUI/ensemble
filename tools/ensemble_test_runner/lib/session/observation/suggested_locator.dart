@@ -2,6 +2,7 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_action_executor.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
+import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter/widgets.dart';
@@ -90,8 +91,8 @@ UiElement _enrichTree({
 
   // Authoring priority: id → label+role → text (+role) → unavailable.
   // Prefer a stable id whenever the observation surfaces one — do not demote
-  // to label/role (labels localize / churn). Verify uniqueness when possible;
-  // still suggest the id if the keyed host is a sibling wrapper of [live].
+  // to label/role (labels localize / churn). Only keep the id when it resolves
+  // uniquely to this element (or its exclusive keyed host).
   final id = _nonEmpty(element.testId);
   if (id != null) {
     final idLocator = ElementLocator(id: id);
@@ -100,27 +101,23 @@ UiElement _enrichTree({
       locator: idLocator,
       expected: live,
     );
-    if (idOutcome.kind == _ResolveKind.ambiguous) {
-      return (
-        locator: null,
-        warning: 'Ambiguous locator (${idOutcome.matchCount} matches)',
-      );
+    switch (idOutcome.kind) {
+      case _ResolveKind.uniqueMatch:
+        return (locator: idLocator, warning: null);
+      case _ResolveKind.ambiguous:
+        return (
+          locator: null,
+          warning: 'Ambiguous locator (${idOutcome.matchCount} matches)',
+        );
+      case _ResolveKind.noMatch:
+      case _ResolveKind.wrongElement:
+        // Fall through to label/text — do not stamp a page-shell id onto
+        // unrelated descendants.
+        break;
     }
-    return (locator: idLocator, warning: null);
   }
 
-  final candidates = <ElementLocator>[
-    if (_nonEmpty(element.label) != null &&
-        _isSupportedLocatorRole(element.role))
-      ElementLocator(label: element.label!.trim(), role: element.role!.trim()),
-    if (_nonEmpty(element.text) != null &&
-        _isSupportedLocatorRole(element.role))
-      ElementLocator(text: element.text!.trim(), role: element.role!.trim()),
-    if (_nonEmpty(element.label) != null)
-      ElementLocator(label: element.label!.trim()),
-    if (_nonEmpty(element.text) != null)
-      ElementLocator(text: element.text!.trim()),
-  ];
+  final candidates = _locatorCandidates(element);
 
   var bestAmbiguousCount = 0;
   for (final candidate in candidates) {
@@ -151,12 +148,41 @@ UiElement _enrichTree({
   return (locator: null, warning: 'No stable locator available');
 }
 
+/// Build locator candidates. Plain [text] nodes prefer exact `text=` — Flutter
+/// often merges adjacent label+value into one semantics `label` shared by both.
+List<ElementLocator> _locatorCandidates(UiElement element) {
+  final label = _nonEmpty(element.label);
+  final text = _nonEmpty(element.text);
+  final role = _nonEmpty(element.role);
+  final roleOk = _isSupportedLocatorRole(role);
+  final isPlainText = (element.type ?? '').toLowerCase() == 'text';
+
+  if (isPlainText) {
+    return [
+      if (text != null && roleOk) ElementLocator(text: text, role: role),
+      if (text != null) ElementLocator(text: text),
+      // Only fall back to label when this node has no visible text of its own.
+      if (text == null && label != null && roleOk)
+        ElementLocator(label: label, role: role),
+      if (text == null && label != null) ElementLocator(label: label),
+    ];
+  }
+
+  return [
+    if (label != null && roleOk) ElementLocator(label: label, role: role),
+    if (text != null && roleOk) ElementLocator(text: text, role: role),
+    if (label != null) ElementLocator(label: label),
+    if (text != null) ElementLocator(text: text),
+  ];
+}
+
 /// Roles accepted by [ElementLocator] schema / YAML `target.role`.
 bool _isSupportedLocatorRole(String? role) {
   final trimmed = role?.trim();
   if (trimmed == null || trimmed.isEmpty) return false;
   return const {
     'button',
+    'card',
     'text',
     'textField',
     'checkbox',
@@ -164,6 +190,10 @@ bool _isSupportedLocatorRole(String? role) {
     'slider',
     'dropdown',
     'icon',
+    'image',
+    'svg',
+    'gif',
+    'lottie',
     'widget',
   }.contains(trimmed);
 }
@@ -211,7 +241,53 @@ String? _nonEmpty(String? value) {
 
 bool _isSameLogicalTarget(Element a, Element b) {
   if (identical(a, b)) return true;
-  return _isDescendantOf(a, b) || _isDescendantOf(b, a);
+  // KeyedSubtree host ↔ wrapped control only when the host does not also
+  // contain other keyed widgets / sibling texts (merged semantics parents
+  // must not unique-match every child).
+  if (_isDescendantOf(a, b)) {
+    return !_wrapperHasForeignObservable(b, a);
+  }
+  if (_isDescendantOf(b, a)) {
+    return !_wrapperHasForeignObservable(a, b);
+  }
+  return false;
+}
+
+bool _wrapperHasForeignObservable(Element wrapper, Element self) {
+  var foreign = false;
+  void walk(Element node) {
+    if (foreign) return;
+    node.visitChildren((child) {
+      if (foreign) return;
+      if (identical(child, self) || _isDescendantOf(self, child)) {
+        if (!identical(child, self)) walk(child);
+        return;
+      }
+      if (readOwnedWidgetLocatorId(child) != null) {
+        foreign = true;
+        return;
+      }
+      final w = child.widget;
+      if (w is Text) {
+        final data = w.data?.trim();
+        if (data != null && data.isNotEmpty) {
+          foreign = true;
+          return;
+        }
+      } else if (w is RichText) {
+        final data = w.text.toPlainText().trim();
+        if (data.isNotEmpty &&
+            child.findAncestorWidgetOfExactType<Text>() == null) {
+          foreign = true;
+          return;
+        }
+      }
+      walk(child);
+    });
+  }
+
+  walk(wrapper);
+  return foreign;
 }
 
 bool _isDescendantOf(Element element, Element ancestor) {

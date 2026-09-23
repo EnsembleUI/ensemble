@@ -89,6 +89,7 @@ List<Map<String, dynamic>> groupLogsByStep({
       'secureStorageChanges': <Map<String, dynamic>>[],
       'keychainChanges': <Map<String, dynamic>>[],
       'screenshots': <Map<String, dynamic>>[],
+      'observer': null,
     },
   );
 
@@ -199,6 +200,23 @@ List<Map<String, dynamic>> groupLogsByStep({
     if (targetTopLevel == null) continue;
     final outlineIndex = outlineIndexForTopLevel(targetTopLevel);
     if (outlineIndex == null) continue;
+    if (frame['role']?.toString() == 'observer') {
+      final screenshot = {
+        for (final entry in frame.entries)
+          if (entry.key != 'elements' && entry.key != 'role')
+            entry.key: entry.value,
+      };
+      // Show the highlighted observe shot in Screenshots; elements stay on
+      // the Observer tab only.
+      (buckets[outlineIndex]['screenshots'] as List).add(screenshot);
+      buckets[outlineIndex]['observer'] = {
+        'elements': frame['elements'] is List
+            ? List<dynamic>.from(frame['elements'] as List)
+            : const [],
+        if (frame['screen'] != null) 'screen': frame['screen'],
+      };
+      continue;
+    }
     (buckets[outlineIndex]['screenshots'] as List).add(frame);
   }
 
@@ -217,6 +235,7 @@ List<Map<String, dynamic>> groupLogsByStep({
       'secureStorageChanges': <Map<String, dynamic>>[],
       'keychainChanges': <Map<String, dynamic>>[],
       'screenshots': <Map<String, dynamic>>[],
+      'observer': null,
     });
   }
 
