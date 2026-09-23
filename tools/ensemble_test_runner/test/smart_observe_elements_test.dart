@@ -454,7 +454,7 @@ void main() {
       );
       expect(
         checkbox.type,
-        'toggle',
+        'checkbox',
         reason: 'Keyed Checkbox must not inherit the row InkWell card type',
       );
       expect(checkbox.state.checked, isTrue);

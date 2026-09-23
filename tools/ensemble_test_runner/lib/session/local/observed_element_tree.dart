@@ -169,7 +169,7 @@ import 'package:flutter_test/flutter_test.dart';
 List<({Element element, UiElement ui})> absorbFormFieldLabels(
   List<({Element element, UiElement ui})> kept,
 ) {
-  const formTypes = {'textInput', 'switch', 'toggle', 'dropdown'};
+  const formTypes = {'textInput', 'switch', 'toggle', 'checkbox', 'dropdown'};
   final claimed = <int>{};
   final updated = List<({Element element, UiElement ui})>.of(kept);
 

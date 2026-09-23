@@ -85,7 +85,8 @@ UiElement describeElement({
     }
   }
   // Switches/checkboxes shouldn't inherit nearby label Text as "value".
-  if ((type == 'switch' || type == 'toggle') && checked != null) {
+  if ((type == 'switch' || type == 'toggle' || type == 'checkbox') &&
+      checked != null) {
     text = null;
   }
   // textInput value is editable content only — never hint/label Text.
@@ -148,7 +149,7 @@ Element? findPrimaryControlDescendant(Element element) {
 }
 
 /// When a keyed Ensemble wrapper is typed generically, prefer the logical
-/// control it owns (Checkbox → toggle, TextField → textInput, …).
+/// control it owns (Checkbox → checkbox, TextField → textInput, …).
 ///
 /// Also refines ancestor-derived `card`/`button` when the keyed host wraps a
 /// specific control — so `testId` on a Checkbox inside a tappable FlexRow is
@@ -502,7 +503,7 @@ String inferWidgetType(Element element) {
     return 'switch';
   }
   if (_selfOrAncestor<Checkbox>(element) != null) {
-    return 'toggle';
+    return 'checkbox';
   }
   if (_selfOrAncestor<Slider>(element) != null) {
     return 'slider';
@@ -517,7 +518,7 @@ String inferWidgetType(Element element) {
   //
   // Do NOT apply this when [element] is itself a GestureDetector/InkWell —
   // those are the row/card surfaces and must keep card/button typing even if
-  // they contain a checkbox (observe both: row as card, keyed box as toggle).
+  // they contain a checkbox (observe both: row as card, keyed box as checkbox).
   if (!_isGenericTapTarget(element.widget)) {
     final ownedSpecific = _specificPrimaryControlDescendant(element);
     if (ownedSpecific != null) {
@@ -593,7 +594,7 @@ String? _inferElementWidgetType(Element element) {
     return 'textInput';
   }
   if (widget is Switch || widget is CupertinoSwitch) return 'switch';
-  if (widget is Checkbox) return 'toggle';
+  if (widget is Checkbox) return 'checkbox';
   if (widget is Slider) return 'slider';
   if (_isDropdownWidget(widget)) return 'dropdown';
   if (_isIconButtonWidget(widget)) return 'icon';
@@ -1393,6 +1394,7 @@ List<String> supportedActionsFor(String? type, {required bool secure}) {
       return const ['tap'];
     case 'switch':
     case 'toggle':
+    case 'checkbox':
       return const ['tap', 'toggle', 'check', 'uncheck'];
     case 'slider':
       return const ['tap', 'setSlider'];

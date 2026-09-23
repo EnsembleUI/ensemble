@@ -254,6 +254,7 @@ class HtmlTestReporter {
         <div id="modal-storage-list" class="modal-list logs-terminal"></div>
       </div>
       <div class="modal-tab-content" id="modal-tab-screenshots" style="display: none;">
+        <div id="modal-screenshots-toolbar" class="screenshot-overlay-toolbar-host"></div>
         <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
       </div>
       <div class="modal-tab-content" id="modal-tab-observer" style="display: none;">

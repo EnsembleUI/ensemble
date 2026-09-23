@@ -1207,7 +1207,7 @@ body {
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   padding-bottom: 24px;
   margin-top: 16px;
 }
@@ -1289,7 +1289,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  /* Labels sit above highlight boxes — don't clip them in the sheet/gallery. */
+  overflow: visible;
   width: 100%;
   border-radius: 18px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
@@ -1318,6 +1319,157 @@ body {
   display: block;
   position: relative;
   width: 100%;
+}
+/* Overlay visibility prefs (toggled from screenshot toolbars). */
+html.hide-obs-highlights .screenshot-highlight.observer {
+  outline-color: transparent;
+  background: transparent;
+}
+html.hide-obs-labels .screenshot-observer-chips {
+  display: none !important;
+}
+html.hide-action-highlights .screenshot-highlight.action,
+html.hide-action-highlights .screenshot-highlight.assertion,
+html.hide-action-highlights .screenshot-highlight.failure {
+  outline-color: transparent;
+  background: transparent;
+  filter: none;
+  animation: none;
+}
+.screenshot-overlay-toolbar-host {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  width: 100%;
+}
+.screenshot-overlay-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.screenshot-overlay-switches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  flex: 1;
+  min-width: 0;
+}
+.screenshot-overlay-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex: 0 0 auto;
+}
+.screenshot-overlay-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+.screenshot-overlay-switch-ui {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  flex: 0 0 auto;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.screenshot-overlay-switch-ui::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.screenshot-overlay-switch input:checked + .screenshot-overlay-switch-ui {
+  background: rgba(6, 182, 212, 0.35);
+  border-color: rgba(6, 182, 212, 0.55);
+}
+.screenshot-overlay-switch input:checked + .screenshot-overlay-switch-ui::after {
+  transform: translateX(14px);
+  background: var(--accent);
+}
+.screenshot-overlay-switch:hover {
+  color: #fff;
+}
+.screenshot-overlay-switch-label {
+  white-space: nowrap;
+}
+.screenshot-copy-btn {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 8;
+  pointer-events: auto;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  background: rgba(8, 20, 30, 0.88);
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.screenshot-image-wrap:hover .screenshot-copy-btn,
+.screenshot-copy-btn:focus,
+.screenshot-copy-btn.is-busy,
+.screenshot-copy-btn.is-done,
+.screenshot-copy-btn.is-failed {
+  opacity: 1;
+}
+.screenshot-copy-btn:hover {
+  background: rgba(6, 182, 212, 0.18);
+  color: #fff;
+}
+.screenshot-copy-btn.is-done {
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #4ade80;
+}
+.screenshot-copy-btn.is-failed {
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #fb7185;
+}
+.fullscreen-screenshots-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+@media (max-width: 1200px) {
+  .fullscreen-screenshots-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 768px) {
+  .fullscreen-screenshots-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .screenshot-highlight {
   position: absolute;
@@ -1360,12 +1512,17 @@ body {
 .screenshot-observer-chips {
   position: absolute;
   left: 0;
-  bottom: calc(100% + 2px);
+  top: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  max-width: min(220px, 70vw);
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 3px;
+  max-width: none;
   pointer-events: none;
+  z-index: 5;
+  /* Final top/left set by layoutScreenshotChips() so labels stay in-bounds
+     and do not stack on neighboring controls. */
 }
 .screenshot-observer-chip {
   display: inline-block;
@@ -1379,6 +1536,12 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 140px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+.screenshot-highlight.compact .screenshot-observer-chip {
+  max-width: 110px;
+  font-size: 8px;
+  padding: 1px 4px;
 }
 .screenshot-observer-chip.id {
   background: rgba(0, 95, 135, 0.92);

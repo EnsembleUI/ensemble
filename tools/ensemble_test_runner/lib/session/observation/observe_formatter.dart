@@ -204,6 +204,7 @@ class ObserveFormatter {
       case 'dropdown':
       case 'switch':
       case 'toggle':
+      case 'checkbox':
       case 'textinput':
       case 'textfield':
         return _firstNonEmpty([element.label, element.testId]);
@@ -243,6 +244,7 @@ class ObserveFormatter {
         break;
       case 'switch':
       case 'toggle':
+      case 'checkbox':
         final checked = element.state.checked;
         if (checked != null) {
           props.add('checked: $checked');

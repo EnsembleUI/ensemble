@@ -13,6 +13,14 @@ const ensembleHtmlTestReportAppJs = r'''
   let currentModalStepIndex = -1;
   let activeStorageSubTab = 'public';
 
+  /** Screenshot overlay visibility — shared across step modal + fullscreen sheet.
+   *  Sheet defaults: observation layers off (clear picture); action rings on. */
+  const screenshotOverlayPrefs = {
+    obsHighlights: false,
+    obsLabels: false,
+    actionHighlights: true,
+  };
+
   function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
@@ -714,6 +722,7 @@ const ensembleHtmlTestReportAppJs = r'''
         const firstBlock = document.querySelector('#details-' + cardId + ' .device-run-block');
         if (firstBlock) firstBlock.style.display = 'block';
       }
+      scheduleScreenshotChipLayout(details);
     };
     return el;
   }
@@ -814,6 +823,7 @@ const ensembleHtmlTestReportAppJs = r'''
       wrap.querySelectorAll('.device-run-block').forEach(r => r.style.display = 'none');
       const run = document.getElementById('run-' + cardId + '-' + runIndex);
       if (run) run.style.display = 'block';
+      scheduleScreenshotChipLayout(run || wrap);
     }
 
     function showDevice(deviceIndex) {
@@ -1043,6 +1053,24 @@ const ensembleHtmlTestReportAppJs = r'''
     return out;
   }
 
+  /** Screenshot frames paired with that step's Observer overlays (for gallery/sheet). */
+  function flattenScreenshotFramesWithOverlays(test) {
+    const out = [];
+    const steps = test.steps || [];
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i] || {};
+      if (String(step.stepText || '').startsWith('  ')) continue;
+      const items = step.screenshots || [];
+      const overlays = (step.observer && Array.isArray(step.observer.overlays))
+        ? step.observer.overlays
+        : [];
+      for (let j = 0; j < items.length; j++) {
+        out.push({ frame: items[j], overlays: overlays });
+      }
+    }
+    return out;
+  }
+
   function renderTerminals(test) {
     const consoleLines = flattenStepField(test, 'appLogs');
     const events = flattenStepField(test, 'apiCalls');
@@ -1089,13 +1117,16 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   function renderScreenshotGallery(test) {
-    const frames = flattenStepField(test, 'screenshots');
+    const frames = flattenScreenshotFramesWithOverlays(test);
     if (!frames.length) return '';
     let html = '<div class="screenshot-artifacts-row"><div class="artifact screenshot-artifact-card">';
     html += '<div class="logs-pane-title" style="border:none;padding:0 0 12px 0;"><span style="font-weight:800;font-size:0.8rem;text-transform:uppercase;color:var(--accent);letter-spacing:0.08em;">🖼️ Screenshots</span>';
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'screenshots\')">⛶ Open Fullscreen</button></div>';
+    html += screenshotOverlayToolbarHtml();
     html += '<div class="screenshot-gallery">';
-    frames.forEach((frame, idx) => {
+    frames.forEach((entry, idx) => {
+      const frame = entry.frame || {};
+      const overlays = entry.overlays || [];
       const href = frame.href || '';
       const label = frame.screen || frame.label || frame.file || ('Frame ' + (idx + 1));
       const failed = frame.failed === true;
@@ -1110,7 +1141,7 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<div class="screenshot-tile-header-bar"><span class="screenshot-index-pill">' + pillIndex + '</span>';
       html += '<span class="screenshot-tile-caption" title="' + escapeHtml(label) + '">' + escapeHtml(cleanLabel) + '</span></div>';
       html += '<div class="screenshot-gallery-frame">';
-      if (href) html += renderScreenshotImage(frame, label);
+      if (href) html += renderScreenshotImage(frame, label, overlays);
       html += '</div></figure>';
     });
     html += '</div></div></div>';
@@ -1522,12 +1553,16 @@ const ensembleHtmlTestReportAppJs = r'''
     appendSimpleStorageSection('Keychain', 'keychainChanges', 'keychain', keychainPanel);
 
     const shotsList = document.getElementById('modal-screenshots-list');
+    const shotsToolbar = document.getElementById('modal-screenshots-toolbar');
     shotsList.innerHTML = '';
     const screenshots = data.screenshots || [];
     const observerOverlays = (data.observer && Array.isArray(data.observer.overlays))
       ? data.observer.overlays
       : [];
     document.getElementById('modal-screenshots-count').textContent = screenshots.length;
+    if (shotsToolbar) {
+      shotsToolbar.innerHTML = screenshots.length ? screenshotOverlayToolbarHtml() : '';
+    }
     if (!screenshots.length) {
       shotsList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no screenshot for this step&gt;</div>';
     } else {
@@ -1555,6 +1590,8 @@ const ensembleHtmlTestReportAppJs = r'''
       });
       shotsList.appendChild(container);
     }
+    applyScreenshotOverlayPrefs();
+    scheduleScreenshotChipLayout(shotsList);
 
     renderObserverTab(data);
 
@@ -1640,10 +1677,18 @@ const ensembleHtmlTestReportAppJs = r'''
     contentArea.innerHTML = '';
     contentArea.className = 'fullscreen-card-content-area';
     if (type === 'screenshots') {
-      contentArea.classList.add('grid-layout');
+      const toolbar = document.createElement('div');
+      toolbar.className = 'screenshot-overlay-toolbar-host';
+      toolbar.innerHTML = screenshotOverlayToolbarHtml();
+      contentArea.appendChild(toolbar);
+      const grid = document.createElement('div');
+      grid.className = 'fullscreen-screenshots-grid';
       cardEl.querySelectorAll('.screenshot-gallery-tile').forEach(tile => {
-        contentArea.appendChild(tile.cloneNode(true));
+        grid.appendChild(tile.cloneNode(true));
       });
+      contentArea.appendChild(grid);
+      applyScreenshotOverlayPrefs();
+      scheduleScreenshotChipLayout(contentArea);
     } else {
       const terminal = cardEl.querySelector('.logs-terminal');
       if (terminal) {
@@ -1687,6 +1732,7 @@ const ensembleHtmlTestReportAppJs = r'''
     document.querySelectorAll('.modal-tab-content').forEach(content => { content.style.display = 'none'; });
     const pane = document.getElementById('modal-tab-' + tab);
     if (pane) pane.style.display = 'flex';
+    if (tab === 'screenshots') scheduleScreenshotChipLayout(pane);
   }
 
   function formatStorageValue(value) {
@@ -1866,7 +1912,7 @@ const ensembleHtmlTestReportAppJs = r'''
     // Observer boxes for every element except the action/failure target —
     // that control keeps the step ring; observer only contributes type/id chips.
     const overlays = Array.isArray(observerOverlays) ? observerOverlays : [];
-    const actionChips = [];
+    const actionCandidates = [];
     overlays.forEach((overlay) => {
       const left = Number(overlay.left || 0);
       const top = Number(overlay.top || 0);
@@ -1875,12 +1921,18 @@ const ensembleHtmlTestReportAppJs = r'''
       if (!(width > 0 && height > 0)) return;
       const rect = { left: left, top: top, width: width, height: height };
       if (highlightRect && observerOverlapsHighlight(rect, highlightRect)) {
-        if (overlay.id) actionChips.push({ kind: 'id', text: String(overlay.id) });
-        if (overlay.type) actionChips.push({ kind: 'type', text: String(overlay.type) });
+        // Prefer keyed + smaller controls (checkbox inside a card) so the action
+        // label does not inherit the parent row's `card` type.
+        const area = Math.max(width * height, 0.0001);
+        const score = (overlay.id ? 1000 : 0) + (1 / area);
+        actionCandidates.push({ overlay: overlay, score: score });
         return;
       }
-      html += '<span class="screenshot-highlight observer" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;">';
-      html += renderObserverChips(overlay.id, overlay.type);
+      const compact = isCompactObserverRect(width, height);
+      html += '<span class="screenshot-highlight observer' +
+          (compact ? ' compact' : '') +
+          '" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;">';
+      html += renderObserverChips(overlay.id, overlay.type, compact);
       html += '</span>';
     });
 
@@ -1889,33 +1941,366 @@ const ensembleHtmlTestReportAppJs = r'''
       const kind = highlight.kind === 'assertion' || highlight.kind === 'failure'
         ? highlight.kind
         : 'action';
-      html += '<span class="screenshot-highlight ' + kind + '" style="left:' + highlightRect.left.toFixed(4) + '%;top:' + highlightRect.top.toFixed(4) + '%;width:' + highlightRect.width.toFixed(4) + '%;height:' + highlightRect.height.toFixed(4) + '%;">';
+      const compactAction = isCompactObserverRect(highlightRect.width, highlightRect.height);
+      html += '<span class="screenshot-highlight ' + kind +
+          (compactAction ? ' compact' : '') +
+          '" style="left:' + highlightRect.left.toFixed(4) + '%;top:' + highlightRect.top.toFixed(4) + '%;width:' + highlightRect.width.toFixed(4) + '%;height:' + highlightRect.height.toFixed(4) + '%;">';
       html += '<span class="screenshot-highlight-dot"></span>';
-      if (actionChips.length) {
-        const seen = new Set();
-        let chipsHtml = '';
-        actionChips.forEach((chip) => {
-          const key = chip.kind + ':' + chip.text;
-          if (seen.has(key)) return;
-          seen.add(key);
-          chipsHtml += '<span class="screenshot-observer-chip ' + chip.kind + '">' + escapeHtml(chip.text) + '</span>';
-        });
-        if (chipsHtml) {
-          html += '<span class="screenshot-observer-chips">' + chipsHtml + '</span>';
-        }
+      if (actionCandidates.length) {
+        actionCandidates.sort((a, b) => b.score - a.score);
+        const best = actionCandidates[0].overlay || {};
+        html += renderObserverChips(best.id, best.type, compactAction);
       }
       html += '</span>';
     }
+    html += '<button type="button" class="screenshot-copy-btn" title="Copy screenshot with current overlay settings" onclick="event.preventDefault();event.stopPropagation();copyScreenshotOverlay(this);">Copy</button>';
     html += '</span></a>';
     return html;
   }
 
-  function renderObserverChips(id, type) {
+  function screenshotOverlayToolbarHtml() {
+    return '<div class="screenshot-overlay-toolbar">' +
+        '<div class="screenshot-overlay-switches">' +
+          screenshotOverlaySwitchHtml('obsHighlights', 'Observation highlights') +
+          screenshotOverlaySwitchHtml('obsLabels', 'Observation labels') +
+          screenshotOverlaySwitchHtml('actionHighlights', 'Action highlights') +
+        '</div>' +
+      '</div>';
+  }
+
+  function screenshotOverlaySwitchHtml(key, label) {
+    const checked = screenshotOverlayPrefs[key] ? ' checked' : '';
+    return '<label class="screenshot-overlay-switch">' +
+        '<input type="checkbox" data-overlay-pref="' + key + '"' + checked +
+        ' onchange="setScreenshotOverlayPref(\'' + key + '\', this.checked)">' +
+        '<span class="screenshot-overlay-switch-ui" aria-hidden="true"></span>' +
+        '<span class="screenshot-overlay-switch-label">' + escapeHtml(label) + '</span>' +
+      '</label>';
+  }
+
+  function setScreenshotOverlayPref(key, enabled) {
+    if (!Object.prototype.hasOwnProperty.call(screenshotOverlayPrefs, key)) return;
+    screenshotOverlayPrefs[key] = !!enabled;
+    applyScreenshotOverlayPrefs();
+  }
+
+  function applyScreenshotOverlayPrefs() {
+    const root = document.documentElement;
+    root.classList.toggle('hide-obs-highlights', !screenshotOverlayPrefs.obsHighlights);
+    root.classList.toggle('hide-obs-labels', !screenshotOverlayPrefs.obsLabels);
+    root.classList.toggle('hide-action-highlights', !screenshotOverlayPrefs.actionHighlights);
+    document.querySelectorAll('input[data-overlay-pref]').forEach((input) => {
+      const key = input.getAttribute('data-overlay-pref');
+      if (!key || !Object.prototype.hasOwnProperty.call(screenshotOverlayPrefs, key)) return;
+      input.checked = !!screenshotOverlayPrefs[key];
+    });
+    scheduleScreenshotChipLayout(document);
+  }
+
+  function ensureImageReady(img) {
+    if (!img) return Promise.reject(new Error('missing image'));
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(img);
+    return new Promise((resolve, reject) => {
+      const onLoad = () => {
+        cleanup();
+        resolve(img);
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error('image failed to load'));
+      };
+      const cleanup = () => {
+        img.removeEventListener('load', onLoad);
+        img.removeEventListener('error', onError);
+      };
+      img.addEventListener('load', onLoad);
+      img.addEventListener('error', onError);
+    });
+  }
+
+  function pctStyle(el, prop) {
+    return Number(String(el.style[prop] || '0').replace('%', '')) || 0;
+  }
+
+  async function composeScreenshotCanvas(wrap) {
+    layoutChipsInWrap(wrap);
+    const img = wrap.querySelector('img');
+    await ensureImageReady(img);
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (!(w > 0 && h > 0)) throw new Error('invalid image size');
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const prefs = screenshotOverlayPrefs;
+    const lineW = Math.max(2, Math.round(w * 0.004));
+    wrap.querySelectorAll('.screenshot-highlight').forEach((hl) => {
+      const left = pctStyle(hl, 'left') / 100 * w;
+      const top = pctStyle(hl, 'top') / 100 * h;
+      const width = pctStyle(hl, 'width') / 100 * w;
+      const height = pctStyle(hl, 'height') / 100 * h;
+      if (!(width > 0 && height > 0)) return;
+      const isObserver = hl.classList.contains('observer');
+      const isAction = hl.classList.contains('action') ||
+          hl.classList.contains('assertion') ||
+          hl.classList.contains('failure');
+
+      if (isObserver && prefs.obsHighlights) {
+        ctx.save();
+        ctx.strokeStyle = '#00b4d8';
+        ctx.lineWidth = Math.max(2, lineW - 1);
+        ctx.strokeRect(left, top, width, height);
+        ctx.restore();
+      }
+      if (isAction && prefs.actionHighlights) {
+        ctx.save();
+        if (hl.classList.contains('failure')) {
+          ctx.setLineDash([Math.max(6, lineW * 2), Math.max(4, lineW)]);
+          ctx.strokeStyle = '#f43f5e';
+        } else if (hl.classList.contains('assertion')) {
+          ctx.strokeStyle = '#00d5ff';
+        } else {
+          ctx.strokeStyle = '#ff3f6f';
+        }
+        ctx.lineWidth = lineW;
+        ctx.strokeRect(left, top, width, height);
+        ctx.restore();
+      }
+      if (prefs.obsLabels) {
+        drawScreenshotChipsOnCanvas(ctx, hl, left, top, width, height, w, h, wrap);
+      }
+    });
+    return canvas;
+  }
+
+  function drawScreenshotChipsOnCanvas(ctx, hl, left, top, width, height, canvasW, canvasH, wrap) {
+    const chipsRoot = hl.querySelector('.screenshot-observer-chips');
+    if (!chipsRoot) return;
+    const chips = chipsRoot.querySelectorAll('.screenshot-observer-chip');
+    if (!chips.length) return;
+    const compact = hl.classList.contains('compact');
+    const fontSize = Math.max(compact ? 9 : 11, Math.round(canvasW * (compact ? 0.011 : 0.013)));
+    const padX = Math.max(4, Math.round(fontSize * 0.45));
+    const padY = Math.max(2, Math.round(fontSize * 0.25));
+    const chipH = fontSize + padY * 2;
+    const gap = 3;
+    ctx.save();
+    ctx.font = '700 ' + fontSize + 'px ui-sans-serif, system-ui, -apple-system, sans-serif';
+    ctx.textBaseline = 'middle';
+
+    const items = [];
+    chips.forEach((chip) => {
+      const text = (chip.textContent || '').trim();
+      if (!text) return;
+      items.push({
+        text: text,
+        tw: ctx.measureText(text).width + padX * 2,
+        fill: chip.classList.contains('type') ? 'rgba(161, 98, 7, 0.92)' : 'rgba(0, 95, 135, 0.92)',
+      });
+    });
+    if (!items.length) {
+      ctx.restore();
+      return;
+    }
+
+    const sx = wrap && wrap.clientWidth ? canvasW / wrap.clientWidth : 1;
+    const sy = wrap && wrap.clientHeight ? canvasH / wrap.clientHeight : 1;
+    const chipLeftCss = parseFloat(chipsRoot.style.left || '0') || 0;
+    const chipTopCss = parseFloat(chipsRoot.style.top || '0') || 0;
+    // chips are positioned relative to the highlight element.
+    let cx = left + chipLeftCss * sx;
+    let cy = top + chipTopCss * sy;
+
+    items.forEach((item) => {
+      const tw = Math.min(item.tw, (compact ? 110 : 140) * sx);
+      roundRectFill(ctx, cx, cy, tw, chipH, 3, item.fill);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(item.text, cx + padX, cy + chipH / 2);
+      cx += tw + gap;
+    });
+    ctx.restore();
+  }
+
+  function roundRectFill(ctx, x, y, w, h, r, fill) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  async function copyScreenshotOverlay(btn) {
+    if (!btn || btn.classList.contains('is-busy')) return;
+    const wrap = btn.closest('.screenshot-image-wrap');
+    if (!wrap) return;
+    const prev = btn.textContent;
+    btn.classList.remove('is-done', 'is-failed');
+    btn.classList.add('is-busy');
+    btn.textContent = '…';
+    try {
+      const canvas = await composeScreenshotCanvas(wrap);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+      });
+      if (!(navigator.clipboard && window.ClipboardItem)) {
+        throw new Error('clipboard image API unavailable');
+      }
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.classList.remove('is-busy');
+      btn.classList.add('is-done');
+      btn.textContent = 'Copied';
+      setTimeout(() => {
+        btn.classList.remove('is-done');
+        btn.textContent = prev;
+      }, 1400);
+    } catch (err) {
+      console.warn('copyScreenshotOverlay failed', err);
+      btn.classList.remove('is-busy');
+      btn.classList.add('is-failed');
+      btn.textContent = 'Failed';
+      setTimeout(() => {
+        btn.classList.remove('is-failed');
+        btn.textContent = prev;
+      }, 1600);
+    }
+  }
+
+  /** Small hit targets (checkboxes / icons) — narrow chips above, not over the row title. */
+  function isCompactObserverRect(widthPct, heightPct) {
+    return widthPct < 16 || heightPct < 7;
+  }
+
+  function formatObserverChipText(text, compact) {
+    const s = String(text || '');
+    const max = compact ? 20 : 28;
+    if (s.length <= max) return s;
+    // Keep a readable suffix so *_checkbox / *_button ids stay recognizable.
+    const head = compact ? 6 : 10;
+    const tail = compact ? 9 : 10;
+    return s.slice(0, head) + '…' + s.slice(-tail);
+  }
+
+  function renderObserverChips(id, type, compact) {
     const chips = [];
-    if (id) chips.push('<span class="screenshot-observer-chip id">' + escapeHtml(String(id)) + '</span>');
-    if (type) chips.push('<span class="screenshot-observer-chip type">' + escapeHtml(String(type)) + '</span>');
+    if (id) {
+      chips.push('<span class="screenshot-observer-chip id" title="' +
+          escapeHtml(String(id)) + '">' +
+          escapeHtml(formatObserverChipText(id, !!compact)) + '</span>');
+    }
+    if (type) {
+      chips.push('<span class="screenshot-observer-chip type">' +
+          escapeHtml(String(type)) + '</span>');
+    }
     if (!chips.length) return '';
     return '<span class="screenshot-observer-chips">' + chips.join('') + '</span>';
+  }
+
+  /** Place labels inside the image with collision avoidance (no off-screen clip). */
+  function scheduleScreenshotChipLayout(root) {
+    const target = root || document;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => layoutScreenshotChips(target));
+    });
+  }
+
+  function layoutScreenshotChips(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('.screenshot-image-wrap').forEach(layoutChipsInWrap);
+  }
+
+  function layoutChipsInWrap(wrap) {
+    const wrapW = wrap.clientWidth;
+    const wrapH = wrap.clientHeight;
+    if (!(wrapW > 0 && wrapH > 0)) return;
+
+    const placed = [];
+    const highlights = Array.from(wrap.querySelectorAll('.screenshot-highlight'));
+    // Larger targets first so cards claim space before tiny checkboxes nudge away.
+    highlights.sort((a, b) => (b.offsetWidth * b.offsetHeight) - (a.offsetWidth * a.offsetHeight));
+
+    highlights.forEach((hl) => {
+      const chips = hl.querySelector(':scope > .screenshot-observer-chips');
+      if (!chips) return;
+      if (window.getComputedStyle(chips).display === 'none') return;
+
+      chips.style.right = 'auto';
+      chips.style.bottom = 'auto';
+      chips.style.transform = 'none';
+      chips.style.left = '0px';
+      chips.style.top = '0px';
+
+      const hlL = hl.offsetLeft;
+      const hlT = hl.offsetTop;
+      const hlW = hl.offsetWidth;
+      const hlH = hl.offsetHeight;
+      const cw = Math.max(chips.offsetWidth, 1);
+      const ch = Math.max(chips.offsetHeight, 1);
+      const gap = 3;
+
+      const candidates = [
+        { left: 0, top: -ch - gap },                         // above-left
+        { left: Math.max(0, hlW - cw), top: -ch - gap },     // above-right
+        { left: hlW + gap, top: Math.max(0, (hlH - ch) / 2) }, // right-middle
+        { left: 0, top: hlH + gap },                         // below-left
+        { left: Math.max(0, hlW - cw), top: hlH + gap },     // below-right
+        { left: 2, top: 2 },                                 // inside-top-left
+        { left: Math.max(2, hlW - cw - 2), top: 2 },         // inside-top-right
+      ];
+
+      function clamp(left, top) {
+        let x = hlL + left;
+        let y = hlT + top;
+        if (x < 0) left -= x;
+        if (y < 0) top -= y;
+        x = hlL + left;
+        y = hlT + top;
+        if (x + cw > wrapW) left -= (x + cw - wrapW);
+        if (y + ch > wrapH) top -= (y + ch - wrapH);
+        return { left: left, top: top };
+      }
+
+      function overlaps(left, top) {
+        const x = hlL + left;
+        const y = hlT + top;
+        const r = x + cw;
+        const b = y + ch;
+        for (let i = 0; i < placed.length; i++) {
+          const p = placed[i];
+          if (!(r <= p.l || x >= p.r || b <= p.t || y >= p.b)) return true;
+        }
+        return false;
+      }
+
+      let chosen = null;
+      for (let i = 0; i < candidates.length; i++) {
+        const c = clamp(candidates[i].left, candidates[i].top);
+        if (overlaps(c.left, c.top)) continue;
+        chosen = c;
+        break;
+      }
+      if (!chosen) {
+        let c = clamp(2, 2);
+        for (let n = 0; n < 24; n++) {
+          if (!overlaps(c.left, c.top)) break;
+          c = clamp(c.left, c.top + ch + gap);
+        }
+        chosen = c;
+      }
+
+      chips.style.left = chosen.left + 'px';
+      chips.style.top = chosen.top + 'px';
+      const x = hlL + chosen.left;
+      const y = hlT + chosen.top;
+      placed.push({ l: x - 2, t: y - 2, r: x + cw + 2, b: y + ch + 2 });
+    });
   }
 
   /** True when [observer] mostly covers the same control as [highlight]. */
@@ -2042,8 +2427,10 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   window.addEventListener('DOMContentLoaded', () => {
+    applyScreenshotOverlayPrefs();
     pollAndRender();
     pollTimer = setInterval(pollAndRender, POLL_MS);
   });
+  window.addEventListener('resize', () => scheduleScreenshotChipLayout(document));
 
 ''';

@@ -289,6 +289,14 @@ void main() {
     expect(html, contains('modal-observer-panel'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
+    expect(html, contains('layoutScreenshotChips'));
+    expect(html, contains('flattenScreenshotFramesWithOverlays'));
+    expect(html, contains('screenshotOverlayToolbarHtml'));
+    expect(html, contains('copyScreenshotOverlay'));
+    expect(html, contains('Observation highlights'));
+    expect(html, contains('Observation labels'));
+    expect(html, contains('Action highlights'));
+    expect(html, contains('modal-screenshots-toolbar'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
 

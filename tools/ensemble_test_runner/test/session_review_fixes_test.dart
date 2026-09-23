@@ -215,7 +215,7 @@ void main() {
       ),
     );
     final el = obs.elements.firstWhere((e) => e.testId == 'agree');
-    expect(el.type, 'toggle');
+    expect(el.type, 'checkbox');
     expect(el.state.checked, isFalse);
 
     final viaSnapshot = await session.act(

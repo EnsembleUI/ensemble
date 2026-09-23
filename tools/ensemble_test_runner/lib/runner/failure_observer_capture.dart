@@ -309,6 +309,7 @@ String? _titleFor(UiElement element) {
     case 'dropdown':
     case 'switch':
     case 'toggle':
+    case 'checkbox':
     case 'textinput':
     case 'textfield':
       return _firstNonEmpty([element.label, element.testId]);
