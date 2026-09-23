@@ -159,9 +159,8 @@ void main() {
         synchronization: ObservationSynchronization.immediate,
       ),
     );
-    final dups = _flattenElements(obs.elements)
-        .where((e) => e.testId == 'dup')
-        .toList();
+    final dups =
+        _flattenElements(obs.elements).where((e) => e.testId == 'dup').toList();
     expect(dups.length, greaterThanOrEqualTo(2));
     final second = dups.last;
 
@@ -191,8 +190,7 @@ void main() {
     await session.close();
   });
 
-  testWidgets(
-      'nested observe while leaf queue is busy does not deadlock',
+  testWidgets('nested observe while leaf queue is busy does not deadlock',
       (tester) async {
     // Mid-wait screenshot callbacks hold the session queue, then call observe
     // for overlays. Nested queue.run used to hang the worker forever.

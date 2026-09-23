@@ -480,10 +480,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
       try {
         _ensureAssertPermitted(assertion);
         switch (assertion) {
-          case ElementVisibleAssertion(
-              :final target,
-              :final visible
-            ):
+          case ElementVisibleAssertion(:final target, :final visible):
             if (target.locator == null && !target.usesSnapshotElement) {
               await executor.execute(TestStep(
                 type: visible ? 'expectVisible' : 'expectNotVisible',
@@ -509,10 +506,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 visible: true,
               );
             }
-          case ElementExistsAssertion(
-              :final target,
-              :final exists
-            ):
+          case ElementExistsAssertion(:final target, :final exists):
             if (target.locator == null && !target.usesSnapshotElement) {
               await executor.execute(TestStep(
                 type: exists ? 'expectExists' : 'expectNotExists',
@@ -549,10 +543,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 },
               ),
             );
-          case ElementEnabledAssertion(
-              :final target,
-              :final enabled
-            ):
+          case ElementEnabledAssertion(:final target, :final enabled):
             if (target.locator == null && !target.usesSnapshotElement) {
               await executor.execute(TestStep(
                 type: enabled ? 'expectEnabled' : 'expectDisabled',
