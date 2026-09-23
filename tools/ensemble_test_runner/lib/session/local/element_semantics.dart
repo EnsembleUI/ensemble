@@ -147,10 +147,25 @@ Element? findPrimaryControlDescendant(Element element) {
   return specific ?? generic;
 }
 
-/// When a keyed Ensemble wrapper is typed `widget`, prefer the logical control
-/// type of its nearest primary control (then standalone text / media).
+/// When a keyed Ensemble wrapper is typed generically, prefer the logical
+/// control it owns (Checkbox → toggle, TextField → textInput, …).
+///
+/// Also refines ancestor-derived `card`/`button` when the keyed host wraps a
+/// specific control — so `testId` on a Checkbox inside a tappable FlexRow is
+/// not reported as a list-row card. The FlexRow itself stays a separate `card`
+/// observe row when it is also kept.
 String resolveObservedWidgetType(Element element, {required String? testId}) {
   final type = inferWidgetType(element);
+  if (!_isGenericTapTarget(element.widget)) {
+    final ownedSpecific = _specificPrimaryControlDescendant(element);
+    if (ownedSpecific != null) {
+      final ownedType = _inferElementWidgetType(ownedSpecific);
+      if (ownedType != null &&
+          (type == 'widget' || type == 'card' || type == 'button')) {
+        return ownedType;
+      }
+    }
+  }
   if (type != 'widget') return type;
   if (testId == null || testId.isEmpty) return type;
   final primary = findPrimaryControlDescendant(element);
@@ -494,6 +509,23 @@ String inferWidgetType(Element element) {
   }
   if (_hasDropdownAncestor(element)) return 'dropdown';
   if (_hasIconButtonAncestor(element)) return 'icon';
+
+  // Keyed Ensemble wrappers (KeyedSubtree + testId) sit *above* the real
+  // Checkbox/Switch/TextField. Prefer that owned control over climbing to an
+  // ancestor InkWell (e.g. FlexRow onTap) which would mis-type the box as a
+  // list-row `card`.
+  //
+  // Do NOT apply this when [element] is itself a GestureDetector/InkWell —
+  // those are the row/card surfaces and must keep card/button typing even if
+  // they contain a checkbox (observe both: row as card, keyed box as toggle).
+  if (!_isGenericTapTarget(element.widget)) {
+    final ownedSpecific = _specificPrimaryControlDescendant(element);
+    if (ownedSpecific != null) {
+      final ownedType = _inferElementWidgetType(ownedSpecific);
+      if (ownedType != null) return ownedType;
+    }
+  }
+
   // Classify the nearest generic tap target by contents — do not stamp every
   // InkWell/GestureDetector as `button` (cards / list rows are common).
   Element? tapTarget;
@@ -516,6 +548,14 @@ String inferWidgetType(Element element) {
     return 'button';
   }
   return 'widget';
+}
+
+/// Nearest non-generic primary control under [element] (Checkbox, Switch, …).
+Element? _specificPrimaryControlDescendant(Element element) {
+  final primary = findPrimaryControlDescendant(element);
+  if (primary == null) return null;
+  if (_isGenericTapTarget(primary.widget)) return null;
+  return primary;
 }
 
 bool _hasDropdownAncestor(Element element) {

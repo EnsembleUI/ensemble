@@ -377,6 +377,102 @@ void main() {
   });
 
   testWidgets(
+    'tappable settings row observes both the row card and keyed checkbox',
+    (tester) async {
+      // Mirrors RestoreSettings: FlexRow onTap + Checkbox with testId.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 88,
+              child: GestureDetector(
+                onTap: () {},
+                child: const Row(
+                  children: [
+                    KeyedSubtree(
+                      key: ValueKey('restore_dns_checkbox'),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Checkbox(
+                          value: true,
+                          onChanged: null,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('DNS settings', style: TextStyle(fontSize: 14)),
+                            Text(
+                              'Edit DNS settings',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.info_outline),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'row-and-checkbox', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+
+      final checkbox = flat.firstWhere(
+        (e) => e.testId == 'restore_dns_checkbox',
+      );
+      expect(
+        checkbox.type,
+        'toggle',
+        reason: 'Keyed Checkbox must not inherit the row InkWell card type',
+      );
+      expect(checkbox.state.checked, isTrue);
+
+      expect(
+        flat.any(
+          (e) =>
+              e.type == 'card' &&
+              (e.text ?? '').contains('DNS settings') &&
+              (e.testId == null || e.testId!.isEmpty),
+        ),
+        isTrue,
+        reason: 'Tappable FlexRow/GestureDetector should still observe as card',
+      );
+    },
+  );
+
+  testWidgets(
     'toast banners observe as toast without enabled=false',
     (tester) async {
       // Mirrors fluttertoast FToast + Ensemble ToastController: Positioned
