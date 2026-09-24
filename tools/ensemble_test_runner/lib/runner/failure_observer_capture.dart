@@ -10,7 +10,6 @@ import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
-import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter/painting.dart';
@@ -264,7 +263,7 @@ Map<String, dynamic>? _overlayPercent({
 /// agent/crawler JSON.
 ///
 /// Preserves parent→child structure (e.g. unkeyed `card` wrapping a keyed
-/// checkbox). Concrete fields (`type`, `selector`, `supportedActions`,
+/// checkbox). Concrete fields (`type`, `locator`, `supportedActions`,
 /// `interactable`, `children`) are enough for agents — no parallel `kind` /
 /// `locatorStatus` taxonomy.
 List<Map<String, dynamic>> observationElementsTreeForReport(
@@ -305,8 +304,6 @@ Map<String, dynamic> _elementNode(
   final type = (element.type ?? element.role ?? 'widget').trim();
   final title = _titleFor(element);
   final locator = element.suggestedLocator;
-  final selector = locator == null ? null : formatSuggestedSelector(locator);
-  final hasSelector = selector != null && selector.isNotEmpty;
   final value = _valueFor(element, type: type, title: title);
   final warning = element.locatorWarning?.trim();
   return {
@@ -315,7 +312,7 @@ Map<String, dynamic> _elementNode(
     if (title != null && title.isNotEmpty) 'title': title,
     if (element.testId != null && element.testId!.trim().isNotEmpty)
       'id': element.testId!.trim(),
-    if (hasSelector) 'selector': selector,
+    if (locator != null) 'locator': locator.toJson(),
     if (warning != null && warning.isNotEmpty) 'warning': warning,
     if (element.state.enabled != null) 'enabled': element.state.enabled,
     if (element.state.checked != null) 'checked': element.state.checked,

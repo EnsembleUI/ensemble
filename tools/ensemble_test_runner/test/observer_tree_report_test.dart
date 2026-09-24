@@ -224,6 +224,7 @@ void main() {
     expect(card.containsKey('kind'), isFalse);
     expect(card.containsKey('locatorStatus'), isFalse);
     expect(card.containsKey('selector'), isFalse);
+    expect(card.containsKey('locator'), isFalse);
     expect(
       card.containsKey('title'),
       isFalse,
@@ -232,13 +233,15 @@ void main() {
 
     final checkbox = (card['children'] as List).single as Map;
     expect(checkbox['index'], 2);
-    expect(checkbox['selector'], 'id=restore_dns_checkbox');
+    expect(checkbox.containsKey('selector'), isFalse);
+    expect(checkbox['locator'], {'id': 'restore_dns_checkbox'});
     expect(checkbox['supportedActions'], contains('check'));
     expect(checkbox.containsKey('kind'), isFalse);
 
     final heading = tree[1];
     expect(heading['index'], 3);
-    expect(heading['selector'], 'text="Wat wil je terugzetten?"');
+    expect(heading.containsKey('selector'), isFalse);
+    expect(heading['locator'], {'text': 'Wat wil je terugzetten?'});
     expect(heading['supportedActions'], contains('waitForText'));
     expect(heading['interactable'], isFalse);
     expect(heading.containsKey('locatorStatus'), isFalse);

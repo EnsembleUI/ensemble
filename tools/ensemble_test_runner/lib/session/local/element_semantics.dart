@@ -2152,13 +2152,13 @@ List<String> supportedActionsFor(
         if (hasId) addEnabledAsserts();
         actions.addAll(secure
             ? const ['tap', 'enterText', 'clearText', 'focus', 'expectValue']
-            : const [
-                'tap',
-                'enterText',
-                'clearText',
-                'replaceText',
-                'submitText',
-                'focus',
+          : const [
+              'tap',
+              'enterText',
+              'clearText',
+              'replaceText',
+              'submitText',
+              'focus',
                 'expectValue',
               ]);
       }

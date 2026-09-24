@@ -11,6 +11,7 @@ const ensembleHtmlTestReportAppJs = r'''
   let activeModalTab = 'api';
   let currentModalCardId = '';
   let currentModalStepIndex = -1;
+  let currentObserverDetailIndex = null;
   let activeStorageSubTab = 'public';
 
   /** Screenshot overlay visibility — shared across step modal + fullscreen sheet.
@@ -1610,6 +1611,7 @@ const ensembleHtmlTestReportAppJs = r'''
     if (!observer || typeof observer !== 'object') {
       panel.hidden = true;
       window.__observerCopyPayload = null;
+      window.__observerScreenshotContext = null;
       return;
     }
     const elements = Array.isArray(observer.elements) ? observer.elements : [];
@@ -1617,6 +1619,11 @@ const ensembleHtmlTestReportAppJs = r'''
     window.__observerCopyPayload = {
       screen: observer.screen || null,
       elements: elements,
+    };
+    const shots = Array.isArray(data && data.screenshots) ? data.screenshots : [];
+    window.__observerScreenshotContext = {
+      frame: shots.length ? shots[shots.length - 1] : null,
+      overlays: Array.isArray(observer.overlays) ? observer.overlays : [],
     };
     const screen = observer.screen || '';
     let html = '';
@@ -1642,6 +1649,531 @@ const ensembleHtmlTestReportAppJs = r'''
     panel.hidden = false;
     bindObserverHintTooltips(panel);
     bindObserverTreeHover(panel);
+    bindObserverTreeClicks(panel);
+  }
+
+  function bindObserverTreeClicks(root) {
+    if (!root || root.__observerTreeClickBound) return;
+    root.__observerTreeClickBound = true;
+    root.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.observer-tree-toggle')) return;
+      const row = e.target.closest && e.target.closest('.observer-tree-row');
+      if (!row || !root.contains(row)) return;
+      const li = row.closest('.observer-tree-node');
+      const index = li ? li.getAttribute('data-obs-index') : null;
+      if (index == null || index === '') return;
+      openObserverElementDetail(index);
+    });
+  }
+
+  function findObserverElementByIndex(index) {
+    const payload = window.__observerCopyPayload;
+    if (!payload || !Array.isArray(payload.elements)) return null;
+    const want = String(index);
+    let found = null;
+    function walk(nodes) {
+      (Array.isArray(nodes) ? nodes : []).forEach(function (n) {
+        if (found || !n) return;
+        if (String(n.index) === want) {
+          found = n;
+          return;
+        }
+        walk(n.children);
+      });
+    }
+    walk(payload.elements);
+    return found;
+  }
+
+  function listObserverElementIndexes() {
+    const payload = window.__observerCopyPayload;
+    const out = [];
+    function walk(nodes) {
+      (Array.isArray(nodes) ? nodes : []).forEach(function (n) {
+        if (!n || n.index == null) return;
+        out.push(String(n.index));
+        walk(n.children);
+      });
+    }
+    if (payload) walk(payload.elements);
+    return out;
+  }
+
+  function updateObserverElementNavButtons() {
+    const indexes = listObserverElementIndexes();
+    const pos = indexes.indexOf(String(currentObserverDetailIndex));
+    const prev = document.getElementById('observer-element-detail-prev');
+    const next = document.getElementById('observer-element-detail-next');
+    if (prev) {
+      prev.disabled = pos <= 0;
+      prev.classList.toggle('is-disabled', pos <= 0);
+    }
+    if (next) {
+      next.disabled = pos < 0 || pos >= indexes.length - 1;
+      next.classList.toggle('is-disabled', pos < 0 || pos >= indexes.length - 1);
+    }
+  }
+
+  function navigateObserverElement(direction, event) {
+    if (event) event.stopPropagation();
+    const indexes = listObserverElementIndexes();
+    const pos = indexes.indexOf(String(currentObserverDetailIndex));
+    if (pos < 0) return;
+    const nextPos = pos + direction;
+    if (nextPos < 0 || nextPos >= indexes.length) return;
+    openObserverElementDetail(indexes[nextPos]);
+  }
+
+  function setObserverTreeSelectedIndex(index) {
+    const side = document.getElementById('modal-observer-side');
+    if (side) {
+      side.querySelectorAll('.observer-tree-node.is-selected').forEach(function (n) {
+        n.classList.remove('is-selected');
+      });
+      if (index != null && index !== '') {
+        const node = side.querySelector('.observer-tree-node[data-obs-index="' + index + '"]');
+        if (node) {
+          node.classList.add('is-selected');
+          if (typeof node.scrollIntoView === 'function') {
+            node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        }
+      }
+    }
+    setObserverTreeHoverIndex(index);
+  }
+
+  function openObserverElementDetail(index) {
+    const el = findObserverElementByIndex(index);
+    if (!el) return;
+    currentObserverDetailIndex = String(index);
+    hideObserverHintTooltip();
+    setObserverTreeSelectedIndex(index);
+
+    const type = el.type || 'widget';
+    const title = el.title ? String(el.title) : '';
+    const heading = title || type;
+    const titleEl = document.getElementById('observer-element-detail-title');
+    if (titleEl) titleEl.textContent = heading;
+
+    const kids = Array.isArray(el.children) ? el.children : [];
+    const actions = Array.isArray(el.supportedActions) ? el.supportedActions : [];
+    const options = Array.isArray(el.options) ? el.options : [];
+    const selector = formatObserverSelector(el.locator);
+
+    let html = '';
+    html += renderObserverElementPreview(index);
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Type</div>';
+    html += '<div class="observer-detail-value"><span class="observer-detail-type">' +
+        escapeHtml(String(type)) + '</span></div></div>';
+
+    if (title) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Title</div>';
+      html += '<div class="observer-detail-value">' + escapeHtml(title) + '</div></div>';
+    }
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Selector</div>';
+    if (selector) {
+      html += '<code class="observer-detail-selector">' + escapeHtml(selector) + '</code>';
+    } else {
+      html += '<div class="observer-detail-empty">No selector</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">State</div>';
+    html += '<div class="observer-detail-chips">';
+    if (el.enabled != null) {
+      html += '<span class="observer-detail-chip muted">enabled=' + escapeHtml(String(el.enabled)) + '</span>';
+    }
+    if (el.interactable != null) {
+      html += '<span class="observer-detail-chip muted">interactable=' + escapeHtml(String(el.interactable)) + '</span>';
+    }
+    if (el.checked != null) {
+      html += '<span class="observer-detail-chip muted">checked=' + escapeHtml(String(el.checked)) + '</span>';
+    }
+    if (el.enabled == null && el.interactable == null && el.checked == null) {
+      html += '<span class="observer-detail-empty">—</span>';
+    }
+    html += '</div></div>';
+
+    if (el.value != null && String(el.value).length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Value</div>';
+      html += '<div class="observer-detail-value"><code>' + escapeHtml(String(el.value)) + '</code></div></div>';
+    }
+    if (options.length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Options</div>';
+      html += '<div class="observer-detail-chips">';
+      options.forEach(function (o) {
+        html += '<span class="observer-detail-chip muted">' + escapeHtml(String(o)) + '</span>';
+      });
+      html += '</div></div>';
+    }
+    if (el.warning) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Warning</div>';
+      html += '<div class="observer-detail-chips"><span class="observer-detail-chip warn">' +
+          escapeHtml(String(el.warning)) + '</span></div></div>';
+    }
+    if (kids.length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Children</div>';
+      html += '<div class="observer-detail-value">' + kids.length + '</div></div>';
+    }
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Supported actions</div>';
+    if (actions.length) {
+      window.__observerActionYamlSnippets = [];
+      html += '<div class="observer-detail-actions-list">';
+      actions.forEach(function (a, i) {
+        const yaml = formatObserverActionYaml(String(a), el);
+        window.__observerActionYamlSnippets[i] = yaml;
+        html += '<div class="observer-detail-action">';
+        html += '<div class="observer-detail-action-header">';
+        html += '<span class="observer-detail-action-name">' + escapeHtml(String(a)) + '</span>';
+        html += '<button type="button" class="observer-detail-copy-btn" onclick="copyObserverActionYaml(this, ' +
+            i + ')">Copy</button>';
+        html += '</div>';
+        html += '<pre class="observer-detail-action-yaml">' + escapeHtml(yaml) + '</pre>';
+        html += '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="observer-detail-empty">None</div>';
+    }
+    html += '</div>';
+
+    const body = document.getElementById('observer-element-detail-body');
+    if (body) body.innerHTML = html;
+    const overlay = document.getElementById('observer-element-detail-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    updateObserverElementNavButtons();
+    scheduleObserverDetailPreviewLayout();
+  }
+
+  function renderObserverElementPreview(index) {
+    const ctx = window.__observerScreenshotContext;
+    if (!ctx || !ctx.frame || !ctx.frame.href) {
+      return '<div class="observer-detail-row">' +
+          '<div class="observer-detail-label">Screenshot</div>' +
+          '<div class="observer-detail-empty">No screenshot for this step</div>' +
+          '</div>';
+    }
+    const href = String(ctx.frame.href);
+    const overlays = Array.isArray(ctx.overlays) ? ctx.overlays : [];
+    const match = overlays.find(function (o) {
+      return o && String(o.index) === String(index);
+    });
+
+    let boundsAttr = '';
+    let highlightHtml = '';
+    if (match) {
+      const left = Number(match.left || 0);
+      const top = Number(match.top || 0);
+      const width = Number(match.width || 0);
+      const height = Number(match.height || 0);
+      if (width > 0 && height > 0) {
+        boundsAttr = ' data-obs-left="' + left.toFixed(4) + '"' +
+            ' data-obs-top="' + top.toFixed(4) + '"' +
+            ' data-obs-width="' + width.toFixed(4) + '"' +
+            ' data-obs-height="' + height.toFixed(4) + '"';
+        highlightHtml = '<span class="screenshot-highlight observer tree-hover" style="left:' +
+            left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' +
+            width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"></span>';
+      }
+    }
+
+    let html = '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Screenshot</div>';
+    html += '<div class="observer-detail-preview">';
+    html += '<div class="observer-detail-preview-stage"' + boundsAttr + '>';
+    html += '<div class="screenshot-image-wrap observer-detail-preview-zoom">';
+    html += '<img src="' + escapeHtml(href) +
+        '" alt="Selected element" loading="eager" decoding="async"/>';
+    html += highlightHtml;
+    html += '</div></div>';
+    if (!match) {
+      html += '<div class="observer-detail-empty">No bounds overlay for this element</div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function scheduleObserverDetailPreviewLayout() {
+    const stage = document.querySelector(
+        '#observer-element-detail-body .observer-detail-preview-stage');
+    if (!stage) return;
+    const img = stage.querySelector('img');
+    if (!img) return;
+    const run = function () { layoutObserverDetailPreview(stage); };
+    if (img.complete && img.naturalWidth > 0) {
+      requestAnimationFrame(run);
+    } else {
+      img.addEventListener('load', run, { once: true });
+    }
+  }
+
+  /** Crop the step screenshot so the selected overlay fills the preview stage. */
+  function layoutObserverDetailPreview(stage) {
+    if (!stage) return;
+    const wrap = stage.querySelector('.observer-detail-preview-zoom');
+    const img = stage.querySelector('img');
+    if (!wrap || !img || !img.naturalWidth || !img.naturalHeight) return;
+
+    const left = Number(stage.getAttribute('data-obs-left'));
+    const top = Number(stage.getAttribute('data-obs-top'));
+    const width = Number(stage.getAttribute('data-obs-width'));
+    const height = Number(stage.getAttribute('data-obs-height'));
+    const hasBounds = Number.isFinite(left) && Number.isFinite(top) &&
+        Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
+
+    const stageW = stage.clientWidth;
+    const stageH = stage.clientHeight;
+    if (stageW <= 0 || stageH <= 0) return;
+
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+
+    let cropL = 0;
+    let cropT = 0;
+    let cropW = natW;
+    let cropH = natH;
+
+    if (hasBounds) {
+      const elL = (left / 100) * natW;
+      const elT = (top / 100) * natH;
+      const elW = (width / 100) * natW;
+      const elH = (height / 100) * natH;
+      const cx = elL + elW / 2;
+      const cy = elT + elH / 2;
+
+      // Modest padding; floor the crop so tiny icons are not pixel mush.
+      const pad = 0.35;
+      cropW = Math.min(natW, Math.max(elW * (1 + 2 * pad), natW * 0.22));
+      cropH = Math.min(natH, Math.max(elH * (1 + 2 * pad), natH * 0.16));
+
+      // Prefer a crop whose aspect is closer to the stage so we use the viewport.
+      const stageAspect = stageW / stageH;
+      if (cropW / cropH > stageAspect) {
+        cropH = Math.min(natH, cropW / stageAspect);
+      } else {
+        cropW = Math.min(natW, cropH * stageAspect);
+      }
+
+      cropL = cx - cropW / 2;
+      cropT = cy - cropH / 2;
+      cropL = Math.max(0, Math.min(cropL, natW - cropW));
+      cropT = Math.max(0, Math.min(cropT, natH - cropH));
+    }
+
+    // Cover the stage with the crop (letterbox only if image is narrower).
+    const scale = Math.max(stageW / cropW, stageH / cropH);
+    const drawW = natW * scale;
+    const drawH = natH * scale;
+    const tx = -cropL * scale + (stageW - cropW * scale) / 2;
+    const ty = -cropT * scale + (stageH - cropH * scale) / 2;
+
+    wrap.style.width = drawW.toFixed(2) + 'px';
+    wrap.style.height = drawH.toFixed(2) + 'px';
+    wrap.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px)';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.maxWidth = 'none';
+    img.style.objectFit = 'fill';
+  }
+
+  function closeObserverElementDetail(event) {
+    if (event) {
+      const t = event.target;
+      if (t.id !== 'observer-element-detail-overlay' &&
+          !(t.classList && t.classList.contains('modal-close-btn'))) {
+        return;
+      }
+      // Step-modal close also has .modal-close-btn — only honor it inside our overlay.
+      if (t.classList && t.classList.contains('modal-close-btn')) {
+        const overlay = document.getElementById('observer-element-detail-overlay');
+        if (!overlay || !overlay.contains(t)) return;
+      }
+    }
+    const overlay = document.getElementById('observer-element-detail-overlay');
+    if (overlay) overlay.style.display = 'none';
+    currentObserverDetailIndex = null;
+    setObserverTreeSelectedIndex(null);
+  }
+
+  async function copyObserverActionYaml(btn, index) {
+    const snippets = window.__observerActionYamlSnippets;
+    const text = snippets && snippets[index];
+    if (!text) return;
+    await copyTextToClipboard(text, btn, 'Copy');
+  }
+
+  async function copyTextToClipboard(text, btn, idleLabel) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      if (btn) {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = idleLabel || 'Copy'; }, 1200);
+      }
+    } catch (_) {
+      if (btn) {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = idleLabel || 'Copy'; }, 1500);
+      }
+    }
+  }
+
+  function formatObserverSelector(locator) {
+    if (!locator || typeof locator !== 'object') return '';
+    const id = locator.id != null ? String(locator.id).trim() : '';
+    if (id) return 'id=' + id;
+    const parts = [];
+    if (locator.within && typeof locator.within === 'object') {
+      const nested = formatObserverSelector(locator.within);
+      if (nested) parts.push('within={' + nested + '}');
+    }
+    const label = locator.label != null ? String(locator.label).trim() : '';
+    if (label) {
+      parts.push('label="' + label.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"');
+    }
+    const text = locator.text != null ? String(locator.text).trim() : '';
+    if (text) {
+      parts.push('text="' + text.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"');
+    }
+    const role = locator.role != null ? String(locator.role).trim() : '';
+    if (role) parts.push('role=' + role);
+    if (locator.occurrence != null) parts.push('occurrence=' + locator.occurrence);
+    return parts.join(', ');
+  }
+
+  function yamlScalar(value) {
+    if (value === true || value === false) return String(value);
+    if (typeof value === 'number' && isFinite(value)) return String(value);
+    const str = String(value == null ? '' : value);
+    if (str === '') return '""';
+    if (/^[A-Za-z0-9_./+-]+$/.test(str)) return str;
+    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+
+  function yamlObjectLines(obj, indent) {
+    const pad = '  '.repeat(indent);
+    const lines = [];
+    Object.keys(obj || {}).forEach(function (key) {
+      const val = obj[key];
+      if (val == null) return;
+      if (typeof val === 'object' && !Array.isArray(val)) {
+        lines.push(pad + key + ':');
+        lines.push.apply(lines, yamlObjectLines(val, indent + 1));
+      } else {
+        lines.push(pad + key + ': ' + yamlScalar(val));
+      }
+    });
+    return lines;
+  }
+
+  function observerElementLocator(el) {
+    if (el && el.locator && typeof el.locator === 'object') return el.locator;
+    if (el && el.id) return { id: String(el.id) };
+    if (el && el.title) return { text: String(el.title) };
+    return null;
+  }
+
+  function isIdOnlyLocator(loc) {
+    if (!loc || !loc.id) return false;
+    return !loc.label && !loc.text && !loc.role && !loc.within && loc.occurrence == null;
+  }
+
+  function actionExtraFields(action, el) {
+    const title = el.title ? String(el.title) : '';
+    const textHint = title || (el.id ? String(el.id) : '...');
+    switch (action) {
+      case 'enterText':
+      case 'replaceText':
+        return {
+          value: el.value != null && String(el.value).length
+            ? String(el.value)
+            : '...',
+        };
+      case 'select':
+        return {
+          value: (Array.isArray(el.options) && el.options.length)
+            ? String(el.options[0])
+            : '...',
+        };
+      case 'selectIndex':
+        return { index: 0 };
+      case 'setSlider':
+        return { value: 0.5 };
+      case 'expectValue':
+        return {
+          equals: el.value != null && String(el.value).length
+            ? String(el.value)
+            : '...',
+        };
+      case 'expectChecked':
+        return el.checked != null ? { equals: !!el.checked } : {};
+      case 'waitForText':
+      case 'expectText':
+      case 'expectNoText':
+      case 'expectTextContains':
+        return { text: textHint };
+      default:
+        return {};
+    }
+  }
+
+  function usesTextArgOnly(action) {
+    return action === 'waitForText' ||
+        action === 'expectText' ||
+        action === 'expectNoText' ||
+        action === 'expectTextContains';
+  }
+
+  function formatObserverActionYaml(action, el) {
+    const extra = actionExtraFields(action, el);
+    const lines = [action + ':'];
+    if (usesTextArgOnly(action)) {
+      Object.keys(extra).forEach(function (key) {
+        lines.push('  ' + key + ': ' + yamlScalar(extra[key]));
+      });
+      return lines.join('\n');
+    }
+    const loc = observerElementLocator(el);
+    if (!loc) {
+      lines.push('  # no selector for this element');
+      Object.keys(extra).forEach(function (key) {
+        lines.push('  ' + key + ': ' + yamlScalar(extra[key]));
+      });
+      return lines.join('\n');
+    }
+    if (isIdOnlyLocator(loc)) {
+      lines.push('  id: ' + yamlScalar(loc.id));
+    } else {
+      lines.push('  target:');
+      lines.push.apply(lines, yamlObjectLines(loc, 2));
+    }
+    Object.keys(extra).forEach(function (key) {
+      lines.push('  ' + key + ': ' + yamlScalar(extra[key]));
+    });
+    return lines.join('\n');
   }
 
   function bindObserverTreeHover(root) {
@@ -1829,7 +2361,7 @@ const ensembleHtmlTestReportAppJs = r'''
     // Prefer a single label — title, else id. Cards omit title so keyed cards
     // show their authoring id here instead of a borrowed child caption.
     const label = title || id;
-    const selector = el.selector ? String(el.selector) : '';
+    const selector = formatObserverSelector(el.locator);
     const kids = Array.isArray(el.children) ? el.children : [];
     const hasKids = kids.length > 0;
     const actions = Array.isArray(el.supportedActions) ? el.supportedActions : [];
@@ -1853,10 +2385,10 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<span class="observer-tree-toggle-spacer"></span>';
     }
     html += '<code class="observer-type">' + escapeHtml(String(type)) + '</code>';
-    if (label) {
-      html += '<span class="observer-title" title="' + escapeHtml(label) + '">' +
-          escapeHtml(label) + '</span>';
-    }
+    html += '<span class="observer-title"' +
+        (label ? ' title="' + escapeHtml(label) + '"' : '') + '>' +
+        (label ? escapeHtml(label) : '') + '</span>';
+    html += '<span class="observer-tree-meta">';
     if (selector) {
       html += '<span class="observer-hint" tabindex="0" data-tip-title="Selector" data-tip-body="' +
         escapeHtml(selector) + '">';
@@ -1875,6 +2407,7 @@ const ensembleHtmlTestReportAppJs = r'''
     if (stateBits.length) {
       html += '<span class="observer-state">' + escapeHtml(stateBits.join(' · ')) + '</span>';
     }
+    html += '</span>';
     html += '</div>';
     if (hasKids) {
       html += '<ul class="observer-tree-children">';
@@ -1990,6 +2523,7 @@ const ensembleHtmlTestReportAppJs = r'''
     if (event) {
       if (event.target.id !== 'step-modal-overlay' && !event.target.classList.contains('modal-close-btn')) return;
     }
+    closeObserverElementDetail();
     document.getElementById('step-modal-overlay').style.display = 'none';
     activeModalTab = 'api';
   }
@@ -2008,6 +2542,7 @@ const ensembleHtmlTestReportAppJs = r'''
   function switchModalTab(tab) {
     activeModalTab = tab;
     hideObserverHintTooltip();
+    closeObserverElementDetail();
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
     });

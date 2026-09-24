@@ -147,7 +147,8 @@ void main() {
 
       final tree = observationElementsTreeForReport(snap.observation);
       final node = tree.firstWhere((e) => e['type'] == 'button');
-      expect(node['selector'], 'label="Netwerk", role=button');
+      expect(node['locator'], {'label': 'Netwerk', 'role': 'button'});
+      expect(node.containsKey('selector'), isFalse);
       expect(node['interactable'], isTrue);
     },
   );

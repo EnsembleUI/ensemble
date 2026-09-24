@@ -75,7 +75,7 @@ void main() {
     expect(shell, contains('modal-step-error'));
     expect(shell, contains('stepFailureMessage'));
     expect(shell, contains('window.stepMeta'));
-    expect(shell.length, lessThan(200000));
+    expect(shell.length, lessThan(240000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
 
@@ -292,6 +292,11 @@ void main() {
     expect(html, contains('renderObserverTreeNode'));
     expect(html, contains('observer-tree'));
     expect(html, contains('bindObserverTreeHover'));
+    expect(html, contains('openObserverElementDetail'));
+    expect(html, contains('navigateObserverElement'));
+    expect(html, contains('renderObserverElementPreview'));
+    expect(html, contains('layoutObserverDetailPreview'));
+    expect(html, contains('observer-element-detail-overlay'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
     expect(html, contains('layoutScreenshotChips'));
