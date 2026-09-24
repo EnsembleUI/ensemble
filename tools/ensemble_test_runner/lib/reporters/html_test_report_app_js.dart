@@ -2136,25 +2136,17 @@ const ensembleHtmlTestReportAppJs = r'''
       }
     }
 
-    // Observer boxes for every element except the action/failure target —
-    // that control keeps the step ring; observer only contributes type/id chips.
+    // Observer boxes for every element (including the step target). The action
+    // ring is a separate overlay on top so Elements stays visible when Target
+    // is toggled off. Labels/chips live on observer boxes so they work without
+    // Target enabled.
     const overlays = Array.isArray(observerOverlays) ? observerOverlays : [];
-    const actionCandidates = [];
     overlays.forEach((overlay) => {
       const left = Number(overlay.left || 0);
       const top = Number(overlay.top || 0);
       const width = Number(overlay.width || 0);
       const height = Number(overlay.height || 0);
       if (!(width > 0 && height > 0)) return;
-      const rect = { left: left, top: top, width: width, height: height };
-      if (highlightRect && observerOverlapsHighlight(rect, highlightRect)) {
-        // Prefer keyed + smaller controls (checkbox inside a card) so the action
-        // label does not inherit the parent row's `card` type.
-        const area = Math.max(width * height, 0.0001);
-        const score = (overlay.id ? 1000 : 0) + (1 / area);
-        actionCandidates.push({ overlay: overlay, score: score });
-        return;
-      }
       const compact = isCompactObserverRect(width, height);
       html += '<span class="screenshot-highlight observer' +
           (compact ? ' compact' : '') +
@@ -2173,11 +2165,6 @@ const ensembleHtmlTestReportAppJs = r'''
           (compactAction ? ' compact' : '') +
           '" style="left:' + highlightRect.left.toFixed(4) + '%;top:' + highlightRect.top.toFixed(4) + '%;width:' + highlightRect.width.toFixed(4) + '%;height:' + highlightRect.height.toFixed(4) + '%;">';
       html += '<span class="screenshot-highlight-dot"></span>';
-      if (actionCandidates.length) {
-        actionCandidates.sort((a, b) => b.score - a.score);
-        const best = actionCandidates[0].overlay || {};
-        html += renderObserverChips(best.id, best.type, compactAction);
-      }
       html += '</span>';
     }
     html += '<button type="button" class="screenshot-copy-btn" title="Copy screenshot with current overlay settings" onclick="event.preventDefault();event.stopPropagation();copyScreenshotOverlay(this);">Copy</button>';
@@ -2188,9 +2175,9 @@ const ensembleHtmlTestReportAppJs = r'''
   function screenshotOverlayToolbarHtml() {
     return '<div class="screenshot-overlay-toolbar">' +
         '<div class="screenshot-overlay-switches">' +
-          screenshotOverlaySwitchHtml('obsHighlights', 'Observation highlights') +
-          screenshotOverlaySwitchHtml('obsLabels', 'Observation labels') +
-          screenshotOverlaySwitchHtml('actionHighlights', 'Action highlights') +
+          screenshotOverlaySwitchHtml('obsHighlights', 'Elements') +
+          screenshotOverlaySwitchHtml('obsLabels', 'Labels') +
+          screenshotOverlaySwitchHtml('actionHighlights', 'Target') +
         '</div>' +
       '</div>';
   }
@@ -2574,23 +2561,6 @@ const ensembleHtmlTestReportAppJs = r'''
       const y = hlT + chosen.top;
       placed.push({ l: x - 2, t: y - 2, r: x + cw + 2, b: y + ch + 2 });
     });
-  }
-
-  /** True when [observer] mostly covers the same control as [highlight]. */
-  function observerOverlapsHighlight(observer, highlight) {
-    const ox2 = observer.left + observer.width;
-    const oy2 = observer.top + observer.height;
-    const hx2 = highlight.left + highlight.width;
-    const hy2 = highlight.top + highlight.height;
-    const ix = Math.max(0, Math.min(ox2, hx2) - Math.max(observer.left, highlight.left));
-    const iy = Math.max(0, Math.min(oy2, hy2) - Math.max(observer.top, highlight.top));
-    const inter = ix * iy;
-    if (inter <= 0) return false;
-    const oArea = observer.width * observer.height;
-    const hArea = highlight.width * highlight.height;
-    if (oArea <= 0 || hArea <= 0) return false;
-    // Same control: observer covers most of the highlight, or vice versa.
-    return (inter / hArea) >= 0.45 || (inter / oArea) >= 0.45;
   }
 
   let activeScreenTab = 'screen-debugtree';

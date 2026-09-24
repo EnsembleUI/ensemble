@@ -296,9 +296,9 @@ void main() {
     expect(html, contains('flattenScreenshotFramesWithOverlays'));
     expect(html, contains('screenshotOverlayToolbarHtml'));
     expect(html, contains('copyScreenshotOverlay'));
-    expect(html, contains('Observation highlights'));
-    expect(html, contains('Observation labels'));
-    expect(html, contains('Action highlights'));
+    expect(html, contains("screenshotOverlaySwitchHtml('obsHighlights', 'Elements')"));
+    expect(html, contains("screenshotOverlaySwitchHtml('obsLabels', 'Labels')"));
+    expect(html, contains("screenshotOverlaySwitchHtml('actionHighlights', 'Target')"));
     expect(html, contains('modal-screenshots-toolbar'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
