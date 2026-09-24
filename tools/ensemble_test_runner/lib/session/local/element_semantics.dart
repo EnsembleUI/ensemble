@@ -395,7 +395,10 @@ bool _isVisibleTextHost(Element element) {
   } else {
     return false;
   }
-  return data != null && data.trim().isNotEmpty;
+  // List bullets ("•") and password masks are chrome, not assertable copy.
+  if (data == null || data.trim().isEmpty) return false;
+  if (isDecorativeGlyphCaption(data)) return false;
+  return true;
 }
 
 /// Visible image / SVG / GIF / Lottie host (not an inner leaf under Ensemble*).
@@ -1324,8 +1327,15 @@ bool _isSubstantialControlCaption(String? text) {
   if (t.length <= 2) return false;
   // WifiCard hidden-password row: "•••••••••••••" + eye — glyph chrome, not a
   // button title (otherwise it steals label+role from the parent row).
-  if (RegExp(r'^[•·\.●○\*‧∙]+$').hasMatch(t)) return false;
+  if (isDecorativeGlyphCaption(t)) return false;
   return true;
+}
+
+/// Bullet / password-mask glyphs — not useful observe text or `text=` targets.
+bool isDecorativeGlyphCaption(String? text) {
+  final t = text?.trim() ?? '';
+  if (t.isEmpty) return true;
+  return RegExp(r'^[•·\.●○\*‧∙]+$').hasMatch(t);
 }
 
 /// Longest descendant text that counts as a real caption (skips •••• masks).

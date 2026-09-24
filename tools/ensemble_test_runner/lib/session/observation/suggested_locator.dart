@@ -1,5 +1,6 @@
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
+import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/local_action_executor.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
@@ -182,7 +183,8 @@ List<ElementLocator> buildAgentLocatorCandidates(
 
   switch (type) {
     case 'text':
-      if (text != null) {
+      // Skip list bullets / mask glyphs — never suggest text="•".
+      if (text != null && !isDecorativeGlyphCaption(text)) {
         out.add(ElementLocator(text: text));
       }
     case 'button':
@@ -235,7 +237,9 @@ List<ElementLocator> buildAgentLocatorCandidates(
 
   // Nested content under a scoped (usually tappable) parent.
   if (parentScope != null && !_locatorIsEmpty(parentScope)) {
-    if (type == 'text' && text != null) {
+    if (type == 'text' &&
+        text != null &&
+        !isDecorativeGlyphCaption(text)) {
       out.add(ElementLocator(within: parentScope, text: text));
     }
     if (type == 'icon' && tappable && caption == null) {

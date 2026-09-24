@@ -501,6 +501,55 @@ void main() {
       await session.close();
     },
   );
+
+  testWidgets(
+    'decorative bullet glyphs are not observed as text="•" targets',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Before you start...'),
+                Row(children: [Text('•'), SizedBox(width: 8), Text('Tip one')]),
+                Row(children: [Text('•'), SizedBox(width: 8), Text('Tip two')]),
+                Row(children: [Text('•'), SizedBox(width: 8), Text('Tip three')]),
+                ElevatedButton(onPressed: null, child: Text('Start')),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: _harness(),
+        context: _ctx('bullet_glyphs'),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final obs = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(obs.elements);
+      expect(
+        flat.where((e) => (e.text ?? '').trim() == '•'),
+        isEmpty,
+        reason: 'list bullets must not clutter observe / steal text=',
+      );
+      expect(
+        flat.any((e) => e.suggestedLocator?.text == '•'),
+        isFalse,
+      );
+      expect(flat.any((e) => e.text == 'Tip one'), isTrue);
+      expect(flat.any((e) => e.text == 'Before you start...'), isTrue);
+      await session.close();
+    },
+  );
 }
 
 // Invokable stores mutable `id` / `definition` — required by the mixin.
