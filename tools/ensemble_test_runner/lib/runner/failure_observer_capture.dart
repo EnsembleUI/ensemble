@@ -53,7 +53,7 @@ Future<void> captureStepObserverBestEffort({
       StepObserverArtifact(
         stepIndex: stepIndex,
         screen: snap.screenLabel,
-        elements: flattenObservationElementsForReport(snap.observation),
+        elements: observationElementsTreeForReport(snap.observation),
         overlays: overlays,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
@@ -95,7 +95,7 @@ void upsertStepObserverFromSnapshot({
       StepObserverArtifact(
         stepIndex: stepIndex,
         screen: snap.screenLabel,
-        elements: flattenObservationElementsForReport(snap.observation),
+        elements: observationElementsTreeForReport(snap.observation),
         overlays: overlays,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
@@ -166,7 +166,35 @@ bool _shouldOverlay(UiElement element) {
   if (bounds.width < 4 || bounds.height < 4) return false;
   final type = (element.type ?? '').toLowerCase();
   if (type == 'widget') return false;
+  // Skip type-only parents when a descendant already carries a usable
+  // selector — avoids peer "card" chips with no id beside the keyed child.
+  if (!_elementHasUsableSelector(element) &&
+      _subtreeHasUsableSelector(element.children)) {
+    return false;
+  }
   return true;
+}
+
+bool _elementHasUsableSelector(UiElement element) {
+  final suggested = element.suggestedLocator;
+  if (suggested != null) {
+    final id = suggested.id?.trim();
+    if (id != null && id.isNotEmpty) return true;
+    final text = suggested.text?.trim();
+    if (text != null && text.isNotEmpty) return true;
+    final label = suggested.label?.trim();
+    if (label != null && label.isNotEmpty) return true;
+  }
+  final tid = element.testId?.trim();
+  return tid != null && tid.isNotEmpty;
+}
+
+bool _subtreeHasUsableSelector(List<UiElement> elements) {
+  for (final element in elements) {
+    if (_elementHasUsableSelector(element)) return true;
+    if (_subtreeHasUsableSelector(element.children)) return true;
+  }
+  return false;
 }
 
 Map<String, dynamic>? _overlayPercent({
@@ -227,50 +255,71 @@ Map<String, dynamic>? _overlayPercent({
   };
 }
 
-/// Flat element rows for the HTML Observer table (no nested children).
-List<Map<String, dynamic>> flattenObservationElementsForReport(
+/// Nested element tree for the HTML Observer tab and agent/crawler JSON.
+///
+/// Preserves parent→child structure (e.g. unkeyed `card` wrapping a keyed
+/// checkbox). Concrete fields (`type`, `selector`, `supportedActions`,
+/// `interactable`, `children`) are enough for agents — no parallel `kind` /
+/// `locatorStatus` taxonomy.
+List<Map<String, dynamic>> observationElementsTreeForReport(
   UiObservation observation,
 ) {
   final out = <Map<String, dynamic>>[];
   var index = 1;
-  void walk(UiElement element) {
-    final visible = element.state.visible != false;
-    if (visible) {
-      out.add(_elementRow(index++, element));
-    }
+  Map<String, dynamic>? build(UiElement element) {
+    if (element.state.visible == false) return null;
+    // Pre-order indices so parents sort before their children in the JSON.
+    final myIndex = index++;
+    final children = <Map<String, dynamic>>[];
     for (final child in element.children) {
-      walk(child);
+      final built = build(child);
+      if (built != null) children.add(built);
     }
+    return _elementNode(myIndex, element, children: children);
   }
 
   for (final root in observation.elements) {
-    walk(root);
+    final built = build(root);
+    if (built != null) out.add(built);
   }
   return out;
 }
 
-Map<String, dynamic> _elementRow(int index, UiElement element) {
+/// @nodoc Legacy alias — prefer [observationElementsTreeForReport].
+List<Map<String, dynamic>> flattenObservationElementsForReport(
+  UiObservation observation,
+) =>
+    observationElementsTreeForReport(observation);
+
+Map<String, dynamic> _elementNode(
+  int index,
+  UiElement element, {
+  required List<Map<String, dynamic>> children,
+}) {
   final type = (element.type ?? element.role ?? 'widget').trim();
   final title = _titleFor(element);
   final locator = element.suggestedLocator;
-  final selector = locator == null
-      ? null
-      : formatSuggestedSelector(locator);
+  final selector = locator == null ? null : formatSuggestedSelector(locator);
+  final hasSelector = selector != null && selector.isNotEmpty;
   final value = _valueFor(element, type: type, title: title);
+  final warning = element.locatorWarning?.trim();
   return {
     'index': index,
     'type': type,
     if (title != null && title.isNotEmpty) 'title': title,
     if (element.testId != null && element.testId!.trim().isNotEmpty)
       'id': element.testId!.trim(),
-    if (selector != null && selector.isNotEmpty) 'selector': selector,
-    if (element.locatorWarning != null &&
-        element.locatorWarning!.trim().isNotEmpty)
-      'warning': element.locatorWarning!.trim(),
+    if (hasSelector) 'selector': selector,
+    if (warning != null && warning.isNotEmpty) 'warning': warning,
     if (element.state.enabled != null) 'enabled': element.state.enabled,
     if (element.state.checked != null) 'checked': element.state.checked,
+    if (element.state.interactable != null)
+      'interactable': element.state.interactable,
     if (value != null) 'value': value,
     if (element.options.isNotEmpty) 'options': element.options,
+    if (element.supportedActions.isNotEmpty)
+      'supportedActions': element.supportedActions,
+    if (children.isNotEmpty) 'children': children,
   };
 }
 

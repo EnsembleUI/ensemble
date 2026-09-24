@@ -287,6 +287,9 @@ void main() {
     expect(html, contains('switchModalTab(\'screenshots\')'));
     expect(html, contains('switchModalTab(\'observer\')'));
     expect(html, contains('modal-observer-panel'));
+    expect(html, contains('copyObserverJson'));
+    expect(html, contains('renderObserverTreeNode'));
+    expect(html, contains('observer-tree'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
     expect(html, contains('layoutScreenshotChips'));

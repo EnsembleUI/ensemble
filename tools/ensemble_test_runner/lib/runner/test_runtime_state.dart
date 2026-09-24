@@ -131,10 +131,10 @@ class ScreenshotSheetFrame {
   });
 }
 
-/// Observe snapshot for a step (elements + HTML overlay percents).
+/// Observe snapshot for a step (nested element tree + HTML overlay percents).
 ///
-/// No second screenshot — overlays are drawn on that step's frame in the
-/// HTML report.
+/// [elements] is a parent→child tree (not a flat list). No second screenshot —
+/// overlays are drawn on that step's frame in the HTML report.
 class StepObserverArtifact {
   StepObserverArtifact({
     required this.stepIndex,

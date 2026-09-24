@@ -99,7 +99,18 @@ UiElement describeElement({
   final options = type == 'dropdown'
       ? readDropdownOptions(semanticsSource)
       : const <String>[];
-  final interactable = visible && !offscreen && enabled != false;
+  final actions = supportedActionsFor(
+    type,
+    secure: secure,
+    enabled: enabled,
+    testId: testId,
+    text: text,
+  );
+  // Interactable = can run a gesture/edit step on this node right now.
+  final interactable = visible &&
+      !offscreen &&
+      enabled != false &&
+      actions.any(_isInteractionStep);
 
   return UiElement(
     elementId: elementId,
@@ -121,7 +132,7 @@ UiElement describeElement({
       checked: checked,
     ),
     bounds: includeBounds ? bounds : null,
-    supportedActions: supportedActionsFor(type, secure: secure),
+    supportedActions: actions,
   );
 }
 
@@ -1369,44 +1380,178 @@ bool inViewport(WidgetTester tester, UiBounds bounds) {
   return (Offset.zero & size).overlaps(rect);
 }
 
-List<String> supportedActionsFor(String? type, {required bool secure}) {
-  switch (type) {
-    case 'textInput':
-      return secure
-          ? const ['tap', 'enterText', 'clearText', 'focus']
-          : const [
-              'tap',
-              'enterText',
-              'clearText',
-              'replaceText',
-              'submitText',
-              'focus',
-            ];
-    case 'button':
-      return const ['tap', 'longPress', 'doubleTap'];
-    case 'card':
-      return const ['tap', 'longPress'];
-    case 'toast':
-      return const [];
-    case 'icon':
-      return const ['tap', 'longPress'];
-    case 'dropdown':
-      return const ['tap'];
-    case 'switch':
-    case 'toggle':
-    case 'checkbox':
-      return const ['tap', 'toggle', 'check', 'uncheck'];
-    case 'slider':
-      return const ['tap', 'setSlider'];
+/// YAML step names an agent/crawler can run **against this observed node**.
+///
+/// Only lists steps that are actually targetable with the locators this node
+/// exposes (`testId` → id-based steps; visible text on `text` → text waits /
+/// asserts). Unkeyed tappable cards therefore get no interaction steps —
+/// agents should act on the keyed child (checkbox) instead.
+///
+/// Wait/assert steps (`waitFor`, `expectVisible`, …) are included alongside
+/// gesture/edit steps so the list matches the test-step vocabulary.
+List<String> supportedActionsFor(
+  String? type, {
+  required bool secure,
+  bool? enabled,
+  String? testId,
+  String? text,
+}) {
+  final t = (type ?? '').trim().toLowerCase();
+  final hasId = testId != null && testId.trim().isNotEmpty;
+  final hasText = text != null && text.trim().isNotEmpty;
+  final actions = <String>[];
+
+  void addIdWaitAssert() {
+    if (!hasId) return;
+    actions.addAll(const [
+      'waitFor',
+      'waitForGone',
+      'expectVisible',
+      'expectNotVisible',
+      'expectExists',
+      'expectNotExists',
+      'scrollUntilVisible',
+    ]);
+  }
+
+  void addEnabledAsserts() {
+    if (!hasId) return;
+    actions.addAll(const ['expectEnabled', 'expectDisabled']);
+  }
+
+  void addTextWaitAssert() {
+    if (!hasText) return;
+    actions.addAll(const [
+      'waitForText',
+      'waitFor',
+      'expectText',
+      'expectNoText',
+      'expectTextContains',
+    ]);
+  }
+
+  final canGesture = enabled != false;
+
+  switch (t) {
     case 'text':
-      return const ['tap'];
+      addTextWaitAssert();
+      if (hasId) {
+        addIdWaitAssert();
+      }
+      // Plain text is not a gesture target.
+      break;
+    case 'toast':
+    case 'widget':
     case 'image':
     case 'svg':
     case 'gif':
     case 'lottie':
-      return const ['tap'];
+      addIdWaitAssert();
+      break;
+    case 'textinput':
+    case 'textfield':
+      addIdWaitAssert();
+      if (hasId && canGesture) {
+        addEnabledAsserts();
+        actions.addAll(secure
+            ? const ['tap', 'enterText', 'clearText', 'focus', 'expectValue']
+            : const [
+                'tap',
+                'enterText',
+                'clearText',
+                'replaceText',
+                'submitText',
+                'focus',
+                'expectValue',
+              ]);
+      }
+      break;
+    case 'button':
+      addIdWaitAssert();
+      if (hasId && canGesture) {
+        addEnabledAsserts();
+        actions.addAll(const ['tap', 'longPress', 'doubleTap']);
+      }
+      break;
+    case 'card':
+      // Interaction only when the row has its own testId. Unkeyed cards that
+      // wrap a keyed checkbox stay containers — act on the child.
+      addIdWaitAssert();
+      if (hasId && enabled == true) {
+        addEnabledAsserts();
+        actions.addAll(const ['tap', 'longPress']);
+      }
+      break;
+    case 'icon':
+      addIdWaitAssert();
+      // Keyed icons (back_button) are act targets even when enabled detection
+      // is null (decorative Icon under InkWell heuristics).
+      if (hasId && canGesture) {
+        addEnabledAsserts();
+        actions.addAll(const ['tap', 'longPress', 'doubleTap']);
+      }
+      break;
+    case 'dropdown':
+      addIdWaitAssert();
+      if (hasId && canGesture) {
+        addEnabledAsserts();
+        actions.addAll(const ['tap', 'select', 'selectIndex']);
+      }
+      break;
+    case 'switch':
+    case 'toggle':
+    case 'checkbox':
+      addIdWaitAssert();
+      if (hasId && canGesture) {
+        addEnabledAsserts();
+        actions.addAll(const [
+          'tap',
+          'toggle',
+          'check',
+          'uncheck',
+          'expectChecked',
+        ]);
+      }
+      break;
+    case 'slider':
+      addIdWaitAssert();
+      if (hasId && canGesture) {
+        addEnabledAsserts();
+        actions.addAll(const ['tap', 'setSlider']);
+      }
+      break;
     default:
-      return const ['tap'];
+      addIdWaitAssert();
+      break;
+  }
+
+  // Stable order, unique.
+  final seen = <String>{};
+  return [
+    for (final step in actions)
+      if (seen.add(step)) step,
+  ];
+}
+
+bool _isInteractionStep(String step) {
+  switch (step) {
+    case 'tap':
+    case 'doubleTap':
+    case 'longPress':
+    case 'enterText':
+    case 'clearText':
+    case 'replaceText':
+    case 'submitText':
+    case 'focus':
+    case 'select':
+    case 'selectIndex':
+    case 'check':
+    case 'uncheck':
+    case 'toggle':
+    case 'setSlider':
+      return true;
+    default:
+      return false;
   }
 }
 

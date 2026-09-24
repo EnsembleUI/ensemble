@@ -366,10 +366,24 @@ bool _shouldHighlight(UiElement element) {
   if (element.state.visible == false || element.state.offscreen == true) {
     return false;
   }
-  if (element.testId != null && element.testId!.trim().isNotEmpty) return true;
   final type = (element.type ?? element.role ?? '').trim().toLowerCase();
   if (type.isEmpty || type == 'widget') return false;
+  final hasId = element.testId != null && element.testId!.trim().isNotEmpty;
+  // Prefer keyed/selectable descendants over type-only parents (e.g. unkeyed
+  // card wrapping a keyed checkbox) so chips match actionable targets.
+  if (!hasId && _highlightSubtreeHasId(element.children)) {
+    return false;
+  }
   return true;
+}
+
+bool _highlightSubtreeHasId(List<UiElement> elements) {
+  for (final element in elements) {
+    final id = element.testId?.trim();
+    if (id != null && id.isNotEmpty) return true;
+    if (_highlightSubtreeHasId(element.children)) return true;
+  }
+  return false;
 }
 
 /// `file://` URI for terminal links when possible.

@@ -1614,43 +1614,269 @@ const ensembleHtmlTestReportAppJs = r'''
     }
     if (observerBtn) observerBtn.style.display = '';
     const elements = Array.isArray(observer.elements) ? observer.elements : [];
-    countEl.textContent = String(elements.length);
+    const total = countObserverNodes(elements);
+    countEl.textContent = String(total);
+    window.__observerCopyPayload = {
+      screen: observer.screen || null,
+      elements: elements,
+    };
     const screen = observer.screen || '';
     let html = '';
+    html += '<div class="observer-toolbar">';
     if (screen) {
       html += '<div class="observer-screen-label">Screen: ' + escapeHtml(String(screen)) + '</div>';
+    } else {
+      html += '<div class="observer-screen-label"></div>';
     }
-    html += '<div class="observer-elements-heading">Elements (' + elements.length + ')</div>';
+    html += '<button type="button" class="observer-copy-json-btn" onclick="copyObserverJson()">Copy JSON</button>';
+    html += '</div>';
+    html += '<div class="observer-elements-heading">Elements (' + total + ')</div>';
     if (!elements.length) {
       html += '<div class="terminal-row" style="color: var(--text-muted);">&lt;no elements&gt;</div>';
     } else {
-      html += '<div class="observer-table-wrap"><table class="observer-elements-table"><thead><tr>';
-      html += '<th>#</th><th>Type</th><th>Title</th><th>Selector</th><th>State</th>';
-      html += '</tr></thead><tbody>';
-      for (let i = 0; i < elements.length; i++) {
-        const el = elements[i] || {};
-        const idx = el.index != null ? el.index : (i + 1);
-        const type = el.type || 'widget';
-        const title = el.title ? String(el.title) : '—';
-        let selector = '—';
-        if (el.selector) selector = String(el.selector);
-        const stateBits = [];
-        if (el.enabled != null) stateBits.push('enabled=' + el.enabled);
-        if (el.checked != null) stateBits.push('checked=' + el.checked);
-        if (el.value) stateBits.push('value=' + String(el.value));
-        if (Array.isArray(el.options) && el.options.length) {
-          stateBits.push('options=[' + el.options.map(String).join(', ') + ']');
-        }
-        const state = stateBits.length ? stateBits.join(' · ') : '—';
-        html += '<tr><td>' + escapeHtml(String(idx)) + '</td>';
-        html += '<td><code>' + escapeHtml(String(type)) + '</code></td>';
-        html += '<td>' + escapeHtml(title) + '</td>';
-        html += '<td><code>' + escapeHtml(selector) + '</code></td>';
-        html += '<td>' + escapeHtml(state) + '</td></tr>';
-      }
-      html += '</tbody></table></div>';
+      html += '<div class="observer-tree-wrap"><ul class="observer-tree">';
+      html += renderObserverTreeNodes(elements, 0);
+      html += '</ul></div>';
     }
     panel.innerHTML = html;
+    bindObserverHintTooltips(panel);
+  }
+
+  function getObserverFloatingTooltip() {
+    let tip = document.getElementById('observer-floating-tooltip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'observer-floating-tooltip';
+      tip.className = 'observer-floating-tooltip';
+      tip.setAttribute('role', 'tooltip');
+      document.body.appendChild(tip);
+    }
+    return tip;
+  }
+
+  function hideObserverHintTooltip() {
+    const tip = document.getElementById('observer-floating-tooltip');
+    if (tip) tip.classList.remove('is-visible');
+    document.querySelectorAll('.observer-hint.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+    });
+  }
+
+  function positionObserverFloatingTooltip(anchor) {
+    const tip = getObserverFloatingTooltip();
+    const chip = anchor.querySelector('.observer-hint-chip') || anchor;
+    const chipRect = chip.getBoundingClientRect();
+    const tipW = tip.offsetWidth;
+    const tipH = tip.offsetHeight;
+    const gap = 6;
+    const pad = 8;
+    const spaceBelow = window.innerHeight - chipRect.bottom - pad;
+    const spaceAbove = chipRect.top - pad;
+    let top;
+    if (spaceBelow < tipH && spaceAbove > spaceBelow) {
+      top = chipRect.top - tipH - gap;
+    } else {
+      top = chipRect.bottom + gap;
+    }
+    let left = chipRect.left;
+    if (left + tipW > window.innerWidth - pad) {
+      left = Math.max(pad, window.innerWidth - tipW - pad);
+    }
+    if (left < pad) left = pad;
+    if (top < pad) top = pad;
+    if (top + tipH > window.innerHeight - pad) {
+      top = Math.max(pad, window.innerHeight - tipH - pad);
+    }
+    tip.style.top = Math.round(top) + 'px';
+    tip.style.left = Math.round(left) + 'px';
+  }
+
+  function showObserverHintTooltip(hint) {
+    const title = hint.getAttribute('data-tip-title') || '';
+    const body = hint.getAttribute('data-tip-body') || '';
+    const listRaw = hint.getAttribute('data-tip-list') || '';
+    const list = listRaw ? listRaw.split('|').filter(Boolean) : [];
+    if (!body && !list.length) return;
+
+    const tip = getObserverFloatingTooltip();
+    let html = '';
+    if (title) {
+      html += '<div class="observer-hint-tooltip-title">' + escapeHtml(title) + '</div>';
+    }
+    if (list.length) {
+      html += '<ul class="observer-hint-tooltip-list">';
+      for (let i = 0; i < list.length; i++) {
+        html += '<li><code>' + escapeHtml(String(list[i])) + '</code></li>';
+      }
+      html += '</ul>';
+    } else if (body) {
+      html += '<code class="observer-hint-tooltip-body">' + escapeHtml(body) + '</code>';
+    }
+    tip.innerHTML = html;
+    tip.classList.add('is-visible');
+    hint.classList.add('is-open');
+    positionObserverFloatingTooltip(hint);
+  }
+
+  function bindObserverHintTooltips(root) {
+    if (!root) return;
+    if (!root.__observerHintsBound) {
+      root.__observerHintsBound = true;
+      root.addEventListener('mouseover', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        showObserverHintTooltip(hint);
+      });
+      root.addEventListener('mouseout', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        const next = e.relatedTarget;
+        if (next && hint.contains(next)) return;
+        hideObserverHintTooltip();
+      });
+      root.addEventListener('focusin', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        showObserverHintTooltip(hint);
+      });
+      root.addEventListener('focusout', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        const next = e.relatedTarget;
+        if (next && hint.contains(next)) return;
+        hideObserverHintTooltip();
+      });
+    }
+    const treeWrap = root.querySelector('.observer-tree-wrap');
+    if (treeWrap && !treeWrap.__observerScrollBound) {
+      treeWrap.__observerScrollBound = true;
+      treeWrap.addEventListener('scroll', hideObserverHintTooltip, { passive: true });
+    }
+  }
+
+  function countObserverNodes(nodes) {
+    let n = 0;
+    (Array.isArray(nodes) ? nodes : []).forEach(function (el) {
+      n += 1;
+      if (el && Array.isArray(el.children)) n += countObserverNodes(el.children);
+    });
+    return n;
+  }
+
+  function renderObserverTreeNodes(nodes, depth) {
+    let html = '';
+    (Array.isArray(nodes) ? nodes : []).forEach(function (el) {
+      html += renderObserverTreeNode(el || {}, depth);
+    });
+    return html;
+  }
+
+  function renderObserverTreeNode(el, depth) {
+    const type = el.type || 'widget';
+    const id = el.id ? String(el.id) : '';
+    const title = el.title ? String(el.title) : '';
+    // Prefer a single label — title, else id. Avoid repeating when they match.
+    const label = title || id;
+    const selector = el.selector ? String(el.selector) : '';
+    const kids = Array.isArray(el.children) ? el.children : [];
+    const hasKids = kids.length > 0;
+    const actions = Array.isArray(el.supportedActions) ? el.supportedActions : [];
+    const stateBits = [];
+    if (el.enabled != null) stateBits.push('enabled=' + el.enabled);
+    if (el.checked != null) stateBits.push('checked=' + el.checked);
+    if (el.interactable != null) stateBits.push('interactable=' + el.interactable);
+    if (el.value) stateBits.push('value=' + String(el.value));
+    if (Array.isArray(el.options) && el.options.length) {
+      stateBits.push('options=[' + el.options.map(String).join(', ') + ']');
+    }
+    if (el.warning) stateBits.push('warning=' + String(el.warning));
+
+    let html = '<li class="observer-tree-node" data-depth="' + depth + '">';
+    html += '<div class="observer-tree-row">';
+    if (hasKids) {
+      html += '<button type="button" class="observer-tree-toggle" aria-expanded="true" onclick="toggleObserverTreeNode(this)">▾</button>';
+    } else {
+      html += '<span class="observer-tree-toggle-spacer"></span>';
+    }
+    html += '<code class="observer-type">' + escapeHtml(String(type)) + '</code>';
+    if (label) {
+      html += '<span class="observer-title">' + escapeHtml(label) + '</span>';
+    }
+    if (selector) {
+      html += '<span class="observer-hint" tabindex="0" data-tip-title="Selector" data-tip-body="' +
+        escapeHtml(selector) + '">';
+      html += '<span class="observer-hint-chip" aria-label="Selector">';
+      html += '<span class="observer-hint-glyph" aria-hidden="true">sel</span>';
+      html += '</span></span>';
+    }
+    if (actions.length) {
+      html += '<span class="observer-hint" tabindex="0" data-tip-title="Supported actions" data-tip-list="' +
+        escapeHtml(actions.join('|')) + '">';
+      html += '<span class="observer-hint-chip" aria-label="' + actions.length + ' supported actions">';
+      html += '<span class="observer-hint-glyph" aria-hidden="true">act</span>';
+      html += '<span class="observer-hint-count">' + actions.length + '</span>';
+      html += '</span></span>';
+    }
+    if (stateBits.length) {
+      html += '<span class="observer-state">' + escapeHtml(stateBits.join(' · ')) + '</span>';
+    }
+    html += '</div>';
+    if (hasKids) {
+      html += '<ul class="observer-tree-children">';
+      html += renderObserverTreeNodes(kids, depth + 1);
+      html += '</ul>';
+    }
+    html += '</li>';
+    return html;
+  }
+
+  function toggleObserverTreeNode(btn) {
+    const li = btn.closest('.observer-tree-node');
+    if (!li) return;
+    let kids = null;
+    for (let i = 0; i < li.children.length; i++) {
+      if (li.children[i].classList.contains('observer-tree-children')) {
+        kids = li.children[i];
+        break;
+      }
+    }
+    if (!kids) return;
+    const open = kids.style.display !== 'none';
+    kids.style.display = open ? 'none' : '';
+    btn.textContent = open ? '▸' : '▾';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+  }
+
+  async function copyObserverJson() {
+    const payload = window.__observerCopyPayload;
+    if (!payload) return;
+    const text = JSON.stringify(payload, null, 2);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      const btn = document.querySelector('.observer-copy-json-btn');
+      if (btn) {
+        const prev = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = prev || 'Copy JSON'; }, 1200);
+      }
+    } catch (_) {
+      const btn = document.querySelector('.observer-copy-json-btn');
+      if (btn) {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = 'Copy JSON'; }, 1500);
+      }
+    }
   }
 
   function toggleApiDetails(headerEl) {
@@ -1726,6 +1952,7 @@ const ensembleHtmlTestReportAppJs = r'''
 
   function switchModalTab(tab) {
     activeModalTab = tab;
+    hideObserverHintTooltip();
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
     });
