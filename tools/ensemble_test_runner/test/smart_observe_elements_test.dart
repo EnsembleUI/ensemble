@@ -1212,6 +1212,119 @@ void main() {
   );
 
   testWidgets(
+    'WifiCard password row does not give nested show-password the same '
+    'label+role selector as the outer row',
+    (tester) async {
+      // Outer FlexRow: semantics + onTap (edit sheet). Inner Row: ••••+eye
+      // onTap (show password) — must not both advertise the same selector.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 360,
+                child: Semantics(
+                  label: 'Wachtwoord 1 2 3 4 5 6 7 8',
+                  button: true,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {},
+                      child: Row(
+                        children: [
+                          const Text('Wachtwoord'),
+                          const Spacer(),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {},
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('•••••••••••••'),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.visibility, size: 24),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'wifi-password-dup-sel', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      // Outer edit row stays a tappable control; ••••+eye is icon chrome.
+      final rowControls = flat
+          .where((e) => e.type == 'button' || e.type == 'card')
+          .toList();
+      expect(
+        rowControls,
+        hasLength(1),
+        reason: 'only the outer Wachtwoord row is button/card',
+      );
+      expect(
+        flat.where((e) => e.type == 'button'),
+        hasLength(lessThan(2)),
+        reason: 'must not emit two buttons with the shared a11y label',
+      );
+      expect(
+        flat.any((e) => e.type == 'icon' && e.state.interactable == true),
+        isTrue,
+      );
+
+      final enriched = enrichSuggestedLocators(
+        observation: observation,
+        resolver: session.resolver,
+        registry: session.registry,
+      );
+      final enrichedFlat = _flatten(enriched.elements);
+      final row = enrichedFlat.firstWhere(
+        (e) => e.type == 'button' || e.type == 'card',
+      );
+      expect(row.suggestedLocator?.label, 'Wachtwoord 1 2 3 4 5 6 7 8');
+      expect(row.suggestedLocator?.role, anyOf('button', 'card'));
+      final sels = enrichedFlat
+          .where((e) => e.suggestedLocator != null)
+          .map((e) => formatSuggestedSelector(e.suggestedLocator!))
+          .toList();
+      expect(
+        sels.toSet().length,
+        sels.length,
+        reason: 'each suggested selector must be unique in the tree',
+      );
+      await session.close();
+    },
+  );
+
+  testWidgets(
     'decorative chevron under list-row InkWell is not interactable',
     (tester) async {
       await tester.pumpWidget(
@@ -1650,6 +1763,303 @@ void main() {
         expect(icon.suggestedLocator?.occurrence, i);
       }
 
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'NotificationCard-style banner observes as card wrapping CTA button, '
+    'not button wrapping card',
+    (tester) async {
+      // Mirrors inhome NotificationCard: decorated chrome (no onTap) + nested
+      // keyed "Turn on" CTA + dismiss icon.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Container(
+                width: 340,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF6ED),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF5811F)),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'IPv6 is still off',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'IP version 6 is required to continue visiting all '
+                      'websites without issues.',
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        KeyedSubtree(
+                          key: const ValueKey(
+                            'recommendation_ipv6_issue_button',
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {},
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Text('Turn on'),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {},
+                            child: const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Icon(Icons.close),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'notification-card', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final roots = observation.elements;
+      expect(
+        roots.where((e) => e.type == 'button'),
+        isEmpty,
+        reason: 'CTA must nest under the banner card, not root as button',
+      );
+      final cards = roots.where((e) => e.type == 'card').toList();
+      expect(cards, isNotEmpty, reason: 'banner chrome must observe as card');
+      final card = cards.first;
+      final flat = _flatten([card]);
+      expect(
+        flat.any(
+          (e) =>
+              e.type == 'button' &&
+              e.testId == 'recommendation_ipv6_issue_button',
+        ),
+        isTrue,
+        reason: 'Turn on CTA nests under the card',
+      );
+      expect(
+        flat.where((e) => e.type == 'card'),
+        hasLength(1),
+        reason: 'no card nested under the CTA button',
+      );
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'keyed CTA host that wraps banner chrome types as card not button',
+    (tester) async {
+      // Ensemble decoration+onTap+testId on one host: KeyedSubtree outside
+      // large decorated Container → must not become button > card.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: KeyedSubtree(
+                key: const ValueKey('recommendation_ipv6_issue_button'),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    child: Container(
+                      width: 340,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF6ED),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'IPv6 is still off',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text('IP version 6 is required.'),
+                          SizedBox(height: 8),
+                          Text('Turn on'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'keyed-banner', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final host = flat.firstWhere(
+        (e) => e.testId == 'recommendation_ipv6_issue_button',
+      );
+      expect(host.type, 'card');
+      expect(
+        flat.where((e) => e.type == 'button' && e.testId != null),
+        isEmpty,
+      );
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'Recommendations section shell does not create card-inside-card with '
+    'NotificationCard chrome',
+    (tester) async {
+      // KeyedSubtree(Recommendations) wrapping NotificationCard-style chrome
+      // + nested CTA — must be a single card (not card > card).
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: KeyedSubtree(
+                key: const ValueKey('Recommendations'),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Container(
+                    width: 340,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF6ED),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF5811F)),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'IPv6 is still off',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('IP version 6 is required.'),
+                        const SizedBox(height: 12),
+                        KeyedSubtree(
+                          key: const ValueKey(
+                            'recommendation_ipv6_issue_button',
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {},
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Text('Turn on'),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'recs-shell', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final cards = flat.where((e) => e.type == 'card').toList();
+      expect(
+        cards,
+        hasLength(1),
+        reason: 'section shell + notification chrome must not both be cards',
+      );
+      expect(
+        flat.any(
+          (e) =>
+              e.type == 'button' &&
+              e.testId == 'recommendation_ipv6_issue_button',
+        ),
+        isTrue,
+      );
       await session.close();
     },
   );

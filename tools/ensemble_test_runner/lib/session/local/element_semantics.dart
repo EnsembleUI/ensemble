@@ -79,12 +79,14 @@ UiElement describeElement({
         text = iconName;
       }
     }
-    // Nested icons inherit the parent InkWell's merged semantics ("Guest wifi
-    // KPN_Gast") — drop labels that are not the icon's own name.
+    // Nested icons inherit a parent card's merged semantics ("Guest wifi
+    // KPN_Gast") — drop those. Keep labels on compact tappable chrome
+    // (CloseAppButton) and on Semantics authored for that chrome.
     final trimmedLabel = label?.trim();
     if (trimmedLabel != null &&
         trimmedLabel.isNotEmpty &&
-        (text == null || trimmedLabel != text.trim())) {
+        (text == null || trimmedLabel != text.trim()) &&
+        !_shouldKeepIconSemanticsLabel(semanticsSource, trimmedLabel)) {
       label = null;
     }
   }
@@ -228,7 +230,20 @@ String resolveObservedWidgetType(Element element, {required String? testId}) {
   if (testId == null || testId.isEmpty) return type;
   final primary = findPrimaryControlDescendant(element);
   if (primary != null) {
-    return inferWidgetType(primary);
+    final primaryType = inferWidgetType(primary);
+    // KeyedSubtree(testId) outside a small CTA InkWell that still wraps
+    // banner chrome (Ensemble decoration+onTap+testId on one host) must not
+    // observe as `button` parenting an inner `card`.
+    if (primaryType == 'button' &&
+        _keyedHostWrapsCardPanelChrome(element, primary)) {
+      return 'card';
+    }
+    // Section shells (Recommendations) are much larger than their nested CTA —
+    // do not promote the shell to `button` (avoids button > card nesting).
+    if (_keyedHostIsLooseSectionShell(element, primary)) {
+      return 'widget';
+    }
+    return primaryType;
   }
   String? nestedType;
   void visitNested(Element e) {
@@ -416,6 +431,9 @@ bool isNestedContentMediaElement(Element element) {
 bool isVisualCardContainerElement(Element element) {
   if (_isGenericTapTarget(element.widget)) return false;
   if (_isUnderToastOverlay(element)) return false;
+  // Never nest inert chrome under a button/icon primary — that inverts
+  // NotificationCard into `button > card` when a keyed CTA wraps chrome.
+  if (_hasButtonOrIconPrimaryAncestor(element)) return false;
   if (!_isCardLikeSurface(element)) return false;
   if (!_looksLikeCardPanelBounds(boundsFor(element))) return false;
   if (!_hasObservableCardContent(element)) return false;
@@ -431,6 +449,72 @@ bool isVisualCardContainerElement(Element element) {
     return true;
   });
   return !underCard;
+}
+
+/// True when a button/icon primary already wraps [element].
+///
+/// Uses light typing only — must not call [inferWidgetType] / visual-card
+/// helpers (those re-enter this check).
+bool _hasButtonOrIconPrimaryAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    if (!isPrimaryControlElement(ancestor)) return true;
+    final self = _inferElementWidgetType(ancestor);
+    if (self == 'button' || self == 'icon') {
+      found = true;
+      return false;
+    }
+    if (!_isGenericTapTarget(ancestor.widget)) return true;
+    final bounds = boundsFor(ancestor);
+    // Real card/row hosts — nested chrome under those is fine; stop walking.
+    if (_looksLikeCardHitTarget(bounds) || _looksLikeListRowHitTarget(bounds)) {
+      return false;
+    }
+    // Compact / CTA-sized tap targets (NotificationCard "Turn on", dismiss).
+    found = true;
+    return false;
+  });
+  return found;
+}
+
+/// Keyed host is a loose section wrapper, not the CTA / banner itself.
+bool _keyedHostIsLooseSectionShell(Element host, Element primary) {
+  final hostBounds = boundsFor(host);
+  final primaryBounds = boundsFor(primary);
+  if (hostBounds == null || primaryBounds == null) return false;
+  final hostArea = hostBounds.width * hostBounds.height;
+  final primaryArea = primaryBounds.width * primaryBounds.height;
+  if (primaryArea <= 0) return false;
+  return hostArea > primaryArea * 3;
+}
+
+/// Keyed host wraps banner chrome larger than its CTA [primary] InkWell.
+///
+/// Only when [primary] is the whole-card hit target (Ensemble decoration+onTap
+/// on one widget). A small nested CTA inside NotificationCard must not retype
+/// a section KeyedSubtree (`Recommendations`) as `card` — that yields card>card.
+bool _keyedHostWrapsCardPanelChrome(Element host, Element primary) {
+  final primaryBounds = boundsFor(primary);
+  if (primaryBounds == null) return false;
+
+  Element? cardChrome;
+  primary.visitAncestorElements((ancestor) {
+    if (identical(ancestor, host)) return false;
+    if (_isCardLikeSurface(ancestor) &&
+        _looksLikeCardPanelBounds(boundsFor(ancestor))) {
+      cardChrome = ancestor;
+      return false;
+    }
+    return true;
+  });
+  if (cardChrome == null) return false;
+
+  final chromeBounds = boundsFor(cardChrome!);
+  if (chromeBounds == null) return false;
+  final primaryArea = primaryBounds.width * primaryBounds.height;
+  final chromeArea = chromeBounds.width * chromeBounds.height;
+  if (chromeArea <= 0) return false;
+  return primaryArea >= chromeArea * 0.45;
 }
 
 /// True when a descendant is already the real card (keyed and/or tappable).
@@ -450,8 +534,12 @@ bool _hasNestedCardPrimary(Element element) {
         found = true;
         return;
       }
-      if (keyed) {
-        // Keyed InkWell/GestureDetector inside soft chrome (gateway_card).
+      // Nested CTA / dismiss InkWells (NotificationCard "Turn on") are not
+      // the card primary — only card-sized keyed hosts (gateway_card).
+      if (keyed &&
+          bounds != null &&
+          (bounds.width > 96 || bounds.height > 72) &&
+          !_looksLikeCompactIconHitTarget(e)) {
         found = true;
         return;
       }
@@ -1181,7 +1269,9 @@ String _inferGenericTapTargetType(Element element) {
   final hasNavChevron = _hasNavigationChevronDescendant(element);
   final text = _longestTextDescendant(element);
   final hasIcon = _hasIconDescendant(element);
-  final substantialText = text != null && text.trim().length > 2;
+  // Prefer real captions over longer mask glyphs (WifiCard "••••" vs
+  // "Wachtwoord") so the outer edit row is not mistyped as icon chrome.
+  final substantialText = _longestSubstantialTextDescendant(element) != null;
   final compact = _looksLikeCompactIconHitTarget(element);
   final bounds = boundsFor(element);
   final keyId = readValueKeyLocatorId(element) ?? '';
@@ -1226,6 +1316,39 @@ String _inferGenericTapTargetType(Element element) {
 
   // Compact text CTAs and Material-style actions.
   return 'button';
+}
+
+/// True when [text] is a real control caption (not mask glyphs like ••••).
+bool _isSubstantialControlCaption(String? text) {
+  final t = text?.trim() ?? '';
+  if (t.length <= 2) return false;
+  // WifiCard hidden-password row: "•••••••••••••" + eye — glyph chrome, not a
+  // button title (otherwise it steals label+role from the parent row).
+  if (RegExp(r'^[•·\.●○\*‧∙]+$').hasMatch(t)) return false;
+  return true;
+}
+
+/// Longest descendant text that counts as a real caption (skips •••• masks).
+String? _longestSubstantialTextDescendant(Element element) {
+  String? longest;
+  void visit(Element e) {
+    final w = e.widget;
+    String? value;
+    if (w is Text) {
+      value = w.data;
+    } else if (w is RichText) {
+      value = w.text.toPlainText();
+    }
+    if (value != null && _isSubstantialControlCaption(value)) {
+      if (longest == null || value.length > longest!.length) {
+        longest = value;
+      }
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return longest;
 }
 
 /// True for Ensemble [ToastController] / fluttertoast FToast overlay banners.
@@ -1799,12 +1922,31 @@ String? readControlLabelWithoutSemantics(Element element) {
     final fromWidget = _plainTextFromWidget(decoration?.label);
     if (fromWidget != null) return fromWidget;
   }
-  final semanticsWidget = element.widget is Semantics
-      ? element.widget as Semantics
-      : _selfOrAncestor<Semantics>(element);
-  final direct = semanticsWidget?.properties.label?.trim();
-  if (direct != null && direct.isNotEmpty) return direct;
-  return null;
+  // Walk past empty Semantics nodes (Material / InkWell often insert one)
+  // so CloseAppButton's `semantics.label` on the Column is still found.
+  return _nearestNonEmptySemanticsLabel(element);
+}
+
+/// First non-empty [Semantics.properties.label] on [element] or an ancestor.
+String? _nearestNonEmptySemanticsLabel(Element element) {
+  String? from(Widget widget) {
+    if (widget is! Semantics) return null;
+    final label = widget.properties.label?.trim();
+    return (label != null && label.isNotEmpty) ? label : null;
+  }
+
+  final self = from(element.widget);
+  if (self != null) return self;
+  String? found;
+  element.visitAncestorElements((ancestor) {
+    final label = from(ancestor.widget);
+    if (label != null) {
+      found = label;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 /// Geometry / opacity / current-route visibility without InheritedWidget deps.
@@ -2008,6 +2150,71 @@ String? readSemanticsLabel(WidgetTester tester, Element element) {
   } catch (_) {
     return null;
   }
+}
+
+/// True when [label] should stay on an icon observe row.
+///
+/// Compact back/close hosts keep their a11y caption. Nested glyphs under a
+/// card/list-row drop merged parent labels (use `within` + `role=icon` instead).
+bool _shouldKeepIconSemanticsLabel(Element element, String label) {
+  if (_isCompactIconTapHost(element)) return true;
+  if (_iconOwnsAuthoredSemanticsLabel(element, label)) return true;
+  return false;
+}
+
+/// InkWell / IconButton / compact glyph host that is itself the observe target.
+bool _isCompactIconTapHost(Element element) {
+  if (_isIconButtonWidget(element.widget)) return true;
+  if (_isGenericTapTarget(element.widget) &&
+      _genericTapTargetIsEnabled(element.widget)) {
+    final bounds = boundsFor(element);
+    if (bounds != null &&
+        bounds.width <= 72 &&
+        bounds.height <= 72 &&
+        !_looksLikeCardHitTarget(bounds) &&
+        !_looksLikeListRowHitTarget(bounds)) {
+      return true;
+    }
+    if (_looksLikeCompactIconHitTarget(element)) return true;
+  }
+  return false;
+}
+
+/// True when [label] is authored on compact icon chrome around [element], not
+/// merged from a larger card/list-row ancestor (WifiCard / Guest wifi).
+bool _iconOwnsAuthoredSemanticsLabel(Element element, String label) {
+  var owned = false;
+  void consider(Element e) {
+    final w = e.widget;
+    if (w is! Semantics) return;
+    final l = w.properties.label?.trim();
+    if (l == null || l != label) return;
+    final bounds = boundsFor(e);
+    if (bounds != null &&
+        (_looksLikeCardHitTarget(bounds) ||
+            _looksLikeListRowHitTarget(bounds))) {
+      return;
+    }
+    // CloseAppButton / IconButton chrome is compact; card MergeSemantics is not.
+    if (bounds != null && (bounds.width > 96 || bounds.height > 96)) {
+      return;
+    }
+    owned = true;
+  }
+
+  consider(element);
+  if (owned) return true;
+  element.visitAncestorElements((ancestor) {
+    final bounds = boundsFor(ancestor);
+    if (bounds != null &&
+        (_looksLikeCardHitTarget(bounds) ||
+            _looksLikeListRowHitTarget(bounds))) {
+      return false;
+    }
+    consider(ancestor);
+    return !owned;
+  });
+  return owned;
 }
 
 /// User-provided name for an icon (id is separate). Never invents Material names.

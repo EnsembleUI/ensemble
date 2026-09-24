@@ -195,6 +195,64 @@ void main() {
   );
 
   testWidgets(
+    'diagnostic snapshot keeps CloseAppButton a11y label as label+role=icon',
+    (tester) async {
+      // Mirrors inhome CloseAppButton: Column(semantics.label, onTap) → SVG
+      // AppIcon, with an empty intermediate Semantics (Material/InkWell pattern).
+      final png = Uint8List.fromList(<int>[
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+        0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+      ]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: Semantics(
+                label: 'back button',
+                button: true,
+                child: Semantics(
+                  // Empty intermediate node — must not block the a11y label.
+                  child: Material(
+                    color: const Color(0xFFFFCC00),
+                    child: InkWell(
+                      onTap: () {},
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Center(
+                          child: Image.memory(png, width: 28, height: 28),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final icon = _flatten(snap.observation.elements).firstWhere(
+        (e) => e.type == 'icon',
+      );
+      expect(icon.label, 'back button');
+      expect(icon.state.interactable, isTrue);
+      expect(icon.suggestedLocator, isNotNull);
+      expect(icon.suggestedLocator!.label, 'back button');
+      expect(icon.suggestedLocator!.role, 'icon');
+    },
+  );
+
+  testWidgets(
     'diagnostic capture skips while leaf queue is busy then succeeds after',
     (tester) async {
       await tester.pumpWidget(

@@ -175,11 +175,11 @@ bool _shouldOverlay(UiElement element) {
   if (bounds.width < 4 || bounds.height < 4) return false;
   final type = (element.type ?? '').toLowerCase();
   if (type == 'widget') return false;
-  // Skip type-only parents when a *keyed* descendant is the real target
-  // (wrapper card beside `id=gateway_card`). Text/label-only children must
-  // not suppress chrome overlays for unkeyed visual cards (FeedbackInput).
+  // Skip type-only parents when a *keyed card/toast* descendant is the real
+  // target (wrapper chrome beside `id=gateway_card`). Keyed CTA buttons inside
+  // NotificationCard must not suppress the banner chrome overlay.
   if (!_elementHasIdSelector(element) &&
-      _subtreeHasIdSelector(element.children)) {
+      _subtreeHasKeyedCardOrToast(element.children)) {
     return false;
   }
   return true;
@@ -193,10 +193,13 @@ bool _elementHasIdSelector(UiElement element) {
   return tid != null && tid.isNotEmpty;
 }
 
-bool _subtreeHasIdSelector(List<UiElement> elements) {
+bool _subtreeHasKeyedCardOrToast(List<UiElement> elements) {
   for (final element in elements) {
-    if (_elementHasIdSelector(element)) return true;
-    if (_subtreeHasIdSelector(element.children)) return true;
+    if (_elementHasIdSelector(element)) {
+      final type = (element.type ?? '').toLowerCase();
+      if (type == 'card' || type == 'toast') return true;
+    }
+    if (_subtreeHasKeyedCardOrToast(element.children)) return true;
   }
   return false;
 }

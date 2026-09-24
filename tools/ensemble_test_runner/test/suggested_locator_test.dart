@@ -384,6 +384,68 @@ void main() {
   });
 
   testWidgets(
+    'CloseAppButton-style Semantics label yields label+role=icon selector',
+    (tester) async {
+      // Mirrors inhome CloseAppButton.yaml: Column(semantics.label, onTap) →
+      // AppIcon without Icon.semanticLabel / testId.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: Semantics(
+                label: 'Back',
+                button: true,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    child: const SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Icon(Icons.arrow_back),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: _harness(),
+        context: _ctx('close_app_back_icon'),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final obs = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final enriched = enrichSuggestedLocators(
+        observation: obs,
+        resolver: session.resolver,
+        registry: session.registry,
+      );
+      final icon = _flatten(enriched.elements).firstWhere(
+        (e) => (e.type ?? '').toLowerCase() == 'icon',
+      );
+      expect(icon.label, 'Back');
+      expect(icon.state.interactable, isTrue);
+      expect(icon.suggestedLocator, isNotNull);
+      expect(
+        formatSuggestedSelector(icon.suggestedLocator!),
+        'label="Back", role=icon',
+      );
+      await session.close();
+    },
+  );
+
+  testWidgets(
     'adjacent text nodes get distinct text= selectors, not a merged label',
     (tester) async {
       await tester.pumpWidget(

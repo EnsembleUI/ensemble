@@ -187,11 +187,19 @@ List<ElementLocator> buildAgentLocatorCandidates(
       }
     case 'button':
       if (tappable && caption != null) {
-        out.add(ElementLocator(label: caption, role: 'button'));
+        final self = ElementLocator(label: caption, role: 'button');
+        // Nested WifiCard show-password row inherits the parent row's merged
+        // a11y label — do not emit a duplicate label+role=button selector.
+        if (parentScope == null || !_locatorsEquivalent(self, parentScope)) {
+          out.add(self);
+        }
       }
     case 'card':
       if (tappable && caption != null) {
-        out.add(ElementLocator(label: caption, role: 'card'));
+        final self = ElementLocator(label: caption, role: 'card');
+        if (parentScope == null || !_locatorsEquivalent(self, parentScope)) {
+          out.add(self);
+        }
       }
     case 'toast':
       // Toast hosts are rarely gesture targets; message Text owns text=.
@@ -295,6 +303,18 @@ String? _firstLineCaption(String? value) {
 }
 
 bool _locatorIsEmpty(ElementLocator locator) => locator.isEmpty;
+
+bool _locatorsEquivalent(ElementLocator a, ElementLocator b) {
+  return a.id == b.id &&
+      a.label == b.label &&
+      a.text == b.text &&
+      a.role == b.role &&
+      a.occurrence == b.occurrence &&
+      ((a.within == null && b.within == null) ||
+          (a.within != null &&
+              b.within != null &&
+              _locatorsEquivalent(a.within!, b.within!)));
+}
 
 List<ElementLocator> _dedupeLocators(List<ElementLocator> input) {
   final seen = <String>{};

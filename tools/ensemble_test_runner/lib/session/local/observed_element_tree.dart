@@ -212,18 +212,22 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
   for (var i = 0; i < kept.length; i++) {
     final child = kept[i].ui;
     UiElement? parentUi;
+    int? parentIndex;
     kept[i].element.visitAncestorElements((ancestor) {
       final idx = elementToIndex[ancestor];
       if (idx == null || drop.contains(idx)) return true;
+      parentIndex = idx;
       parentUi = kept[idx].ui;
       return false;
     });
-    if (parentUi == null) continue;
+    if (parentUi == null || parentIndex == null) continue;
 
     final pType = parentUi!.type;
     final cType = child.type;
     // Keyed leaves are locator targets — never collapse them away.
     final childKeyed = child.testId != null && child.testId!.trim().isNotEmpty;
+    final parentKeyed =
+        parentUi!.testId != null && parentUi!.testId!.trim().isNotEmpty;
     if (pType == 'icon' && (cType == 'icon' || cType == 'text')) {
       if (!childKeyed) drop.add(i);
       continue;
@@ -232,8 +236,36 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
       if (!childKeyed && _sameObserveCaption(parentUi!, child)) drop.add(i);
       continue;
     }
-    // Cards keep every distinct Text as a child — the card row may still
-    // surface the longest caption as its own title for the tree header.
+    // KeyedSubtree(testId) + child InkWell both observe as button — keep the
+    // keyed host only. Also collapse nested WifiCard show-password InkWell
+    // under the outer "Wachtwoord" row button (same semantics label).
+    if (pType == 'button' && cType == 'button') {
+      if (parentKeyed && !childKeyed) {
+        drop.add(i);
+        continue;
+      }
+      if (!childKeyed) {
+        final pb = parentUi!.bounds;
+        final cb = child.bounds;
+        if (pb != null &&
+            cb != null &&
+            pb.width * pb.height > cb.width * cb.height * 1.15) {
+          drop.add(i);
+        }
+      }
+      continue;
+    }
+    // Section shell (Recommendations) typed widget/button wrapping notification
+    // chrome — drop the shell so the banner card is the root.
+    if ((pType == 'widget' || pType == 'button') &&
+        cType == 'card' &&
+        parentKeyed) {
+      final pb = parentUi!.bounds;
+      if (pb != null && pb.width >= 140 && pb.height >= 64) {
+        drop.add(parentIndex!);
+      }
+      continue;
+    }
   }
 
   if (drop.isEmpty) return kept;
