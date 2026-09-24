@@ -378,6 +378,42 @@ void main() {
     final tappableCard =
         flat.firstWhere((e) => e.testId == 'devices_mini_card');
     expect(tappableCard.state.enabled, isTrue);
+
+    // Nested captions + nav chevrons under the card must stay in the tree.
+    final guestCard = flat.firstWhere(
+      (e) => e.type == 'card' && (e.text ?? '').contains('Guest wifi'),
+    );
+    final guestFlat = _flatten([guestCard]);
+    expect(
+      guestFlat.any((e) => e.type == 'text' && (e.text ?? '') == 'KPN_Gast'),
+      isTrue,
+      reason: 'Status / value text nested under a tappable row must be kept',
+    );
+    expect(
+      guestFlat.any((e) => e.type == 'text' && (e.text ?? '') == 'Guest wifi'),
+      isTrue,
+      reason: 'Title Text stays a child even when the card header shows it',
+    );
+    expect(
+      guestFlat.any((e) => e.type == 'icon'),
+      isTrue,
+      reason: 'Nav chevron under a settings row must be observed',
+    );
+    expect(
+      _flatten([tappableCard]).any(
+        (e) => e.type == 'text' && (e.text ?? '') == 'Devices',
+      ),
+      isTrue,
+      reason: 'Title Text stays a child under the keyed card',
+    );
+    // Badge / status copy nested under a keyed card (e.g. "Bedraad").
+    expect(
+      _flatten([tappableCard]).any(
+        (e) => e.type == 'text' && (e.text ?? '') == '2',
+      ),
+      isTrue,
+      reason: 'Secondary caption nested under a keyed card must be kept',
+    );
     await session.close();
   });
 
@@ -723,6 +759,19 @@ void main() {
         isNull,
         reason: 'non-tappable toast must not report enabled=false',
       );
+      expect(
+        _flatten([toast]).where((e) => e.type == 'card'),
+        isEmpty,
+        reason: 'toast chrome must not nest a decorative card',
+      );
+      expect(
+        _flatten([toast]).any(
+          (e) =>
+              e.type == 'text' && (e.text ?? '').contains('No token found'),
+        ),
+        isTrue,
+        reason: 'message Text stays a child of the toast',
+      );
       await session.close();
     },
   );
@@ -1017,24 +1066,39 @@ void main() {
       ),
     );
     final flat = _flatten(observation.elements);
-    expect(flat.where((e) => e.type == 'icon').length, 1);
-    expect(flat.where((e) => e.type == 'dropdown').length, 1);
+    // Nested InkWell+Icon collapses to one icon host (no leaf Icon child).
+    final rootIcons =
+        observation.elements.where((e) => e.type == 'icon').toList();
+    expect(rootIcons, hasLength(1));
+    expect(rootIcons.single.children, isEmpty);
     expect(
-      observation.elements.where((e) => e.type == 'icon').single.children,
-      isEmpty,
+      rootIcons.single.text,
+      isNull,
+      reason: 'do not invent Material icon names',
     );
     expect(
-      observation.elements.where((e) => e.type == 'dropdown').single.children,
-      isEmpty,
-    );
-    final icon = flat.singleWhere((e) => e.type == 'icon');
-    expect(icon.text, isNull, reason: 'do not invent Material icon names');
-    expect(
-      icon.state.enabled,
+      rootIcons.single.state.enabled,
       isTrue,
       reason: 'compact InkWell with onTap is an actionable icon host',
     );
-    expect(icon.state.interactable, isTrue);
+    expect(rootIcons.single.state.interactable, isTrue);
+
+    // Dropdown keeps its expand chevron; value caption stays on the dropdown row.
+    final dropdowns =
+        observation.elements.where((e) => e.type == 'dropdown').toList();
+    expect(dropdowns, hasLength(1));
+    final dropdownFlat = _flatten(dropdowns);
+    expect(
+      dropdownFlat.where((e) => e.type == 'text' && (e.text ?? '') == 'HGW_SAH'),
+      isEmpty,
+      reason: 'value caption must not duplicate under the dropdown',
+    );
+    expect(
+      dropdownFlat.any((e) => e.type == 'icon'),
+      isTrue,
+      reason: 'dropdown chevron must remain visible in the observe tree',
+    );
+    expect(flat.where((e) => e.type == 'dropdown').length, 1);
 
     await session.close();
   });
@@ -1345,6 +1409,163 @@ void main() {
   });
 
   testWidgets(
+    'observe nests feedback panel content under a non-tappable visual card',
+    (tester) async {
+      // FeedbackInput-style: bordered Column chrome, no onTap on the shell;
+      // rating icons / copy live inside and must nest under type=card.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFD3D3D3)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Wat vind je van deze pagina?'),
+                    const Text('We zijn benieuwd naar je mening!'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (var i = 0; i < 5; i++)
+                          InkWell(
+                            onTap: () {},
+                            child: const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Icon(Icons.sentiment_satisfied),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'visual-card', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+
+      final card = observation.elements.where((e) => e.type == 'card').firstOrNull;
+      expect(card, isNotNull, reason: 'bordered panel must observe as card');
+      expect(card!.state.enabled, isNull,
+          reason: 'non-tappable card has no enabled flag');
+      expect(card.state.interactable, isFalse);
+      expect(card.supportedActions, isNot(contains('tap')));
+
+      final flatKids = _flatten(card.children);
+      expect(
+        flatKids.where((e) => e.type == 'text').length,
+        greaterThanOrEqualTo(2),
+      );
+      expect(
+        flatKids.where((e) => e.type == 'icon').length,
+        5,
+        reason: 'rating faces nest under the visual card',
+      );
+      expect(
+        observation.elements.where((e) => e.type == 'icon'),
+        isEmpty,
+        reason: 'rating icons must not float as root siblings',
+      );
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'observe does not wrap a keyed tappable card in a decorative visual card',
+    (tester) async {
+      // Devices ModemInfo: wrapperCard* Column chrome around gateway_card.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Container(
+                width: 320,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 16, color: Color(0x0D000000)),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: const ValueKey('gateway_card'),
+                    onTap: () {},
+                    child: const SizedBox(
+                      height: 120,
+                      child: Center(child: Text('KPN Box 12')),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'no-double-card', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final cards =
+          observation.elements.where((e) => e.type == 'card').toList();
+      expect(cards, hasLength(1), reason: 'wrapper chrome must not add a card');
+      expect(cards.single.testId, 'gateway_card');
+      expect(cards.single.state.interactable, isTrue);
+      expect(cards.single.children.where((e) => e.type == 'card'), isEmpty);
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
     'observe treats Invokable isDisabled as enabled=false '
     'even when InkWell.onTap is still wired',
     (tester) async {
@@ -1597,6 +1818,7 @@ void main() {
 
 /// Invokable host exposing Ensemble-style disable flags (Button.enabled /
 /// custom-widget isDisabled), not styling className.
+// ignore: must_be_immutable — Invokable.id is set in the constructor for tests.
 class _InvokableFlagHost extends StatelessWidget with Invokable {
   _InvokableFlagHost({required this.isDisabled, required this.child}) {
     id = 'back_button';
@@ -1622,6 +1844,7 @@ class _InvokableFlagHost extends StatelessWidget with Invokable {
 }
 
 /// Invokable with only className — must not be treated as a disable signal.
+// ignore: must_be_immutable — Invokable.id is set in the constructor for tests.
 class _InvokableClassOnlyHost extends StatelessWidget with Invokable {
   _InvokableClassOnlyHost({required this.className, required this.child}) {
     id = 'back_button';

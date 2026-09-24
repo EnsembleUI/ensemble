@@ -200,7 +200,11 @@ void main() {
     expect(card.containsKey('kind'), isFalse);
     expect(card.containsKey('locatorStatus'), isFalse);
     expect(card.containsKey('selector'), isFalse);
-    expect(card['title'], 'DNS-instellingen');
+    expect(
+      card.containsKey('title'),
+      isFalse,
+      reason: 'unkeyed cards are anonymous containers — no caption title',
+    );
 
     final checkbox = (card['children'] as List).single as Map;
     expect(checkbox['index'], 2);
@@ -214,5 +218,98 @@ void main() {
     expect(heading['supportedActions'], contains('waitForText'));
     expect(heading['interactable'], isFalse);
     expect(heading.containsKey('locatorStatus'), isFalse);
+  });
+
+  test('keyed card report node uses id, not borrowed child text as title', () {
+    final observation = UiObservation(
+      observationId: 'obs',
+      revision: 0,
+      timestamp: DateTime.utc(2026, 1, 1),
+      screen: const ScreenObservation(name: 'Devices'),
+      elements: [
+        const UiElement(
+          elementId: 'card1',
+          testId: 'gateway_card',
+          type: 'card',
+          text: 'KPN Box 12',
+          label: 'KPN Box 12',
+          suggestedLocator: ElementLocator(id: 'gateway_card'),
+          state: UiElementState(
+            visible: true,
+            enabled: true,
+            interactable: true,
+          ),
+          children: [
+            UiElement(
+              elementId: 't1',
+              type: 'text',
+              text: 'KPN Box 12',
+              state: UiElementState(visible: true, interactable: false),
+            ),
+          ],
+        ),
+      ],
+      viewport: const UiViewport(width: 390, height: 844, devicePixelRatio: 2),
+      observableFingerprint: '',
+      completeness: const ObservationCompleteness(
+        semanticTree: false,
+        runtimeMetadata: true,
+        navigationState: true,
+        screenshot: false,
+      ),
+    );
+
+    final card = observationElementsTreeForReport(observation).single;
+    expect(card['id'], 'gateway_card');
+    expect(
+      card.containsKey('title'),
+      isFalse,
+      reason: 'card must not promote nested Text as its own title',
+    );
+    final textChild = (card['children'] as List).single as Map;
+    expect(textChild['title'], 'KPN Box 12');
+  });
+
+  test('toast report node does not borrow message text as title', () {
+    final observation = UiObservation(
+      observationId: 'obs',
+      revision: 0,
+      timestamp: DateTime.utc(2026, 1, 1),
+      screen: const ScreenObservation(name: 'InitApp'),
+      elements: [
+        const UiElement(
+          elementId: 'toast1',
+          type: 'toast',
+          text: 'Geen token gevonden, open de app opnieuw.',
+          state: UiElementState(visible: true, interactable: false),
+          children: [
+            UiElement(
+              elementId: 't1',
+              type: 'text',
+              text: 'Geen token gevonden, open de app opnieuw.',
+              state: UiElementState(visible: true, interactable: false),
+            ),
+          ],
+        ),
+      ],
+      viewport: const UiViewport(width: 390, height: 844, devicePixelRatio: 2),
+      observableFingerprint: '',
+      completeness: const ObservationCompleteness(
+        semanticTree: false,
+        runtimeMetadata: true,
+        navigationState: true,
+        screenshot: false,
+      ),
+    );
+
+    final toast = observationElementsTreeForReport(observation).single;
+    expect(toast['type'], 'toast');
+    expect(
+      toast.containsKey('title'),
+      isFalse,
+      reason: 'toast must not promote nested Text as its own title',
+    );
+    final textChild = (toast['children'] as List).single as Map;
+    expect(textChild['title'], 'Geen token gevonden, open de app opnieuw.');
   });
 }

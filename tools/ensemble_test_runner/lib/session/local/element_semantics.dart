@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
@@ -69,13 +70,21 @@ UiElement describeElement({
           ? readControlLabel(semanticsSource, tester)
           : readControlLabelWithoutSemantics(semanticsSource));
   final hint = secure ? null : readHint(semanticsSource);
-  // Icons rarely have Text; fall back to tooltip / semanticLabel.
-  if (type == 'icon' &&
-      (text == null || text.isEmpty) &&
-      (label == null || label.isEmpty)) {
-    final iconName = readIconName(semanticsSource);
-    if (iconName != null && iconName.isNotEmpty) {
-      text = iconName;
+  // Icons rarely have Text; fall back to tooltip / semanticLabel only.
+  if (type == 'icon') {
+    if ((text == null || text.isEmpty) && (label == null || label.isEmpty)) {
+      final iconName = readIconName(semanticsSource);
+      if (iconName != null && iconName.isNotEmpty) {
+        text = iconName;
+      }
+    }
+    // Nested icons inherit the parent InkWell's merged semantics ("Guest wifi
+    // KPN_Gast") — drop labels that are not the icon's own name.
+    final trimmedLabel = label?.trim();
+    if (trimmedLabel != null &&
+        trimmedLabel.isNotEmpty &&
+        (text == null || trimmedLabel != text.trim())) {
+      label = null;
     }
   }
   // Standalone text: never keep a merged semantics label (e.g. "Wifi naam KPN"
@@ -321,6 +330,31 @@ bool isPrimaryControlElement(Element element) {
 
 /// Non-empty [Text]/[RichText] that is not under a primary control.
 bool isStandaloneTextElement(Element element) {
+  if (!_isVisibleTextHost(element)) return false;
+  return !hasPrimaryControlAncestor(element);
+}
+
+/// Caption / badge [Text] nested under a tappable card, button, or row.
+///
+/// Without this, status badges ("Bedraad") and other copy inside an InkWell
+/// card were dropped while only nested icons were kept.
+///
+/// Skips captions that only repeat the parent button/card title, and any text
+/// under a compact icon host (glyph / merged semantics noise).
+bool isNestedContentTextElement(Element element) {
+  if (!_isVisibleTextHost(element)) return false;
+  if (!hasPrimaryControlAncestor(element)) return false;
+  // Field internals — value lives on the textInput row, not a nested text.
+  if (_selfOrAncestor<EditableText>(element) != null) return false;
+  if (_selfOrAncestor<TextField>(element) != null) return false;
+  if (_selfOrAncestor<CupertinoTextField>(element) != null) return false;
+  // IconButton / compact InkWell+Icon already is the observe row.
+  if (_isUnderCompactIconControl(element)) return false;
+  if (_isRedundantCaptionOfNearestPrimary(element)) return false;
+  return true;
+}
+
+bool _isVisibleTextHost(Element element) {
   final widget = element.widget;
   final String? data;
   if (widget is Text) {
@@ -328,12 +362,16 @@ bool isStandaloneTextElement(Element element) {
   } else if (widget is RichText) {
     // [Text] builds a child [RichText] — keep only the Text host.
     if (element.findAncestorWidgetOfExactType<Text>() != null) return false;
+    // [Icon] / [ImageIcon] also render via RichText — keep the Icon host.
+    if (element.findAncestorWidgetOfExactType<Icon>() != null) return false;
+    if (element.findAncestorWidgetOfExactType<ImageIcon>() != null) {
+      return false;
+    }
     data = widget.text.toPlainText();
   } else {
     return false;
   }
-  if (data == null || data.trim().isEmpty) return false;
-  return !hasPrimaryControlAncestor(element);
+  return data != null && data.trim().isNotEmpty;
 }
 
 /// Visible image / SVG / GIF / Lottie host (not an inner leaf under Ensemble*).
@@ -345,12 +383,184 @@ bool isStandaloneMediaElement(Element element) {
   return true;
 }
 
-/// Nested actionable controls kept under a tappable card/row ancestor.
+/// Media nested under a tappable card/row (device art, status glyphs, …).
+///
+/// Not under a compact icon host — that host already observes as `icon`.
+bool isNestedContentMediaElement(Element element) {
+  final type = mediaWidgetType(element.widget);
+  if (type == null) return false;
+  if (_hasMediaHostAncestor(element)) return false;
+  if (!hasPrimaryControlAncestor(element)) return false;
+  if (_isUnderCompactIconControl(element)) return false;
+  return true;
+}
+
+/// Non-interactive visual card chrome (bordered / Material [Card] panel).
+///
+/// FeedbackInput and similar Ensemble boxes look like cards but have no onTap.
+/// We still keep them so texts / rating icons nest under a `card` container
+/// instead of floating as siblings. Prefer the outermost card-like host.
+///
+/// Skip decorative wrappers (e.g. theme `wrapperCard*`) that only chrome an
+/// already-keyed / tappable card — those would become card-inside-card.
+/// Also skip panels inside a toast banner — the toast host is the container.
+bool isVisualCardContainerElement(Element element) {
+  if (_isGenericTapTarget(element.widget)) return false;
+  if (_isUnderToastOverlay(element)) return false;
+  if (!_isCardLikeSurface(element)) return false;
+  if (!_looksLikeCardPanelBounds(boundsFor(element))) return false;
+  if (!_hasObservableCardContent(element)) return false;
+  if (_hasNestedCardPrimary(element)) return false;
+
+  var underCard = false;
+  element.visitAncestorElements((ancestor) {
+    if (_isCardLikeSurface(ancestor) &&
+        !_isGenericTapTarget(ancestor.widget)) {
+      underCard = true;
+      return false;
+    }
+    return true;
+  });
+  return !underCard;
+}
+
+/// True when a descendant is already the real card (keyed and/or tappable).
+bool _hasNestedCardPrimary(Element element) {
+  var found = false;
+  void visit(Element e) {
+    if (found || identical(e, element)) {
+      if (!found) e.visitChildren(visit);
+      return;
+    }
+    final keyed = hasCompactValueKey(e) || readOwnedWidgetLocatorId(e) != null;
+    if (_isGenericTapTarget(e.widget)) {
+      final bounds = boundsFor(e);
+      if (_looksLikeCardHitTarget(bounds) ||
+          _looksLikeListRowHitTarget(bounds)) {
+        // Tappable card/row — wrapper is just chrome.
+        found = true;
+        return;
+      }
+      if (keyed) {
+        // Keyed InkWell/GestureDetector inside soft chrome (gateway_card).
+        found = true;
+        return;
+      }
+    }
+    if (keyed && _isCardLikeSurface(e)) {
+      found = true;
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return found;
+}
+
+bool _isCardLikeSurface(Element element) {
+  final widget = element.widget;
+  if (widget is Card) return true;
+  if (_decorationLooksLikeCard(_boxDecorationOf(widget))) return true;
+  if (_ensembleBoxLooksLikeCard(widget)) return true;
+  return false;
+}
+
+bool _ensembleBoxLooksLikeCard(Widget widget) {
+  if (widget is! HasController) return false;
+  final controller = widget.controller;
+  if (controller is! BoxController) return false;
+  if (controller.hasBorder() && controller.borderRadius != null) return true;
+  // Soft tiles: radius + fill (e.g. theme `.wrapperCard*`) without a stroke.
+  if (controller.borderRadius != null &&
+      (controller.backgroundColor != null || controller.hasBoxShadow())) {
+    return true;
+  }
+  if (widget is Invokable) {
+    final className =
+        _invokableProperty(widget as Invokable, 'className')?.toString() ?? '';
+    if (RegExp(r'card', caseSensitive: false).hasMatch(className)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+BoxDecoration? _boxDecorationOf(Widget widget) {
+  if (widget is Container && widget.decoration is BoxDecoration) {
+    return widget.decoration as BoxDecoration;
+  }
+  if (widget is DecoratedBox && widget.decoration is BoxDecoration) {
+    return widget.decoration as BoxDecoration;
+  }
+      if (widget is Material) {
+    final shape = widget.shape;
+    if (shape is RoundedRectangleBorder &&
+        (widget.color != null || shape.side.width > 0)) {
+      return BoxDecoration(
+        color: widget.color,
+        borderRadius: shape.borderRadius,
+        border: shape.side.width > 0
+            ? Border.fromBorderSide(shape.side)
+            : null,
+      );
+    }
+  }
+  return null;
+}
+
+bool _decorationLooksLikeCard(BoxDecoration? decoration) {
+  if (decoration == null) return false;
+  final hasRadius = decoration.borderRadius != null;
+  final hasBorder = decoration.border != null;
+  final hasFill = decoration.color != null ||
+      decoration.gradient != null ||
+      (decoration.boxShadow != null && decoration.boxShadow!.isNotEmpty);
+  // FeedbackInput: stroke + radius. Soft cards: fill/shadow + radius.
+  if (hasRadius && hasBorder) return true;
+  if (hasRadius && hasFill) return true;
+  return false;
+}
+
+bool _looksLikeCardPanelBounds(UiBounds? bounds) {
+  if (bounds == null) return false;
+  if (bounds.width <= 0 || bounds.height <= 0) return false;
+  // Wide panels (page feedback) and mini tiles.
+  return bounds.width >= 140 && bounds.height >= 64;
+}
+
+bool _hasObservableCardContent(Element element) {
+  var texts = 0;
+  var actions = 0;
+  void visit(Element e) {
+    if (texts >= 1 && actions >= 1) return;
+    final w = e.widget;
+    if (w is Text && (w.data?.trim().isNotEmpty ?? false)) {
+      texts += 1;
+    } else if (w is RichText && w.text.toPlainText().trim().isNotEmpty) {
+      texts += 1;
+    }
+    if (_isGenericTapTarget(w) ||
+        _isIconButtonWidget(w) ||
+        w is Icon ||
+        w is ImageIcon) {
+      actions += 1;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  // A card needs grouping value: caption + chrome, or several captions.
+  return (texts >= 1 && actions >= 1) || texts >= 2;
+}
+
+/// Nested actionable / chrome controls kept under a tappable card/row ancestor.
 ///
 /// Without this, anything under a FlexRow/GestureDetector primary was dropped —
 /// so agents never saw info icons, nested IconButtons, or unkeyed checkboxes
-/// inside settings rows. Excludes structural wrappers, nav/dropdown chevrons,
-/// and leaves under a more specific host (Icon under IconButton, etc.).
+/// inside settings rows. Excludes structural wrappers and leaves under a more
+/// specific host (Icon under IconButton, etc.). Nav chevrons are kept so the
+/// observe tree mirrors what is on screen.
 bool isNestedActionableElement(Element element) {
   if (!hasPrimaryControlAncestor(element)) return false;
 
@@ -365,12 +575,14 @@ bool isNestedActionableElement(Element element) {
   }
   if (widget is EditableText) return false;
 
-  if (_isGenericTapTarget(widget)) {
-    // Inside Checkbox/TextField/IconButton — the host is the action, not this.
-    if (_hasSpecificControlAncestor(element)) return false;
-    // Nested under another nested action host — keep outermost only.
-    if (_hasNestedActionTapWrapperAncestor(element)) return false;
-    if (!_genericTapTargetIsEnabled(widget)) return false;
+    if (_isGenericTapTarget(widget)) {
+      // Inside Checkbox/TextField/IconButton — the host is the action, not this.
+      if (_hasSpecificControlAncestor(element)) return false;
+      // Nested under another nested action host — keep outermost only.
+      if (_hasNestedActionTapWrapperAncestor(element)) return false;
+      // KeyedSubtree(back_button) → InkWell: shell already observes as icon.
+      if (isRedundantLeafUnderKeyedIconShell(element)) return false;
+      if (!_genericTapTargetIsEnabled(widget)) return false;
 
     final bounds = boundsFor(element);
     if (bounds == null) return false;
@@ -382,10 +594,8 @@ bool isNestedActionableElement(Element element) {
     final text = _longestTextDescendant(element);
     final substantialText = text != null && text.trim().length > 2;
 
-    // Compact icon / glyph chrome (info, overflow, close, …).
+    // Compact icon / glyph chrome (info, overflow, close, chevron, …).
     if (_looksLikeCompactIconHitTarget(element)) {
-      if (_hasDropdownChevronDescendant(element)) return false;
-      if (_hasNavigationChevronDescendant(element)) return false;
       if (substantialText) return false;
       return _hasIconDescendant(element) ||
           _mediaTypeFromDescendant(element) != null ||
@@ -401,8 +611,8 @@ bool isNestedActionableElement(Element element) {
 
   // Plain Icon / ImageIcon chrome on a settings row (may or may not be wrapped).
   if (widget is Icon) {
-    if (_isNavigationChevronIcon(widget.icon)) return false;
-    if (_isDropdownChevronIcon(widget.icon)) return false;
+    // IconButton / compact back-arrow InkWell — host is the observe row.
+    if (_isUnderCompactIconControl(element)) return false;
     if (_hasSpecificControlAncestor(element)) return false;
     if (_hasIconButtonAncestor(element)) return false;
     if (!_looksLikeCompactIconHitTarget(element)) return false;
@@ -410,6 +620,7 @@ bool isNestedActionableElement(Element element) {
     return true;
   }
   if (widget is ImageIcon) {
+    if (_isUnderCompactIconControl(element)) return false;
     if (_hasSpecificControlAncestor(element)) return false;
     if (_hasIconButtonAncestor(element)) return false;
     if (!_looksLikeCompactIconHitTarget(element)) return false;
@@ -417,6 +628,123 @@ bool isNestedActionableElement(Element element) {
     return true;
   }
   return false;
+}
+
+/// Leaf text/media under a keyed compact icon shell (back button, etc.).
+///
+/// The keyed host already observes as `icon` — keeping the leaf duplicates the
+/// row (and overlays) with the same id.
+bool isRedundantLeafUnderKeyedIconShell(Element element) {
+  Element? keyed;
+  element.visitAncestorElements((ancestor) {
+    if (hasCompactValueKey(ancestor) ||
+        readOwnedWidgetLocatorId(ancestor) != null) {
+      keyed = ancestor;
+      return false;
+    }
+    return true;
+  });
+  if (keyed == null) return false;
+
+  final hostBounds = boundsFor(keyed!);
+  if (hostBounds != null &&
+      (_looksLikeCardHitTarget(hostBounds) ||
+          _looksLikeListRowHitTarget(hostBounds))) {
+    return false;
+  }
+  if (_looksLikeCompactIconHitTarget(keyed!)) return true;
+  if (hostBounds != null &&
+      hostBounds.width <= 72 &&
+      hostBounds.height <= 72) {
+    return true;
+  }
+  // KeyedSubtree → IconButton / compact InkWell.
+  final primary = findPrimaryControlDescendant(keyed!);
+  if (primary == null) return false;
+  if (_isIconButtonWidget(primary.widget)) return true;
+  if (_isGenericTapTarget(primary.widget) &&
+      _looksLikeCompactIconHitTarget(primary)) {
+    return true;
+  }
+  return false;
+}
+
+/// True when a compact icon control (IconButton / glyph InkWell) already wraps
+/// [element] — leaf Icon/Image/text under that host is redundant.
+bool _isUnderCompactIconControl(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (_isIconButtonWidget(w)) {
+      found = true;
+      return false;
+    }
+    if (!_isGenericTapTarget(w) || !_genericTapTargetIsEnabled(w)) {
+      return true;
+    }
+    final bounds = boundsFor(ancestor);
+    if (bounds == null) return true;
+    // Card / settings row — stop; nested icons/text under those are intentional.
+    if (_looksLikeCardHitTarget(bounds) || _looksLikeListRowHitTarget(bounds)) {
+      return false;
+    }
+    if (_looksLikeCompactIconHitTarget(ancestor)) {
+      found = true;
+      return false;
+    }
+    // Compact tappable chrome (≤72) without a real caption.
+    if (bounds.width <= 72 && bounds.height <= 72) {
+      final text = _longestTextDescendant(ancestor);
+      if (text == null || text.trim().length <= 1) {
+        found = true;
+        return false;
+      }
+    }
+    return true;
+  });
+  return found;
+}
+
+/// Caption [Text] that only repeats the nearest button/card/dropdown title.
+bool _isRedundantCaptionOfNearestPrimary(Element element) {
+  final own = _visibleTextOf(element);
+  if (own == null) return false;
+
+  Element? primary;
+  element.visitAncestorElements((ancestor) {
+    if (isPrimaryControlElement(ancestor)) {
+      primary = ancestor;
+      return false;
+    }
+    return true;
+  });
+  if (primary == null) return false;
+
+  final primaryType = inferWidgetType(primary!);
+  // Only collapse under buttons / dropdowns — tappable cards still drop the
+  // matching title in [dropRedundantNestedObserveLeaves] when interactable.
+  if (primaryType != 'button' && primaryType != 'dropdown') {
+    return false;
+  }
+
+  final primaryText = _longestTextDescendant(primary!)?.trim();
+  if (primaryText == null || primaryText.isEmpty) return false;
+  if (own == primaryText) return true;
+  final firstLine = primaryText.split('\n').first.trim();
+  return firstLine == own;
+}
+
+String? _visibleTextOf(Element element) {
+  final w = element.widget;
+  if (w is Text) {
+    final data = w.data?.trim();
+    return (data != null && data.isNotEmpty) ? data : null;
+  }
+  if (w is RichText) {
+    final data = w.text.toPlainText().trim();
+    return data.isNotEmpty ? data : null;
+  }
+  return null;
 }
 
 bool _isSpecificNestedActionHost(Widget widget) {
@@ -823,6 +1151,11 @@ String? _inferElementWidgetType(Element element) {
     if (_hasDropdownAncestor(element)) return 'dropdown';
     if (_hasIconButtonAncestor(element)) return 'icon';
     return _inferGenericTapTargetType(element);
+  }
+  // Non-tappable bordered / Material cards (e.g. FeedbackInput panel).
+  if (isVisualCardContainerElement(element) ||
+      (widget is Card && _looksLikeCardPanelBounds(boundsFor(element)))) {
+    return 'card';
   }
   if (widget is Text || widget is RichText) return 'text';
   return null;

@@ -1826,7 +1826,8 @@ const ensembleHtmlTestReportAppJs = r'''
     const type = el.type || 'widget';
     const id = el.id ? String(el.id) : '';
     const title = el.title ? String(el.title) : '';
-    // Prefer a single label — title, else id. Avoid repeating when they match.
+    // Prefer a single label — title, else id. Cards omit title so keyed cards
+    // show their authoring id here instead of a borrowed child caption.
     const label = title || id;
     const selector = el.selector ? String(el.selector) : '';
     const kids = Array.isArray(el.children) ? el.children : [];

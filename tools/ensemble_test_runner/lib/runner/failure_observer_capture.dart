@@ -176,33 +176,28 @@ bool _shouldOverlay(UiElement element) {
   if (bounds.width < 4 || bounds.height < 4) return false;
   final type = (element.type ?? '').toLowerCase();
   if (type == 'widget') return false;
-  // Skip type-only parents when a descendant already carries a usable
-  // selector — avoids peer "card" chips with no id beside the keyed child.
-  if (!_elementHasUsableSelector(element) &&
-      _subtreeHasUsableSelector(element.children)) {
+  // Skip type-only parents when a *keyed* descendant is the real target
+  // (wrapper card beside `id=gateway_card`). Text/label-only children must
+  // not suppress chrome overlays for unkeyed visual cards (FeedbackInput).
+  if (!_elementHasIdSelector(element) &&
+      _subtreeHasIdSelector(element.children)) {
     return false;
   }
   return true;
 }
 
-bool _elementHasUsableSelector(UiElement element) {
+bool _elementHasIdSelector(UiElement element) {
   final suggested = element.suggestedLocator;
-  if (suggested != null) {
-    final id = suggested.id?.trim();
-    if (id != null && id.isNotEmpty) return true;
-    final text = suggested.text?.trim();
-    if (text != null && text.isNotEmpty) return true;
-    final label = suggested.label?.trim();
-    if (label != null && label.isNotEmpty) return true;
-  }
+  final sid = suggested?.id?.trim();
+  if (sid != null && sid.isNotEmpty) return true;
   final tid = element.testId?.trim();
   return tid != null && tid.isNotEmpty;
 }
 
-bool _subtreeHasUsableSelector(List<UiElement> elements) {
+bool _subtreeHasIdSelector(List<UiElement> elements) {
   for (final element in elements) {
-    if (_elementHasUsableSelector(element)) return true;
-    if (_subtreeHasUsableSelector(element.children)) return true;
+    if (_elementHasIdSelector(element)) return true;
+    if (_subtreeHasIdSelector(element.children)) return true;
   }
   return false;
 }
@@ -374,9 +369,12 @@ String? _titleFor(UiElement element) {
     case 'textfield':
       return _firstNonEmpty([element.label, element.testId]);
     case 'button':
-    case 'card':
-    case 'toast':
       return _firstNonEmpty([element.text, element.label, element.testId]);
+    case 'toast':
+    case 'card':
+      // Containers — nested Text owns captions. Tree UI shows `id` when
+      // present; never emit a borrowed child caption as the parent title.
+      return null;
     default:
       return _firstNonEmpty([element.label, element.text, element.testId]);
   }

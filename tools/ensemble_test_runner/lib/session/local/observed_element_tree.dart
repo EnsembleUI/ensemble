@@ -47,6 +47,9 @@ import 'package:flutter_test/flutter_test.dart';
       final underKeyed = _hasCompactKeyedAncestor(element);
 
       var keep = false;
+      // Owned keys / primaries may inherit exclusive wrapper ids; nested
+      // content under a card must not be stamped with the parent card id.
+      var allowInheritedId = false;
       if (ownedKey) {
         if (_isPageShellElement(
           element,
@@ -57,6 +60,7 @@ import 'package:flutter_test/flutter_test.dart';
           keep = false;
         } else {
           keep = true;
+          allowInheritedId = true;
           if (ownedId != null) claimedOwnedIds.add(ownedId);
         }
       } else if (underKeyed) {
@@ -77,14 +81,22 @@ import 'package:flutter_test/flutter_test.dart';
             } else {
               keep = true;
             }
+            allowInheritedId = keep;
           }
         } else if (isNestedActionableElement(element)) {
           // Nested actions under a keyed card / page shell (icons, buttons, …).
           keep = true;
+        } else if (isNestedContentTextElement(element)) {
+          keep = true;
+        } else if (isNestedContentMediaElement(element)) {
+          keep = true;
+        } else if (isVisualCardContainerElement(element)) {
+          keep = true;
         } else if (isStandaloneTextElement(element)) {
-          keep = true;
+          // Avoid KeyedSubtree(icon) + leaf media/text both observing as icon.
+          keep = !isRedundantLeafUnderKeyedIconShell(element);
         } else if (isStandaloneMediaElement(element)) {
-          keep = true;
+          keep = !isRedundantLeafUnderKeyedIconShell(element);
         }
       } else if (isPrimaryControlElement(element) &&
           !hasPrimaryControlAncestor(element)) {
@@ -103,9 +115,17 @@ import 'package:flutter_test/flutter_test.dart';
           } else {
             keep = true;
           }
+          allowInheritedId = keep;
         }
       } else if (isNestedActionableElement(element)) {
         // Nested actions under an unkeyed tappable settings row (card).
+        keep = true;
+      } else if (isNestedContentTextElement(element)) {
+        keep = true;
+      } else if (isNestedContentMediaElement(element)) {
+        keep = true;
+      } else if (isVisualCardContainerElement(element)) {
+        // Non-interactive bordered panels (FeedbackInput, etc.).
         keep = true;
       } else if (isStandaloneTextElement(element) &&
           nearestOwnedLocatorIdAncestor(element) == null) {
@@ -116,12 +136,15 @@ import 'package:flutter_test/flutter_test.dart';
       }
       if (!keep) continue;
 
-      final testId = observeLocatorId(
-            element,
-            viewport: viewportSize,
-            routeName: routeName,
-          ) ??
-          '';
+      final testId = ownedId ??
+          (allowInheritedId
+              ? (observeLocatorId(
+                    element,
+                    viewport: viewportSize,
+                    routeName: routeName,
+                  ) ??
+                  '')
+              : '');
 
       final renderObject = element.renderObject;
       if (testId.isEmpty &&
@@ -155,11 +178,12 @@ import 'package:flutter_test/flutter_test.dart';
   }
 
   final absorbed = absorbFormFieldLabels(kept);
+  final deduped = dropRedundantNestedObserveLeaves(absorbed);
   final remainingIds = <String>{
-    for (final item in absorbed) item.ui.elementId,
+    for (final item in deduped) item.ui.elementId,
   };
   handles.removeWhere((id, _) => !remainingIds.contains(id));
-  for (final item in absorbed) {
+  for (final item in deduped) {
     handles[item.ui.elementId] = SnapshotElementHandle(
       observationId: '',
       elementId: item.ui.elementId,
@@ -168,7 +192,62 @@ import 'package:flutter_test/flutter_test.dart';
       observableFingerprint: fingerprintForElement(item.ui),
     );
   }
-  return (elements: nestKeptElements(absorbed), handles: handles);
+  return (elements: nestKeptElements(deduped), handles: handles);
+}
+
+/// Drop host/leaf duplicates that survived the keep walk.
+///
+/// Examples: `icon` → child `icon` (IconButton + Icon), button → caption text
+/// that only repeats the button title, card → title text matching the card.
+List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
+  List<({Element element, UiElement ui})> kept,
+) {
+  if (kept.length < 2) return kept;
+
+  final elementToIndex = <Element, int>{
+    for (var i = 0; i < kept.length; i++) kept[i].element: i,
+  };
+  final drop = <int>{};
+
+  for (var i = 0; i < kept.length; i++) {
+    final child = kept[i].ui;
+    UiElement? parentUi;
+    kept[i].element.visitAncestorElements((ancestor) {
+      final idx = elementToIndex[ancestor];
+      if (idx == null || drop.contains(idx)) return true;
+      parentUi = kept[idx].ui;
+      return false;
+    });
+    if (parentUi == null) continue;
+
+    final pType = parentUi!.type;
+    final cType = child.type;
+    if (pType == 'icon' && (cType == 'icon' || cType == 'text')) {
+      drop.add(i);
+      continue;
+    }
+    if ((pType == 'button' || pType == 'dropdown') && cType == 'text') {
+      if (_sameObserveCaption(parentUi!, child)) drop.add(i);
+      continue;
+    }
+    // Cards keep every distinct Text as a child — the card row may still
+    // surface the longest caption as its own title for the tree header.
+  }
+
+  if (drop.isEmpty) return kept;
+  return [
+    for (var i = 0; i < kept.length; i++)
+      if (!drop.contains(i)) kept[i],
+  ];
+}
+
+bool _sameObserveCaption(UiElement parent, UiElement child) {
+  final childText = (child.text ?? child.label)?.trim();
+  if (childText == null || childText.isEmpty) return true;
+  final parentText = (parent.text ?? parent.label)?.trim();
+  if (parentText == null || parentText.isEmpty) return false;
+  if (parentText == childText) return true;
+  return parentText.split('\n').first.trim() == childText;
 }
 
 /// Fold nearby standalone label [Text] into form controls and drop duplicates.
