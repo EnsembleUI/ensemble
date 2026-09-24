@@ -1282,9 +1282,10 @@ String _inferGenericTapTargetType(Element element) {
   // Dropdowns: selected value text + drop-down chevron (not a list-row `>`).
   if (hasDropdownChevron) return 'dropdown';
 
-  // Authoring ids often encode the shape: devices_mini_card, wifi_card, …
-  if (RegExp(r'card', caseSensitive: false).hasMatch(keyId)) return 'card';
-  if (RegExp(r'toast', caseSensitive: false).hasMatch(keyId)) return 'toast';
+  // Authoring ids that encode shape: `devices_mini_card`, `error_toast` —
+  // require a toast/card token, not a camelCase substring (`tipsToast` is CSS).
+  if (_authoringIdEncodesShape(keyId, 'card')) return 'card';
+  if (_authoringIdEncodesShape(keyId, 'toast')) return 'toast';
 
   // Ensemble / fluttertoast overlays — before card heuristics (banner bounds
   // otherwise look like list-row cards, and FToast uses onTap: null → enabled=false).
@@ -1319,6 +1320,20 @@ String _inferGenericTapTargetType(Element element) {
 
   // Compact text CTAs and Material-style actions.
   return 'button';
+}
+
+/// True when [id] contains [token] as a snake/kebab/path segment or whole id.
+///
+/// `error_toast` / `toast` match; CSS-ish camelCase `tipsToast` does not.
+bool _authoringIdEncodesShape(String id, String token) {
+  final t = token.trim().toLowerCase();
+  if (t.isEmpty || id.trim().isEmpty) return false;
+  final parts = id
+      .trim()
+      .split(RegExp(r'[-_./]+'))
+      .map((p) => p.trim().toLowerCase())
+      .where((p) => p.isNotEmpty);
+  return parts.any((p) => p == t);
 }
 
 /// True when [text] is a real control caption (not mask glyphs like ••••).
