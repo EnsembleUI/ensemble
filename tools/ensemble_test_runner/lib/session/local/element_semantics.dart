@@ -41,13 +41,24 @@ UiElement describeElement({
   final offscreen = bounds != null && !inViewport(tester, bounds);
   // Icons: only report enabled for real icon buttons — do not inherit
   // `onTap` from a parent InkWell that wraps a larger control.
-  final enabled = type == 'icon'
-      ? readIconButtonEnabled(semanticsSource)
-      : type == 'toast'
-          ? null
-          : type == 'card'
-              ? readCardEnabled(semanticsSource)
-              : readEnabled(semanticsSource);
+  // Compact Ensemble Icon(onTap) → InkWell is the host: use readEnabled.
+  final bool? enabled;
+  if (type == 'icon') {
+    final iconEnabled = readIconButtonEnabled(semanticsSource);
+    if (iconEnabled != null) {
+      enabled = iconEnabled;
+    } else if (_isGenericTapTarget(semanticsSource.widget)) {
+      enabled = readEnabled(semanticsSource);
+    } else {
+      enabled = null;
+    }
+  } else if (type == 'toast') {
+    enabled = null;
+  } else if (type == 'card') {
+    enabled = readCardEnabled(semanticsSource);
+  } else {
+    enabled = readEnabled(semanticsSource);
+  }
   final checked = readChecked(semanticsSource);
   var text = secure ? null : readText(semanticsSource);
   var label = secure
@@ -307,6 +318,165 @@ bool isStandaloneMediaElement(Element element) {
   if (_hasMediaHostAncestor(element)) return false;
   if (hasPrimaryControlAncestor(element)) return false;
   return true;
+}
+
+/// Nested actionable controls kept under a tappable card/row ancestor.
+///
+/// Without this, anything under a FlexRow/GestureDetector primary was dropped —
+/// so agents never saw info icons, nested IconButtons, or unkeyed checkboxes
+/// inside settings rows. Excludes structural wrappers, nav/dropdown chevrons,
+/// and leaves under a more specific host (Icon under IconButton, etc.).
+bool isNestedActionableElement(Element element) {
+  if (!hasPrimaryControlAncestor(element)) return false;
+
+  final widget = element.widget;
+
+  // Specific interactive hosts nested in a row/card.
+  if (_isSpecificNestedActionHost(widget)) {
+    // KeyedSubtree(testId) → Checkbox: the keyed host is already kept as this
+    // control. Keeping the leaf too duplicates id/type in the tree + overlay.
+    if (_isRedundantLeafUnderKeyedControlWrapper(element)) return false;
+    return true;
+  }
+  if (widget is EditableText) return false;
+
+  if (_isGenericTapTarget(widget)) {
+    // Inside Checkbox/TextField/IconButton — the host is the action, not this.
+    if (_hasSpecificControlAncestor(element)) return false;
+    // Nested under another nested action host — keep outermost only.
+    if (_hasNestedActionTapWrapperAncestor(element)) return false;
+    if (!_genericTapTargetIsEnabled(widget)) return false;
+
+    final bounds = boundsFor(element);
+    if (bounds == null) return false;
+    // Full-row / card-sized wrappers are the parent primary, not a nested action.
+    if (_looksLikeCardHitTarget(bounds) || _looksLikeListRowHitTarget(bounds)) {
+      return false;
+    }
+
+    final text = _longestTextDescendant(element);
+    final substantialText = text != null && text.trim().length > 2;
+
+    // Compact icon / glyph chrome (info, overflow, close, …).
+    if (_looksLikeCompactIconHitTarget(element)) {
+      if (_hasDropdownChevronDescendant(element)) return false;
+      if (_hasNavigationChevronDescendant(element)) return false;
+      if (substantialText) return false;
+      return _hasIconDescendant(element) ||
+          _mediaTypeFromDescendant(element) != null ||
+          (text != null && text.trim().isNotEmpty);
+    }
+
+    // Smaller nested CTA / link inside a card (not the whole row).
+    if (substantialText && bounds.width <= 220 && bounds.height <= 56) {
+      return true;
+    }
+    return false;
+  }
+
+  // Plain Icon / ImageIcon chrome on a settings row (may or may not be wrapped).
+  if (widget is Icon) {
+    if (_isNavigationChevronIcon(widget.icon)) return false;
+    if (_isDropdownChevronIcon(widget.icon)) return false;
+    if (_hasSpecificControlAncestor(element)) return false;
+    if (_hasIconButtonAncestor(element)) return false;
+    if (!_looksLikeCompactIconHitTarget(element)) return false;
+    if (_hasNestedActionTapWrapperAncestor(element)) return false;
+    return true;
+  }
+  if (widget is ImageIcon) {
+    if (_hasSpecificControlAncestor(element)) return false;
+    if (_hasIconButtonAncestor(element)) return false;
+    if (!_looksLikeCompactIconHitTarget(element)) return false;
+    if (_hasNestedActionTapWrapperAncestor(element)) return false;
+    return true;
+  }
+  return false;
+}
+
+bool _isSpecificNestedActionHost(Widget widget) {
+  return widget is Checkbox ||
+      widget is Switch ||
+      widget is CupertinoSwitch ||
+      widget is Slider ||
+      widget is TextField ||
+      widget is CupertinoTextField ||
+      widget is ElevatedButton ||
+      widget is TextButton ||
+      widget is OutlinedButton ||
+      widget is FilledButton ||
+      _isIconButtonWidget(widget) ||
+      _isDropdownWidget(widget);
+}
+
+/// True when the nearest compact-keyed ancestor already observes as [element]
+/// (e.g. [KeyedSubtree] with ValueKey wrapping a [Checkbox]).
+///
+/// Large keyed shells (page / card rows) are excluded so an unkeyed checkbox
+/// under a keyed page still surfaces as its own nested action.
+bool _isRedundantLeafUnderKeyedControlWrapper(Element element) {
+  Element? keyed;
+  element.visitAncestorElements((ancestor) {
+    if (hasCompactValueKey(ancestor)) {
+      keyed = ancestor;
+      return false;
+    }
+    return true;
+  });
+  if (keyed == null) return false;
+  // Row/card GestureDetector with a key is the parent surface, not a
+  // checkbox host — keep the nested specific control.
+  if (_isGenericTapTarget(keyed!.widget)) return false;
+
+  final owned = _specificPrimaryControlDescendant(keyed!);
+  if (!identical(owned, element)) return false;
+
+  final hostBounds = boundsFor(keyed!);
+  if (hostBounds != null &&
+      (_looksLikeCardHitTarget(hostBounds) ||
+          _looksLikeListRowHitTarget(hostBounds))) {
+    return false;
+  }
+  // Viewport-sized keyed shells (page roots) — leaf must stay.
+  if (hostBounds != null &&
+      (hostBounds.width >= 280 && hostBounds.height >= 280)) {
+    return false;
+  }
+  return true;
+}
+
+bool _genericTapTargetIsEnabled(Widget widget) {
+  if (widget is InkWell) return widget.onTap != null;
+  if (widget is InkResponse) return widget.onTap != null;
+  if (widget is GestureDetector) {
+    return widget.onTap != null ||
+        widget.onTapUp != null ||
+        widget.onTapDown != null;
+  }
+  return false;
+}
+
+bool _hasNestedActionTapWrapperAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (!_isGenericTapTarget(w)) return true;
+    final bounds = boundsFor(ancestor);
+    if (bounds == null) return true;
+    // Large card/row — stop; nested actions live under this.
+    if (_looksLikeCardHitTarget(bounds) || _looksLikeListRowHitTarget(bounds)) {
+      return false;
+    }
+    if (_looksLikeCompactIconHitTarget(ancestor) ||
+        (bounds.width <= 220 && bounds.height <= 56)) {
+      if (_genericTapTargetIsEnabled(w)) {
+        found = true;
+        return false;
+      }
+    }
+    return true;
+  });
+  return found;
 }
 
 /// Observed type for [widget] when it is image/svg/gif/lottie media.
@@ -609,6 +779,7 @@ String? _inferElementWidgetType(Element element) {
   if (widget is Slider) return 'slider';
   if (_isDropdownWidget(widget)) return 'dropdown';
   if (_isIconButtonWidget(widget)) return 'icon';
+  if (widget is Icon || widget is ImageIcon) return 'icon';
   final mediaType = mediaWidgetType(widget);
   if (mediaType != null) {
     // Compact Image/SVG used as back/close chrome should observe as `icon`,
@@ -1484,10 +1655,9 @@ List<String> supportedActionsFor(
       break;
     case 'icon':
       addIdWaitAssert();
-      // Keyed icons (back_button) are act targets even when enabled detection
-      // is null (decorative Icon under InkWell heuristics).
-      if (hasId && canGesture) {
-        addEnabledAsserts();
+      // Keyed icons, or unkeyed tappable icon hosts (Ensemble Icon onTap → InkWell).
+      if (canGesture && (hasId || enabled == true)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'longPress', 'doubleTap']);
       }
       break;

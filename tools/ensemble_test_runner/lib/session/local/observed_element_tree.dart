@@ -78,6 +78,9 @@ import 'package:flutter_test/flutter_test.dart';
               keep = true;
             }
           }
+        } else if (isNestedActionableElement(element)) {
+          // Nested actions under a keyed card / page shell (icons, buttons, …).
+          keep = true;
         } else if (isStandaloneTextElement(element)) {
           keep = true;
         } else if (isStandaloneMediaElement(element)) {
@@ -101,6 +104,9 @@ import 'package:flutter_test/flutter_test.dart';
             keep = true;
           }
         }
+      } else if (isNestedActionableElement(element)) {
+        // Nested actions under an unkeyed tappable settings row (card).
+        keep = true;
       } else if (isStandaloneTextElement(element) &&
           nearestOwnedLocatorIdAncestor(element) == null) {
         keep = true;

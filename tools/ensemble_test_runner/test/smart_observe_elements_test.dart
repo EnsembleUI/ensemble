@@ -408,7 +408,8 @@ void main() {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('DNS settings', style: TextStyle(fontSize: 14)),
+                            Text('DNS settings',
+                                style: TextStyle(fontSize: 14)),
                             Text(
                               'Edit DNS settings',
                               style: TextStyle(fontSize: 12),
@@ -449,15 +450,26 @@ void main() {
       );
       final flat = _flatten(observation.elements);
 
-      final checkbox = flat.firstWhere(
-        (e) => e.testId == 'restore_dns_checkbox',
+      final checkboxes = flat
+          .where((e) => e.testId == 'restore_dns_checkbox')
+          .toList();
+      expect(
+        checkboxes,
+        hasLength(1),
+        reason: 'KeyedSubtree + Checkbox must not both keep the same testId',
       );
+      final checkbox = checkboxes.single;
       expect(
         checkbox.type,
         'checkbox',
         reason: 'Keyed Checkbox must not inherit the row InkWell card type',
       );
       expect(checkbox.state.checked, isTrue);
+      expect(
+        checkbox.children.where((c) => c.type == 'checkbox'),
+        isEmpty,
+        reason: 'checkbox must not nest a duplicate of itself',
+      );
 
       expect(
         flat.any(
@@ -468,6 +480,23 @@ void main() {
         ),
         isTrue,
         reason: 'Tappable FlexRow/GestureDetector should still observe as card',
+      );
+
+      final infoIcons = flat.where((e) => e.type == 'icon').toList();
+      expect(
+        infoIcons,
+        isNotEmpty,
+        reason:
+            'Nested actionable chrome (info icon) under the card must be observed',
+      );
+      expect(
+        observation.elements.any(
+          (e) =>
+              e.type == 'card' &&
+              e.children.any((c) => c.type == 'icon' || c.type == 'checkbox'),
+        ),
+        isTrue,
+        reason: 'Nested actions should nest under the row card',
       );
     },
   );
@@ -856,9 +885,10 @@ void main() {
     expect(icon.text, isNull, reason: 'do not invent Material icon names');
     expect(
       icon.state.enabled,
-      isNull,
-      reason: 'decorative Icon under InkWell is not an IconButton host',
+      isTrue,
+      reason: 'compact InkWell with onTap is an actionable icon host',
     );
+    expect(icon.state.interactable, isTrue);
 
     await session.close();
   });
