@@ -222,12 +222,14 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
 
     final pType = parentUi!.type;
     final cType = child.type;
+    // Keyed leaves are locator targets — never collapse them away.
+    final childKeyed = child.testId != null && child.testId!.trim().isNotEmpty;
     if (pType == 'icon' && (cType == 'icon' || cType == 'text')) {
-      drop.add(i);
+      if (!childKeyed) drop.add(i);
       continue;
     }
     if ((pType == 'button' || pType == 'dropdown') && cType == 'text') {
-      if (_sameObserveCaption(parentUi!, child)) drop.add(i);
+      if (!childKeyed && _sameObserveCaption(parentUi!, child)) drop.add(i);
       continue;
     }
     // Cards keep every distinct Text as a child — the card row may still
@@ -288,7 +290,7 @@ List<({Element element, UiElement ui})> absorbFormFieldLabels(
         (kept[bestTextIndex].ui.text ?? kept[bestTextIndex].ui.label)!.trim();
     updated[i] = (
       element: kept[i].element,
-      ui: control.copyWith(label: labelText),
+      ui: refreshObserveActions(control.copyWith(label: labelText)),
     );
   }
 

@@ -42,9 +42,10 @@ UiElement describeElement({
       ? assertions.isElementVisuallyActionable(element)
       : isElementGeometricallyVisible(element, tester);
   final offscreen = bounds != null && !inViewport(tester, bounds);
-  // Icons: only report enabled for real icon buttons — do not inherit
-  // `onTap` from a parent InkWell that wraps a larger control.
+  // Icons: only report enabled for real icon buttons / compact chrome —
+  // do not inherit `onTap` from a parent card/list-row InkWell.
   // Compact Ensemble Icon(onTap) → InkWell is the host: use readEnabled.
+  // Leaf glyph under a compact Row (WifiCard eye-show) inherits that host.
   final bool? enabled;
   if (type == 'icon') {
     final iconEnabled = readIconButtonEnabled(semanticsSource);
@@ -53,7 +54,7 @@ UiElement describeElement({
     } else if (_isGenericTapTarget(semanticsSource.widget)) {
       enabled = readEnabled(semanticsSource);
     } else {
-      enabled = null;
+      enabled = readEnabledFromCompactTapAncestor(semanticsSource);
     }
   } else if (type == 'toast') {
     enabled = null;
@@ -273,7 +274,15 @@ bool isSemanticLocatorCandidate(Element element) {
   if (_isGenericTapTarget(widget) && _hasSpecificControlAncestor(element)) {
     return false;
   }
-  return widget is Semantics || isActionableControl(element);
+  if (widget is Semantics || isActionableControl(element)) return true;
+  // Non-tappable feedback / settings panels used as `within` scopes.
+  return isCardScopeHost(element);
+}
+
+/// Material [Card] or bordered visual panel that observes as `card`.
+bool isCardScopeHost(Element element) {
+  if (element.widget is Card) return true;
+  return isVisualCardContainerElement(element);
 }
 
 /// Interactive controls suitable as the primary target of a text locator.
@@ -610,13 +619,13 @@ bool isNestedActionableElement(Element element) {
   }
 
   // Plain Icon / ImageIcon chrome on a settings row (may or may not be wrapped).
+  // Icon-only compact hosts already exclude leaves via `_isUnderCompactIconControl`.
+  // Caption+icon Rows (WifiCard eye) keep the leaf so agents can tap the glyph.
   if (widget is Icon) {
-    // IconButton / compact back-arrow InkWell — host is the observe row.
     if (_isUnderCompactIconControl(element)) return false;
     if (_hasSpecificControlAncestor(element)) return false;
     if (_hasIconButtonAncestor(element)) return false;
     if (!_looksLikeCompactIconHitTarget(element)) return false;
-    if (_hasNestedActionTapWrapperAncestor(element)) return false;
     return true;
   }
   if (widget is ImageIcon) {
@@ -624,7 +633,6 @@ bool isNestedActionableElement(Element element) {
     if (_hasSpecificControlAncestor(element)) return false;
     if (_hasIconButtonAncestor(element)) return false;
     if (!_looksLikeCompactIconHitTarget(element)) return false;
-    if (_hasNestedActionTapWrapperAncestor(element)) return false;
     return true;
   }
   return false;
@@ -1611,6 +1619,30 @@ bool? readIconButtonEnabled(Element element) {
   return readEnabled(element);
 }
 
+/// Enabled for a leaf icon/glyph under compact tappable chrome.
+///
+/// WifiCard wraps `••••` + eye [AppIcon] in a [Row]/[GestureDetector] with
+/// `onTap` — the leaf has no InkWell of its own but is the visual affordance.
+/// Stops at card/list-row hosts so decorative chevrons stay non-interactable.
+bool? readEnabledFromCompactTapAncestor(Element element) {
+  bool? found;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (!_isGenericTapTarget(w)) return true;
+    final bounds = boundsFor(ancestor);
+    if (bounds == null) return true;
+    if (_looksLikeCardHitTarget(bounds) || _looksLikeListRowHitTarget(bounds)) {
+      return false;
+    }
+    final compact = _looksLikeCompactIconHitTarget(ancestor) ||
+        (bounds.width <= 220 && bounds.height <= 56);
+    if (!compact) return true;
+    found = _genericTapTargetIsEnabled(w);
+    return false;
+  });
+  return found;
+}
+
 /// Enabled for observed `card` rows — only when the card itself is tappable.
 ///
 /// FToast wraps banners in [GestureDetector] with `onTap: null` (not a disabled
@@ -2115,8 +2147,9 @@ List<String> supportedActionsFor(
     case 'textinput':
     case 'textfield':
       addIdWaitAssert();
-      if (hasId && canGesture) {
-        addEnabledAsserts();
+      // Caption (hint / absorbed label) unlocks edit steps without a testId.
+      if (canGesture && (hasId || hasCaption)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(secure
             ? const ['tap', 'enterText', 'clearText', 'focus', 'expectValue']
             : const [
@@ -2139,11 +2172,11 @@ List<String> supportedActionsFor(
       }
       break;
     case 'card':
-      // Interaction when the row has its own testId. Caption alone is not
-      // enough — unkeyed cards wrapping a keyed checkbox stay containers.
+      // Tap when the row is positively enabled (InkWell onTap) and either
+      // keyed or has a caption agents can target via label+role.
       addIdWaitAssert();
-      if (hasId && enabled == true) {
-        addEnabledAsserts();
+      if (enabled == true && (hasId || hasCaption)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'longPress']);
       }
       break;
@@ -2161,8 +2194,8 @@ List<String> supportedActionsFor(
       break;
     case 'dropdown':
       addIdWaitAssert();
-      if (hasId && canGesture) {
-        addEnabledAsserts();
+      if (canGesture && (hasId || hasCaption)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'select', 'selectIndex']);
       }
       break;
@@ -2170,8 +2203,10 @@ List<String> supportedActionsFor(
     case 'toggle':
     case 'checkbox':
       addIdWaitAssert();
-      if (hasId && canGesture) {
-        addEnabledAsserts();
+      // Enabled switches are tappable even without testId — agents use
+      // absorbed label+role or within+role under a parent card.
+      if (canGesture && (hasId || hasCaption || enabled == true)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(const [
           'tap',
           'toggle',
@@ -2183,8 +2218,8 @@ List<String> supportedActionsFor(
       break;
     case 'slider':
       addIdWaitAssert();
-      if (hasId && canGesture) {
-        addEnabledAsserts();
+      if (canGesture && (hasId || hasCaption || enabled == true)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'setSlider']);
       }
       break;
@@ -2199,6 +2234,41 @@ List<String> supportedActionsFor(
     for (final step in actions)
       if (seen.add(step)) step,
   ];
+}
+
+/// Recompute [UiElement.supportedActions] / interactable after label absorb.
+UiElement refreshObserveActions(UiElement element) {
+  final secure = element.state.secure == true;
+  final actions = supportedActionsFor(
+    element.type,
+    secure: secure,
+    enabled: element.state.enabled,
+    testId: element.testId,
+    text: element.text,
+    label: element.label,
+  );
+  final visible = element.state.visible != false;
+  final offscreen = element.state.offscreen == true;
+  final interactable = visible &&
+      !offscreen &&
+      element.state.enabled != false &&
+      actions.any(_isInteractionStep);
+  final prev = element.state;
+  return element.copyWith(
+    supportedActions: actions,
+    state: UiElementState(
+      exists: prev.exists,
+      visible: prev.visible,
+      interactable: interactable,
+      enabled: prev.enabled,
+      focused: prev.focused,
+      selected: prev.selected,
+      checked: prev.checked,
+      obscured: prev.obscured,
+      offscreen: prev.offscreen,
+      secure: prev.secure,
+    ),
+  );
 }
 
 bool _isInteractionStep(String step) {

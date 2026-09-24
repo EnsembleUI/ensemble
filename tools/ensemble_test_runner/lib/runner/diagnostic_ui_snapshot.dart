@@ -2,6 +2,7 @@ import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
+import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,66 +92,53 @@ ScreenObservation _screenObservation(NavigationTestService? navigation) {
   );
 }
 
-/// Owned ValueKey / Invokable id → `id=…`; otherwise only locators that map to
-/// runnable steps (caption buttons → `label+role`, plain text → `text=`).
+/// Owned ValueKey / Invokable id → `id=…`; otherwise agent caption / within
+/// locators from [cheapSuggestedLocator] (shared ranking with live enrich).
 ///
 /// Decorative media (`image` / `svg` / …) without an id get **no** selector —
-/// there is no image wait/tap vocabulary, so a `role=image` chip would mislead
-/// agents.
+/// there is no image wait/tap vocabulary.
 ///
 /// No live finder verification (that path is for inspect-ui only).
-UiElement _attachCheapSuggestedLocators(UiElement element) {
-  final children = [
-    for (final child in element.children) _attachCheapSuggestedLocators(child),
+UiElement _attachCheapSuggestedLocators(
+  UiElement element, {
+  ElementLocator? parentScope,
+  int? iconOccurrenceAmongSiblings,
+  int? iconSiblingCount,
+}) {
+  final locator = cheapSuggestedLocator(
+    element,
+    parentScope: parentScope,
+    iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+    iconSiblingCount: iconSiblingCount,
+  );
+  // Inert cards keep no sel, but still scope nested icons via caption+role.
+  final scopeForChildren =
+      locator ?? containerScopeLocator(element) ?? parentScope;
+
+  final iconKids = [
+    for (final child in element.children)
+      if ((child.type ?? '').toLowerCase() == 'icon') child,
   ];
+  final children = <UiElement>[];
+  var iconIndex = 0;
+  for (final child in element.children) {
+    final isIcon = (child.type ?? '').toLowerCase() == 'icon';
+    children.add(
+      _attachCheapSuggestedLocators(
+        child,
+        parentScope: scopeForChildren,
+        iconOccurrenceAmongSiblings:
+            isIcon && iconKids.length > 1 ? iconIndex : null,
+        iconSiblingCount: isIcon ? iconKids.length : null,
+      ),
+    );
+    if (isIcon) iconIndex++;
+  }
+
   return element.copyWith(
     children: children,
-    suggestedLocator: _cheapSuggestedLocator(element),
+    suggestedLocator: locator,
     clearSuggestedLocator: true,
     clearLocatorWarning: true,
   );
-}
-
-ElementLocator? _cheapSuggestedLocator(UiElement element) {
-  final tid = element.testId?.trim();
-  if (tid != null && tid.isNotEmpty) {
-    return ElementLocator(id: tid);
-  }
-
-  final type = (element.type ?? '').toLowerCase();
-  (element.role ?? element.type)?.trim();
-  final label = element.label?.trim();
-  final text = element.text?.trim();
-  final hasLabel = label != null && label.isNotEmpty;
-  final hasText = text != null && text.isNotEmpty;
-  final caption = hasLabel ? label : (hasText ? text : null);
-
-  switch (type) {
-    case 'text':
-      if (!hasText) return null;
-      return ElementLocator(text: text);
-    case 'button':
-      // Runnable: tap/longPress via label+role (see supportedActionsFor).
-      if (caption == null) return null;
-      return ElementLocator(label: caption, role: 'button');
-    case 'textinput':
-    case 'textfield':
-    case 'checkbox':
-    case 'switch':
-    case 'toggle':
-    case 'slider':
-    case 'dropdown':
-    case 'card':
-    case 'icon':
-    case 'image':
-    case 'svg':
-    case 'gif':
-    case 'lottie':
-    case 'toast':
-    case 'widget':
-      // These types only expose id-based steps when unkeyed — no selector.
-      return null;
-    default:
-      return null;
-  }
 }

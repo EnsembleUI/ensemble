@@ -295,9 +295,10 @@ class FlutterTargetResolver {
           if (!isSemanticLocatorCandidate(element)) return false;
           final semantic = readSemanticsLabel(tester, element)?.trim();
           if (semantic != label) {
-            // Ensemble tabs / InkWell CTAs often lack a Semantics label — the
-            // visible caption still authors as `label:` in YAML.
-            if (!isActionableControl(element) || readText(element) != label) {
+            // Ensemble tabs / InkWell CTAs / inert visual cards often lack a
+            // Semantics label — the visible caption still authors as `label:`.
+            if (readText(element) != label) return false;
+            if (!isActionableControl(element) && !isCardScopeHost(element)) {
               return false;
             }
           }

@@ -12,6 +12,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
+import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -1144,6 +1145,134 @@ void main() {
     await session.close();
   });
 
+  testWidgets(
+    'leaf icon under compact show-password Row is interactable',
+    (tester) async {
+      // WifiCard: Row(onTap) → Text(••••) + AppIcon(eye) — leaf has no onTap.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 360,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Password'),
+                    GestureDetector(
+                      onTap: () {},
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('•••••••••••••'),
+                          SizedBox(width: 8),
+                          Icon(Icons.visibility, size: 24),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(
+            id: 'wifi-eye-interactable',
+            steps: [],
+          ),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final eye = flat.firstWhere((e) => e.type == 'icon');
+      expect(eye.state.enabled, isTrue);
+      expect(eye.state.interactable, isTrue);
+      expect(eye.supportedActions, contains('tap'));
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'decorative chevron under list-row InkWell is not interactable',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 56,
+              child: InkWell(
+                onTap: () {},
+                child: const Row(
+                  children: [
+                    Expanded(child: Text('Guest wifi')),
+                    Text('KPN_Gast'),
+                    Icon(Icons.chevron_right),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(
+            id: 'list-row-chevron',
+            steps: [],
+          ),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final chevrons = flat.where((e) => e.type == 'icon').toList();
+      expect(chevrons, isNotEmpty);
+      for (final icon in chevrons) {
+        expect(
+          icon.state.interactable,
+          isNot(true),
+          reason: 'list-row chevrons are decorative; tap the row/card',
+        );
+      }
+
+      await session.close();
+    },
+  );
+
   testWidgets('observe textInput keeps hint/label separate from value',
       (tester) async {
     final filled = TextEditingController(text: 'http://instellen.local/ws');
@@ -1495,6 +1624,31 @@ void main() {
         isEmpty,
         reason: 'rating icons must not float as root siblings',
       );
+
+      // Inert card has no sel, but scopes nested interactable icons.
+      final enriched = enrichSuggestedLocators(
+        observation: observation,
+        resolver: session.resolver,
+        registry: session.registry,
+      );
+      final enrichedCard =
+          enriched.elements.where((e) => e.type == 'card').first;
+      expect(enrichedCard.suggestedLocator, isNull);
+      final icons = _flatten(enrichedCard.children)
+          .where((e) => e.type == 'icon')
+          .toList();
+      expect(icons, hasLength(5));
+      for (var i = 0; i < icons.length; i++) {
+        final icon = icons[i];
+        expect(icon.state.interactable, isTrue);
+        expect(icon.suggestedLocator?.role, 'icon');
+        expect(icon.suggestedLocator?.within?.role, 'card');
+        expect(
+          icon.suggestedLocator?.within?.label,
+          'Wat vind je van deze pagina?',
+        );
+        expect(icon.suggestedLocator?.occurrence, i);
+      }
 
       await session.close();
     },

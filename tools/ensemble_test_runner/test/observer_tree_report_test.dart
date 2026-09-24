@@ -64,13 +64,24 @@ void main() {
       );
     });
 
-    test('unkeyed card still has no interaction steps', () {
+    test('unkeyed enabled card with caption lists tap', () {
       final steps = supportedActionsFor(
         'card',
         secure: false,
         enabled: true,
         text: 'KPN Box 12',
         label: 'KPN Box 12',
+      );
+      expect(steps, containsAll(['tap', 'longPress']));
+    });
+
+    test('unkeyed non-tappable card has no interaction steps', () {
+      final steps = supportedActionsFor(
+        'card',
+        secure: false,
+        enabled: null,
+        text: 'Wat vind je van deze pagina?',
+        label: 'Wat vind je van deze pagina?',
       );
       expect(steps, isEmpty);
     });
@@ -92,6 +103,19 @@ void main() {
           'waitFor',
           'expectVisible',
         ]),
+      );
+    });
+
+    test('unkeyed enabled switch lists toggle steps', () {
+      final steps = supportedActionsFor(
+        'switch',
+        secure: false,
+        enabled: true,
+        label: 'Kinder-Phone',
+      );
+      expect(
+        steps,
+        containsAll(['tap', 'toggle', 'check', 'uncheck', 'expectChecked']),
       );
     });
 

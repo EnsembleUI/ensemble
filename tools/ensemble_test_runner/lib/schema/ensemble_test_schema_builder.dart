@@ -161,6 +161,7 @@ class EnsembleTestSchemaBuilder {
             'enum': [
               'button',
               'card',
+              'toast',
               'text',
               'textField',
               'checkbox',

@@ -9,6 +9,10 @@ String formatSuggestedSelector(ElementLocator locator) {
     return 'id=${locator.id!.trim()}';
   }
   final parts = <String>[];
+  final within = locator.within;
+  if (within != null && !within.isEmpty) {
+    parts.add('within={${formatSuggestedSelector(within)}}');
+  }
   final label = locator.label?.trim();
   if (label != null && label.isNotEmpty) {
     parts.add('label="${label.replaceAll('"', r'\"')}"');
@@ -20,6 +24,10 @@ String formatSuggestedSelector(ElementLocator locator) {
   final role = locator.role?.trim();
   if (role != null && role.isNotEmpty) {
     parts.add('role=$role');
+  }
+  final occurrence = locator.occurrence;
+  if (occurrence != null) {
+    parts.add('occurrence=$occurrence');
   }
   return parts.join(', ');
 }

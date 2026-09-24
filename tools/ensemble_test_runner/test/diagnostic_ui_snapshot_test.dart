@@ -295,6 +295,237 @@ void main() {
     },
   );
 
+  testWidgets(
+    'diagnostic snapshot suggests caption+role only for tappable cards',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                Column(
+                  children: [
+                    SizedBox(
+                      width: 360,
+                      height: 100,
+                      child: InkWell(
+                        onTap: () {},
+                        child: const Column(
+                          children: [
+                            Text('KPN Box 12'),
+                            Text('Modem'),
+                            Icon(Icons.chevron_right),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 320,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFD3D3D3)),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Column(
+                        children: [
+                          Text('Wifi naam'),
+                          Text('KPN'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 220,
+                  left: 24,
+                  right: 24,
+                  child: GestureDetector(
+                    onTap: null,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade900,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'No token found, please open the app again.',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final flat = _flatten(snap.observation.elements);
+
+      final tappableCard = flat.firstWhere(
+        (e) => e.type == 'card' && (e.text ?? '').contains('KPN Box 12'),
+      );
+      expect(tappableCard.state.interactable, isTrue);
+      expect(tappableCard.suggestedLocator?.label, 'KPN Box 12');
+      expect(tappableCard.suggestedLocator?.role, 'card');
+      expect(tappableCard.supportedActions, contains('tap'));
+
+      final inertCards = flat.where(
+        (e) =>
+            e.type == 'card' &&
+            (e.text ?? '').contains('Wifi naam') &&
+            e.state.interactable != true,
+      );
+      for (final card in inertCards) {
+        expect(
+          card.suggestedLocator,
+          isNull,
+          reason: 'non-tappable cards must not get label+role selectors',
+        );
+      }
+
+      final modem = flat.firstWhere(
+        (e) => e.type == 'text' && (e.text ?? '') == 'Modem',
+      );
+      expect(modem.suggestedLocator?.text, 'Modem');
+
+      // Decorative chevron under the card is not interactable — no sel.
+      final chevrons = flat.where(
+        (e) =>
+            e.type == 'icon' &&
+            e.suggestedLocator?.within?.label == 'KPN Box 12',
+      );
+      expect(
+        chevrons,
+        isEmpty,
+        reason: 'non-tappable nested icons must not get within selectors',
+      );
+
+      final toast = flat.firstWhere((e) => e.type == 'toast');
+      expect(
+        toast.suggestedLocator,
+        isNull,
+        reason: 'non-tappable toast host; message text keeps text=',
+      );
+      expect(
+        flat.any(
+          (e) =>
+              e.type == 'text' &&
+              (e.text ?? '').contains('No token found') &&
+              e.suggestedLocator?.text != null,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'diagnostic snapshot gives within+role sel for icons under inert card',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Container(
+                width: 320,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFD3D3D3)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('What do you think of this page?'),
+                    const Text("We'd love to hear your opinion!"),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (var i = 0; i < 5; i++)
+                          InkWell(
+                            onTap: () {},
+                            child: const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Icon(Icons.sentiment_satisfied),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final card = snap.observation.elements
+          .where((e) => e.type == 'card')
+          .first;
+      expect(card.suggestedLocator, isNull);
+      expect(card.state.interactable, isFalse);
+
+      final icons = _flatten(card.children)
+          .where((e) => e.type == 'icon')
+          .toList();
+      expect(icons, hasLength(5));
+      for (var i = 0; i < icons.length; i++) {
+        final icon = icons[i];
+        expect(icon.state.interactable, isTrue);
+        expect(icon.supportedActions, contains('tap'));
+        expect(icon.suggestedLocator?.role, 'icon');
+        expect(icon.suggestedLocator?.within?.role, 'card');
+        expect(
+          icon.suggestedLocator?.within?.label,
+          'What do you think of this page?',
+        );
+        expect(icon.suggestedLocator?.occurrence, i);
+      }
+    },
+  );
+
+  testWidgets(
+    'diagnostic snapshot gives unkeyed switch label+role and toggle actions',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 56,
+              child: Row(
+                children: [
+                  const Expanded(child: Text('Kinder-Phone')),
+                  Switch(value: true, onChanged: (_) {}),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final sw = _flatten(snap.observation.elements)
+          .firstWhere((e) => e.type == 'switch');
+      expect(sw.state.enabled, isTrue);
+      expect(sw.state.interactable, isTrue);
+      expect(sw.supportedActions, contains('toggle'));
+      expect(sw.suggestedLocator?.label, 'Kinder-Phone');
+      expect(sw.suggestedLocator?.role, 'switch');
+    },
+  );
+
   test(
     'groupLogsByStep attaches multiple role:observer entries per step',
     () {

@@ -46,22 +46,47 @@ UiElement _enrichTree({
   required String observationId,
   required FlutterTargetResolver resolver,
   required ObservationRegistry registry,
+  ElementLocator? parentScope,
+  int? iconOccurrenceAmongSiblings,
+  int? iconSiblingCount,
 }) {
-  final children = [
-    for (final child in element.children)
-      _enrichTree(
-        element: child,
-        observationId: observationId,
-        resolver: resolver,
-        registry: registry,
-      ),
-  ];
+  // Resolve this node before children so nested `within` can use our locator.
   final result = _suggestForElement(
     element: element,
     observationId: observationId,
     resolver: resolver,
     registry: registry,
+    parentScope: parentScope,
+    iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+    iconSiblingCount: iconSiblingCount,
   );
+  // Inert cards still scope nested icons via caption+role (no card sel).
+  final scopeForChildren =
+      result.locator ?? containerScopeLocator(element) ?? parentScope;
+
+  final iconKids = [
+    for (final child in element.children)
+      if ((child.type ?? '').toLowerCase() == 'icon') child,
+  ];
+  final children = <UiElement>[];
+  var iconIndex = 0;
+  for (final child in element.children) {
+    final isIcon = (child.type ?? '').toLowerCase() == 'icon';
+    children.add(
+      _enrichTree(
+        element: child,
+        observationId: observationId,
+        resolver: resolver,
+        registry: registry,
+        parentScope: scopeForChildren,
+        iconOccurrenceAmongSiblings:
+            isIcon && iconKids.length > 1 ? iconIndex : null,
+        iconSiblingCount: isIcon ? iconKids.length : null,
+      ),
+    );
+    if (isIcon) iconIndex++;
+  }
+
   return element.copyWith(
     children: children,
     suggestedLocator: result.locator,
@@ -76,6 +101,9 @@ UiElement _enrichTree({
   required String observationId,
   required FlutterTargetResolver resolver,
   required ObservationRegistry registry,
+  ElementLocator? parentScope,
+  int? iconOccurrenceAmongSiblings,
+  int? iconSiblingCount,
 }) {
   Element? live;
   try {
@@ -89,35 +117,12 @@ UiElement _enrichTree({
     return (locator: null, warning: 'No stable locator available');
   }
 
-  // Authoring priority: id → label+role → text (+role) → unavailable.
-  // Prefer a stable id whenever the observation surfaces one — do not demote
-  // to label/role (labels localize / churn). Only keep the id when it resolves
-  // uniquely to this element (or its exclusive keyed host).
-  final id = _nonEmpty(element.testId);
-  if (id != null) {
-    final idLocator = ElementLocator(id: id);
-    final idOutcome = _tryResolve(
-      resolver: resolver,
-      locator: idLocator,
-      expected: live,
-    );
-    switch (idOutcome.kind) {
-      case _ResolveKind.uniqueMatch:
-        return (locator: idLocator, warning: null);
-      case _ResolveKind.ambiguous:
-        return (
-          locator: null,
-          warning: 'Ambiguous locator (${idOutcome.matchCount} matches)',
-        );
-      case _ResolveKind.noMatch:
-      case _ResolveKind.wrongElement:
-        // Fall through to label/text — do not stamp a page-shell id onto
-        // unrelated descendants.
-        break;
-    }
-  }
-
-  final candidates = _locatorCandidates(element);
+  final candidates = buildAgentLocatorCandidates(
+    element,
+    parentScope: parentScope,
+    iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+    iconSiblingCount: iconSiblingCount,
+  );
 
   var bestAmbiguousCount = 0;
   for (final candidate in candidates) {
@@ -148,36 +153,157 @@ UiElement _enrichTree({
   return (locator: null, warning: 'No stable locator available');
 }
 
-/// Build locator candidates. Plain [text] nodes prefer exact `text=` — Flutter
-/// often merges adjacent label+value into one semantics `label` shared by both.
-List<ElementLocator> _locatorCandidates(UiElement element) {
-  final label = _nonEmpty(element.label);
-  final text = _nonEmpty(element.text);
-  final role = _nonEmpty(element.role);
-  final roleOk = _isSupportedLocatorRole(role);
-  final isPlainText = (element.type ?? '').toLowerCase() == 'text';
-
-  if (isPlainText) {
-    return [
-      if (text != null && roleOk) ElementLocator(text: text, role: role),
-      if (text != null) ElementLocator(text: text),
-      // Only fall back to label when this node has no visible text of its own.
-      if (text == null && label != null && roleOk)
-        ElementLocator(label: label, role: role),
-      if (text == null && label != null) ElementLocator(label: label),
-    ];
+/// Agent / report locator candidates in preference order.
+///
+/// Ranking: `id` → caption+role by type → `within` parent + local text/role.
+/// Cheap/report paths take the first entry; live enrich verifies uniqueness.
+///
+/// Gesture-oriented types (card / button / icon / form / toast) only get
+/// caption or `within` candidates when [UiElement.state.interactable] is true —
+/// a non-tappable chrome card must not advertise `label=, role=card`.
+/// Plain [text] keeps `text=` for wait/assert steps.
+List<ElementLocator> buildAgentLocatorCandidates(
+  UiElement element, {
+  ElementLocator? parentScope,
+  int? iconOccurrenceAmongSiblings,
+  int? iconSiblingCount,
+}) {
+  final out = <ElementLocator>[];
+  final id = _nonEmpty(element.testId);
+  if (id != null) {
+    out.add(ElementLocator(id: id));
   }
 
-  return [
-    // Prefer label+role — matches YAML `target: { label, role: button }`.
-    // When observe only has [text] (no semantics label), still try label=text.
-    if (label != null && roleOk) ElementLocator(label: label, role: role),
-    if (label == null && text != null && roleOk)
-      ElementLocator(label: text, role: role),
-    if (text != null && roleOk) ElementLocator(text: text, role: role),
-    if (label != null) ElementLocator(label: label),
-    if (text != null) ElementLocator(text: text),
-  ];
+  final type = (element.type ?? '').toLowerCase();
+  final label = _nonEmpty(element.label);
+  final text = _nonEmpty(element.text);
+  final caption = _firstLineCaption(label) ?? _firstLineCaption(text);
+  final tappable = element.state.interactable == true;
+
+  switch (type) {
+    case 'text':
+      if (text != null) {
+        out.add(ElementLocator(text: text));
+      }
+    case 'button':
+      if (tappable && caption != null) {
+        out.add(ElementLocator(label: caption, role: 'button'));
+      }
+    case 'card':
+      if (tappable && caption != null) {
+        out.add(ElementLocator(label: caption, role: 'card'));
+      }
+    case 'toast':
+      // Toast hosts are rarely gesture targets; message Text owns text=.
+      if (tappable && caption != null) {
+        out.add(ElementLocator(label: caption, role: 'toast'));
+      }
+    case 'textinput':
+    case 'textfield':
+      if (tappable && caption != null) {
+        out.add(ElementLocator(label: caption, role: 'textField'));
+      }
+    case 'checkbox':
+    case 'switch':
+    case 'toggle':
+    case 'slider':
+    case 'dropdown':
+      final formRole = type == 'toggle' ? 'switch' : type;
+      if (tappable && _isSupportedLocatorRole(formRole)) {
+        if (caption != null) {
+          out.add(ElementLocator(label: caption, role: formRole));
+        } else if (parentScope != null && !_locatorIsEmpty(parentScope)) {
+          out.add(ElementLocator(within: parentScope, role: formRole));
+        }
+      }
+    case 'icon':
+      // Tooltip / semanticLabel only, and only when the icon is tappable.
+      if (tappable && caption != null) {
+        out.add(ElementLocator(label: caption, role: 'icon'));
+      }
+    default:
+      break;
+  }
+
+  // Nested content under a scoped (usually tappable) parent.
+  if (parentScope != null && !_locatorIsEmpty(parentScope)) {
+    if (type == 'text' && text != null) {
+      out.add(ElementLocator(within: parentScope, text: text));
+    }
+    if (type == 'icon' && tappable && caption == null) {
+      final occurrence = (iconSiblingCount != null &&
+              iconSiblingCount > 1 &&
+              iconOccurrenceAmongSiblings != null)
+          ? iconOccurrenceAmongSiblings
+          : null;
+      out.add(
+        ElementLocator(
+          within: parentScope,
+          role: 'icon',
+          occurrence: occurrence,
+        ),
+      );
+    }
+  }
+
+  return _dedupeLocators(out);
+}
+
+/// First preferred candidate for diagnostic / report snapshots (no finder).
+ElementLocator? cheapSuggestedLocator(
+  UiElement element, {
+  ElementLocator? parentScope,
+  int? iconOccurrenceAmongSiblings,
+  int? iconSiblingCount,
+}) {
+  final candidates = buildAgentLocatorCandidates(
+    element,
+    parentScope: parentScope,
+    iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+    iconSiblingCount: iconSiblingCount,
+  );
+  return candidates.isEmpty ? null : candidates.first;
+}
+
+/// `within=` scope for descendants — includes non-tappable cards/toasts.
+///
+/// Gesture [cheapSuggestedLocator] stays null on inert cards (no `sel`), but
+/// nested rating icons still need `within={label, role=card}, role=icon`.
+ElementLocator? containerScopeLocator(UiElement element) {
+  final id = _nonEmpty(element.testId);
+  if (id != null) return ElementLocator(id: id);
+
+  final type = (element.type ?? '').toLowerCase();
+  final caption = _firstLineCaption(_nonEmpty(element.label)) ??
+      _firstLineCaption(_nonEmpty(element.text));
+  if (caption == null || !_isSupportedLocatorRole(type)) return null;
+
+  switch (type) {
+    case 'card':
+    case 'toast':
+    case 'button':
+      return ElementLocator(label: caption, role: type);
+    default:
+      return null;
+  }
+}
+
+String? _firstLineCaption(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return trimmed.split('\n').first.trim();
+}
+
+bool _locatorIsEmpty(ElementLocator locator) => locator.isEmpty;
+
+List<ElementLocator> _dedupeLocators(List<ElementLocator> input) {
+  final seen = <String>{};
+  final out = <ElementLocator>[];
+  for (final loc in input) {
+    final key = loc.toJson().toString();
+    if (seen.add(key)) out.add(loc);
+  }
+  return out;
 }
 
 /// Roles accepted by [ElementLocator] schema / YAML `target.role`.
@@ -187,6 +313,7 @@ bool _isSupportedLocatorRole(String? role) {
   return const {
     'button',
     'card',
+    'toast',
     'text',
     'textField',
     'checkbox',
