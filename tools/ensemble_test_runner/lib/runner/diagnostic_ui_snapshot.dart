@@ -91,7 +91,12 @@ ScreenObservation _screenObservation(NavigationTestService? navigation) {
   );
 }
 
-/// Owned ValueKey / Invokable id → `id=…`; plain text from Text / fields.
+/// Owned ValueKey / Invokable id → `id=…`; otherwise only locators that map to
+/// runnable steps (caption buttons → `label+role`, plain text → `text=`).
+///
+/// Decorative media (`image` / `svg` / …) without an id get **no** selector —
+/// there is no image wait/tap vocabulary, so a `role=image` chip would mislead
+/// agents.
 ///
 /// No live finder verification (that path is for inspect-ui only).
 UiElement _attachCheapSuggestedLocators(UiElement element) {
@@ -111,15 +116,40 @@ ElementLocator? _cheapSuggestedLocator(UiElement element) {
   if (tid != null && tid.isNotEmpty) {
     return ElementLocator(id: tid);
   }
+
   final type = (element.type ?? '').toLowerCase();
+  (element.role ?? element.type)?.trim();
+  final label = element.label?.trim();
   final text = element.text?.trim();
-  if (text == null || text.isEmpty) return null;
+  final hasLabel = label != null && label.isNotEmpty;
+  final hasText = text != null && text.isNotEmpty;
+  final caption = hasLabel ? label : (hasText ? text : null);
+
   switch (type) {
     case 'text':
+      if (!hasText) return null;
+      return ElementLocator(text: text);
+    case 'button':
+      // Runnable: tap/longPress via label+role (see supportedActionsFor).
+      if (caption == null) return null;
+      return ElementLocator(label: caption, role: 'button');
     case 'textinput':
     case 'textfield':
-    case 'button':
-      return ElementLocator(text: text);
+    case 'checkbox':
+    case 'switch':
+    case 'toggle':
+    case 'slider':
+    case 'dropdown':
+    case 'card':
+    case 'icon':
+    case 'image':
+    case 'svg':
+    case 'gif':
+    case 'lottie':
+    case 'toast':
+    case 'widget':
+      // These types only expose id-based steps when unkeyed — no selector.
+      return null;
     default:
       return null;
   }

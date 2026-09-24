@@ -2304,12 +2304,14 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 0;
+  min-width: 0;
 }
 .observer-tree,
 .observer-tree-children {
   list-style: none;
   margin: 0;
   padding: 0;
+  min-width: 0;
 }
 .observer-tree-children {
   margin-left: 18px;
@@ -2318,17 +2320,19 @@ a:hover {
 }
 .observer-tree-node {
   margin: 0;
+  min-width: 0;
 }
 .observer-tree-row {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 6px 8px;
   padding: 6px 10px;
   font-size: 12px;
   color: var(--text);
   border-radius: 4px;
   cursor: default;
+  min-width: 0;
 }
 .observer-tree-node[data-obs-index] > .observer-tree-row {
   cursor: pointer;
@@ -2358,10 +2362,16 @@ a:hover {
 .observer-type {
   font-size: 11px;
   color: var(--accent);
+  flex-shrink: 0;
 }
 .observer-title {
   color: var(--text);
   font-weight: 500;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .observer-hint {
   display: inline-flex;
@@ -2445,6 +2455,12 @@ a:hover {
 .observer-state {
   font-size: 11px;
   color: var(--text-muted);
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .observer-table-wrap {
   flex: 0 0 auto;

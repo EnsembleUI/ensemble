@@ -1,15 +1,20 @@
 import 'dart:typed_data';
 
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -576,6 +581,69 @@ void main() {
       expect(backTop, isNotNull);
       expect(cardTop, isNotNull);
       expect(backTop!, lessThan(cardTop!));
+    },
+  );
+
+  testWidgets(
+    'unkeyed caption button is interactable and taps via label+role',
+    (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              // Ensemble-style tab pill: InkWell + Text, no ValueKey / Semantics.
+              child: InkWell(
+                onTap: () => tapped = true,
+                borderRadius: BorderRadius.circular(20),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('Netwerk'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'caption-button', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final button = flat.firstWhere((e) => e.type == 'button');
+      expect(button.text, 'Netwerk');
+      expect(button.label, 'Netwerk');
+      expect(button.role, 'button');
+      expect(button.state.interactable, isTrue);
+      expect(button.supportedActions, contains('tap'));
+
+      final result = await session.act(
+        const TapAction(
+          ElementTarget(
+            locator: ElementLocator(label: 'Netwerk', role: 'button'),
+          ),
+        ),
+      );
+      expect(result.succeeded, isTrue, reason: result.error?.toString());
+      expect(tapped, isTrue);
     },
   );
 
@@ -1275,6 +1343,306 @@ void main() {
     );
     await session.close();
   });
+
+  testWidgets(
+    'observe treats Invokable isDisabled as enabled=false '
+    'even when InkWell.onTap is still wired',
+    (tester) async {
+      // Mirrors InHome BackButton: YAML keeps onTap + executeConditionalAction,
+      // and passes isDisabled as a custom-widget / Invokable input. InkWell.onTap
+      // alone still looks enabled.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: KeyedSubtree(
+              key: const ValueKey('back_button'),
+              child: _InvokableFlagHost(
+                isDisabled: true,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    child: const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: Color(0xff737373),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'disabled-back', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final back = _flatten(observation.elements)
+          .singleWhere((e) => e.testId == 'back_button');
+      expect(back.type, 'icon');
+      expect(back.state.enabled, isFalse);
+      expect(back.state.interactable, isFalse);
+      expect(back.supportedActions, isNot(contains('tap')));
+      expect(back.supportedActions, contains('waitFor'));
+      expect(back.supportedActions, contains('expectDisabled'));
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'observe treats custom-widget scope isDisabled as enabled=false',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              final scope = ScopeManager(
+                DataContext(buildContext: context),
+                PageData(),
+              );
+              scope.dataContext.addDataContextById('isDisabled', true);
+              return Scaffold(
+                body: DataScopeWidget(
+                  debugLabel: 'CustomWidget',
+                  scopeManager: scope,
+                  child: KeyedSubtree(
+                    key: const ValueKey('back_button'),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {},
+                        child: const SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Icon(Icons.arrow_back),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'scope-disabled-back', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final back = _flatten(observation.elements)
+          .singleWhere((e) => e.testId == 'back_button');
+      expect(back.state.enabled, isFalse);
+      expect(back.state.interactable, isFalse);
+      expect(back.supportedActions, isNot(contains('tap')));
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'observe keeps enabled=true when isDisabled is false and onTap is wired',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: KeyedSubtree(
+              key: const ValueKey('back_button'),
+              child: _InvokableFlagHost(
+                isDisabled: false,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    child: const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Icon(Icons.arrow_back),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'enabled-back', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final back = _flatten(observation.elements)
+          .singleWhere((e) => e.testId == 'back_button');
+      expect(back.state.enabled, isTrue);
+      expect(back.state.interactable, isTrue);
+      expect(back.supportedActions, contains('tap'));
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'observe does not treat styling className alone as disabled',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: KeyedSubtree(
+              key: const ValueKey('back_button'),
+              child: _InvokableClassOnlyHost(
+                className: 'disabledBackButton',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {},
+                    child: const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Icon(Icons.arrow_back),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'classname-not-disabled', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final back = _flatten(observation.elements)
+          .singleWhere((e) => e.testId == 'back_button');
+      expect(
+        back.state.enabled,
+        isTrue,
+        reason: 'className is styling only — require isDisabled/enabled flags',
+      );
+
+      await session.close();
+    },
+  );
+}
+
+/// Invokable host exposing Ensemble-style disable flags (Button.enabled /
+/// custom-widget isDisabled), not styling className.
+class _InvokableFlagHost extends StatelessWidget with Invokable {
+  _InvokableFlagHost({required this.isDisabled, required this.child}) {
+    id = 'back_button';
+  }
+
+  final bool isDisabled;
+  final Widget child;
+
+  @override
+  Map<String, Function> getters() => {
+        'isDisabled': () => isDisabled,
+        'enabled': () => !isDisabled,
+      };
+
+  @override
+  Map<String, Function> setters() => {};
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Widget build(BuildContext context) => child;
+}
+
+/// Invokable with only className — must not be treated as a disable signal.
+class _InvokableClassOnlyHost extends StatelessWidget with Invokable {
+  _InvokableClassOnlyHost({required this.className, required this.child}) {
+    id = 'back_button';
+  }
+
+  final String className;
+  final Widget child;
+
+  @override
+  Map<String, Function> getters() => {
+        'className': () => className,
+      };
+
+  @override
+  Map<String, Function> setters() => {};
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Widget build(BuildContext context) => child;
 }
 
 List<UiElement> _flatten(List<UiElement> roots) {

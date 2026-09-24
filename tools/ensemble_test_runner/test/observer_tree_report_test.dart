@@ -17,21 +17,60 @@ void main() {
       expect(steps, isNot(contains('tap')));
     });
 
-    test('keyed icon lists tap even when enabled is unknown', () {
-      final steps = supportedActionsFor(
+    test('keyed icon lists tap only when enabled is true', () {
+      final enabled = supportedActionsFor(
+        'icon',
+        secure: false,
+        enabled: true,
+        testId: 'back_button',
+      );
+      expect(enabled, containsAll(['tap', 'longPress', 'waitFor', 'expectVisible']));
+
+      final unknown = supportedActionsFor(
         'icon',
         secure: false,
         testId: 'back_button',
       );
-      expect(steps, containsAll(['tap', 'longPress', 'waitFor', 'expectVisible']));
-      expect(steps, isNot(contains('enterText')));
+      expect(unknown, contains('waitFor'));
+      expect(unknown, isNot(contains('tap')));
+
+      final disabled = supportedActionsFor(
+        'icon',
+        secure: false,
+        enabled: false,
+        testId: 'back_button',
+      );
+      expect(disabled, contains('waitFor'));
+      expect(disabled, contains('expectDisabled'));
+      expect(disabled, isNot(contains('tap')));
     });
 
-    test('unkeyed card has no interaction steps', () {
+    test('unkeyed button with caption lists tap via label/text', () {
+      final steps = supportedActionsFor(
+        'button',
+        secure: false,
+        enabled: true,
+        text: 'Netwerk',
+        label: 'Netwerk',
+      );
+      expect(steps, containsAll(['tap', 'longPress', 'doubleTap']));
+      expect(steps, isNot(contains('waitFor'))); // no id → no id waits
+    });
+
+    test('unkeyed button without caption has no gestures', () {
+      expect(
+        supportedActionsFor('button', secure: false, enabled: true),
+        isEmpty,
+      );
+    });
+
+    test('unkeyed card still has no interaction steps', () {
       final steps = supportedActionsFor(
         'card',
         secure: false,
         enabled: true,
+        text: 'KPN Box 12',
+        label: 'KPN Box 12',
       );
       expect(steps, isEmpty);
     });

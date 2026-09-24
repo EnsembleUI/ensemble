@@ -291,10 +291,16 @@ class FlutterTargetResolver {
           return false;
         }
         final label = locator.label;
-        if (label != null &&
-            (!isSemanticLocatorCandidate(element) ||
-                readSemanticsLabel(tester, element) != label)) {
-          return false;
+        if (label != null) {
+          if (!isSemanticLocatorCandidate(element)) return false;
+          final semantic = readSemanticsLabel(tester, element)?.trim();
+          if (semantic != label) {
+            // Ensemble tabs / InkWell CTAs often lack a Semantics label — the
+            // visible caption still authors as `label:` in YAML.
+            if (!isActionableControl(element) || readText(element) != label) {
+              return false;
+            }
+          }
         }
         final type = inferWidgetType(element);
         final role = locator.role;

@@ -169,7 +169,11 @@ List<ElementLocator> _locatorCandidates(UiElement element) {
   }
 
   return [
+    // Prefer label+role — matches YAML `target: { label, role: button }`.
+    // When observe only has [text] (no semantics label), still try label=text.
     if (label != null && roleOk) ElementLocator(label: label, role: role),
+    if (label == null && text != null && roleOk)
+      ElementLocator(label: text, role: role),
     if (text != null && roleOk) ElementLocator(text: text, role: role),
     if (label != null) ElementLocator(label: label),
     if (text != null) ElementLocator(text: text),

@@ -1,9 +1,11 @@
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -110,12 +112,20 @@ UiElement describeElement({
   final options = type == 'dropdown'
       ? readDropdownOptions(semanticsSource)
       : const <String>[];
+  // Buttons / cards: surface the visible caption as [label] when semantics did
+  // not provide one — agents author `target: { label, role: button }`.
+  final effectiveLabel = _effectiveControlLabel(
+    type: type,
+    label: label,
+    text: text,
+  );
   final actions = supportedActionsFor(
     type,
     secure: secure,
     enabled: enabled,
     testId: testId,
     text: text,
+    label: effectiveLabel,
   );
   // Interactable = can run a gesture/edit step on this node right now.
   final interactable = visible &&
@@ -128,7 +138,7 @@ UiElement describeElement({
     testId: testId,
     type: type,
     role: inferSemanticRole(semanticsSource, type),
-    label: label,
+    label: effectiveLabel,
     text: text,
     hint: hint,
     options: options,
@@ -145,6 +155,21 @@ UiElement describeElement({
     bounds: includeBounds ? bounds : null,
     supportedActions: actions,
   );
+}
+
+/// Accessible name for controls that lack a semantics label (Ensemble tabs).
+String? _effectiveControlLabel({
+  required String type,
+  required String? label,
+  required String? text,
+}) {
+  final trimmedLabel = label?.trim();
+  if (trimmedLabel != null && trimmedLabel.isNotEmpty) return trimmedLabel;
+  final t = type.toLowerCase();
+  if (t != 'button' && t != 'card' && t != 'icon') return label;
+  final trimmedText = text?.trim();
+  if (trimmedText == null || trimmedText.isEmpty) return label;
+  return trimmedText;
 }
 
 /// Nearest primary-control descendant, if any.
@@ -1077,6 +1102,13 @@ bool looksSecure(Element element, String? testId) {
 }
 
 bool? readEnabled(Element element) {
+  if (_isPointerIgnoringAncestor(element)) return false;
+
+  // Ensemble often keeps InkWell.onTap wired and gates the action in YAML
+  // (BackButton: executeConditionalAction if: ${!isDisabled}). Prefer the
+  // authoring flags on Invokable / custom-widget scope over onTap != null.
+  if (_ensembleAuthoringSuggestsDisabled(element)) return false;
+
   final elevated = _selfOrAncestor<ElevatedButton>(element);
   if (elevated != null) return elevated.onPressed != null;
   final textButton = _selfOrAncestor<TextButton>(element);
@@ -1095,6 +1127,10 @@ bool? readEnabled(Element element) {
   final cb = _selfOrAncestor<Checkbox>(element);
   if (cb != null) return cb.onChanged != null;
 
+  // Explicit Semantics(enabled: false) from Ensemble / Material.
+  final semanticsEnabled = _semanticsEnabledFlag(element);
+  if (semanticsEnabled == false) return false;
+
   // Icon / custom tap targets (Ensemble FrameworkIconButton → InkWell).
   final inkWell = _selfOrAncestor<InkWell>(element);
   if (inkWell != null) return inkWell.onTap != null;
@@ -1107,6 +1143,126 @@ bool? readEnabled(Element element) {
         gesture.onTapDown != null;
   }
   return null;
+}
+
+/// True when Ensemble authoring marks this control disabled without clearing
+/// [InkWell.onTap] — Invokable `enabled`/`isDisabled`/`disabled`, or the same
+/// keys on a custom-widget [DataScopeWidget] (e.g. BackButton inputs).
+bool _ensembleAuthoringSuggestsDisabled(Element element) {
+  if (_invokableSuggestsDisabled(element)) return true;
+  return _scopeExplicitlyDisabled(element) == true;
+}
+
+bool _invokableSuggestsDisabled(Element element) {
+  var hit = false;
+  void consider(Widget widget) {
+    if (hit || widget is! Invokable) return;
+    if (_invokableDisableFlag(widget as Invokable) == true) {
+      hit = true;
+    }
+  }
+
+  consider(element.widget);
+  if (hit) return true;
+  element.visitAncestorElements((ancestor) {
+    consider(ancestor.widget);
+    return !hit;
+  });
+  return hit;
+}
+
+/// `true` = disabled, `false` = explicitly enabled, `null` = unknown.
+bool? _invokableDisableFlag(Invokable invokable) {
+  if (invokable.hasGettableProperty('isDisabled')) {
+    final value = _asBool(_invokableProperty(invokable, 'isDisabled'));
+    if (value != null) return value;
+  }
+  if (invokable.hasGettableProperty('disabled')) {
+    final value = _asBool(_invokableProperty(invokable, 'disabled'));
+    if (value != null) return value;
+  }
+  if (invokable.hasGettableProperty('enabled')) {
+    final value = _asBool(_invokableProperty(invokable, 'enabled'));
+    if (value != null) return !value;
+  }
+  return null;
+}
+
+dynamic _invokableProperty(Invokable invokable, String name) {
+  try {
+    return invokable.getProperty(name);
+  } catch (_) {
+    return null;
+  }
+}
+
+bool? _asBool(dynamic value) {
+  if (value is bool) return value;
+  if (value == 'true') return true;
+  if (value == 'false') return false;
+  return null;
+}
+
+/// Custom-widget inputs like BackButton's `isDisabled` live on [DataScopeWidget].
+///
+/// Walks ancestors (no [BuildContext.dependOnInheritedWidgetOfExactType]) so
+/// observe does not subscribe every element to scope changes.
+bool? _scopeExplicitlyDisabled(Element element) {
+  DataScopeWidget? scopeWidget;
+  element.visitAncestorElements((ancestor) {
+    final widget = ancestor.widget;
+    if (widget is DataScopeWidget) {
+      scopeWidget = widget;
+      return false;
+    }
+    return true;
+  });
+  final dataContext = scopeWidget?.scopeManager.dataContext;
+  if (dataContext == null) return null;
+
+  final isDisabled = _asBool(dataContext.getContextById('isDisabled'));
+  if (isDisabled != null) return isDisabled;
+
+  final disabled = _asBool(dataContext.getContextById('disabled'));
+  if (disabled != null) return disabled;
+
+  final enabled = _asBool(dataContext.getContextById('enabled'));
+  if (enabled != null) return !enabled;
+  return null;
+}
+
+bool _isPointerIgnoringAncestor(Element element) {
+  var ignoring = false;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (w is IgnorePointer && w.ignoring) {
+      ignoring = true;
+      return false;
+    }
+    if (w is AbsorbPointer && w.absorbing) {
+      ignoring = true;
+      return false;
+    }
+    return true;
+  });
+  return ignoring;
+}
+
+bool? _semanticsEnabledFlag(Element element) {
+  final w = element.widget;
+  if (w is Semantics && w.properties.enabled != null) {
+    return w.properties.enabled;
+  }
+  bool? found;
+  element.visitAncestorElements((ancestor) {
+    final aw = ancestor.widget;
+    if (aw is Semantics && aw.properties.enabled != null) {
+      found = aw.properties.enabled;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 /// Enabled state for observed `icon` rows — only when this is an icon button.
@@ -1127,6 +1283,7 @@ bool? readIconButtonEnabled(Element element) {
 /// FToast wraps banners in [GestureDetector] with `onTap: null` (not a disabled
 /// button). Nested close [InkWell]s must not invent an enabled state either.
 bool? readCardEnabled(Element element) {
+  if (_ensembleAuthoringSuggestsDisabled(element)) return false;
   final widget = element.widget;
   if (widget is InkWell) {
     return widget.onTap != null ? true : null;
@@ -1554,9 +1711,9 @@ bool inViewport(WidgetTester tester, UiBounds bounds) {
 /// YAML step names an agent/crawler can run **against this observed node**.
 ///
 /// Only lists steps that are actually targetable with the locators this node
-/// exposes (`testId` → id-based steps; visible text on `text` → text waits /
-/// asserts). Unkeyed tappable cards therefore get no interaction steps —
-/// agents should act on the keyed child (checkbox) instead.
+/// exposes (`testId` → id-based steps; visible label/text → structured
+/// `target: { label|text, role }` taps / text waits). Unkeyed tappable cards
+/// without a caption still get no interaction steps — act on a keyed child.
 ///
 /// Wait/assert steps (`waitFor`, `expectVisible`, …) are included alongside
 /// gesture/edit steps so the list matches the test-step vocabulary.
@@ -1566,10 +1723,13 @@ List<String> supportedActionsFor(
   bool? enabled,
   String? testId,
   String? text,
+  String? label,
 }) {
   final t = (type ?? '').trim().toLowerCase();
   final hasId = testId != null && testId.trim().isNotEmpty;
   final hasText = text != null && text.trim().isNotEmpty;
+  final hasLabel = label != null && label.trim().isNotEmpty;
+  final hasCaption = hasText || hasLabel;
   final actions = <String>[];
 
   void addIdWaitAssert() {
@@ -1591,7 +1751,7 @@ List<String> supportedActionsFor(
   }
 
   void addTextWaitAssert() {
-    if (!hasText) return;
+    if (!hasText && !hasLabel) return;
     actions.addAll(const [
       'waitForText',
       'waitFor',
@@ -1639,14 +1799,15 @@ List<String> supportedActionsFor(
       break;
     case 'button':
       addIdWaitAssert();
-      if (hasId && canGesture) {
-        addEnabledAsserts();
+      // Unkeyed Ensemble tabs / CTAs: tap via label+role (or text+role).
+      if (canGesture && (hasId || hasCaption)) {
+        if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'longPress', 'doubleTap']);
       }
       break;
     case 'card':
-      // Interaction only when the row has its own testId. Unkeyed cards that
-      // wrap a keyed checkbox stay containers — act on the child.
+      // Interaction when the row has its own testId. Caption alone is not
+      // enough — unkeyed cards wrapping a keyed checkbox stay containers.
       addIdWaitAssert();
       if (hasId && enabled == true) {
         addEnabledAsserts();
@@ -1655,9 +1816,13 @@ List<String> supportedActionsFor(
       break;
     case 'icon':
       addIdWaitAssert();
-      // Keyed icons, or unkeyed tappable icon hosts (Ensemble Icon onTap → InkWell).
-      if (canGesture && (hasId || enabled == true)) {
-        if (hasId) addEnabledAsserts();
+      // Keyed icons always expose enable asserts when we know the state
+      // (including disabled Ensemble back buttons with isDisabled=true).
+      if (hasId && enabled != null) {
+        addEnabledAsserts();
+      }
+      // Only advertise gestures when positively enabled.
+      if (enabled == true) {
         actions.addAll(const ['tap', 'longPress', 'doubleTap']);
       }
       break;

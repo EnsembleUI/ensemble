@@ -1853,7 +1853,8 @@ const ensembleHtmlTestReportAppJs = r'''
     }
     html += '<code class="observer-type">' + escapeHtml(String(type)) + '</code>';
     if (label) {
-      html += '<span class="observer-title">' + escapeHtml(label) + '</span>';
+      html += '<span class="observer-title" title="' + escapeHtml(label) + '">' +
+          escapeHtml(label) + '</span>';
     }
     if (selector) {
       html += '<span class="observer-hint" tabindex="0" data-tip-title="Selector" data-tip-body="' +

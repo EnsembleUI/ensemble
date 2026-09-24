@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
@@ -110,6 +111,85 @@ void main() {
         isTrue,
         reason: 'cheap id= locator without live finder enrich',
       );
+    },
+  );
+
+  testWidgets(
+    'diagnostic snapshot suggests label+role for unkeyed caption buttons',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: InkWell(
+                onTap: () {},
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('Netwerk'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final button = _flatten(snap.observation.elements)
+          .firstWhere((e) => e.type == 'button');
+      expect(button.state.interactable, isTrue);
+      expect(button.supportedActions, contains('tap'));
+      expect(button.suggestedLocator?.id, isNull);
+      expect(button.suggestedLocator?.label, 'Netwerk');
+      expect(button.suggestedLocator?.role, 'button');
+
+      final tree = observationElementsTreeForReport(snap.observation);
+      final node = tree.firstWhere((e) => e['type'] == 'button');
+      expect(node['selector'], 'label="Netwerk", role=button');
+      expect(node['interactable'], isTrue);
+    },
+  );
+
+  testWidgets(
+    'diagnostic snapshot omits selector for unkeyed decorative images',
+    (tester) async {
+      // 1x1 PNG
+      final png = Uint8List.fromList(<int>[
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+        0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+      ]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Image.memory(png, width: 80, height: 80),
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final media = _flatten(snap.observation.elements)
+          .where((e) => e.type == 'image')
+          .toList();
+      expect(media, isNotEmpty, reason: 'Image.memory should observe as image');
+      for (final el in media) {
+        expect(
+          el.suggestedLocator,
+          isNull,
+          reason: 'no image steps without id — do not invent label+role=image',
+        );
+        expect(el.supportedActions, isEmpty);
+      }
     },
   );
 
