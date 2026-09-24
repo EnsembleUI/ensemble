@@ -34,7 +34,7 @@ void main() {
       'during a scheduler callback: Tried to build dirty widget in the wrong build scope.',
     );
 
-    expect(
+    await expectLater(
       () => executor.execute(
         const TestStep(
           type: 'waitFor',

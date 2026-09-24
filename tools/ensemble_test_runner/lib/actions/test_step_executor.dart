@@ -754,12 +754,18 @@ class TestStepExecutor {
     }
   }
 
+  /// Live-binding only — FakeAsync widget tests must still fail-fast on
+  /// recorded "wrong build scope" / overlay races (see fail_fast tests).
+  bool get _isLiveBinding =>
+      tester.binding is LiveTestWidgetsFlutterBinding;
+
   void _drainTransientFlutterDiagnostics() {
+    final swallowTransient = _isLiveBinding;
     while (true) {
       final pending = tester.takeException();
       if (pending == null) break;
       if (isNonFatalFlutterDiagnostic(pending) ||
-          isTransientNavigationDiagnostic(pending)) {
+          (swallowTransient && isTransientNavigationDiagnostic(pending))) {
         continue;
       }
       context.runtime.flutterErrors.clear();
@@ -771,16 +777,24 @@ class TestStepExecutor {
       );
     }
     context.runtime.flutterErrors.removeWhere(isNonFatalFlutterDiagnostic);
-    context.runtime.flutterErrors.removeWhere(isTransientNavigationDiagnostic);
+    if (swallowTransient) {
+      context.runtime.flutterErrors
+          .removeWhere(isTransientNavigationDiagnostic);
+    }
   }
 
-  /// Wall-clock delay that is safe under [LiveTestWidgetsFlutterBinding].
+  /// Binding-aware delay (FakeAsync + live).
+  ///
+  /// Widget tests use [AutomatedTestWidgetsFlutterBinding] / FakeAsync — a
+  /// plain [Future.delayed] never completes without advancing virtual time.
+  /// [TestWidgetsFlutterBinding.delayed] advances FakeAsync and falls through
+  /// to wall-clock delay under [LiveTestWidgetsFlutterBinding].
   ///
   /// Must not call [WidgetTester.runAsync] — live HTTP already uses that API,
   /// and nesting throws "Reentrant call to runAsync() denied".
   Future<void> _liveDelay(Duration duration) async {
     if (duration <= Duration.zero) return;
-    await Future<void>.delayed(duration);
+    await tester.binding.delayed(duration);
   }
 
   Future<void> _tap(String id, {int? timeoutMs, TestStep? step}) async {
@@ -1256,10 +1270,14 @@ class TestStepExecutor {
     required String phase,
     bool allowNavRetry = false,
   }) async {
+    // Transient nav races only happen under LiveTestWidgetsFlutterBinding.
+    // Under FakeAsync, treat the same diagnostics as fatal so unit tests
+    // (and fail-fast coverage) still surface them immediately.
+    final canRetryNav = allowNavRetry && _isLiveBinding;
     Object? pending;
     while ((pending = tester.takeException()) != null) {
       if (isNonFatalFlutterDiagnostic(pending!)) continue;
-      if (allowNavRetry && isTransientNavigationDiagnostic(pending)) {
+      if (canRetryNav && isTransientNavigationDiagnostic(pending)) {
         await _retryAfterTransientNavError(phase: phase);
         return;
       }
@@ -1275,7 +1293,7 @@ class TestStepExecutor {
     if (context.runtime.flutterErrors.isEmpty) return;
 
     final first = context.runtime.flutterErrors.first;
-    if (allowNavRetry && isTransientNavigationDiagnostic(first)) {
+    if (canRetryNav && isTransientNavigationDiagnostic(first)) {
       await _retryAfterTransientNavError(phase: phase);
       return;
     }
