@@ -1336,6 +1336,14 @@ html.hide-action-highlights .screenshot-highlight.failure {
   filter: none;
   animation: none;
 }
+/* Tree-row hover — always visible even when Elements toggle is off. */
+.screenshot-highlight.observer.tree-hover {
+  outline: 3px solid #fbbf24 !important;
+  outline-color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.18) !important;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55));
+  z-index: 6;
+}
 .screenshot-overlay-toolbar-host {
   flex-shrink: 0;
   margin-bottom: 10px;
@@ -1984,14 +1992,86 @@ a:hover {
 /* Screenshots tab: scale phone to remaining dialog space (no vertical scroll). */
 #modal-tab-screenshots {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#modal-tab-screenshots .screenshots-split {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+  overflow: hidden;
 }
 #modal-tab-screenshots #modal-screenshots-list {
   flex: 1 1 0;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   padding-right: 0;
+}
+#modal-tab-screenshots.has-observer-tree:not(.hide-observer-tree) #modal-screenshots-list {
+  /* ~half the row so the phone stays readable; tree takes the rest. */
+  flex: 0 0 48%;
+  max-width: 520px;
+  min-width: 300px;
+}
+#modal-tab-screenshots .modal-observer-side {
+  flex: 1 1 0;
+  max-width: none;
+  min-width: 280px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 12px 12px 10px;
+}
+#modal-tab-screenshots.hide-observer-tree .modal-observer-side,
+#modal-tab-screenshots .modal-observer-side[hidden] {
+  display: none !important;
+}
+#modal-tab-screenshots.has-observer-tree:not(.hide-observer-tree) .single-screenshot-container {
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+#modal-tab-screenshots.has-observer-tree:not(.hide-observer-tree) .modal-screenshot-card.single-layout {
+  max-width: 100%;
+}
+#modal-tab-screenshots.has-observer-tree:not(.hide-observer-tree) .modal-screenshot-card.single-layout img {
+  /* Keep the phone readable but leave horizontal room for the tree. */
+  max-height: calc(88vh - 220px);
+  max-width: 100%;
+}
+#modal-tab-screenshots .modal-observer-side .observer-tree-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+#modal-tab-screenshots .modal-observer-side .observer-toolbar,
+#modal-tab-screenshots .modal-observer-side .observer-elements-heading {
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  #modal-tab-screenshots .screenshots-split {
+    flex-direction: column;
+  }
+  #modal-tab-screenshots .modal-observer-side {
+    flex: 0 0 auto;
+    max-width: none;
+    max-height: 40%;
+    min-width: 0;
+  }
 }
 .modal-screenshots-grid {
   display: flex;
@@ -2159,6 +2239,7 @@ a:hover {
     max-height: calc(100vh - 240px);
   }
 }
+.modal-observer-side,
 .modal-observer-panel {
   flex: 1;
   min-height: 0;
@@ -2246,9 +2327,15 @@ a:hover {
   padding: 6px 10px;
   font-size: 12px;
   color: var(--text);
+  border-radius: 4px;
+  cursor: default;
 }
-.observer-tree-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+.observer-tree-node[data-obs-index] > .observer-tree-row {
+  cursor: pointer;
+}
+.observer-tree-row:hover,
+.observer-tree-node.is-hovered > .observer-tree-row {
+  background: rgba(251, 191, 36, 0.12);
 }
 .observer-tree-toggle {
   appearance: none;

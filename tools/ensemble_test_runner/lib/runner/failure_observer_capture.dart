@@ -138,7 +138,12 @@ List<Map<String, dynamic>> observerOverlaysForReport({
         });
 
   final overlays = <Map<String, dynamic>>[];
+  // Same pre-order indices as [observationElementsTreeForReport] so HTML can
+  // link tree rows ↔ screenshot highlights on hover.
+  var index = 1;
   void walk(UiElement element) {
+    if (element.state.visible == false) return;
+    final myIndex = index++;
     if (_shouldOverlay(element)) {
       final overlay = _overlayPercent(
         element: element,
@@ -146,7 +151,12 @@ List<Map<String, dynamic>> observerOverlaysForReport({
         imageSize: imageSize,
         frameDevice: frameDevice,
       );
-      if (overlay != null) overlays.add(overlay);
+      if (overlay != null) {
+        overlays.add({
+          ...overlay,
+          'index': myIndex,
+        });
+      }
     }
     for (final child in element.children) {
       walk(child);
@@ -255,7 +265,8 @@ Map<String, dynamic>? _overlayPercent({
   };
 }
 
-/// Nested element tree for the HTML Observer tab and agent/crawler JSON.
+/// Nested element tree for the HTML Screenshots tab (side panel) and
+/// agent/crawler JSON.
 ///
 /// Preserves parent→child structure (e.g. unkeyed `card` wrapping a keyed
 /// checkbox). Concrete fields (`type`, `selector`, `supportedActions`,

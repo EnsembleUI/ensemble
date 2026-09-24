@@ -245,6 +245,10 @@ double? labelAssociationScore(UiBounds text, UiBounds control) {
 }
 
 /// Nests kept nodes under their nearest kept Flutter ancestor.
+///
+/// Sibling / root order is visual reading order (top→bottom, then left→right),
+/// not Flutter's [Element] walk — Scaffold often visits body before the app
+/// bar, which would otherwise put the back button at the end of the tree.
 List<UiElement> nestKeptElements(
   List<({Element element, UiElement ui})> kept,
 ) {
@@ -266,6 +270,23 @@ List<UiElement> nestKeptElements(
     });
   }
 
+  int compareVisual(int a, int b) {
+    final ba = kept[a].ui.bounds;
+    final bb = kept[b].ui.bounds;
+    if (ba == null && bb == null) return a.compareTo(b);
+    if (ba == null) return 1;
+    if (bb == null) return -1;
+    final topCmp = ba.top.compareTo(bb.top);
+    if (topCmp != 0) return topCmp;
+    final leftCmp = ba.left.compareTo(bb.left);
+    if (leftCmp != 0) return leftCmp;
+    return a.compareTo(b);
+  }
+
+  for (final kids in childIndexes) {
+    kids.sort(compareVisual);
+  }
+
   UiElement build(int i) {
     final children = [
       for (final childIndex in childIndexes[i]) build(childIndex),
@@ -275,10 +296,12 @@ List<UiElement> nestKeptElements(
     return ui.copyWith(children: children);
   }
 
-  return [
+  final roots = <int>[
     for (var i = 0; i < kept.length; i++)
-      if (isRoot[i]) build(i),
-  ];
+      if (isRoot[i]) i,
+  ]..sort(compareVisual);
+
+  return [for (final i in roots) build(i)];
 }
 
 bool _hasCompactKeyedAncestor(Element element) {

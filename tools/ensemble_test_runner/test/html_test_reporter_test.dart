@@ -285,11 +285,13 @@ void main() {
     expect(html, contains('results.json.gz'));
     expect(html, contains("fetch('results.json.gz"));
     expect(html, contains('switchModalTab(\'screenshots\')'));
-    expect(html, contains('switchModalTab(\'observer\')'));
-    expect(html, contains('modal-observer-panel'));
+    expect(html, isNot(contains('switchModalTab(\'observer\')')));
+    expect(html, contains('modal-observer-side'));
+    expect(html, contains('screenshots-split'));
     expect(html, contains('copyObserverJson'));
     expect(html, contains('renderObserverTreeNode'));
     expect(html, contains('observer-tree'));
+    expect(html, contains('bindObserverTreeHover'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
     expect(html, contains('layoutScreenshotChips'));
@@ -299,6 +301,7 @@ void main() {
     expect(html, contains("screenshotOverlaySwitchHtml('obsHighlights', 'Elements')"));
     expect(html, contains("screenshotOverlaySwitchHtml('obsLabels', 'Labels')"));
     expect(html, contains("screenshotOverlaySwitchHtml('actionHighlights', 'Target')"));
+    expect(html, contains("screenshotOverlaySwitchHtml('showTree', 'Tree')"));
     expect(html, contains('modal-screenshots-toolbar'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));

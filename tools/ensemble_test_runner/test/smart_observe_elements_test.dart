@@ -502,6 +502,84 @@ void main() {
   );
 
   testWidgets(
+    'observe orders roots top-to-bottom (app bar before body)',
+    (tester) async {
+      // Scaffold visits body before the AppBar in the element walk — without
+      // visual sort the back button would appear after body cards.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                key: const ValueKey('back_button'),
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {},
+              ),
+              title: const Text('Devices'),
+            ),
+            body: ListView(
+              children: [
+                Card(
+                  child: ListTile(
+                    key: const ValueKey('gateway_card'),
+                    title: const Text('KPN Box 12'),
+                    onTap: () {},
+                  ),
+                ),
+                const Text('Footer feedback'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'visual-order', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final roots = observation.elements;
+      expect(roots, isNotEmpty);
+
+      final backIndex = roots.indexWhere(
+        (e) => e.testId == 'back_button' || e.type == 'icon',
+      );
+      final cardIndex = roots.indexWhere(
+        (e) => e.testId == 'gateway_card' || e.type == 'card',
+      );
+      expect(backIndex, greaterThanOrEqualTo(0), reason: 'back control kept');
+      expect(cardIndex, greaterThanOrEqualTo(0), reason: 'body card kept');
+      expect(
+        backIndex,
+        lessThan(cardIndex),
+        reason: 'header back button must precede body card in the tree',
+      );
+
+      final backTop = roots[backIndex].bounds?.top;
+      final cardTop = roots[cardIndex].bounds?.top;
+      expect(backTop, isNotNull);
+      expect(cardTop, isNotNull);
+      expect(backTop!, lessThan(cardTop!));
+    },
+  );
+
+  testWidgets(
     'toast banners observe as toast without enabled=false',
     (tester) async {
       // Mirrors fluttertoast FToast + Ensemble ToastController: Positioned
