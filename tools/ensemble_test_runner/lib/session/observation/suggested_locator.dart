@@ -189,12 +189,27 @@ List<ElementLocator> buildAgentLocatorCandidates(
       }
     case 'button':
       if (tappable && caption != null) {
+        // Prefer scoped selectors first so cheap/report snapshots do not emit
+        // bare label+role when two ExtenderItem "Edit name" buttons share it.
+        if (parentScope != null && !_locatorIsEmpty(parentScope)) {
+          out.add(
+            ElementLocator(
+              within: parentScope,
+              label: caption,
+              role: 'button',
+            ),
+          );
+        }
         final self = ElementLocator(label: caption, role: 'button');
         // Nested WifiCard show-password row inherits the parent row's merged
         // a11y label — do not emit a duplicate label+role=button selector.
         if (parentScope == null || !_locatorsEquivalent(self, parentScope)) {
           out.add(self);
         }
+      } else if (tappable &&
+          parentScope != null &&
+          !_locatorIsEmpty(parentScope)) {
+        out.add(ElementLocator(within: parentScope, role: 'button'));
       }
     case 'card':
       if (tappable && caption != null) {

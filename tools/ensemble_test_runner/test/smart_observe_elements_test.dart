@@ -1837,6 +1837,179 @@ void main() {
   });
 
   testWidgets(
+    'ExtenderItem-style entries scope duplicate Edit name buttons with within',
+    (tester) async {
+      // ExtenderPositioning_Fixed: undecorated Column per extender with title +
+      // Edit name Row(onTap). Without list-entry card grouping both buttons
+      // share label+role=button and agents can tap the wrong extender.
+      Widget extenderEntry({
+        required String title,
+        required String serial,
+      }) {
+        return SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title),
+                        Text(serial, style: const TextStyle(fontSize: 18)),
+                      ],
+                    ),
+                  ),
+                  const Text('Good signal'),
+                ],
+              ),
+              InkWell(
+                onTap: () {},
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Edit name', style: TextStyle(color: Colors.blue)),
+                    SizedBox(width: 8),
+                    Icon(Icons.edit, size: 16),
+                  ],
+                ),
+              ),
+              const Divider(),
+            ],
+          ),
+        );
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Fixed!'),
+                    const SizedBox(height: 16),
+                    extenderEntry(title: 'Wi-Fi extender 1', serial: 'JBCLOSE'),
+                    const SizedBox(height: 16),
+                    extenderEntry(
+                      title: 'Wi-Fi extender 2',
+                      serial: 'JB360039F2',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'extender-edit-name', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+
+      final cards = observation.elements.where((e) => e.type == 'card').toList();
+      expect(
+        cards.length,
+        greaterThanOrEqualTo(2),
+        reason: 'each ExtenderItem Column must observe as an inert card',
+      );
+      expect(
+        cards.map((c) => c.text ?? c.label).toSet(),
+        containsAll(['Wi-Fi extender 1', 'Wi-Fi extender 2']),
+      );
+
+      final editButtons = <UiElement>[];
+      void collect(UiElement e) {
+        if (e.type == 'button' &&
+            (e.text == 'Edit name' || e.label == 'Edit name')) {
+          editButtons.add(e);
+        }
+        for (final c in e.children) {
+          collect(c);
+        }
+      }
+      for (final root in observation.elements) {
+        collect(root);
+      }
+      expect(editButtons, hasLength(2));
+      // Buttons nest under their extender card — not flat root siblings.
+      expect(
+        observation.elements.where(
+          (e) =>
+              e.type == 'button' &&
+              (e.text == 'Edit name' || e.label == 'Edit name'),
+        ),
+        isEmpty,
+        reason: 'Edit name must nest under extender cards',
+      );
+
+      final enriched = enrichSuggestedLocators(
+        observation: observation,
+        resolver: session.resolver,
+        registry: session.registry,
+      );
+      final enrichedEdits = <UiElement>[];
+      void collectEnriched(UiElement e) {
+        if (e.type == 'button' &&
+            (e.suggestedLocator?.label == 'Edit name' ||
+                e.text == 'Edit name' ||
+                e.label == 'Edit name')) {
+          enrichedEdits.add(e);
+        }
+        for (final c in e.children) {
+          collectEnriched(c);
+        }
+      }
+      for (final root in enriched.elements) {
+        collectEnriched(root);
+      }
+      expect(enrichedEdits, hasLength(2));
+      final sels = enrichedEdits
+          .map((e) => formatSuggestedSelector(e.suggestedLocator!))
+          .toList();
+      expect(sels.toSet(), hasLength(2), reason: 'selectors must be unique');
+      for (final edit in enrichedEdits) {
+        expect(edit.suggestedLocator?.role, 'button');
+        expect(edit.suggestedLocator?.label, 'Edit name');
+        expect(edit.suggestedLocator?.within?.role, 'card');
+        expect(
+          edit.suggestedLocator?.within?.label,
+          anyOf('Wi-Fi extender 1', 'Wi-Fi extender 2'),
+        );
+      }
+      expect(
+        enrichedEdits.map((e) => e.suggestedLocator!.within!.label).toSet(),
+        {'Wi-Fi extender 1', 'Wi-Fi extender 2'},
+      );
+
+      await session.close();
+    },
+  );
+
+  testWidgets(
     'observe nests feedback panel content under a non-tappable visual card',
     (tester) async {
       // FeedbackInput-style: bordered Column chrome, no onTap on the shell;

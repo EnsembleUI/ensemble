@@ -473,6 +473,10 @@ bool isNestedContentMediaElement(Element element) {
 /// We still keep them so texts / rating icons nest under a `card` container
 /// instead of floating as siblings. Prefer the outermost card-like host.
 ///
+/// Also covers undecorated list-entry Columns (ExtenderItem on Fixed): title +
+/// nested "Edit name" action with no border — without this, duplicate Edit
+/// name buttons float as root siblings with identical selectors.
+///
 /// Skip decorative wrappers (e.g. theme `wrapperCard*`) that only chrome an
 /// already-keyed / tappable card — those would become card-inside-card.
 /// Also skip panels inside a toast banner — the toast host is the container.
@@ -482,21 +486,87 @@ bool isVisualCardContainerElement(Element element) {
   // Never nest inert chrome under a button/icon primary — that inverts
   // NotificationCard into `button > card` when a keyed CTA wraps chrome.
   if (_hasButtonOrIconPrimaryAncestor(element)) return false;
-  if (!_isCardLikeSurface(element)) return false;
-  if (!_looksLikeCardPanelBounds(boundsFor(element))) return false;
+
+  final decorated = _isCardLikeSurface(element);
+  final listEntry = !decorated && _looksLikeUndecoratedListEntry(element);
+  if (!decorated && !listEntry) return false;
+  if (!_looksLikeCardPanelBounds(boundsFor(element)) && !listEntry) {
+    return false;
+  }
+  if (listEntry && !_looksLikeListEntryPanelBounds(boundsFor(element))) {
+    return false;
+  }
   if (!_hasObservableCardContent(element)) return false;
   if (_hasNestedCardPrimary(element)) return false;
 
   var underCard = false;
   element.visitAncestorElements((ancestor) {
-    if (_isCardLikeSurface(ancestor) &&
-        !_isGenericTapTarget(ancestor.widget)) {
+    if (_isGroupingCardAncestor(ancestor)) {
       underCard = true;
       return false;
     }
     return true;
   });
   return !underCard;
+}
+
+/// Ancestor already groups content as a card / list-entry scope.
+bool _isGroupingCardAncestor(Element ancestor) {
+  if (_isGenericTapTarget(ancestor.widget)) return false;
+  if (_isCardLikeSurface(ancestor) &&
+      _looksLikeCardPanelBounds(boundsFor(ancestor))) {
+    return true;
+  }
+  return _looksLikeUndecoratedListEntry(ancestor);
+}
+
+/// ExtenderItem-style vertical stack: captions + one nested tap action, no
+/// border/fill chrome. Rejects page body / itemTemplate host Columns that
+/// stack multiple entries (multiple tap actions).
+bool _looksLikeUndecoratedListEntry(Element element) {
+  if (!_isVerticalBoxHost(element.widget)) return false;
+  if (!_looksLikeListEntryPanelBounds(boundsFor(element))) return false;
+  if (!_hasObservableCardContent(element)) return false;
+  return _countTopLevelNestedTapActions(element) == 1;
+}
+
+bool _isVerticalBoxHost(Widget widget) {
+  if (widget is Column) return true;
+  if (widget is Flex && widget.direction == Axis.vertical) return true;
+  final base = widget.runtimeType.toString().split('<').first;
+  return base == 'Column' ||
+      base == 'FlexColumn' ||
+      base == 'ScrollableColumn' ||
+      base == 'FittedColumn';
+}
+
+bool _looksLikeListEntryPanelBounds(UiBounds? bounds) {
+  if (bounds == null) return false;
+  if (bounds.width < 180 || bounds.height < 56) return false;
+  // Cap height so page body / multi-item template hosts are not one card.
+  if (bounds.height > 220) return false;
+  return bounds.width / bounds.height >= 1.15;
+}
+
+/// Enabled tap targets that are not nested under another tap target.
+int _countTopLevelNestedTapActions(Element element) {
+  var count = 0;
+  void visit(Element e) {
+    if (count > 1) return;
+    if (identical(e, element)) {
+      e.visitChildren(visit);
+      return;
+    }
+    final w = e.widget;
+    if (_isGenericTapTarget(w) && _genericTapTargetIsEnabled(w)) {
+      count += 1;
+      return;
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  return count;
 }
 
 /// True when a button/icon primary already wraps [element].
