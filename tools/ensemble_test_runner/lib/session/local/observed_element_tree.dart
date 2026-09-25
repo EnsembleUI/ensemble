@@ -236,6 +236,23 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
       if (!childKeyed && _sameObserveCaption(parentUi!, child)) drop.add(i);
       continue;
     }
+    // Trailing arrows on LabelArrowButton / compact CTAs — decorative chrome;
+    // tap the button, not a selector-less nested icon. Dropdown expand
+    // chevrons stay visible; status icons under cards stay too.
+    if (pType == 'button' && cType == 'icon') {
+      if (!childKeyed && child.state.interactable != true) drop.add(i);
+      continue;
+    }
+    // AppIcon / inline SVG under a password row must not linger as a
+    // selector-less `image` leaf when the eye affordance is the icon host.
+    if (pType == 'button' &&
+        (cType == 'image' ||
+            cType == 'svg' ||
+            cType == 'gif' ||
+            cType == 'lottie')) {
+      if (!childKeyed && child.state.interactable != true) drop.add(i);
+      continue;
+    }
     // KeyedSubtree(testId) + child InkWell both observe as button — keep the
     // keyed host only. Also collapse nested WifiCard show-password InkWell
     // under the outer "Wachtwoord" row button (same semantics label).

@@ -611,7 +611,11 @@ class EnsembleTestRunner {
                 step: matchedStep,
                 labelStep: step,
                 stepIndex: i,
-                options: StepScreenshotOptions.beforeAction(),
+                // Optional taps often fire on empty loading frames — keep the
+                // contrast gate so phantom rings never become report shots.
+                options: StepScreenshotOptions.beforeAction(
+                  requireVisibleActionHighlight: true,
+                ),
               );
               if (didCapture) capturedStep = true;
             }
@@ -1212,6 +1216,7 @@ class EnsembleTestRunner {
     final timeoutMs = step.args['timeoutMs'] as int? ??
         executor.config.defaultWaitTimeout.inMilliseconds;
     final stopwatch = Stopwatch()..start();
+    var scrolled = false;
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
       if (_isScreenshotTargetReady(
             executor,
@@ -1220,6 +1225,13 @@ class EnsembleTestRunner {
           ) &&
           _isHighlightTargetPainted(executor, finder, waitsForHitTestable)) {
         return;
+      }
+      // Off-screen controls never become "ready" by pumping alone — scroll
+      // once so before-action shots match tap's ensureVisible path.
+      if (!scrolled && waitsForHitTestable) {
+        scrolled = true;
+        await _ensureHighlightTargetVisible(executor, step);
+        continue;
       }
       await executor.tester.pump(executor.config.waitPollInterval);
     }
@@ -1336,7 +1348,10 @@ class EnsembleTestRunner {
       requireHitTestable: requireHitTestable,
     );
     if (visibleElement != null) {
-      if (_isTextVerificationStep(step)) {
+      // Text asserts and user actions: bring the control fully on-screen.
+      // A 1px intersection counts as "visible" for hit-testing, but the
+      // before-action screenshot would otherwise crop/miss the control.
+      if (_isTextVerificationStep(step) || requireHitTestable) {
         await Scrollable.ensureVisible(
           visibleElement,
           alignment: 0.45,

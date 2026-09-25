@@ -105,7 +105,15 @@ UiElement describeElement({
   // semantic label (common for decorative Ensemble Image widgets).
   if (_isMediaObserveType(type)) {
     final desc = readMediaDescription(semanticsSource);
-    if ((text == null || text.isEmpty) && desc != null && desc.isNotEmpty) {
+    // Nested AppIcon / SVG under a button inherits the parent row's a11y
+    // label (WifiCard embeds `${addSpaces(password)}`). Never publish that
+    // as the image title — prefer source basename, else nothing.
+    if (hasPrimaryControlAncestor(semanticsSource)) {
+      text = (desc != null && desc.isNotEmpty) ? desc : null;
+      label = null;
+    } else if ((text == null || text.isEmpty) &&
+        desc != null &&
+        desc.isNotEmpty) {
       text = desc;
     }
   }
@@ -222,6 +230,13 @@ String resolveObservedWidgetType(Element element, {required String? testId}) {
       final ownedType = _inferElementWidgetType(ownedSpecific);
       if (ownedType != null &&
           (type == 'widget' || type == 'card' || type == 'button')) {
+        // Bottom sheets / feedback panels are visual cards that contain footer
+        // CTAs — do not retype the panel as that button (loses card `within`
+        // for nested dismiss icons).
+        if (type == 'card' &&
+            (ownedType == 'button' || ownedType == 'icon')) {
+          return type;
+        }
         return ownedType;
       }
     }
@@ -382,15 +397,20 @@ bool _isVisibleTextHost(Element element) {
   final widget = element.widget;
   final String? data;
   if (widget is Text) {
-    data = widget.data;
+    // Plain [Text] uses `data`; Markdown / [Text.rich] use the TextSpan tree.
+    data = _textWidgetCaption(widget);
   } else if (widget is RichText) {
-    // [Text] builds a child [RichText] — keep only the Text host.
-    if (element.findAncestorWidgetOfExactType<Text>() != null) return false;
-    // [Icon] / [ImageIcon] also render via RichText — keep the Icon host.
-    if (element.findAncestorWidgetOfExactType<Icon>() != null) return false;
-    if (element.findAncestorWidgetOfExactType<ImageIcon>() != null) {
+    // [Text] / [Text.rich] build a child [RichText] — keep only the Text host
+    // when that host already exposes a caption.
+    final ancestorText = element.findAncestorWidgetOfExactType<Text>();
+    if (ancestorText != null && _textWidgetCaption(ancestorText) != null) {
       return false;
     }
+    // [Icon] / [ImageIcon] also render via RichText — keep the Icon host.
+    // Use [is] (not findAncestorWidgetOfExactType): Ensemble Icon subclasses
+    // Flutter Icon, and exact runtimeType matching misses that subclass so
+    // icon-font glyphs were observed as `text □`.
+    if (_hasIconPaintAncestor(element)) return false;
     data = widget.text.toPlainText();
   } else {
     return false;
@@ -399,6 +419,31 @@ bool _isVisibleTextHost(Element element) {
   if (data == null || data.trim().isEmpty) return false;
   if (isDecorativeGlyphCaption(data)) return false;
   return true;
+}
+
+/// True under Flutter [Icon] / [ImageIcon] **or** a subclass (Ensemble Icon).
+///
+/// [Element.findAncestorWidgetOfExactType] matches `runtimeType == T` and
+/// misses `ensemble/framework/widget/icon.dart`'s Icon subclass.
+bool _hasIconPaintAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    final w = ancestor.widget;
+    if (w is Icon || w is ImageIcon) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+/// Visible caption for a [Text] widget, including [Text.rich] / Markdown spans.
+String? _textWidgetCaption(Text widget) {
+  final data = widget.data?.trim();
+  if (data != null && data.isNotEmpty) return data;
+  final plain = widget.textSpan?.toPlainText().trim() ?? '';
+  return plain.isEmpty ? null : plain;
 }
 
 /// Visible image / SVG / GIF / Lottie host (not an inner leaf under Ensemble*).
@@ -530,12 +575,31 @@ bool _hasNestedCardPrimary(Element element) {
     }
     final keyed = hasCompactValueKey(e) || readOwnedWidgetLocatorId(e) != null;
     if (_isGenericTapTarget(e.widget)) {
+      // Material footer CTAs inside a bottom sheet / panel must not disqualify
+      // the panel as visual-card chrome (otherwise close icons lose `within`).
+      if (_isMaterialButtonWidget(e.widget)) {
+        e.visitChildren(visit);
+        return;
+      }
       final bounds = boundsFor(e);
       if (_looksLikeCardHitTarget(bounds) ||
           _looksLikeListRowHitTarget(bounds)) {
-        // Tappable card/row — wrapper is just chrome.
-        found = true;
-        return;
+        // Tappable card/row — wrapper is just chrome. Require the tap surface
+        // to cover a large share of this panel so short full-width buttons
+        // (sheet footer) do not count.
+        final parentBounds = boundsFor(element);
+        if (parentBounds != null &&
+            bounds != null &&
+            bounds.width >= parentBounds.width * 0.85 &&
+            bounds.height >= parentBounds.height * 0.45) {
+          found = true;
+          return;
+        }
+        if (_looksLikeCardHitTarget(bounds) &&
+            !_looksLikeListRowHitTarget(bounds)) {
+          found = true;
+          return;
+        }
       }
       // Nested CTA / dismiss InkWells (NotificationCard "Turn on") are not
       // the card primary — only card-sized keyed hosts (gateway_card).
@@ -556,6 +620,13 @@ bool _hasNestedCardPrimary(Element element) {
 
   element.visitChildren(visit);
   return found;
+}
+
+bool _isMaterialButtonWidget(Widget widget) {
+  return widget is ElevatedButton ||
+      widget is TextButton ||
+      widget is OutlinedButton ||
+      widget is FilledButton;
 }
 
 bool _isCardLikeSurface(Element element) {
@@ -635,7 +706,7 @@ bool _hasObservableCardContent(Element element) {
   void visit(Element e) {
     if (texts >= 1 && actions >= 1) return;
     final w = e.widget;
-    if (w is Text && (w.data?.trim().isNotEmpty ?? false)) {
+    if (w is Text && _textWidgetCaption(w) != null) {
       texts += 1;
     } else if (w is RichText && w.text.toPlainText().trim().isNotEmpty) {
       texts += 1;
@@ -836,8 +907,7 @@ bool _isRedundantCaptionOfNearestPrimary(Element element) {
 String? _visibleTextOf(Element element) {
   final w = element.widget;
   if (w is Text) {
-    final data = w.data?.trim();
-    return (data != null && data.isNotEmpty) ? data : null;
+    return _textWidgetCaption(w);
   }
   if (w is RichText) {
     final data = w.text.toPlainText().trim();
@@ -1305,9 +1375,12 @@ String _inferGenericTapTargetType(Element element) {
   final mediaType = _mediaTypeFromDescendant(element);
   if (mediaType != null && !substantialText) {
     // Small hit targets stay `icon` (nav / chrome). Larger surfaces keep the
-    // media type (hero image / Lottie with onTap).
+    // media type only when the media dominates the hit target (hero / Lottie).
+    // WifiCard show-password Row is wide with a 24px AppIcon SVG — that is
+    // chrome, not a decorative `image` surface.
     if (compact || _looksLikeIconSizedMedia(bounds)) return 'icon';
-    return mediaType;
+    if (_mediaDominatesHitTarget(element, bounds)) return mediaType;
+    return 'icon';
   }
 
   // Tile / mini-card / settings row — all observe as `card` for now.
@@ -1346,11 +1419,23 @@ bool _isSubstantialControlCaption(String? text) {
   return true;
 }
 
-/// Bullet / password-mask glyphs — not useful observe text or `text=` targets.
+/// Bullet / password-mask / icon-font glyphs — not observe text or `text=`.
 bool isDecorativeGlyphCaption(String? text) {
   final t = text?.trim() ?? '';
   if (t.isEmpty) return true;
-  return RegExp(r'^[•·\.●○\*‧∙]+$').hasMatch(t);
+  if (RegExp(r'^[•·\.●○\*‧∙]+$').hasMatch(t)) return true;
+  // Custom icon fonts (kpnUI LEDs, etc.) paint Private Use Area code points.
+  return t.runes.every(_isIconFontOrTofuCodePoint);
+}
+
+bool _isIconFontOrTofuCodePoint(int code) {
+  if (code == 0xFFFD) return true; // replacement character
+  // BMP Private Use Area (Material / custom icon fonts).
+  if (code >= 0xE000 && code <= 0xF8FF) return true;
+  // Supplementary Private Use Areas.
+  if (code >= 0xF0000 && code <= 0xFFFFD) return true;
+  if (code >= 0x100000 && code <= 0x10FFFD) return true;
+  return false;
 }
 
 /// Longest descendant text that counts as a real caption (skips •••• masks).
@@ -1360,9 +1445,13 @@ String? _longestSubstantialTextDescendant(Element element) {
     final w = e.widget;
     String? value;
     if (w is Text) {
-      value = w.data;
+      value = _textWidgetCaption(w);
     } else if (w is RichText) {
-      value = w.text.toPlainText();
+      if (_hasIconPaintAncestor(e)) {
+        value = null;
+      } else {
+        value = w.text.toPlainText();
+      }
     }
     if (value != null && _isSubstantialControlCaption(value)) {
       if (longest == null || value.length > longest!.length) {
@@ -1427,6 +1516,37 @@ bool _looksLikeIconSizedMedia(UiBounds? bounds) {
   final minSide = bounds.width < bounds.height ? bounds.width : bounds.height;
   if (maxSide > 72) return false;
   return maxSide / minSide <= 1.6;
+}
+
+/// True when a nested image/SVG/Lottie fills most of [hitBounds].
+///
+/// Distinguishes hero illustration CTAs from wide rows that only host a
+/// compact AppIcon (WifiCard •••• + eye).
+bool _mediaDominatesHitTarget(Element element, UiBounds? hitBounds) {
+  if (hitBounds == null || hitBounds.width <= 0 || hitBounds.height <= 0) {
+    return false;
+  }
+  UiBounds? largestMedia;
+  void visit(Element e) {
+    if (mediaWidgetType(e.widget) != null) {
+      final b = boundsFor(e);
+      if (b != null && b.width > 0 && b.height > 0) {
+        final area = b.width * b.height;
+        final best = largestMedia;
+        if (best == null || area > best.width * best.height) {
+          largestMedia = b;
+        }
+      }
+    }
+    e.visitChildren(visit);
+  }
+
+  element.visitChildren(visit);
+  final media = largestMedia;
+  if (media == null) return false;
+  final hitArea = hitBounds.width * hitBounds.height;
+  if (hitArea <= 0) return false;
+  return media.width * media.height >= hitArea * 0.45;
 }
 
 /// Compact media used as a control (back arrow, close) rather than decoration.
@@ -1564,9 +1684,13 @@ String? _longestTextDescendant(Element element) {
     final w = e.widget;
     String? value;
     if (w is Text) {
-      value = w.data;
+      value = _textWidgetCaption(w);
     } else if (w is RichText) {
-      value = w.text.toPlainText();
+      if (_hasIconPaintAncestor(e)) {
+        value = null;
+      } else {
+        value = w.text.toPlainText();
+      }
     }
     if (value != null && value.trim().isNotEmpty) {
       if (longest == null || value.length > longest!.length) {
@@ -1856,8 +1980,18 @@ String? readText(Element element) {
       if (value.isNotEmpty) editableText ??= value;
       return;
     }
-    if (w is Text && w.data != null && w.data!.trim().isNotEmpty) {
-      texts.add(w.data!.trim());
+    if (w is Text) {
+      final caption = _textWidgetCaption(w);
+      if (caption != null && !isDecorativeGlyphCaption(caption)) {
+        texts.add(caption);
+      }
+    } else if (w is RichText) {
+      // Icon / ImageIcon paint via RichText with a private-use glyph — not copy.
+      if (_hasIconPaintAncestor(e)) return;
+      final plain = w.text.toPlainText().trim();
+      if (plain.isNotEmpty && !isDecorativeGlyphCaption(plain)) {
+        texts.add(plain);
+      }
     }
     e.visitChildren(visit);
   }
@@ -2033,8 +2167,7 @@ double _effectiveOpacity(Element element) {
 String? _plainTextFromWidget(Widget? widget) {
   if (widget == null) return null;
   if (widget is Text) {
-    final data = widget.data?.trim();
-    return (data != null && data.isNotEmpty) ? data : null;
+    return _textWidgetCaption(widget);
   }
   if (widget is RichText) {
     final data = widget.text.toPlainText().trim();
@@ -2419,7 +2552,8 @@ List<String> supportedActionsFor(
       if (hasId && enabled != null) {
         addEnabledAsserts();
       }
-      // Only advertise gestures when positively enabled.
+      // Gestures when positively enabled. Unlabeled icons stay addressable via
+      // role=icon (or within+role) — keep sel + Supported actions in sync.
       if (enabled == true) {
         actions.addAll(const ['tap', 'longPress', 'doubleTap']);
       }

@@ -1217,6 +1217,15 @@ void main() {
     (tester) async {
       // Outer FlexRow: semantics + onTap (edit sheet). Inner Row: ••••+eye
       // onTap (show password) — must not both advertise the same selector.
+      // AppIcon renders the eye as Ensemble Image/SVG (not Flutter Icon).
+      final png = Uint8List.fromList(<int>[
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+        0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+      ]);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -1238,12 +1247,16 @@ void main() {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {},
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text('•••••••••••••'),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.visibility, size: 24),
+                                  const Text('•••••••••••••'),
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Image.memory(png, fit: BoxFit.contain),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1298,6 +1311,11 @@ void main() {
       expect(
         flat.any((e) => e.type == 'icon' && e.state.interactable == true),
         isTrue,
+      );
+      expect(
+        flat.where((e) => e.type == 'image' || e.type == 'svg'),
+        isEmpty,
+        reason: 'AppIcon eye must not observe as image/svg with password title',
       );
 
       final enriched = enrichSuggestedLocators(
@@ -1381,8 +1399,176 @@ void main() {
           reason: 'list-row chevrons are decorative; tap the row/card',
         );
       }
+      expect(
+        flat.any((e) => e.type == 'card' && e.state.interactable == true),
+        isTrue,
+      );
 
       await session.close();
+    },
+  );
+
+  testWidgets(
+    'decorative arrow under LabelArrowButton-style button is dropped',
+    (tester) async {
+      // inhome LabelArrowButton: compact CTA → Text + trailing arrow.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: TextButton(
+                onPressed: () {},
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Nee, niet nu'),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(
+            id: 'label-arrow-decor',
+            steps: [],
+          ),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final parent = flat.firstWhere((e) => e.type == 'button');
+      expect(parent.state.interactable, isTrue);
+      expect(
+        flat.where((e) => e.type == 'icon'),
+        isEmpty,
+        reason: 'non-interactable icons under buttons are chrome, not targets',
+      );
+    },
+  );
+
+  testWidgets(
+    'Ensemble Icon subclass glyph is not observed as text',
+    (tester) async {
+      // inhome LedIndicator: Ensemble Icon (extends Flutter Icon) + label.
+      // findAncestorWidgetOfExactType misses the subclass, so icon-font
+      // RichText used to leak as `text □` under gateway_card.
+      const ledGlyph = IconData(0xE953, fontFamily: 'MaterialIcons');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 120,
+              child: InkWell(
+                key: const ValueKey('gateway_card'),
+                onTap: () {},
+                child: const Column(
+                  children: [
+                    Text('KPN Box 12'),
+                    Text('Modem'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            _EnsembleStyleIcon(ledGlyph, size: 20),
+                            Text('Internet'),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            _EnsembleStyleIcon(
+                              IconData(0xE9BE, fontFamily: 'MaterialIcons'),
+                              size: 20,
+                            ),
+                            Text('Wifi'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(
+          appPath: 'unused/',
+          appHome: 'Home',
+        ),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(
+            id: 'led-icon-glyphs',
+            steps: [],
+          ),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final flat = _flatten(observation.elements);
+      final glyphTexts = flat.where((e) {
+        if (e.type != 'text') return false;
+        final t = e.text?.trim() ?? '';
+        if (t.isEmpty) return false;
+        return t.runes.every(
+          (c) => (c >= 0xE000 && c <= 0xF8FF) || c == 0xFFFD || c == 0x25A1,
+        );
+      });
+      expect(
+        glyphTexts,
+        isEmpty,
+        reason: 'icon-font PUA glyphs must not observe as text □',
+      );
+      final ledIcons = flat.where((e) => e.type == 'icon').toList();
+      expect(
+        ledIcons.length,
+        greaterThanOrEqualTo(2),
+        reason: 'gateway LED icons must observe as icon, not vanish',
+      );
+      for (final icon in ledIcons) {
+        expect(
+          icon.state.interactable,
+          isNot(true),
+          reason: 'status LEDs are not tap targets; tap the card',
+        );
+      }
+      expect(flat.any((e) => e.text == 'Internet'), isTrue);
+      expect(flat.any((e) => e.text == 'Wifi'), isTrue);
     },
   );
 
@@ -2445,4 +2631,9 @@ List<UiElement> _flatten(List<UiElement> roots) {
     walk(root);
   }
   return out;
+}
+
+/// Mimics Ensemble `framework/widget/icon.dart` (subclasses Flutter [Icon]).
+class _EnsembleStyleIcon extends Icon {
+  const _EnsembleStyleIcon(super.icon, {super.size});
 }

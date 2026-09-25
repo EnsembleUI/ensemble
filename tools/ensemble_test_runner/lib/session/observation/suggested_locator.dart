@@ -227,8 +227,12 @@ List<ElementLocator> buildAgentLocatorCandidates(
         }
       }
     case 'icon':
-      // Tooltip / semanticLabel only, and only when the icon is tappable.
-      if (tappable && caption != null) {
+      // Standalone icon buttons with an a11y/tooltip caption.
+      // When nested under a card/sheet scope, prefer within+role below —
+      // IconData names ("close") are weak label= targets.
+      if (tappable &&
+          caption != null &&
+          (parentScope == null || _locatorIsEmpty(parentScope))) {
         out.add(ElementLocator(label: caption, role: 'icon'));
       }
     default:
@@ -242,7 +246,7 @@ List<ElementLocator> buildAgentLocatorCandidates(
         !isDecorativeGlyphCaption(text)) {
       out.add(ElementLocator(within: parentScope, text: text));
     }
-    if (type == 'icon' && tappable && caption == null) {
+    if (type == 'icon' && tappable) {
       final occurrence = (iconSiblingCount != null &&
               iconSiblingCount > 1 &&
               iconOccurrenceAmongSiblings != null)
@@ -255,7 +259,20 @@ List<ElementLocator> buildAgentLocatorCandidates(
           occurrence: occurrence,
         ),
       );
+      // Secondary: real a11y caption still useful when unique.
+      if (caption != null) {
+        out.add(ElementLocator(label: caption, role: 'icon'));
+      }
     }
+  }
+
+  // Last resort: tappable icon with no caption and no parent scope (e.g. sheet
+  // dismiss X at the observe root) — role alone so Supported actions ≠ empty sel.
+  if (type == 'icon' &&
+      tappable &&
+      caption == null &&
+      out.isEmpty) {
+    out.add(ElementLocator(role: 'icon'));
   }
 
   return _dedupeLocators(out);

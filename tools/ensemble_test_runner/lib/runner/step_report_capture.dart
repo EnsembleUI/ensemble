@@ -42,14 +42,22 @@ class StepScreenshotOptions {
   /// PNG instead of the next screen after `execute` returns.
   final bool allowObserveWhileQueueBusy;
 
-  /// Before tap/toggle/etc.: wait for paint, short settle, contrast gate.
-  factory StepScreenshotOptions.beforeAction() => const StepScreenshotOptions(
+  /// Before tap/toggle/etc.: wait for paint, short settle.
+  ///
+  /// [requireVisibleActionHighlight] is only for optional taps — it drops
+  /// frames whose highlight lands on flat empty pixels (loading chrome).
+  /// Required actions must keep the shot even when the control was off-screen
+  /// and just scrolled into view (low-contrast rows / partial paints).
+  factory StepScreenshotOptions.beforeAction({
+    bool requireVisibleActionHighlight = false,
+  }) =>
+      StepScreenshotOptions(
         pumpBeforeCapture: true,
         ensureTargetVisible: true,
         waitForTarget: true,
         waitForLottie: false,
         stabilize: true,
-        requireVisibleActionHighlight: true,
+        requireVisibleActionHighlight: requireVisibleActionHighlight,
       );
 
   /// After expect/wait (post-step fallback).

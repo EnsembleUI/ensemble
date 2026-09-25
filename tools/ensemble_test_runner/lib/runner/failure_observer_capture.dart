@@ -322,6 +322,8 @@ Map<String, dynamic> _elementNode(
     if (element.state.interactable != null)
       'interactable': element.state.interactable,
     if (value != null) 'value': value,
+    if (element.hint != null && element.hint!.trim().isNotEmpty)
+      'hint': element.hint!.trim(),
     if (element.options.isNotEmpty) 'options': element.options,
     if (element.supportedActions.isNotEmpty)
       'supportedActions': element.supportedActions,

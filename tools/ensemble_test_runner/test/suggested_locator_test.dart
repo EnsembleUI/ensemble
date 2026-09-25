@@ -1,9 +1,12 @@
+import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
@@ -340,7 +343,7 @@ void main() {
     await session.close();
   });
 
-  testWidgets('enrichSuggestedLocators marks unlabeled icons unavailable',
+  testWidgets('enrichSuggestedLocators gives unlabeled tappable icons role=icon',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -377,8 +380,10 @@ void main() {
     expect(icons, isNotEmpty);
     for (final icon in icons) {
       expect(icon.testId, isNull);
-      expect(icon.suggestedLocator, isNull);
-      expect(icon.locatorWarning, 'No stable locator available');
+      // Tappable icons always need a selector when gestures are advertised.
+      expect(icon.suggestedLocator?.role, 'icon');
+      expect(icon.suggestedLocator?.label, isNull);
+      expect(icon.locatorWarning, isNull);
     }
     await session.close();
   });
@@ -442,6 +447,147 @@ void main() {
         'label="Back", role=icon',
       );
       await session.close();
+    },
+  );
+
+  testWidgets(
+    'unlabeled sheet-close icon gets role=icon when it has tap actions',
+    (tester) async {
+      // Gateway factory-reset sheet: Column(onTap) → AppIcon(close) with no
+      // semantics.label — must not advertise tap with an empty selector.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topRight,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {},
+                  child: const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(Icons.close),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: _harness(),
+        context: _ctx('sheet_close_no_label'),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final obs = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final icon = _flatten(obs.elements).firstWhere(
+        (e) => (e.type ?? '').toLowerCase() == 'icon',
+      );
+      expect(icon.state.interactable, isTrue);
+      expect(icon.state.enabled, isTrue);
+      expect(icon.supportedActions, contains('tap'));
+
+      final cheap = cheapSuggestedLocator(icon);
+      expect(cheap, isNotNull);
+      expect(cheap!.role, 'icon');
+      expect(formatSuggestedSelector(cheap), 'role=icon');
+
+      final enriched = enrichSuggestedLocators(
+        observation: obs,
+        resolver: session.resolver,
+        registry: session.registry,
+      );
+      final enrichedIcon = _flatten(enriched.elements).firstWhere(
+        (e) => (e.type ?? '').toLowerCase() == 'icon',
+      );
+      expect(enrichedIcon.suggestedLocator?.role, 'icon');
+      await session.close();
+    },
+  );
+
+  testWidgets(
+    'sheet dismiss icon is scoped within the panel card, not bare role=icon',
+    (tester) async {
+      // Bare role=icon is ambiguous when other icons exist; the sheet panel
+      // must observe as card so dismiss gets within+role.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                const Expanded(child: Center(child: Icon(Icons.wifi))),
+                Container(
+                  width: 400,
+                  height: 400,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Terugzetten naar fabrieks-instellingen',
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {},
+                            child: const SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: Icon(Icons.close),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          child: const Text('Nee, annuleren'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final card = snap.observation.elements.firstWhere(
+        (e) => e.type == 'card',
+      );
+      final nestedClose = card.children.firstWhere(
+        (e) => e.type == 'icon' && e.state.interactable == true,
+      );
+      expect(nestedClose.supportedActions, contains('tap'));
+      expect(nestedClose.suggestedLocator, isNotNull);
+      expect(nestedClose.suggestedLocator!.role, 'icon');
+      expect(nestedClose.suggestedLocator!.within?.role, 'card');
+      expect(
+        nestedClose.suggestedLocator!.within?.label,
+        'Terugzetten naar fabrieks-instellingen',
+      );
     },
   );
 
@@ -545,6 +691,9 @@ void main() {
         flat.any((e) => e.suggestedLocator?.text == '•'),
         isFalse,
       );
+      expect(isDecorativeGlyphCaption('•'), isTrue);
+      expect(isDecorativeGlyphCaption(String.fromCharCode(0xE953)), isTrue);
+      expect(isDecorativeGlyphCaption('Internet'), isFalse);
       expect(flat.any((e) => e.text == 'Tip one'), isTrue);
       expect(flat.any((e) => e.text == 'Before you start...'), isTrue);
       await session.close();

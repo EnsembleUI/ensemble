@@ -679,6 +679,47 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'diagnostic snapshot observes Text.rich / Markdown-style spans as text=',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                const Text('Title'),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(text: 'Verbind je telefoon met '),
+                      const TextSpan(
+                        text: 'KPN-FWA',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const TextSpan(text: ' om verder te gaan.'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final snap = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: AssertionEngine(tester: tester),
+      );
+      final flat = _flatten(snap.observation.elements);
+      final body = flat.firstWhere(
+        (e) => (e.text ?? '').contains('Verbind je telefoon'),
+      );
+      expect(body.type, 'text');
+      expect(body.suggestedLocator?.text, contains('Verbind je telefoon'));
+      expect(body.suggestedLocator?.text, contains('KPN-FWA'));
+    },
+  );
 }
 
 List<UiElement> _flatten(List<UiElement> roots) {

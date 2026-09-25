@@ -29,13 +29,21 @@ void main() {
     expect(observeCalls, 1);
   });
 
-  test('beforeAction policy enables paint wait and contrast gate', () {
+  test('beforeAction keeps required taps without the contrast gate', () {
     final options = StepScreenshotOptions.beforeAction();
     expect(options.waitForTarget, isTrue);
-    expect(options.requireVisibleActionHighlight, isTrue);
+    expect(options.requireVisibleActionHighlight, isFalse);
     expect(options.waitForLottie, isFalse);
     expect(options.stabilize, isTrue);
     expect(options.allowObserveWhileQueueBusy, isFalse);
+  });
+
+  test('beforeAction optional taps keep the contrast gate', () {
+    final options = StepScreenshotOptions.beforeAction(
+      requireVisibleActionHighlight: true,
+    );
+    expect(options.requireVisibleActionHighlight, isTrue);
+    expect(options.waitForTarget, isTrue);
   });
 
   test('mid-wait policies allow Observer while the leaf queue is busy', () {

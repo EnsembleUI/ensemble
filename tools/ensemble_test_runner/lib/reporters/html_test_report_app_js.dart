@@ -1806,6 +1806,12 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<div class="observer-detail-label">Value</div>';
       html += '<div class="observer-detail-value"><code>' + escapeHtml(String(el.value)) + '</code></div></div>';
     }
+    if (el.hint != null && String(el.hint).trim().length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Hint</div>';
+      html += '<div class="observer-detail-value"><code>' +
+          escapeHtml(String(el.hint).trim()) + '</code></div></div>';
+    }
     if (options.length) {
       html += '<div class="observer-detail-row">';
       html += '<div class="observer-detail-label">Options</div>';

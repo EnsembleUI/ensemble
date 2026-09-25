@@ -297,6 +297,43 @@ void main() {
     expect(textChild['title'], 'KPN Box 12');
   });
 
+  test('textInput report node includes hint placeholder', () {
+    final observation = UiObservation(
+      observationId: 'obs',
+      revision: 0,
+      timestamp: DateTime.utc(2026, 1, 1),
+      screen: const ScreenObservation(name: 'Manual'),
+      elements: [
+        const UiElement(
+          elementId: 'pw1',
+          testId: 'fwa_admin_password_input',
+          type: 'textInput',
+          label: 'Enter the admin password',
+          hint: 'It is on the sticker under your modem',
+          suggestedLocator: ElementLocator(id: 'fwa_admin_password_input'),
+          state: UiElementState(
+            visible: true,
+            enabled: true,
+            interactable: true,
+          ),
+        ),
+      ],
+      viewport: const UiViewport(width: 390, height: 844, devicePixelRatio: 2),
+      observableFingerprint: '',
+      completeness: const ObservationCompleteness(
+        semanticTree: false,
+        runtimeMetadata: true,
+        navigationState: true,
+        screenshot: false,
+      ),
+    );
+
+    final input = observationElementsTreeForReport(observation).single;
+    expect(input['id'], 'fwa_admin_password_input');
+    expect(input['hint'], 'It is on the sticker under your modem');
+    expect(input['title'], 'Enter the admin password');
+  });
+
   test('toast report node does not borrow message text as title', () {
     final observation = UiObservation(
       observationId: 'obs',
