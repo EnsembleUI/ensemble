@@ -22,6 +22,24 @@ steps:
     expect(result.lines.join('\n'), contains('Found 1 YAML test file'));
   });
 
+  test('doctor accepts test profile selectors', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'profiled.test.yaml', '''
+id: profiled
+startScreen: Login
+profiles: fwa_arc
+steps:
+  - expectVisible:
+      id: login_button
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+
+    expect(result.hasErrors, isFalse);
+    expect(result.lines.join('\n'), isNot(contains('Unsupported root key')));
+  });
+
   test('doctor reports missing tests cleanly', () async {
     final dir = _createApp();
     addTearDown(() => dir.deleteSync(recursive: true));

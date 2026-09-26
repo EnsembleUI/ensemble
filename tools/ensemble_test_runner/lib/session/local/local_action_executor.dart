@@ -5,8 +5,10 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
+import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
-import 'package:flutter/widgets.dart' show Element, Offset, Text, ValueKey;
+import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
+import 'package:flutter/widgets.dart' show Element, Offset, Text;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Resolves [ElementTarget] for local execution.
@@ -177,6 +179,10 @@ class FlutterTargetResolver {
     if (matches.length <= 1) return matches;
 
     var collapsed = List<Element>.from(matches);
+    if (locator.bounds != null) {
+      collapsed = _deduplicateRenderObjects(collapsed);
+      return _dropDescendantsOfOtherMatches(collapsed);
+    }
     // Text locators: promote nested Text → actionable ancestor first, then
     // drop descendants. Do not semantics-node-dedup — Material may report
     // unstable/shared nodes and erase distinct sibling buttons.
@@ -190,6 +196,14 @@ class FlutterTargetResolver {
     }
     collapsed = _dropDescendantsOfOtherMatches(collapsed);
     return collapsed;
+  }
+
+  List<Element> _deduplicateRenderObjects(List<Element> matches) {
+    final seen = <Object>{};
+    return matches.where((element) {
+      final renderObject = element.renderObject;
+      return renderObject == null || seen.add(renderObject);
+    }).toList(growable: false);
   }
 
   List<Element> _deduplicateSemanticMatches(List<Element> matches) {
@@ -269,16 +283,20 @@ class FlutterTargetResolver {
       ancestor = scopeMatches.single;
     }
     final scopedAncestor = ancestor;
+    final id = locator.id;
+    // Resolve id via testId-first finder once; avoid O(n²) Invokable subtree
+    // walks inside the per-element predicate.
+    final idMatches = id == null
+        ? null
+        : finderForLocatorId(id, skipOffstage: false).evaluate().toSet();
     return find.byElementPredicate(
       (element) {
         if (scopedAncestor != null &&
             !_isDescendantOf(element, scopedAncestor)) {
           return false;
         }
-        final id = locator.id;
-        if (id != null) {
-          final key = element.widget.key;
-          if (key is! ValueKey || key.value != id) return false;
+        if (idMatches != null && !idMatches.contains(element)) {
+          return false;
         }
         final text = locator.text;
         if (text != null &&
@@ -286,10 +304,17 @@ class FlutterTargetResolver {
           return false;
         }
         final label = locator.label;
-        if (label != null &&
-            (!isSemanticLocatorCandidate(element) ||
-                readSemanticsLabel(tester, element) != label)) {
-          return false;
+        if (label != null) {
+          if (!isSemanticLocatorCandidate(element)) return false;
+          final semantic = readSemanticsLabel(tester, element)?.trim();
+          if (semantic != label) {
+            // Ensemble tabs / InkWell CTAs / inert visual cards often lack a
+            // Semantics label — the visible caption still authors as `label:`.
+            if (readText(element) != label) return false;
+            if (!isActionableControl(element) && !isCardScopeHost(element)) {
+              return false;
+            }
+          }
         }
         final type = inferWidgetType(element);
         final role = locator.role;
@@ -297,6 +322,14 @@ class FlutterTargetResolver {
             (!isSemanticLocatorCandidate(element) ||
                 inferSemanticRole(element, type) != role)) {
           return false;
+        }
+        final expectedBounds = locator.bounds;
+        if (expectedBounds != null) {
+          final actualBounds = boundsFor(element);
+          if (actualBounds == null ||
+              !_boundsMatch(expectedBounds, actualBounds)) {
+            return false;
+          }
         }
         return true;
       },
@@ -323,8 +356,17 @@ class FlutterTargetResolver {
       if (locator.text != null) 'text="${locator.text}"',
       if (locator.label != null) 'label="${locator.label}"',
       if (locator.role != null) 'role="${locator.role}"',
+      if (locator.bounds != null) 'bounds=${locator.bounds!.toJson()}',
     ];
     return 'element(${fields.join(', ')})';
+  }
+
+  bool _boundsMatch(ElementBounds expected, UiBounds actual) {
+    const tolerance = 1.0;
+    return (expected.left - actual.left).abs() <= tolerance &&
+        (expected.top - actual.top).abs() <= tolerance &&
+        (expected.width - actual.width).abs() <= tolerance &&
+        (expected.height - actual.height).abs() <= tolerance;
   }
 
   /// TestId for YAML/[TestStepExecutor.execute] dispatch only.

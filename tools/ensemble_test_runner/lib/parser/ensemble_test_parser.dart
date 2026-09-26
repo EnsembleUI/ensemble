@@ -392,6 +392,13 @@ class EnsembleTestParser {
                 fallback: 1,
                 fieldName: 'timers.maxRepeatIntervalSeconds',
               ),
+              maxNumberOfTimes: timersNode['maxNumberOfTimes'] == null
+                  ? null
+                  : _optionalNonNegativeInt(
+                      timersNode['maxNumberOfTimes'],
+                      fallback: 0,
+                      fieldName: 'timers.maxNumberOfTimes',
+                    ),
             ),
       dumpTree: dumpTreeNode == null
           ? const DumpTreeConfig()

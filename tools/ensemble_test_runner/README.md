@@ -179,6 +179,22 @@ integration mode the same matrix is filtered to the connected target's
 platform: locale/theme still apply, viewport/model do not, and other platforms
 are skipped with a warning.
 
+## Report step capture (screenshot + Observer)
+
+Per-step report artifacts are written as an **atomic pair**: screenshot first,
+then Observer overlays mapped onto that PNG. If the shot is skipped, Observer
+is not written for that step.
+
+- **User actions** (tap, toggle, …): capture **before** the act so the gallery
+  shows the control that was targeted.
+- **Asserts / waits**: capture **after** the condition matches (or mid-wait for
+  `waitForText` / `waitForNavigation`) so overlays match the verified screen.
+- **Runtime observe** (`DiagnosticUiSnapshot` for locators / waits) is separate
+  from the report Observer tab and is not required to match a PNG.
+
+See `lib/runner/step_report_capture.dart` for the policy flags
+(`beforeAction`, `afterCondition`, `onFailure`).
+
 ## App setup
 
 1. Add `*.test.yaml` files under `definitions.local.path/tests/`, for example
@@ -409,11 +425,56 @@ dart run ensemble_test_runner:ensemble_test --validate-only --report=json
 
 ### App inspection and scaffolding
 
-Emit app metadata for test authors:
+`--inspect-app` is a static EDL walk (no Flutter launch). It prints screens,
+widget IDs, APIs, and navigation targets from YAML definitions — useful when
+authoring tests offline:
 
 ```bash
 dart run ensemble_test_runner:ensemble_test --inspect-app
 ```
+
+`--inspect-ui` launches the app once, calls the live UI observer, prints
+elements, and exits. Pass `--screenshots` to also write highlighted PNGs
+(password fields masked). Standalone apps require `--screen`; host apps use
+`--test-entry`.
+
+Each control line includes a verified `selector:` (for example
+`id=login_btn` or `label="Log in", role=button`) suitable for YAML `id:` /
+`target:` authoring. Selectors prefer a stable `id` whenever one exists;
+label/role is used only when there is no id. When no unique locator exists,
+output shows `selector: unavailable` plus a `warning:`. State uses `enabled:`
+only when known (not `interactive:`). With `--format=json`, stdout is only the
+observation JSON; Flutter setup noise goes to stderr.
+
+(The flag is `--inspect-ui`, not `--observe`: `dart run` treats any `--observe*`
+argument as the VM Observatory option and never forwards it to the program.)
+
+```bash
+# Standalone Ensemble (elements only)
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home"
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home" --format=json
+
+# With framed PNGs under build/ensemble_test_runner/inspect-ui/
+dart run ensemble_test_runner:ensemble_test --inspect-ui --screen="Hello Home" --screenshots
+
+# Host app (ApplicationTestDriver)
+dart run ensemble_test_runner:ensemble_test --inspect-ui \
+  --test-entry=test/application_yaml_tests.dart \
+  --mode=widget
+```
+
+With `--screenshots` in widget mode, a framed PNG is written per suite
+`devices` entry (theme and locale applied) under
+`build/ensemble_test_runner/inspect-ui/`, named `{screen}_{theme}_{locale}.png`.
+Observed controls are highlighted on the image; console output lists `file://`
+links to each PNG. With no `devices` in `config.yaml`, a default iPhone frame
+is used (`…_default_default.png`). Password-field masking follows
+`screenshots.secureContent` in `config.yaml` (`mask` / `allow` / `skip`), same
+as YAML test screenshots. `--screenshots` requires widget mode.
+
+Standalone inspect-ui runs through the normal `test/ensemble_tests.dart` entry
+(`runEnsembleYamlTests`) with observe dart-defines — the same bootstrap as the
+suite. Host apps keep using `--test-entry`.
 
 Create a starter test under `definitions.local.path/tests/`:
 

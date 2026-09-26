@@ -14,6 +14,9 @@ class TestRuntimeState {
   final List<AppFrameTimingEntry> appFrameTimings = [];
   final List<PerformanceMarker> performanceMarkers = [];
   final List<ScreenshotSheetFrame> screenshotSheetFrames = [];
+
+  /// Live UI dumps for Step Details → Observer (one per step that was shot).
+  final List<StepObserverArtifact> stepObservers = [];
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
@@ -39,6 +42,10 @@ class TestRuntimeState {
     appFrameTimings.clear();
     performanceMarkers.clear();
     screenshotSheetFrames.clear();
+    for (final observer in stepObservers) {
+      observer.dispose();
+    }
+    stepObservers.clear();
     authUser = null;
     permissions.clear();
     deviceSize = null;
@@ -94,6 +101,12 @@ class TestRuntimeState {
   void addScreenshotSheetFrame(ScreenshotSheetFrame frame) {
     screenshotSheetFrames.add(frame);
   }
+
+  /// Replace any existing observer for [artifact.stepIndex].
+  void upsertStepObserver(StepObserverArtifact artifact) {
+    stepObservers.removeWhere((o) => o.stepIndex == artifact.stepIndex);
+    stepObservers.add(artifact);
+  }
 }
 
 class ScreenshotSheetFrame {
@@ -117,6 +130,38 @@ class ScreenshotSheetFrame {
     this.model,
     this.highlight,
   });
+}
+
+/// Observe snapshot for a step (nested element tree + HTML overlay percents).
+///
+/// [elements] is a parent→child tree (not a flat list). No second screenshot —
+/// overlays are drawn on that step's frame in the HTML report.
+class StepObserverArtifact {
+  StepObserverArtifact({
+    required this.stepIndex,
+    required this.elements,
+    required this.observationJson,
+    this.viewport,
+    this.overlays = const [],
+    this.screen,
+    this.deviceId,
+    this.deviceLabel,
+    this.platform,
+    this.model,
+  });
+
+  final int stepIndex;
+  final String? screen;
+  final List<Map<String, dynamic>> elements;
+  final Map<String, dynamic> observationJson;
+  final Map<String, dynamic>? viewport;
+  final List<Map<String, dynamic>> overlays;
+  final String? deviceId;
+  final String? deviceLabel;
+  final String? platform;
+  final String? model;
+
+  void dispose() {}
 }
 
 class ScreenshotHighlight {

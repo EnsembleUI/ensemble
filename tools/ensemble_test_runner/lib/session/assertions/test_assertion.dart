@@ -299,6 +299,11 @@ sealed class WaitCondition {
         return TextWait(
           text: json['text']?.toString(),
           anyOf: (json['anyOf'] as List?)?.map((e) => e.toString()).toList(),
+          target: json['target'] is Map
+              ? ElementTarget.fromJson(
+                  Map<String, dynamic>.from(json['target'] as Map),
+                )
+              : null,
         );
       case 'screen':
         return ScreenWait(screen: json['screen']?.toString() ?? '');
@@ -376,7 +381,8 @@ class ElementWait extends WaitCondition {
 class TextWait extends WaitCondition {
   final String? text;
   final List<String>? anyOf;
-  const TextWait({this.text, this.anyOf});
+  final ElementTarget? target;
+  const TextWait({this.text, this.anyOf, this.target});
   @override
   String get type => 'text';
   @override
@@ -386,6 +392,7 @@ class TextWait extends WaitCondition {
         'type': type,
         if (text != null) 'text': text,
         if (anyOf != null) 'anyOf': anyOf,
+        if (target != null) 'target': target!.toJson(),
       };
 }
 

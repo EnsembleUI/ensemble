@@ -102,6 +102,9 @@ class TestReportDocument {
   /// Screenshot images are written directly into `report/screenshots/`; only
   /// the transient frame manifests under `frames/` (and legacy `screenshots/`)
   /// are removed here.
+  ///
+  /// `worker_progress` / `worker_reports` are normally deleted earlier by the
+  /// CLI when each finishes its job; listed here as a safety net.
   static void cleanTransientArtifacts(String artifactRoot) {
     for (final name in const [
       'logs',

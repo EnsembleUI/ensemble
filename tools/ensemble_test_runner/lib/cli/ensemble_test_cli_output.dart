@@ -1,6 +1,8 @@
 /// CLI output filtering for [runEnsembleYamlTestsCli].
 library;
 
+import 'package:ensemble_test_runner/session/observation/observe_formatter.dart';
+
 const suiteReportStart = '┌─ Ensemble YAML tests';
 const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
@@ -17,9 +19,19 @@ const flutterTakeExceptionHint =
 /// decides which lines are safe to show while the process is still running.
 class LiveFlutterTestOutputFilter {
   var _suppressRest = false;
+  var _suppressObservePayload = false;
 
   bool shouldEmit(String line) {
     if (_suppressRest) return false;
+    if (line.contains(ensembleTestObserveBegin)) {
+      _suppressObservePayload = true;
+      return false;
+    }
+    if (line.contains(ensembleTestObserveEnd)) {
+      _suppressObservePayload = false;
+      return false;
+    }
+    if (_suppressObservePayload) return false;
     if (line.startsWith(jsonReportPrefix) ||
         line.startsWith(junitReportPrefix) ||
         line.contains(artifactProtocolPrefix) ||
@@ -130,10 +142,15 @@ List<String> flutterTestArguments(List<String> arguments) {
         a == '--doctor' ||
         a == '--fix' ||
         a == '--inspect-app' ||
+        a == '--inspect-ui' ||
+        a == '--screenshots' ||
+        a.startsWith('--format=') ||
+        a == '--format' ||
         a == '--validate-only' ||
         a == '--scaffold-test' ||
         a.startsWith('--scaffold-test=') ||
         a.startsWith('--screen=') ||
+        a == '--screen' ||
         a.startsWith('--id=') ||
         a.startsWith('--feature=') ||
         a.startsWith('--profile=') ||
@@ -151,6 +168,9 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--test-entry') ||
         a == '--verbose' ||
         a == '--quiet') {
+      if (a == '--format' || a == '--screen') {
+        i++;
+      }
       continue;
     }
     forwarded.add(a);

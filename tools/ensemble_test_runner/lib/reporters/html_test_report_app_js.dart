@@ -11,7 +11,18 @@ const ensembleHtmlTestReportAppJs = r'''
   let activeModalTab = 'api';
   let currentModalCardId = '';
   let currentModalStepIndex = -1;
+  let currentObserverDetailIndex = null;
   let activeStorageSubTab = 'public';
+
+  /** Screenshot overlay visibility — shared across step modal + fullscreen sheet.
+   *  Sheet defaults: observation layers off (clear picture); action rings on.
+   *  Tree is on by default when a step has observer data. */
+  const screenshotOverlayPrefs = {
+    obsHighlights: false,
+    obsLabels: false,
+    actionHighlights: true,
+    showTree: true,
+  };
 
   function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -86,7 +97,8 @@ const ensembleHtmlTestReportAppJs = r'''
             storageChanges: step.storageChanges || [],
             secureStorageChanges: step.secureStorageChanges || [],
             keychainChanges: step.keychainChanges || [],
-            screenshots: step.screenshots || []
+            screenshots: step.screenshots || [],
+            observer: step.observer || null
           };
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
@@ -94,6 +106,7 @@ const ensembleHtmlTestReportAppJs = r'''
           step.secureStorageChanges = parent.secureStorageChanges;
           step.keychainChanges = parent.keychainChanges;
           step.screenshots = parent.screenshots;
+          step.observer = parent.observer;
         } else if (parent) {
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
@@ -101,6 +114,7 @@ const ensembleHtmlTestReportAppJs = r'''
           step.secureStorageChanges = parent.secureStorageChanges;
           step.keychainChanges = parent.keychainChanges;
           step.screenshots = parent.screenshots;
+          step.observer = parent.observer;
         } else {
           step.apiCalls = [];
           step.appLogs = [];
@@ -108,6 +122,7 @@ const ensembleHtmlTestReportAppJs = r'''
           step.secureStorageChanges = [];
           step.keychainChanges = [];
           step.screenshots = [];
+          step.observer = null;
         }
         steps[i] = step;
       }
@@ -318,6 +333,7 @@ const ensembleHtmlTestReportAppJs = r'''
     }
 
     window.stepData = {};
+    window.stepMeta = {};
     window.storageSnapshots = {};
     const listPane = document.getElementById('test-list-pane');
     const detailPane = document.getElementById('test-detail-pane');
@@ -709,6 +725,7 @@ const ensembleHtmlTestReportAppJs = r'''
         const firstBlock = document.querySelector('#details-' + cardId + ' .device-run-block');
         if (firstBlock) firstBlock.style.display = 'block';
       }
+      scheduleScreenshotChipLayout(details);
     };
     return el;
   }
@@ -796,6 +813,10 @@ const ensembleHtmlTestReportAppJs = r'''
     runs.forEach((test, i) => {
       const stepKey = cardId + '-' + i;
       window.stepData[stepKey] = test.steps || [];
+      window.stepMeta[stepKey] = {
+        message: test.message || null,
+        failedStepIndex: test.failedStepIndex != null ? test.failedStepIndex : null,
+      };
       window.storageSnapshots[stepKey] = test.storage || {};
       html += buildRunBlock(base, test, cardId, i, stepKey);
     });
@@ -805,6 +826,7 @@ const ensembleHtmlTestReportAppJs = r'''
       wrap.querySelectorAll('.device-run-block').forEach(r => r.style.display = 'none');
       const run = document.getElementById('run-' + cardId + '-' + runIndex);
       if (run) run.style.display = 'block';
+      scheduleScreenshotChipLayout(run || wrap);
     }
 
     function showDevice(deviceIndex) {
@@ -1034,6 +1056,24 @@ const ensembleHtmlTestReportAppJs = r'''
     return out;
   }
 
+  /** Screenshot frames paired with that step's Observer overlays (for gallery/sheet). */
+  function flattenScreenshotFramesWithOverlays(test) {
+    const out = [];
+    const steps = test.steps || [];
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i] || {};
+      if (String(step.stepText || '').startsWith('  ')) continue;
+      const items = step.screenshots || [];
+      const overlays = (step.observer && Array.isArray(step.observer.overlays))
+        ? step.observer.overlays
+        : [];
+      for (let j = 0; j < items.length; j++) {
+        out.push({ frame: items[j], overlays: overlays });
+      }
+    }
+    return out;
+  }
+
   function renderTerminals(test) {
     const consoleLines = flattenStepField(test, 'appLogs');
     const events = flattenStepField(test, 'apiCalls');
@@ -1080,15 +1120,18 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   function renderScreenshotGallery(test) {
-    const frames = flattenStepField(test, 'screenshots');
+    const frames = flattenScreenshotFramesWithOverlays(test);
     if (!frames.length) return '';
     let html = '<div class="screenshot-artifacts-row"><div class="artifact screenshot-artifact-card">';
     html += '<div class="logs-pane-title" style="border:none;padding:0 0 12px 0;"><span style="font-weight:800;font-size:0.8rem;text-transform:uppercase;color:var(--accent);letter-spacing:0.08em;">🖼️ Screenshots</span>';
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'screenshots\')">⛶ Open Fullscreen</button></div>';
+    html += screenshotOverlayToolbarHtml(false);
     html += '<div class="screenshot-gallery">';
-    frames.forEach((frame, idx) => {
+    frames.forEach((entry, idx) => {
+      const frame = entry.frame || {};
+      const overlays = entry.overlays || [];
       const href = frame.href || '';
-      const label = frame.label || frame.file || ('Frame ' + (idx + 1));
+      const label = frame.screen || frame.label || frame.file || ('Frame ' + (idx + 1));
       const failed = frame.failed === true;
       let pillIndex = idx + 1;
       let cleanLabel = label;
@@ -1101,7 +1144,7 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<div class="screenshot-tile-header-bar"><span class="screenshot-index-pill">' + pillIndex + '</span>';
       html += '<span class="screenshot-tile-caption" title="' + escapeHtml(label) + '">' + escapeHtml(cleanLabel) + '</span></div>';
       html += '<div class="screenshot-gallery-frame">';
-      if (href) html += renderScreenshotImage(frame, label);
+      if (href) html += renderScreenshotImage(frame, label, overlays);
       html += '</div></figure>';
     });
     html += '</div></div></div>';
@@ -1188,6 +1231,25 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   // --- Step modal (retargeted to window.stepData) ---
+  function stepFailureMessage(deviceData, stepIndex, meta) {
+    const message = meta && meta.message;
+    const failedStepIndex = meta && meta.failedStepIndex;
+    if (!message || failedStepIndex == null) return null;
+    const step = deviceData[stepIndex];
+    if (!step) return null;
+    if (String(step.stepText || '').startsWith('  ')) return null;
+    let top = -1;
+    const keys = Object.keys(deviceData)
+      .map(k => parseInt(k, 10))
+      .filter(n => !isNaN(n) && n <= stepIndex)
+      .sort((a, b) => a - b);
+    for (const key of keys) {
+      const text = String((deviceData[key] && deviceData[key].stepText) || '');
+      if (!text.startsWith('  ')) top++;
+    }
+    return top === failedStepIndex ? message : null;
+  }
+
   function getStorageStateAtStep(cardId, targetStepIndex, field) {
     const deviceData = window.stepData && window.stepData[cardId];
     if (!deviceData) return {};
@@ -1226,6 +1288,21 @@ const ensembleHtmlTestReportAppJs = r'''
 
     const titleText = (data.stepText || '').trim();
     document.getElementById('modal-step-title').textContent = titleText;
+
+    const errorEl = document.getElementById('modal-step-error');
+    const meta = (window.stepMeta && window.stepMeta[cardId]) || {};
+    const stepError = stepFailureMessage(deviceData, currentModalStepIndex, meta);
+    if (stepError) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = stepError;
+      if (data.observer && typeof data.observer === 'object') {
+        // Overlays live on the failure screenshot — open that tab by default.
+        activeModalTab = 'screenshots';
+      }
+    } else {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
 
     const apiList = document.getElementById('modal-api-list');
     apiList.innerHTML = '';
@@ -1479,40 +1556,866 @@ const ensembleHtmlTestReportAppJs = r'''
     appendSimpleStorageSection('Keychain', 'keychainChanges', 'keychain', keychainPanel);
 
     const shotsList = document.getElementById('modal-screenshots-list');
+    const shotsToolbar = document.getElementById('modal-screenshots-toolbar');
+    const observerSide = document.getElementById('modal-observer-side');
     shotsList.innerHTML = '';
     const screenshots = data.screenshots || [];
+    const observerOverlays = (data.observer && Array.isArray(data.observer.overlays))
+      ? data.observer.overlays
+      : [];
     document.getElementById('modal-screenshots-count').textContent = screenshots.length;
+    if (shotsToolbar) {
+      shotsToolbar.innerHTML = screenshots.length
+        ? screenshotOverlayToolbarHtml(!!(data.observer && typeof data.observer === 'object'))
+        : '';
+    }
     if (!screenshots.length) {
       shotsList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no screenshot for this step&gt;</div>';
     } else {
+      const container = document.createElement('div');
+      container.className = screenshots.length === 1
+        ? 'single-screenshot-container'
+        : 'modal-screenshots-centered';
+      const useSingleLayout = screenshots.length <= 2;
       screenshots.forEach((shot, index) => {
         const href = shot.href || '';
-        const rawLabel = shot.label || shot.file || 'Screenshot';
+        const rawLabel = shot.screen || shot.label || shot.file || 'Screenshot';
         const card = document.createElement('div');
-        card.className = 'modal-screenshot-card' + (screenshots.length === 1 ? ' single-layout' : '');
+        card.className = 'modal-screenshot-card' + (useSingleLayout ? ' single-layout' : '');
         if (href) {
           let labelHtml = '';
           if (screenshots.length > 1) {
             let cleanLabel = getCleanScreenshotLabel(rawLabel, titleText) || ('Screenshot ' + (index + 1));
             labelHtml = '<div class="modal-screenshot-label">' + escapeHtml(cleanLabel) + '</div>';
           }
-          card.innerHTML = renderScreenshotImage(shot, rawLabel) + labelHtml;
+          card.innerHTML = renderScreenshotImage(shot, rawLabel, observerOverlays) + labelHtml;
         } else {
           card.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">' + escapeHtml(rawLabel) + '</div>';
         }
-        if (screenshots.length === 1) {
-          const container = document.createElement('div');
-          container.className = 'single-screenshot-container';
-          container.appendChild(card);
-          shotsList.appendChild(container);
-        } else {
-          shotsList.appendChild(card);
-        }
+        container.appendChild(card);
       });
+      shotsList.appendChild(container);
     }
+    renderObserverSidePanel(data, observerSide);
+    applyScreenshotOverlayPrefs();
+    scheduleScreenshotChipLayout(shotsList);
 
     switchModalTab(activeModalTab);
     document.getElementById('step-modal-overlay').style.display = 'flex';
+  }
+
+  function renderObserverSidePanel(data, panel) {
+    if (!panel) return;
+    panel.innerHTML = '';
+    const observer = data.observer;
+    const payload = observer && observer.observationJson;
+    if (!payload || typeof payload !== 'object') {
+      panel.hidden = true;
+      window.__observerCopyPayload = null;
+      window.__observerScreenshotContext = null;
+      return;
+    }
+    const elements = Array.isArray(payload.elements) ? payload.elements : [];
+    const total = countObserverNodes(elements);
+    window.__observerCopyPayload = payload;
+    const shots = Array.isArray(data && data.screenshots) ? data.screenshots : [];
+    window.__observerScreenshotContext = {
+      frame: shots.length ? shots[shots.length - 1] : null,
+      overlays: Array.isArray(observer.overlays) ? observer.overlays : [],
+    };
+    const screen = payload.screen || '';
+    let html = '';
+    html += '<div class="observer-toolbar">';
+    if (screen) {
+      html += '<div class="observer-screen-label">Screen: ' + escapeHtml(String(screen)) + '</div>';
+    } else {
+      html += '<div class="observer-screen-label">Elements (' + total + ')</div>';
+    }
+    html += '<button type="button" class="observer-copy-json-btn" onclick="copyObserverJson()">Copy JSON</button>';
+    html += '</div>';
+    if (screen) {
+      html += '<div class="observer-elements-heading">Elements (' + total + ')</div>';
+    }
+    if (!elements.length) {
+      html += '<div class="terminal-row" style="color: var(--text-muted);">&lt;no elements&gt;</div>';
+    } else {
+      html += '<div class="observer-tree-wrap"><ul class="observer-tree">';
+      html += renderObserverTreeNodes(elements, 0);
+      html += '</ul></div>';
+    }
+    panel.innerHTML = html;
+    panel.hidden = false;
+    bindObserverHintTooltips(panel);
+    bindObserverTreeHover(panel);
+    bindObserverTreeClicks(panel);
+  }
+
+  function bindObserverTreeClicks(root) {
+    if (!root || root.__observerTreeClickBound) return;
+    root.__observerTreeClickBound = true;
+    root.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.observer-tree-toggle')) return;
+      const row = e.target.closest && e.target.closest('.observer-tree-row');
+      if (!row || !root.contains(row)) return;
+      const li = row.closest('.observer-tree-node');
+      const index = li ? li.getAttribute('data-obs-index') : null;
+      if (index == null || index === '') return;
+      openObserverElementDetail(index);
+    });
+  }
+
+  function findObserverElementByIndex(index) {
+    const payload = window.__observerCopyPayload;
+    if (!payload || !Array.isArray(payload.elements)) return null;
+    const want = String(index);
+    let found = null;
+    function walk(nodes) {
+      (Array.isArray(nodes) ? nodes : []).forEach(function (n) {
+        if (found || !n) return;
+        if (String(n.index) === want) {
+          found = n;
+          return;
+        }
+        walk(n.children);
+      });
+    }
+    walk(payload.elements);
+    return found;
+  }
+
+  function listObserverElementIndexes() {
+    const payload = window.__observerCopyPayload;
+    const out = [];
+    function walk(nodes) {
+      (Array.isArray(nodes) ? nodes : []).forEach(function (n) {
+        if (!n || n.index == null) return;
+        out.push(String(n.index));
+        walk(n.children);
+      });
+    }
+    if (payload) walk(payload.elements);
+    return out;
+  }
+
+  function updateObserverElementNavButtons() {
+    const indexes = listObserverElementIndexes();
+    const pos = indexes.indexOf(String(currentObserverDetailIndex));
+    const prev = document.getElementById('observer-element-detail-prev');
+    const next = document.getElementById('observer-element-detail-next');
+    if (prev) {
+      prev.disabled = pos <= 0;
+      prev.classList.toggle('is-disabled', pos <= 0);
+    }
+    if (next) {
+      next.disabled = pos < 0 || pos >= indexes.length - 1;
+      next.classList.toggle('is-disabled', pos < 0 || pos >= indexes.length - 1);
+    }
+  }
+
+  function navigateObserverElement(direction, event) {
+    if (event) event.stopPropagation();
+    const indexes = listObserverElementIndexes();
+    const pos = indexes.indexOf(String(currentObserverDetailIndex));
+    if (pos < 0) return;
+    const nextPos = pos + direction;
+    if (nextPos < 0 || nextPos >= indexes.length) return;
+    openObserverElementDetail(indexes[nextPos]);
+  }
+
+  function setObserverTreeSelectedIndex(index) {
+    const side = document.getElementById('modal-observer-side');
+    if (side) {
+      side.querySelectorAll('.observer-tree-node.is-selected').forEach(function (n) {
+        n.classList.remove('is-selected');
+      });
+      if (index != null && index !== '') {
+        const node = side.querySelector('.observer-tree-node[data-obs-index="' + index + '"]');
+        if (node) {
+          node.classList.add('is-selected');
+          if (typeof node.scrollIntoView === 'function') {
+            node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        }
+      }
+    }
+    setObserverTreeHoverIndex(index);
+  }
+
+  function openObserverElementDetail(index) {
+    const el = findObserverElementByIndex(index);
+    if (!el) return;
+    currentObserverDetailIndex = String(index);
+    hideObserverHintTooltip();
+    setObserverTreeSelectedIndex(index);
+
+    const type = el.type || 'widget';
+    const title = el.title ? String(el.title) : '';
+    const heading = title || type;
+    const titleEl = document.getElementById('observer-element-detail-title');
+    if (titleEl) titleEl.textContent = heading;
+
+    const kids = Array.isArray(el.children) ? el.children : [];
+    const actionExamples = Array.isArray(el.actionExamples) ? el.actionExamples : [];
+    const options = Array.isArray(el.options) ? el.options : [];
+    const selector = formatObserverSelector(observerElementLocator(el));
+
+    let html = '';
+    html += renderObserverElementPreview(index);
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Type</div>';
+    html += '<div class="observer-detail-value"><span class="observer-detail-type">' +
+        escapeHtml(String(type)) + '</span></div></div>';
+
+    if (title) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Title</div>';
+      html += '<div class="observer-detail-value">' + escapeHtml(title) + '</div></div>';
+    }
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Selector</div>';
+    if (selector) {
+      html += '<code class="observer-detail-selector">' + escapeHtml(selector) + '</code>';
+    } else {
+      html += '<div class="observer-detail-empty">No selector</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">State</div>';
+    html += '<div class="observer-detail-chips">';
+    if (el.enabled != null) {
+      html += '<span class="observer-detail-chip muted">enabled=' + escapeHtml(String(el.enabled)) + '</span>';
+    }
+    if (el.interactable != null) {
+      html += '<span class="observer-detail-chip muted">interactable=' + escapeHtml(String(el.interactable)) + '</span>';
+    }
+    if (el.checked != null) {
+      html += '<span class="observer-detail-chip muted">checked=' + escapeHtml(String(el.checked)) + '</span>';
+    }
+    if (el.visible != null) {
+      html += '<span class="observer-detail-chip muted">visible=' + escapeHtml(String(el.visible)) + '</span>';
+    }
+    if (el.offscreen != null) {
+      html += '<span class="observer-detail-chip muted">offscreen=' + escapeHtml(String(el.offscreen)) + '</span>';
+    }
+    if (el.selected != null) {
+      html += '<span class="observer-detail-chip muted">selected=' + escapeHtml(String(el.selected)) + '</span>';
+    }
+    if (el.focused != null) {
+      html += '<span class="observer-detail-chip muted">focused=' + escapeHtml(String(el.focused)) + '</span>';
+    }
+    if (el.obscured != null) {
+      html += '<span class="observer-detail-chip muted">obscured=' + escapeHtml(String(el.obscured)) + '</span>';
+    }
+    if (el.secure != null) {
+      html += '<span class="observer-detail-chip muted">secure=' + escapeHtml(String(el.secure)) + '</span>';
+    }
+    if (el.enabled == null && el.interactable == null && el.checked == null &&
+        el.visible == null && el.offscreen == null && el.selected == null &&
+        el.focused == null && el.obscured == null && el.secure == null) {
+      html += '<span class="observer-detail-empty">—</span>';
+    }
+    html += '</div></div>';
+
+    if (el.bounds != null) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Bounds (logical px)</div>';
+      html += '<div class="observer-detail-value"><code>' +
+          escapeHtml(JSON.stringify(el.bounds)) + '</code></div></div>';
+    }
+
+    if (el.value != null && String(el.value).length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Value</div>';
+      html += '<div class="observer-detail-value"><code>' + escapeHtml(String(el.value)) + '</code></div></div>';
+    }
+    if (el.hint != null && String(el.hint).trim().length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Hint</div>';
+      html += '<div class="observer-detail-value"><code>' +
+          escapeHtml(String(el.hint).trim()) + '</code></div></div>';
+    }
+    if (options.length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Options</div>';
+      html += '<div class="observer-detail-chips">';
+      options.forEach(function (o) {
+        html += '<span class="observer-detail-chip muted">' + escapeHtml(String(o)) + '</span>';
+      });
+      html += '</div></div>';
+    }
+    if (el.warning) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Warning</div>';
+      html += '<div class="observer-detail-chips"><span class="observer-detail-chip warn">' +
+          escapeHtml(String(el.warning)) + '</span></div></div>';
+    }
+    if (kids.length) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Children</div>';
+      html += '<div class="observer-detail-value">' + kids.length + '</div></div>';
+    }
+
+    html += '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Action examples</div>';
+    if (actionExamples.length) {
+      window.__observerActionYamlSnippets = actionExamples;
+      html += '<div class="observer-detail-actions-list">';
+      actionExamples.forEach(function (yaml, i) {
+        const action = observerActionName(yaml);
+        html += '<div class="observer-detail-action">';
+        html += '<div class="observer-detail-action-header">';
+        html += '<span class="observer-detail-action-name">' + escapeHtml(action) + '</span>';
+        html += '<button type="button" class="observer-detail-copy-btn" onclick="copyObserverActionYaml(this, ' +
+            i + ')">Copy</button>';
+        html += '</div>';
+        html += '<pre class="observer-detail-action-yaml">' + escapeHtml(String(yaml)) + '</pre>';
+        html += '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="observer-detail-empty">None</div>';
+    }
+    html += '</div>';
+
+    const body = document.getElementById('observer-element-detail-body');
+    if (body) body.innerHTML = html;
+    const overlay = document.getElementById('observer-element-detail-overlay');
+    if (overlay) overlay.style.display = 'flex';
+    updateObserverElementNavButtons();
+    scheduleObserverDetailPreviewLayout();
+  }
+
+  function renderObserverElementPreview(index) {
+    const ctx = window.__observerScreenshotContext;
+    if (!ctx || !ctx.frame || !ctx.frame.href) {
+      return '<div class="observer-detail-row">' +
+          '<div class="observer-detail-label">Screenshot</div>' +
+          '<div class="observer-detail-empty">No screenshot for this step</div>' +
+          '</div>';
+    }
+    const href = String(ctx.frame.href);
+    const overlays = Array.isArray(ctx.overlays) ? ctx.overlays : [];
+    const match = overlays.find(function (o) {
+      return o && String(o.index) === String(index);
+    });
+
+    if (!match) {
+      const element = findObserverElementByIndex(index);
+      const offscreen = element && element.state &&
+          element.state.offscreen === true;
+      return '<div class="observer-detail-row">' +
+          '<div class="observer-detail-label">Screenshot</div>' +
+          '<div class="observer-detail-empty">' +
+          (offscreen
+            ? 'Element is outside this screenshot viewport; no overlay can be shown.'
+            : 'Screenshot has no bounds overlay for this element.') +
+          '</div></div>';
+    }
+
+    let boundsAttr = '';
+    let highlightHtml = '';
+    const left = Number(match.left || 0);
+    const top = Number(match.top || 0);
+    const width = Number(match.width || 0);
+    const height = Number(match.height || 0);
+    if (width > 0 && height > 0) {
+      boundsAttr = ' data-obs-left="' + left.toFixed(4) + '"' +
+          ' data-obs-top="' + top.toFixed(4) + '"' +
+          ' data-obs-width="' + width.toFixed(4) + '"' +
+          ' data-obs-height="' + height.toFixed(4) + '"';
+      highlightHtml = '<span class="screenshot-highlight observer tree-hover" style="left:' +
+          left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' +
+          width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"></span>';
+    }
+
+    let html = '<div class="observer-detail-row">';
+    html += '<div class="observer-detail-label">Screenshot</div>';
+    html += '<div class="observer-detail-preview">';
+    html += '<div class="observer-detail-preview-stage"' + boundsAttr + '>';
+    html += '<div class="screenshot-image-wrap observer-detail-preview-zoom">';
+    html += '<img src="' + escapeHtml(href) +
+        '" alt="Selected element" loading="eager" decoding="async"/>';
+    html += highlightHtml;
+    html += '</div></div>';
+    html += '</div></div>';
+    return html;
+  }
+
+  function scheduleObserverDetailPreviewLayout() {
+    const stage = document.querySelector(
+        '#observer-element-detail-body .observer-detail-preview-stage');
+    if (!stage) return;
+    const img = stage.querySelector('img');
+    if (!img) return;
+    const run = function () { layoutObserverDetailPreview(stage); };
+    if (img.complete && img.naturalWidth > 0) {
+      requestAnimationFrame(run);
+    } else {
+      img.addEventListener('load', run, { once: true });
+    }
+  }
+
+  /** Crop the step screenshot so the selected overlay fills the preview stage. */
+  function layoutObserverDetailPreview(stage) {
+    if (!stage) return;
+    const wrap = stage.querySelector('.observer-detail-preview-zoom');
+    const img = stage.querySelector('img');
+    if (!wrap || !img || !img.naturalWidth || !img.naturalHeight) return;
+
+    const left = Number(stage.getAttribute('data-obs-left'));
+    const top = Number(stage.getAttribute('data-obs-top'));
+    const width = Number(stage.getAttribute('data-obs-width'));
+    const height = Number(stage.getAttribute('data-obs-height'));
+    const hasBounds = Number.isFinite(left) && Number.isFinite(top) &&
+        Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
+
+    const stageW = stage.clientWidth;
+    const stageH = stage.clientHeight;
+    if (stageW <= 0 || stageH <= 0) return;
+
+    const natW = img.naturalWidth;
+    const natH = img.naturalHeight;
+
+    let cropL = 0;
+    let cropT = 0;
+    let cropW = natW;
+    let cropH = natH;
+
+    if (hasBounds) {
+      const elL = (left / 100) * natW;
+      const elT = (top / 100) * natH;
+      const elW = (width / 100) * natW;
+      const elH = (height / 100) * natH;
+      const cx = elL + elW / 2;
+      const cy = elT + elH / 2;
+
+      // Modest padding; floor the crop so tiny icons are not pixel mush.
+      const pad = 0.35;
+      cropW = Math.min(natW, Math.max(elW * (1 + 2 * pad), natW * 0.22));
+      cropH = Math.min(natH, Math.max(elH * (1 + 2 * pad), natH * 0.16));
+
+      // Prefer a crop whose aspect is closer to the stage so we use the viewport.
+      const stageAspect = stageW / stageH;
+      if (cropW / cropH > stageAspect) {
+        cropH = Math.min(natH, cropW / stageAspect);
+      } else {
+        cropW = Math.min(natW, cropH * stageAspect);
+      }
+
+      cropL = cx - cropW / 2;
+      cropT = cy - cropH / 2;
+      cropL = Math.max(0, Math.min(cropL, natW - cropW));
+      cropT = Math.max(0, Math.min(cropT, natH - cropH));
+    }
+
+    // Cover the stage with the crop (letterbox only if image is narrower).
+    const scale = Math.max(stageW / cropW, stageH / cropH);
+    const drawW = natW * scale;
+    const drawH = natH * scale;
+    const tx = -cropL * scale + (stageW - cropW * scale) / 2;
+    const ty = -cropT * scale + (stageH - cropH * scale) / 2;
+
+    wrap.style.width = drawW.toFixed(2) + 'px';
+    wrap.style.height = drawH.toFixed(2) + 'px';
+    wrap.style.transform = 'translate(' + tx.toFixed(2) + 'px,' + ty.toFixed(2) + 'px)';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.maxWidth = 'none';
+    img.style.objectFit = 'fill';
+  }
+
+  function closeObserverElementDetail(event) {
+    if (event) {
+      const t = event.target;
+      if (t.id !== 'observer-element-detail-overlay' &&
+          !(t.classList && t.classList.contains('modal-close-btn'))) {
+        return;
+      }
+      // Step-modal close also has .modal-close-btn — only honor it inside our overlay.
+      if (t.classList && t.classList.contains('modal-close-btn')) {
+        const overlay = document.getElementById('observer-element-detail-overlay');
+        if (!overlay || !overlay.contains(t)) return;
+      }
+    }
+    const overlay = document.getElementById('observer-element-detail-overlay');
+    if (overlay) overlay.style.display = 'none';
+    currentObserverDetailIndex = null;
+    setObserverTreeSelectedIndex(null);
+  }
+
+  async function copyObserverActionYaml(btn, index) {
+    const snippets = window.__observerActionYamlSnippets;
+    const text = snippets && snippets[index];
+    if (!text) return;
+    await copyTextToClipboard(text, btn, 'Copy');
+  }
+
+  async function copyTextToClipboard(text, btn, idleLabel) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      if (btn) {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = idleLabel || 'Copy'; }, 1200);
+      }
+    } catch (_) {
+      if (btn) {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = idleLabel || 'Copy'; }, 1500);
+      }
+    }
+  }
+
+  function formatObserverSelector(locator) {
+    if (!locator || typeof locator !== 'object') return '';
+    const id = locator.id != null ? String(locator.id).trim() : '';
+    if (id) return 'id=' + id;
+    const parts = [];
+    if (locator.within && typeof locator.within === 'object') {
+      const nested = formatObserverSelector(locator.within);
+      if (nested) parts.push('within={' + nested + '}');
+    }
+    const label = locator.label != null ? String(locator.label).trim() : '';
+    if (label) {
+      parts.push('label="' + label.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"');
+    }
+    const text = locator.text != null ? String(locator.text).trim() : '';
+    if (text) {
+      parts.push('text="' + text.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"');
+    }
+    const role = locator.role != null ? String(locator.role).trim() : '';
+    if (role) parts.push('role=' + role);
+    if (locator.occurrence != null) parts.push('occurrence=' + locator.occurrence);
+    if (locator.bounds && typeof locator.bounds === 'object') {
+      parts.push('bounds=' + JSON.stringify(locator.bounds));
+    }
+    return parts.join(', ');
+  }
+
+  function observerElementLocator(el) {
+    if (el && el.warning && el.bounds && typeof el.bounds === 'object') {
+      return { bounds: el.bounds };
+    }
+    if (el && el.locator && typeof el.locator === 'object') return el.locator;
+    if (el && el.id) return { id: String(el.id) };
+    if (el && el.bounds && typeof el.bounds === 'object') {
+      return { bounds: el.bounds };
+    }
+    if (el && el.title) return { text: String(el.title) };
+    return null;
+  }
+
+  function observerActionName(example) {
+    const match = String(example || '').trim().match(/^([A-Za-z][A-Za-z0-9]*):/);
+    return match ? match[1] : 'Action';
+  }
+
+  function bindObserverTreeHover(root) {
+    if (!root || root.__observerTreeHoverBound) return;
+    root.__observerTreeHoverBound = true;
+    root.addEventListener('mouseover', function (e) {
+      const row = e.target.closest && e.target.closest('.observer-tree-row');
+      if (!row || !root.contains(row)) return;
+      const fromRow = e.relatedTarget && e.relatedTarget.closest
+        ? e.relatedTarget.closest('.observer-tree-row')
+        : null;
+      if (fromRow === row) return;
+      const li = row.closest('.observer-tree-node');
+      setObserverTreeHoverIndex(li ? li.getAttribute('data-obs-index') : null);
+    });
+    root.addEventListener('mouseout', function (e) {
+      const row = e.target.closest && e.target.closest('.observer-tree-row');
+      if (!row || !root.contains(row)) return;
+      const toRow = e.relatedTarget && e.relatedTarget.closest
+        ? e.relatedTarget.closest('.observer-tree-row')
+        : null;
+      if (toRow && root.contains(toRow)) return;
+      setObserverTreeHoverIndex(null);
+    });
+  }
+
+  function setObserverTreeHoverIndex(index) {
+    const shotsList = document.getElementById('modal-screenshots-list');
+    const side = document.getElementById('modal-observer-side');
+    if (shotsList) {
+      shotsList.querySelectorAll('.screenshot-highlight.tree-hover').forEach(function (hl) {
+        hl.classList.remove('tree-hover');
+      });
+    }
+    if (side) {
+      side.querySelectorAll('.observer-tree-node.is-hovered').forEach(function (n) {
+        n.classList.remove('is-hovered');
+      });
+    }
+    if (index == null || index === '') return;
+    if (shotsList) {
+      shotsList.querySelectorAll('.screenshot-highlight.observer[data-obs-index="' + index + '"]').forEach(function (hl) {
+        hl.classList.add('tree-hover');
+      });
+    }
+    if (side) {
+      const node = side.querySelector('.observer-tree-node[data-obs-index="' + index + '"]');
+      if (node) node.classList.add('is-hovered');
+    }
+  }
+
+  function getObserverFloatingTooltip() {
+    let tip = document.getElementById('observer-floating-tooltip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'observer-floating-tooltip';
+      tip.className = 'observer-floating-tooltip';
+      tip.setAttribute('role', 'tooltip');
+      document.body.appendChild(tip);
+    }
+    return tip;
+  }
+
+  function hideObserverHintTooltip() {
+    const tip = document.getElementById('observer-floating-tooltip');
+    if (tip) tip.classList.remove('is-visible');
+    document.querySelectorAll('.observer-hint.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+    });
+  }
+
+  function positionObserverFloatingTooltip(anchor) {
+    const tip = getObserverFloatingTooltip();
+    const chip = anchor.querySelector('.observer-hint-chip') || anchor;
+    const chipRect = chip.getBoundingClientRect();
+    const tipW = tip.offsetWidth;
+    const tipH = tip.offsetHeight;
+    const gap = 6;
+    const pad = 8;
+    const spaceBelow = window.innerHeight - chipRect.bottom - pad;
+    const spaceAbove = chipRect.top - pad;
+    let top;
+    if (spaceBelow < tipH && spaceAbove > spaceBelow) {
+      top = chipRect.top - tipH - gap;
+    } else {
+      top = chipRect.bottom + gap;
+    }
+    let left = chipRect.left;
+    if (left + tipW > window.innerWidth - pad) {
+      left = Math.max(pad, window.innerWidth - tipW - pad);
+    }
+    if (left < pad) left = pad;
+    if (top < pad) top = pad;
+    if (top + tipH > window.innerHeight - pad) {
+      top = Math.max(pad, window.innerHeight - tipH - pad);
+    }
+    tip.style.top = Math.round(top) + 'px';
+    tip.style.left = Math.round(left) + 'px';
+  }
+
+  function showObserverHintTooltip(hint) {
+    const title = hint.getAttribute('data-tip-title') || '';
+    const body = hint.getAttribute('data-tip-body') || '';
+    const listRaw = hint.getAttribute('data-tip-list') || '';
+    const list = listRaw ? listRaw.split('|').filter(Boolean) : [];
+    if (!body && !list.length) return;
+
+    const tip = getObserverFloatingTooltip();
+    let html = '';
+    if (title) {
+      html += '<div class="observer-hint-tooltip-title">' + escapeHtml(title) + '</div>';
+    }
+    if (list.length) {
+      html += '<ul class="observer-hint-tooltip-list">';
+      for (let i = 0; i < list.length; i++) {
+        html += '<li><code>' + escapeHtml(String(list[i])) + '</code></li>';
+      }
+      html += '</ul>';
+    } else if (body) {
+      html += '<code class="observer-hint-tooltip-body">' + escapeHtml(body) + '</code>';
+    }
+    tip.innerHTML = html;
+    tip.classList.add('is-visible');
+    hint.classList.add('is-open');
+    positionObserverFloatingTooltip(hint);
+  }
+
+  function bindObserverHintTooltips(root) {
+    if (!root) return;
+    if (!root.__observerHintsBound) {
+      root.__observerHintsBound = true;
+      root.addEventListener('mouseover', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        showObserverHintTooltip(hint);
+      });
+      root.addEventListener('mouseout', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        const next = e.relatedTarget;
+        if (next && hint.contains(next)) return;
+        hideObserverHintTooltip();
+      });
+      root.addEventListener('focusin', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        showObserverHintTooltip(hint);
+      });
+      root.addEventListener('focusout', function (e) {
+        const hint = e.target.closest && e.target.closest('.observer-hint');
+        if (!hint || !root.contains(hint)) return;
+        const next = e.relatedTarget;
+        if (next && hint.contains(next)) return;
+        hideObserverHintTooltip();
+      });
+    }
+    const treeWrap = root.querySelector('.observer-tree-wrap');
+    if (treeWrap && !treeWrap.__observerScrollBound) {
+      treeWrap.__observerScrollBound = true;
+      treeWrap.addEventListener('scroll', hideObserverHintTooltip, { passive: true });
+    }
+  }
+
+  function countObserverNodes(nodes) {
+    let n = 0;
+    (Array.isArray(nodes) ? nodes : []).forEach(function (el) {
+      n += 1;
+      if (el && Array.isArray(el.children)) n += countObserverNodes(el.children);
+    });
+    return n;
+  }
+
+  function renderObserverTreeNodes(nodes, depth) {
+    let html = '';
+    (Array.isArray(nodes) ? nodes : []).forEach(function (el) {
+      html += renderObserverTreeNode(el || {}, depth);
+    });
+    return html;
+  }
+
+  function renderObserverTreeNode(el, depth) {
+    const type = el.type || 'widget';
+    const id = el.id ? String(el.id) :
+        (el.locator && el.locator.id ? String(el.locator.id) : '');
+    const title = el.title ? String(el.title) : '';
+    // Prefer a single label — title, else id. Cards omit title so keyed cards
+    // show their authoring id here instead of a borrowed child caption.
+    const label = title || id;
+    const selector = formatObserverSelector(observerElementLocator(el));
+    const kids = Array.isArray(el.children) ? el.children : [];
+    const hasKids = kids.length > 0;
+    const actionExamples = Array.isArray(el.actionExamples) ? el.actionExamples : [];
+    const stateBits = [];
+    if (el.enabled != null) stateBits.push('enabled=' + el.enabled);
+    if (el.visible != null) stateBits.push('visible=' + el.visible);
+    if (el.offscreen != null) stateBits.push('offscreen=' + el.offscreen);
+    if (el.selected != null) stateBits.push('selected=' + el.selected);
+    if (el.checked != null) stateBits.push('checked=' + el.checked);
+    if (el.interactable != null) stateBits.push('interactable=' + el.interactable);
+    if (el.value) stateBits.push('value=' + String(el.value));
+    if (Array.isArray(el.options) && el.options.length) {
+      stateBits.push('options=[' + el.options.map(String).join(', ') + ']');
+    }
+    if (el.warning) stateBits.push('warning=' + String(el.warning));
+
+    let html = '<li class="observer-tree-node" data-depth="' + depth + '"' +
+        (el.index != null ? ' data-obs-index="' + escapeHtml(String(el.index)) + '"' : '') +
+        '>';
+    html += '<div class="observer-tree-row">';
+    if (hasKids) {
+      html += '<button type="button" class="observer-tree-toggle" aria-expanded="true" onclick="toggleObserverTreeNode(this)">▾</button>';
+    } else {
+      html += '<span class="observer-tree-toggle-spacer"></span>';
+    }
+    html += '<code class="observer-type">' + escapeHtml(String(type)) + '</code>';
+    html += '<span class="observer-title"' +
+        (label ? ' title="' + escapeHtml(label) + '"' : '') + '>' +
+        (label ? escapeHtml(label) : '') + '</span>';
+    html += '<span class="observer-tree-meta">';
+    if (selector) {
+      html += '<span class="observer-hint" tabindex="0" data-tip-title="Selector" data-tip-body="' +
+        escapeHtml(selector) + '">';
+      html += '<span class="observer-hint-chip" aria-label="Selector">';
+      html += '<span class="observer-hint-glyph" aria-hidden="true">sel</span>';
+      html += '</span></span>';
+    }
+    if (actionExamples.length) {
+      html += '<span class="observer-hint" tabindex="0" data-tip-title="Supported actions" data-tip-list="' +
+        escapeHtml(actionExamples.map(observerActionName).join('|')) + '">';
+      html += '<span class="observer-hint-chip" aria-label="' + actionExamples.length + ' supported actions">';
+      html += '<span class="observer-hint-glyph" aria-hidden="true">act</span>';
+      html += '<span class="observer-hint-count">' + actionExamples.length + '</span>';
+      html += '</span></span>';
+    }
+    if (stateBits.length) {
+      html += '<span class="observer-state">' + escapeHtml(stateBits.join(' · ')) + '</span>';
+    }
+    html += '</span>';
+    html += '</div>';
+    if (hasKids) {
+      html += '<ul class="observer-tree-children">';
+      html += renderObserverTreeNodes(kids, depth + 1);
+      html += '</ul>';
+    }
+    html += '</li>';
+    return html;
+  }
+
+  function toggleObserverTreeNode(btn) {
+    const li = btn.closest('.observer-tree-node');
+    if (!li) return;
+    let kids = null;
+    for (let i = 0; i < li.children.length; i++) {
+      if (li.children[i].classList.contains('observer-tree-children')) {
+        kids = li.children[i];
+        break;
+      }
+    }
+    if (!kids) return;
+    const open = kids.style.display !== 'none';
+    kids.style.display = open ? 'none' : '';
+    btn.textContent = open ? '▸' : '▾';
+    btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+  }
+
+  async function copyObserverJson() {
+    const payload = window.__observerCopyPayload;
+    if (!payload) return;
+    const text = JSON.stringify(payload, null, 2);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      const btn = document.querySelector('.observer-copy-json-btn');
+      if (btn) {
+        const prev = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = prev || 'Copy JSON'; }, 1200);
+      }
+    } catch (_) {
+      const btn = document.querySelector('.observer-copy-json-btn');
+      if (btn) {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = 'Copy JSON'; }, 1500);
+      }
+    }
   }
 
   function toggleApiDetails(headerEl) {
@@ -1539,10 +2442,18 @@ const ensembleHtmlTestReportAppJs = r'''
     contentArea.innerHTML = '';
     contentArea.className = 'fullscreen-card-content-area';
     if (type === 'screenshots') {
-      contentArea.classList.add('grid-layout');
+      const toolbar = document.createElement('div');
+      toolbar.className = 'screenshot-overlay-toolbar-host';
+      toolbar.innerHTML = screenshotOverlayToolbarHtml(false);
+      contentArea.appendChild(toolbar);
+      const grid = document.createElement('div');
+      grid.className = 'fullscreen-screenshots-grid';
       cardEl.querySelectorAll('.screenshot-gallery-tile').forEach(tile => {
-        contentArea.appendChild(tile.cloneNode(true));
+        grid.appendChild(tile.cloneNode(true));
       });
+      contentArea.appendChild(grid);
+      applyScreenshotOverlayPrefs();
+      scheduleScreenshotChipLayout(contentArea);
     } else {
       const terminal = cardEl.querySelector('.logs-terminal');
       if (terminal) {
@@ -1563,6 +2474,7 @@ const ensembleHtmlTestReportAppJs = r'''
     if (event) {
       if (event.target.id !== 'step-modal-overlay' && !event.target.classList.contains('modal-close-btn')) return;
     }
+    closeObserverElementDetail();
     document.getElementById('step-modal-overlay').style.display = 'none';
     activeModalTab = 'api';
   }
@@ -1580,12 +2492,15 @@ const ensembleHtmlTestReportAppJs = r'''
 
   function switchModalTab(tab) {
     activeModalTab = tab;
+    hideObserverHintTooltip();
+    closeObserverElementDetail();
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
     });
     document.querySelectorAll('.modal-tab-content').forEach(content => { content.style.display = 'none'; });
     const pane = document.getElementById('modal-tab-' + tab);
     if (pane) pane.style.display = 'flex';
+    if (tab === 'screenshots') scheduleScreenshotChipLayout(pane);
   }
 
   function formatStorageValue(value) {
@@ -1743,27 +2658,465 @@ const ensembleHtmlTestReportAppJs = r'''
     return clean;
   }
 
-  function renderScreenshotImage(frame, label) {
+  function renderScreenshotImage(frame, label, observerOverlays) {
     const href = frame.href || '';
     if (!href) return '';
     let html = '<a class="screenshot-image-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">';
     html += '<span class="screenshot-image-wrap">';
     html += '<img src="' + escapeHtml(href) + '" alt="' + escapeHtml(label) + '" loading="lazy"/>';
+
     const highlight = frame.highlight || null;
+    let highlightRect = null;
     if (highlight) {
-      const kind = highlight.kind === 'assertion' || highlight.kind === 'failure'
-        ? highlight.kind
-        : 'action';
       const left = Number(highlight.left || 0);
       const top = Number(highlight.top || 0);
       const width = Number(highlight.width || 0);
       const height = Number(highlight.height || 0);
       if (width > 0 && height > 0) {
-        html += '<span class="screenshot-highlight ' + kind + '" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"><span class="screenshot-highlight-dot"></span></span>';
+        highlightRect = { left: left, top: top, width: width, height: height };
       }
     }
+
+    // Observer boxes for every element (including the step target). The action
+    // ring is a separate overlay on top so Elements stays visible when Target
+    // is toggled off. Labels/chips live on observer boxes so they work without
+    // Target enabled.
+    const overlays = Array.isArray(observerOverlays) ? observerOverlays : [];
+    overlays.forEach((overlay) => {
+      const left = Number(overlay.left || 0);
+      const top = Number(overlay.top || 0);
+      const width = Number(overlay.width || 0);
+      const height = Number(overlay.height || 0);
+      if (!(width > 0 && height > 0)) return;
+      const compact = isCompactObserverRect(width, height);
+      const obsIndex = overlay.index != null ? String(overlay.index) : '';
+      html += '<span class="screenshot-highlight observer' +
+          (compact ? ' compact' : '') +
+          '"' +
+          (obsIndex ? ' data-obs-index="' + escapeHtml(obsIndex) + '"' : '') +
+          ' style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;">';
+      html += renderObserverChips(overlay.id, overlay.type, compact);
+      html += '</span>';
+    });
+
+    // Action / assertion / failure ring on top — primary focus of the step.
+    if (highlightRect) {
+      const kind = highlight.kind === 'assertion' || highlight.kind === 'failure'
+        ? highlight.kind
+        : 'action';
+      const compactAction = isCompactObserverRect(highlightRect.width, highlightRect.height);
+      html += '<span class="screenshot-highlight ' + kind +
+          (compactAction ? ' compact' : '') +
+          '" style="left:' + highlightRect.left.toFixed(4) + '%;top:' + highlightRect.top.toFixed(4) + '%;width:' + highlightRect.width.toFixed(4) + '%;height:' + highlightRect.height.toFixed(4) + '%;">';
+      html += '<span class="screenshot-highlight-dot"></span>';
+      html += '</span>';
+    }
+    html += '<button type="button" class="screenshot-copy-btn" title="Copy screenshot with current overlay settings" onclick="event.preventDefault();event.stopPropagation();copyScreenshotOverlay(this);">Copy</button>';
     html += '</span></a>';
     return html;
+  }
+
+  function screenshotOverlayToolbarHtml(includeTree) {
+    let html = '<div class="screenshot-overlay-toolbar">' +
+        '<div class="screenshot-overlay-switches">' +
+          screenshotOverlaySwitchHtml('obsHighlights', 'Elements') +
+          screenshotOverlaySwitchHtml('obsLabels', 'Labels') +
+          screenshotOverlaySwitchHtml('actionHighlights', 'Target');
+    if (includeTree) {
+      html += screenshotOverlaySwitchHtml('showTree', 'Tree');
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function screenshotOverlaySwitchHtml(key, label) {
+    const checked = screenshotOverlayPrefs[key] ? ' checked' : '';
+    return '<label class="screenshot-overlay-switch">' +
+        '<input type="checkbox" data-overlay-pref="' + key + '"' + checked +
+        ' onchange="setScreenshotOverlayPref(\'' + key + '\', this.checked)">' +
+        '<span class="screenshot-overlay-switch-ui" aria-hidden="true"></span>' +
+        '<span class="screenshot-overlay-switch-label">' + escapeHtml(label) + '</span>' +
+      '</label>';
+  }
+
+  function setScreenshotOverlayPref(key, enabled) {
+    if (!Object.prototype.hasOwnProperty.call(screenshotOverlayPrefs, key)) return;
+    screenshotOverlayPrefs[key] = !!enabled;
+    applyScreenshotOverlayPrefs();
+  }
+
+  function applyScreenshotOverlayPrefs() {
+    const root = document.documentElement;
+    root.classList.toggle('hide-obs-highlights', !screenshotOverlayPrefs.obsHighlights);
+    root.classList.toggle('hide-obs-labels', !screenshotOverlayPrefs.obsLabels);
+    root.classList.toggle('hide-action-highlights', !screenshotOverlayPrefs.actionHighlights);
+    const screenshotsTab = document.getElementById('modal-tab-screenshots');
+    if (screenshotsTab) {
+      const side = document.getElementById('modal-observer-side');
+      const hasTree = side && !side.hidden && side.innerHTML;
+      const showTree = !!screenshotOverlayPrefs.showTree && !!hasTree;
+      screenshotsTab.classList.toggle('hide-observer-tree', !showTree);
+      screenshotsTab.classList.toggle('has-observer-tree', !!hasTree);
+    }
+    document.querySelectorAll('input[data-overlay-pref]').forEach((input) => {
+      const key = input.getAttribute('data-overlay-pref');
+      if (!key || !Object.prototype.hasOwnProperty.call(screenshotOverlayPrefs, key)) return;
+      input.checked = !!screenshotOverlayPrefs[key];
+    });
+    if (!screenshotOverlayPrefs.showTree) setObserverTreeHoverIndex(null);
+    scheduleScreenshotChipLayout(document);
+  }
+
+  function ensureImageReady(img) {
+    if (!img) return Promise.reject(new Error('missing image'));
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(img);
+    return new Promise((resolve, reject) => {
+      const onLoad = () => {
+        cleanup();
+        resolve(img);
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error('image failed to load'));
+      };
+      const cleanup = () => {
+        img.removeEventListener('load', onLoad);
+        img.removeEventListener('error', onError);
+      };
+      img.addEventListener('load', onLoad);
+      img.addEventListener('error', onError);
+    });
+  }
+
+  function pctStyle(el, prop) {
+    return Number(String(el.style[prop] || '0').replace('%', '')) || 0;
+  }
+
+  async function composeScreenshotCanvas(wrap) {
+    layoutChipsInWrap(wrap);
+    const img = wrap.querySelector('img');
+    await ensureImageReady(img);
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (!(w > 0 && h > 0)) throw new Error('invalid image size');
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const prefs = screenshotOverlayPrefs;
+    const lineW = Math.max(2, Math.round(w * 0.004));
+    wrap.querySelectorAll('.screenshot-highlight').forEach((hl) => {
+      const left = pctStyle(hl, 'left') / 100 * w;
+      const top = pctStyle(hl, 'top') / 100 * h;
+      const width = pctStyle(hl, 'width') / 100 * w;
+      const height = pctStyle(hl, 'height') / 100 * h;
+      if (!(width > 0 && height > 0)) return;
+      const isObserver = hl.classList.contains('observer');
+      const isAction = hl.classList.contains('action') ||
+          hl.classList.contains('assertion') ||
+          hl.classList.contains('failure');
+
+      if (isObserver && prefs.obsHighlights) {
+        ctx.save();
+        ctx.strokeStyle = '#00b4d8';
+        ctx.lineWidth = Math.max(2, lineW - 1);
+        ctx.strokeRect(left, top, width, height);
+        ctx.restore();
+      }
+      if (isAction && prefs.actionHighlights) {
+        ctx.save();
+        if (hl.classList.contains('failure')) {
+          ctx.setLineDash([Math.max(6, lineW * 2), Math.max(4, lineW)]);
+          ctx.strokeStyle = '#f43f5e';
+        } else if (hl.classList.contains('assertion')) {
+          ctx.strokeStyle = '#00d5ff';
+        } else {
+          ctx.strokeStyle = '#ff3f6f';
+        }
+        ctx.lineWidth = lineW;
+        ctx.strokeRect(left, top, width, height);
+        ctx.restore();
+      }
+      if (prefs.obsLabels) {
+        drawScreenshotChipsOnCanvas(ctx, hl, left, top, width, height, w, h, wrap);
+      }
+    });
+    return canvas;
+  }
+
+  function drawScreenshotChipsOnCanvas(ctx, hl, left, top, width, height, canvasW, canvasH, wrap) {
+    const chipsRoot = hl.querySelector('.screenshot-observer-chips');
+    if (!chipsRoot) return;
+    const chips = chipsRoot.querySelectorAll('.screenshot-observer-chip');
+    if (!chips.length) return;
+    const compact = hl.classList.contains('compact');
+    const fontSize = Math.max(compact ? 9 : 11, Math.round(canvasW * (compact ? 0.011 : 0.013)));
+    const padX = Math.max(4, Math.round(fontSize * 0.45));
+    const padY = Math.max(2, Math.round(fontSize * 0.25));
+    const chipH = fontSize + padY * 2;
+    const gap = 3;
+    ctx.save();
+    ctx.font = '700 ' + fontSize + 'px ui-sans-serif, system-ui, -apple-system, sans-serif';
+    ctx.textBaseline = 'middle';
+
+    const items = [];
+    chips.forEach((chip) => {
+      const text = (chip.textContent || '').trim();
+      if (!text) return;
+      items.push({
+        text: text,
+        tw: ctx.measureText(text).width + padX * 2,
+        fill: chip.classList.contains('type') ? 'rgba(161, 98, 7, 0.92)' : 'rgba(0, 95, 135, 0.92)',
+      });
+    });
+    if (!items.length) {
+      ctx.restore();
+      return;
+    }
+
+    const sx = wrap && wrap.clientWidth ? canvasW / wrap.clientWidth : 1;
+    const sy = wrap && wrap.clientHeight ? canvasH / wrap.clientHeight : 1;
+    const chipLeftCss = parseFloat(chipsRoot.style.left || '0') || 0;
+    const chipTopCss = parseFloat(chipsRoot.style.top || '0') || 0;
+    // chips are positioned relative to the highlight element.
+    let cx = left + chipLeftCss * sx;
+    let cy = top + chipTopCss * sy;
+
+    items.forEach((item) => {
+      const tw = Math.min(item.tw, (compact ? 110 : 140) * sx);
+      roundRectFill(ctx, cx, cy, tw, chipH, 3, item.fill);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(item.text, cx + padX, cy + chipH / 2);
+      cx += tw + gap;
+    });
+    ctx.restore();
+  }
+
+  function roundRectFill(ctx, x, y, w, h, r, fill) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  async function copyScreenshotOverlay(btn) {
+    if (!btn || btn.classList.contains('is-busy')) return;
+    const wrap = btn.closest('.screenshot-image-wrap');
+    if (!wrap) return;
+    const prev = btn.textContent;
+    btn.classList.remove('is-done', 'is-failed');
+    btn.classList.add('is-busy');
+    btn.textContent = '…';
+    try {
+      const canvas = await composeScreenshotCanvas(wrap);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+      });
+      if (!(navigator.clipboard && window.ClipboardItem)) {
+        throw new Error('clipboard image API unavailable');
+      }
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.classList.remove('is-busy');
+      btn.classList.add('is-done');
+      btn.textContent = 'Copied';
+      setTimeout(() => {
+        btn.classList.remove('is-done');
+        btn.textContent = prev;
+      }, 1400);
+    } catch (err) {
+      console.warn('copyScreenshotOverlay failed', err);
+      btn.classList.remove('is-busy');
+      btn.classList.add('is-failed');
+      btn.textContent = 'Failed';
+      setTimeout(() => {
+        btn.classList.remove('is-failed');
+        btn.textContent = prev;
+      }, 1600);
+    }
+  }
+
+  /** Small hit targets (checkboxes / icons) — narrow chips above, not over the row title. */
+  function isCompactObserverRect(widthPct, heightPct) {
+    return widthPct < 16 || heightPct < 7;
+  }
+
+  function formatObserverChipText(text, compact) {
+    const s = String(text || '');
+    const max = compact ? 20 : 28;
+    if (s.length <= max) return s;
+    // Keep a readable suffix so *_checkbox / *_button ids stay recognizable.
+    const head = compact ? 6 : 10;
+    const tail = compact ? 9 : 10;
+    return s.slice(0, head) + '…' + s.slice(-tail);
+  }
+
+  function renderObserverChips(id, type, compact) {
+    const chips = [];
+    if (id) {
+      chips.push('<span class="screenshot-observer-chip id" title="' +
+          escapeHtml(String(id)) + '">' +
+          escapeHtml(formatObserverChipText(id, !!compact)) + '</span>');
+    }
+    if (type) {
+      chips.push('<span class="screenshot-observer-chip type">' +
+          escapeHtml(String(type)) + '</span>');
+    }
+    if (!chips.length) return '';
+    return '<span class="screenshot-observer-chips">' + chips.join('') + '</span>';
+  }
+
+  /** Place labels inside the image with collision avoidance (no off-screen clip). */
+  /** Scale modal phone shots into available space and keep overlay % boxes
+   *  locked to the image (wrap must match img pixel box, not letterbox). */
+  function fitScreenshotFrames(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    const cards = scope.querySelectorAll(
+      '#modal-tab-screenshots .modal-screenshot-card.single-layout, #modal-tab-screenshots .modal-screenshot-card'
+    );
+    cards.forEach((card) => {
+      const container = card.closest('.single-screenshot-container') ||
+          card.closest('.modal-screenshots-centered') ||
+          card.parentElement;
+      const wrap = card.querySelector('.screenshot-image-wrap');
+      const img = card.querySelector('img');
+      if (!container || !wrap || !img) return;
+
+      const apply = () => {
+        const nw = img.naturalWidth || 0;
+        const nh = img.naturalHeight || 0;
+        if (!(nw > 0 && nh > 0)) return;
+        const availW = Math.max(container.clientWidth - 8, 80);
+        const availH = Math.max(container.clientHeight - 8, 80);
+        if (!(availW > 0 && availH > 0)) return;
+        const scale = Math.min(availW / nw, availH / nh, 1);
+        const w = Math.max(1, Math.floor(nw * scale));
+        const h = Math.max(1, Math.floor(nh * scale));
+        img.style.width = w + 'px';
+        img.style.height = h + 'px';
+        img.style.maxWidth = 'none';
+        img.style.maxHeight = 'none';
+        wrap.style.width = w + 'px';
+        wrap.style.height = h + 'px';
+      };
+
+      if (img.complete && img.naturalWidth > 0) {
+        apply();
+      } else {
+        img.addEventListener('load', apply, { once: true });
+      }
+    });
+  }
+
+  function scheduleScreenshotFitAndLayout(root) {
+    const target = root || document;
+    requestAnimationFrame(() => {
+      fitScreenshotFrames(target);
+      requestAnimationFrame(() => layoutScreenshotChips(target));
+    });
+  }
+
+  function scheduleScreenshotChipLayout(root) {
+    scheduleScreenshotFitAndLayout(root);
+  }
+
+  function layoutScreenshotChips(root) {
+    const scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('.screenshot-image-wrap').forEach(layoutChipsInWrap);
+  }
+
+  function layoutChipsInWrap(wrap) {
+    const wrapW = wrap.clientWidth;
+    const wrapH = wrap.clientHeight;
+    if (!(wrapW > 0 && wrapH > 0)) return;
+
+    const placed = [];
+    const highlights = Array.from(wrap.querySelectorAll('.screenshot-highlight'));
+    // Larger targets first so cards claim space before tiny checkboxes nudge away.
+    highlights.sort((a, b) => (b.offsetWidth * b.offsetHeight) - (a.offsetWidth * a.offsetHeight));
+
+    highlights.forEach((hl) => {
+      const chips = hl.querySelector(':scope > .screenshot-observer-chips');
+      if (!chips) return;
+      if (window.getComputedStyle(chips).display === 'none') return;
+
+      chips.style.right = 'auto';
+      chips.style.bottom = 'auto';
+      chips.style.transform = 'none';
+      chips.style.left = '0px';
+      chips.style.top = '0px';
+
+      const hlL = hl.offsetLeft;
+      const hlT = hl.offsetTop;
+      const hlW = hl.offsetWidth;
+      const hlH = hl.offsetHeight;
+      const cw = Math.max(chips.offsetWidth, 1);
+      const ch = Math.max(chips.offsetHeight, 1);
+      const gap = 3;
+
+      const candidates = [
+        { left: 0, top: -ch - gap },                         // above-left
+        { left: Math.max(0, hlW - cw), top: -ch - gap },     // above-right
+        { left: hlW + gap, top: Math.max(0, (hlH - ch) / 2) }, // right-middle
+        { left: 0, top: hlH + gap },                         // below-left
+        { left: Math.max(0, hlW - cw), top: hlH + gap },     // below-right
+        { left: 2, top: 2 },                                 // inside-top-left
+        { left: Math.max(2, hlW - cw - 2), top: 2 },         // inside-top-right
+      ];
+
+      function clamp(left, top) {
+        let x = hlL + left;
+        let y = hlT + top;
+        if (x < 0) left -= x;
+        if (y < 0) top -= y;
+        x = hlL + left;
+        y = hlT + top;
+        if (x + cw > wrapW) left -= (x + cw - wrapW);
+        if (y + ch > wrapH) top -= (y + ch - wrapH);
+        return { left: left, top: top };
+      }
+
+      function overlaps(left, top) {
+        const x = hlL + left;
+        const y = hlT + top;
+        const r = x + cw;
+        const b = y + ch;
+        for (let i = 0; i < placed.length; i++) {
+          const p = placed[i];
+          if (!(r <= p.l || x >= p.r || b <= p.t || y >= p.b)) return true;
+        }
+        return false;
+      }
+
+      let chosen = null;
+      for (let i = 0; i < candidates.length; i++) {
+        const c = clamp(candidates[i].left, candidates[i].top);
+        if (overlaps(c.left, c.top)) continue;
+        chosen = c;
+        break;
+      }
+      if (!chosen) {
+        let c = clamp(2, 2);
+        for (let n = 0; n < 24; n++) {
+          if (!overlaps(c.left, c.top)) break;
+          c = clamp(c.left, c.top + ch + gap);
+        }
+        chosen = c;
+      }
+
+      chips.style.left = chosen.left + 'px';
+      chips.style.top = chosen.top + 'px';
+      const x = hlL + chosen.left;
+      const y = hlT + chosen.top;
+      placed.push({ l: x - 2, t: y - 2, r: x + cw + 2, b: y + ch + 2 });
+    });
   }
 
   let activeScreenTab = 'screen-debugtree';
@@ -1873,8 +3226,10 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   window.addEventListener('DOMContentLoaded', () => {
+    applyScreenshotOverlayPrefs();
     pollAndRender();
     pollTimer = setInterval(pollAndRender, POLL_MS);
   });
+  window.addEventListener('resize', () => scheduleScreenshotChipLayout(document));
 
 ''';

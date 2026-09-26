@@ -2,6 +2,9 @@
 ///
 /// Prefer explicit unknown (`null`) over a misleading boolean when Flutter
 /// cannot establish the property reliably.
+import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/observation/observer_action_examples.dart';
+
 class UiElementState {
   final bool? exists;
   final bool? visible;
@@ -94,6 +97,19 @@ class UiElement {
   final String? role;
   final String? label;
   final String? text;
+
+  /// Placeholder / hint for text inputs (never treated as [text] value).
+  final String? hint;
+
+  /// Selectable labels for dropdowns (from widget `items`, not the open menu).
+  final List<String> options;
+
+  /// Verified YAML-oriented locator for this element, when unique in the tree.
+  final ElementLocator? suggestedLocator;
+
+  /// Why [suggestedLocator] is missing (no stable locator / ambiguous).
+  final String? locatorWarning;
+
   final UiElementState state;
   final UiBounds? bounds;
   final List<String> supportedActions;
@@ -107,6 +123,10 @@ class UiElement {
     this.role,
     this.label,
     this.text,
+    this.hint,
+    this.options = const [],
+    this.suggestedLocator,
+    this.locatorWarning,
     this.state = const UiElementState(),
     this.bounds,
     this.supportedActions = const [],
@@ -114,33 +134,75 @@ class UiElement {
     this.metadata = const {},
   });
 
-  Map<String, dynamic> toJson() => {
-        'elementId': elementId,
-        if (testId != null) 'testId': testId,
-        if (type != null) 'type': type,
-        if (role != null) 'role': role,
-        if (label != null) 'label': label,
-        if (text != null) 'text': text,
-        'state': state.toJson(),
-        if (bounds != null) 'bounds': bounds!.toJson(),
-        if (supportedActions.isNotEmpty) 'supportedActions': supportedActions,
-        if (children.isNotEmpty)
-          'children': children.map((c) => c.toJson()).toList(),
-        if (metadata.isNotEmpty) 'metadata': metadata,
-      };
+  Map<String, dynamic> toJson() {
+    final title = observerElementTitleForFields(
+      type: type,
+      label: label,
+      text: text,
+      testId: testId,
+    );
+    final locatorJson = suggestedLocator?.toJson();
+    final boundsJson = bounds?.toJson();
+    final actionExamples = observerActionExamples(
+      actions: supportedActions,
+      title: title,
+      id: testId,
+      locator: locatorJson,
+      bounds: boundsJson,
+      warning: locatorWarning,
+      value: text,
+      secure: state.secure,
+      checked: state.checked,
+      options: options,
+    );
+    return {
+      'elementId': elementId,
+      if (testId != null &&
+          locatorWarning == null &&
+          (locatorJson == null || locatorJson['id'] != testId))
+        'testId': testId,
+      if (type != null) 'type': type,
+      if (role != null) 'role': role,
+      if (label != null) 'label': label,
+      if (text != null && state.secure != true) 'text': text,
+      if (hint != null) 'hint': hint,
+      if (options.isNotEmpty) 'options': options,
+      if (suggestedLocator != null)
+        'suggestedLocator': suggestedLocator!.toJson(),
+      if (locatorWarning != null) 'locatorWarning': locatorWarning,
+      'state': state.toJson(),
+      if (bounds != null) 'bounds': bounds!.toJson(),
+      if (actionExamples.isNotEmpty) 'actionExamples': actionExamples,
+      if (children.isNotEmpty)
+        'children': children.map((c) => c.toJson()).toList(),
+      if (metadata.isNotEmpty) 'metadata': metadata,
+    };
+  }
 
   factory UiElement.fromJson(Map<String, dynamic> json) {
     final stateRaw = json['state'];
     final boundsRaw = json['bounds'];
     final childrenRaw = json['children'];
     final actionsRaw = json['supportedActions'];
+    final actionExamplesRaw = json['actionExamples'];
+    final optionsRaw = json['options'];
+    final locatorRaw = json['suggestedLocator'];
     return UiElement(
       elementId: json['elementId']?.toString() ?? '',
-      testId: json['testId']?.toString(),
+      testId: json['testId']?.toString() ??
+          (locatorRaw is Map ? locatorRaw['id']?.toString() : null),
       type: json['type']?.toString(),
       role: json['role']?.toString(),
       label: json['label']?.toString(),
       text: json['text']?.toString(),
+      hint: json['hint']?.toString(),
+      options: optionsRaw is List
+          ? optionsRaw.map((e) => e.toString()).toList()
+          : const [],
+      suggestedLocator: locatorRaw is Map
+          ? ElementLocator.fromJson(Map<String, dynamic>.from(locatorRaw))
+          : null,
+      locatorWarning: json['locatorWarning']?.toString(),
       state: stateRaw is Map
           ? UiElementState.fromJson(Map<String, dynamic>.from(stateRaw))
           : const UiElementState(),
@@ -149,7 +211,12 @@ class UiElement {
           : null,
       supportedActions: actionsRaw is List
           ? actionsRaw.map((e) => e.toString()).toList()
-          : const [],
+          : actionExamplesRaw is List
+              ? actionExamplesRaw
+                  .map((e) => _actionNameFromExample(e))
+                  .whereType<String>()
+                  .toList()
+              : const [],
       children: childrenRaw is List
           ? childrenRaw
               .whereType<Map>()
@@ -159,6 +226,59 @@ class UiElement {
       metadata: json['metadata'] is Map
           ? Map<String, Object?>.from(json['metadata'] as Map)
           : const {},
+    );
+  }
+
+  static String? _actionNameFromExample(Object example) {
+    final yaml =
+        example is Map ? example['yaml']?.toString() ?? '' : example.toString();
+    final match =
+        RegExp(r'^([A-Za-z][A-Za-z0-9]*):').firstMatch(yaml.trimLeft());
+    return match?.group(1);
+  }
+
+  /// Copy with selected fields replaced.
+  ///
+  /// Pass [clearSuggestedLocator] / [clearLocatorWarning] to null those fields.
+  UiElement copyWith({
+    String? elementId,
+    String? testId,
+    String? type,
+    String? role,
+    String? label,
+    String? text,
+    String? hint,
+    List<String>? options,
+    ElementLocator? suggestedLocator,
+    bool clearSuggestedLocator = false,
+    String? locatorWarning,
+    bool clearLocatorWarning = false,
+    UiElementState? state,
+    UiBounds? bounds,
+    List<String>? supportedActions,
+    List<UiElement>? children,
+    Map<String, Object?>? metadata,
+  }) {
+    return UiElement(
+      elementId: elementId ?? this.elementId,
+      testId: testId ?? this.testId,
+      type: type ?? this.type,
+      role: role ?? this.role,
+      label: label ?? this.label,
+      text: text ?? this.text,
+      hint: hint ?? this.hint,
+      options: options ?? this.options,
+      suggestedLocator: clearSuggestedLocator
+          ? suggestedLocator
+          : (suggestedLocator ?? this.suggestedLocator),
+      locatorWarning: clearLocatorWarning
+          ? locatorWarning
+          : (locatorWarning ?? this.locatorWarning),
+      state: state ?? this.state,
+      bounds: bounds ?? this.bounds,
+      supportedActions: supportedActions ?? this.supportedActions,
+      children: children ?? this.children,
+      metadata: metadata ?? this.metadata,
     );
   }
 }

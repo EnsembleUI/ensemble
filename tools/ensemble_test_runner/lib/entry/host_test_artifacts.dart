@@ -1,11 +1,15 @@
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
+import 'package:ensemble_test_runner/application/application_test_types.dart';
+import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
+import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
@@ -37,6 +41,8 @@ bool isHostScreenshotCaptureFailure(Object? error) {
 Future<void> captureHostStepScreenshot({
   required WidgetTester tester,
   required EnsembleTestContext context,
+  required AssertionEngine assertions,
+  NavigationTestService? navigation,
   required TestStep step,
   required int stepIndex,
 }) async {
@@ -46,6 +52,18 @@ Future<void> captureHostStepScreenshot({
     // One more frame so a newly mounted theme (EnsembleApp after login)
     // can apply preloaded fallback fonts before we rasterize.
     await tester.pump();
+    // Freeze Observer from the same rendered frame as the screenshot. The
+    // widget tree may navigate as soon as this method yields.
+    DiagnosticUiSnapshot? observerSnapshot;
+    try {
+      observerSnapshot = captureDiagnosticUiSnapshot(
+        tester: tester,
+        assertions: assertions,
+        navigation: navigation,
+      );
+    } catch (_) {
+      // Observer capture is diagnostic and must not suppress the screenshot.
+    }
     // Capture is synchronous (`toImageSync`). Do not wrap in `runAsync`:
     // `secureContent: skip` throws, and runAsync would report that as a
     // FlutterError and fail the test.
@@ -65,6 +83,15 @@ Future<void> captureHostStepScreenshot({
         model: device?.model,
       ),
     );
+    final snap = observerSnapshot;
+    if (snap != null) {
+      upsertStepObserverFromSnapshot(
+        ctx: context,
+        tester: tester,
+        stepIndex: stepIndex,
+        snap: snap,
+      );
+    }
   } catch (error) {
     if (!isHostScreenshotDiagnostic(error) &&
         !isHostScreenshotCaptureFailure(error)) {
@@ -178,8 +205,14 @@ Future<void> attachHostDebugArtifacts({
       context.runtime.screenshotSheetFrames,
     );
     context.runtime.screenshotSheetFrames.clear();
+    final stepObservers = List<StepObserverArtifact>.from(
+      context.runtime.stepObservers,
+    );
+    context.runtime.stepObservers.clear();
     if (context.config.screenshots.enabled &&
-        (frames.isNotEmpty || context.config.devices.isNotEmpty)) {
+        (frames.isNotEmpty ||
+            stepObservers.isNotEmpty ||
+            context.config.devices.isNotEmpty)) {
       final path = await tester.runAsync(() async {
         final previousRunner = LiveAsyncCallSupport.runner;
         LiveAsyncCallSupport.runner = null;
@@ -195,6 +228,7 @@ Future<void> attachHostDebugArtifacts({
             failedStepIndex: failedStepIndex,
             failedStepLabel: failedStepLabel,
             failureMessage: failureMessage,
+            stepObservers: stepObservers,
           );
         } finally {
           LiveAsyncCallSupport.runner = previousRunner;
@@ -205,6 +239,9 @@ Future<void> attachHostDebugArtifacts({
         context.logger.log('screenshotFrames: $path');
       }
     } else {
+      for (final observer in stepObservers) {
+        observer.dispose();
+      }
       for (final frame in frames) {
         try {
           frame.image.dispose();

@@ -72,7 +72,10 @@ void main() {
     expect(shell, contains('applyProfileFilter'));
     expect(shell, contains('features.length > 1'));
     expect(shell, contains('profiles.length > 1'));
-    expect(shell.length, lessThan(200000));
+    expect(shell, contains('modal-step-error'));
+    expect(shell, contains('stepFailureMessage'));
+    expect(shell, contains('window.stepMeta'));
+    expect(shell.length, lessThan(240000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
 
@@ -156,8 +159,7 @@ void main() {
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
     File(p.join(reportScreenshotsDir.path, 'login_flow_step1_0.png'))
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
-    File(p.join(framesDir.path, 'login_flow_frames.json'))
-        .writeAsStringSync(
+    File(p.join(framesDir.path, 'login_flow_frames.json')).writeAsStringSync(
       jsonEncode({
         'status': 'failed',
         'failedStepIndex': 1,
@@ -282,8 +284,44 @@ void main() {
     expect(html, contains('results.json.gz'));
     expect(html, contains("fetch('results.json.gz"));
     expect(html, contains('switchModalTab(\'screenshots\')'));
+    expect(html, isNot(contains('switchModalTab(\'observer\')')));
+    expect(html, contains('modal-observer-side'));
+    expect(html, contains('screenshots-split'));
+    expect(html, contains('copyObserverJson'));
+    expect(html, contains('renderObserverTreeNode'));
+    expect(html, contains('observer-tree'));
+    expect(html, contains('bindObserverTreeHover'));
+    expect(html, contains('openObserverElementDetail'));
+    expect(html, contains('Bounds (logical px)'));
+    expect(html, contains('el.selected'));
+    expect(html, contains('el.offscreen'));
+    expect(
+        html, contains('const payload = observer && observer.observationJson'));
+    expect(html, contains('window.__observerCopyPayload = payload'));
+    expect(html, contains('el.actionExamples'));
+    expect(html, isNot(contains('formatObserverActionYaml')));
+    expect(html, contains('return { bounds: el.bounds }'));
+    expect(html, contains('bounds=\' + JSON.stringify(locator.bounds)'));
+    expect(html, contains('navigateObserverElement'));
+    expect(html, contains('renderObserverElementPreview'));
+    expect(html, contains('Element is outside this screenshot viewport'));
+    expect(html, contains('Screenshot has no bounds overlay for this element'));
+    expect(html, contains('layoutObserverDetailPreview'));
+    expect(html, contains('observer-element-detail-overlay'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
+    expect(html, contains('layoutScreenshotChips'));
+    expect(html, contains('flattenScreenshotFramesWithOverlays'));
+    expect(html, contains('screenshotOverlayToolbarHtml'));
+    expect(html, contains('copyScreenshotOverlay'));
+    expect(html,
+        contains("screenshotOverlaySwitchHtml('obsHighlights', 'Elements')"));
+    expect(
+        html, contains("screenshotOverlaySwitchHtml('obsLabels', 'Labels')"));
+    expect(html,
+        contains("screenshotOverlaySwitchHtml('actionHighlights', 'Target')"));
+    expect(html, contains("screenshotOverlaySwitchHtml('showTree', 'Tree')"));
+    expect(html, contains('modal-screenshots-toolbar'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
 

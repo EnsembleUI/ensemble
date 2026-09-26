@@ -149,6 +149,17 @@ class EnsembleTestSchemaBuilder {
 
   static Map<String, dynamic> build() {
     final defs = <String, dynamic>{
+      'elementBounds': {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'left': {'type': 'number'},
+          'top': {'type': 'number'},
+          'width': {'type': 'number', 'exclusiveMinimum': 0},
+          'height': {'type': 'number', 'exclusiveMinimum': 0},
+        },
+        'required': ['left', 'top', 'width', 'height'],
+      },
       'elementLocator': {
         'type': 'object',
         'additionalProperties': false,
@@ -160,16 +171,25 @@ class EnsembleTestSchemaBuilder {
             'type': 'string',
             'enum': [
               'button',
+              'card',
+              'toast',
               'text',
               'textField',
               'checkbox',
               'switch',
               'slider',
+              'dropdown',
+              'icon',
+              'image',
+              'svg',
+              'gif',
+              'lottie',
               'widget',
             ],
           },
           'within': {'\$ref': '#/\$defs/elementLocator'},
           'occurrence': {'type': 'integer', 'minimum': 0},
+          'bounds': {'\$ref': '#/\$defs/elementBounds'},
         },
         'anyOf': [
           {
@@ -183,6 +203,9 @@ class EnsembleTestSchemaBuilder {
           },
           {
             'required': ['role']
+          },
+          {
+            'required': ['bounds']
           },
         ],
       },
@@ -491,6 +514,12 @@ class EnsembleTestSchemaBuilder {
             'enabled': {'type': 'boolean'},
             'maxStartAfterSeconds': {'type': 'integer', 'minimum': 0},
             'maxRepeatIntervalSeconds': {'type': 'integer', 'minimum': 0},
+            'maxNumberOfTimes': {
+              'type': 'integer',
+              'minimum': 0,
+              'description':
+                  'Cap on YAML timer maxNumberOfTimes. Must outlive mid-test mock waits that rely on later polls.',
+            },
           },
         },
         'dumpTree': {

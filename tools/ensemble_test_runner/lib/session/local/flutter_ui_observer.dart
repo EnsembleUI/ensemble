@@ -3,11 +3,12 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
+import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observer.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Local [UiObserver] over [WidgetTester] + optional navigation metadata.
@@ -102,15 +103,14 @@ class FlutterUiObserver implements UiObserver {
     );
   }
 
-  /// Recomputes the session revision from the live tree after a mutation.
+  /// Recomputes the session revision after a mutation without semantics churn.
   ///
-  /// Does not register a new observation — only refreshes revision tracking
-  /// so [ActionResult.afterRevision] reflects UI changes.
+  /// Uses a lightweight widget-field fingerprint (keyed ids + text) so every
+  /// `act` does not toggle [SemanticsHandle] via a full observe walk.
   Future<void> syncRevisionAfterMutation() async {
-    final built = _buildElements(includeBounds: true, keyedOnly: false);
-    final fingerprint = fingerprintForObservation(
-      screen: _screenObservation(),
-      elements: built.elements,
+    final fingerprint = lightweightMutationFingerprint(
+      tester: tester,
+      routeName: navigation?.currentRoute,
     );
     _applyFingerprint(fingerprint);
   }
@@ -146,6 +146,10 @@ class FlutterUiObserver implements UiObserver {
         role: element.role,
         label: element.label,
         text: element.text,
+        hint: element.hint,
+        options: element.options,
+        suggestedLocator: element.suggestedLocator,
+        locatorWarning: element.locatorWarning,
         state: element.state,
         bounds: null,
         supportedActions: element.supportedActions,
@@ -171,68 +175,16 @@ class FlutterUiObserver implements UiObserver {
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
       _buildElements({required bool includeBounds, bool keyedOnly = false}) {
-    final elements = <UiElement>[];
-    final handles = <String, SnapshotElementHandle>{};
-    var index = 0;
-    final seenRenderObjects = <Object>{};
-
-    final semantics = tester.ensureSemantics();
-    try {
-      for (final element in tester.allElements) {
-        final key = element.widget.key;
-        final value = key is ValueKey ? key.value : null;
-        final testId = value is String ? _compactTestId(value) : '';
-        if (keyedOnly && testId.isEmpty) continue;
-
-        final actionable = testId.isEmpty &&
-            (isSemanticLocatorCandidate(element) ||
-                isTextLocatorCandidate(element));
-        if (testId.isEmpty && !actionable && !keyedOnly) {
-          final type = inferWidgetType(element);
-          if (type == 'widget') continue;
-        }
-
-        final type = inferWidgetType(element);
-        final label = keyedOnly || testId.isNotEmpty
-            ? null
-            : readSemanticsLabel(tester, element);
-        final text = keyedOnly || testId.isNotEmpty ? null : readText(element);
-        final relevant = testId.isNotEmpty ||
-            label != null ||
-            text != null ||
-            actionable ||
-            type != 'widget';
-        if (!relevant) continue;
-        final renderObject = element.renderObject;
-        if (testId.isEmpty &&
-            renderObject != null &&
-            !seenRenderObjects.add(renderObject)) {
-          continue;
-        }
-
-        final elementId = 'el_${index++}';
-        final uiElement = describeElement(
-          element: element,
-          elementId: elementId,
-          testId: testId.isEmpty ? null : testId,
-          assertions: assertions,
-          tester: tester,
-          includeBounds: includeBounds,
-        );
-        elements.add(uiElement);
-        handles[elementId] = SnapshotElementHandle(
-          observationId: '',
-          elementId: elementId,
-          testId: testId.isEmpty ? null : testId,
-          element: element,
-          observableFingerprint: fingerprintForElement(uiElement),
-        );
-      }
-    } finally {
-      semantics.dispose();
-    }
-
-    return (elements: elements, handles: handles);
+    // Brief enable only for this snapshot — keeping semantics on for the whole
+    // session changes hit-testing / focus and flakes YAML waits.
+    return buildObservedElementTree(
+      tester: tester,
+      assertions: assertions,
+      navigation: navigation,
+      includeBounds: includeBounds,
+      keyedOnly: keyedOnly,
+      enableSemantics: true,
+    );
   }
 
   Map<String, SnapshotElementHandle> rebindHandles(
@@ -249,16 +201,5 @@ class FlutterUiObserver implements UiObserver {
           observableFingerprint: e.value.observableFingerprint,
         ),
     };
-  }
-
-  String _compactTestId(String value) {
-    final singleLine = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (singleLine.isEmpty || singleLine.length > 120) return '';
-    if (singleLine.startsWith('_')) return '';
-    if (RegExp(r'\s').hasMatch(singleLine)) return '';
-    if (!RegExp(r'^[A-Za-z][A-Za-z0-9_:.:-]*$').hasMatch(singleLine)) {
-      return '';
-    }
-    return singleLine;
   }
 }

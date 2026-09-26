@@ -30,12 +30,18 @@ class ScreenshotSheetAggregator {
     int? failedStepIndex,
     String? failedStepLabel,
     String? failureMessage,
+    List<StepObserverArtifact> stepObservers = const [],
   }) async {
     if (!screenshots.enabled) {
       _disposeFrames(frames);
+      for (final observer in stepObservers) {
+        observer.dispose();
+      }
       return null;
     }
-    if (frames.isEmpty && devices.isEmpty) return null;
+    if (frames.isEmpty && devices.isEmpty && stepObservers.isEmpty) {
+      return null;
+    }
 
     final sheetId = testCase.resolvedScreenshotSheetId;
     final runId = testCase.id;
@@ -53,6 +59,10 @@ class ScreenshotSheetAggregator {
     }
 
     group.frames.addAll(frames);
+    for (final observer in stepObservers) {
+      group.stepObservers.removeWhere((o) => o.stepIndex == observer.stepIndex);
+      group.stepObservers.add(observer);
+    }
     group.durationByRunId[runId] = durationMs;
     if (status == TestStatus.failed) {
       group.status = TestStatus.failed;
@@ -84,7 +94,9 @@ class ScreenshotSheetAggregator {
       failedStepLabel: group.failedStepLabel,
       failureMessage: group.failureMessage,
       failedDeviceId: group.failedDeviceId,
+      stepObservers: List<StepObserverArtifact>.from(group.stepObservers),
     );
+    group.stepObservers.clear();
     _groups.remove(sheetId);
     return path;
   }
@@ -93,7 +105,7 @@ class ScreenshotSheetAggregator {
     for (final entry in _groups.entries.toList()) {
       final sheetId = entry.key;
       final group = entry.value;
-      if (group.frames.isEmpty) {
+      if (group.frames.isEmpty && group.stepObservers.isEmpty) {
         _groups.remove(sheetId);
         continue;
       }
@@ -108,7 +120,9 @@ class ScreenshotSheetAggregator {
             'Incomplete device matrix '
                 '(${group.completedRunIds.length}/$expectedRunsPerSheet runs)',
         failedDeviceId: group.failedDeviceId,
+        stepObservers: List<StepObserverArtifact>.from(group.stepObservers),
       );
+      group.stepObservers.clear();
       _groups.remove(sheetId);
     }
   }
@@ -127,6 +141,7 @@ class ScreenshotSheetAggregator {
 
 class _SheetGroup {
   final List<ScreenshotSheetFrame> frames = [];
+  final List<StepObserverArtifact> stepObservers = [];
   final Set<String> completedRunIds = {};
   final Map<String, int> durationByRunId = {};
   TestStatus? status;

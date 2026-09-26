@@ -49,6 +49,10 @@ SCREEN TRACKER: Login
         '--quiet',
         '--doctor',
         '--inspect-app',
+        '--inspect-ui',
+        '--screenshots',
+        '--format=json',
+        '--screen=Hello Home',
         '--validate-only',
         '--scaffold-test=login',
         '--report=json',
@@ -157,6 +161,10 @@ When the exception was thrown, this was the stack:
       ),
       isFalse,
     );
+    expect(filter.shouldEmit('ENSEMBLE_TEST_OBSERVE_V1_BEGIN'), isFalse);
+    expect(filter.shouldEmit('Screen: Hello Home'), isFalse);
+    expect(filter.shouldEmit('ENSEMBLE_TEST_OBSERVE_V1_END'), isFalse);
+    expect(filter.shouldEmit('DEBUG after observe'), isTrue);
     expect(
       filter.shouldEmit(
         '(The following exception is now available via WidgetTester.takeException:)',

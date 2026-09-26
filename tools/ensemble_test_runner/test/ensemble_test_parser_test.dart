@@ -681,12 +681,14 @@ timers:
   enabled: true
   maxStartAfterSeconds: 2
   maxRepeatIntervalSeconds: 3
+  maxNumberOfTimes: 15
 ''';
 
       final config = EnsembleTestParser.parseConfigString(yaml);
       expect(config.timers.enabled, isTrue);
       expect(config.timers.maxStartAfterSeconds, 2);
       expect(config.timers.maxRepeatIntervalSeconds, 3);
+      expect(config.timers.maxNumberOfTimes, 15);
     });
 
     test('rejects removed record config', () {

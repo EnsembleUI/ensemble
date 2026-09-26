@@ -38,8 +38,9 @@ Future<String?> writeScreenshotFrames({
   String? failedStepLabel,
   String? failureMessage,
   String? failedDeviceId,
+  List<StepObserverArtifact> stepObservers = const [],
 }) async {
-  if (frames.isEmpty) return null;
+  if (frames.isEmpty && stepObservers.isEmpty) return null;
 
   final defaultDevice = resolveScreenshotDevice(const {});
   final manifestDirectory = ensembleTestArtifactDirectory('frames');
@@ -86,11 +87,24 @@ Future<String?> writeScreenshotFrames({
         if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
       });
     }
+
+    for (final observer in stepObservers) {
+      // Metadata only — no second PNG. HTML draws overlays on the step shot.
+      frameEntries.add({
+        'stepIndex': observer.stepIndex,
+        'role': 'observer',
+        'observationJson': observer.observationJson,
+        if (observer.overlays.isNotEmpty) 'overlays': observer.overlays,
+      });
+    }
   } finally {
     for (final frame in frames) {
       try {
         frame.image.dispose();
       } catch (_) {}
+    }
+    for (final observer in stepObservers) {
+      observer.dispose();
     }
   }
 
