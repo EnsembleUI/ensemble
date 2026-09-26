@@ -76,6 +76,32 @@ void main() {
       expect(steps, containsAll(['tap', 'longPress']));
     });
 
+    test('offscreen bounds-backed card recommends scrolling into view', () {
+      final steps = supportedActionsFor(
+        'card',
+        secure: false,
+        enabled: true,
+        offscreen: true,
+        hasBounds: true,
+        hasScrollableAncestor: true,
+      );
+      expect(steps, contains('scrollUntilVisible'));
+      expect(steps.first, 'scrollUntilVisible');
+    });
+
+    test('offscreen element outside a scrollable does not suggest scrolling',
+        () {
+      final steps = supportedActionsFor(
+        'button',
+        secure: false,
+        enabled: true,
+        testId: 'next_screen_button',
+        offscreen: true,
+        hasBounds: true,
+      );
+      expect(steps, isNot(contains('scrollUntilVisible')));
+    });
+
     test('unkeyed non-tappable card has no interaction steps', () {
       final steps = supportedActionsFor(
         'card',

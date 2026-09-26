@@ -1,6 +1,7 @@
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
+import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
@@ -40,6 +41,12 @@ import 'package:flutter_test/flutter_test.dart';
     final routeName = navigation?.currentRoute?.trim();
 
     for (final element in tester.allElements) {
+      // allElements includes widgets retained by inactive routes (including
+      // the previous screen beneath a pushed route). They are neither current
+      // screen content nor scrollable offscreen targets, so exclude them
+      // before classifying or serializing observer nodes.
+      if (!isUnderCurrentModalRoute(element)) continue;
+
       final ownedKey = hasCompactValueKey(element);
       final ownedId = readOwnedWidgetLocatorId(element);
       if (keyedOnly && ownedKey == false && ownedId == null) continue;
@@ -86,7 +93,7 @@ import 'package:flutter_test/flutter_test.dart';
         } else if (isNestedActionableElement(element)) {
           // Nested actions under a keyed card / page shell (icons, buttons, …).
           keep = true;
-        } else if (isNestedContentTextElement(element)) {
+        } else if (isObservableTextElement(element)) {
           keep = true;
         } else if (isNestedContentMediaElement(element)) {
           keep = true;
@@ -120,7 +127,7 @@ import 'package:flutter_test/flutter_test.dart';
       } else if (isNestedActionableElement(element)) {
         // Nested actions under an unkeyed tappable settings row (card).
         keep = true;
-      } else if (isNestedContentTextElement(element)) {
+      } else if (isObservableTextElement(element)) {
         keep = true;
       } else if (isNestedContentMediaElement(element)) {
         keep = true;
@@ -272,17 +279,10 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
       }
       continue;
     }
-    // Section shell (Recommendations) typed widget/button wrapping notification
-    // chrome — drop the shell so the banner card is the root.
-    if ((pType == 'widget' || pType == 'button') &&
-        cType == 'card' &&
-        parentKeyed) {
-      final pb = parentUi!.bounds;
-      if (pb != null && pb.width >= 140 && pb.height >= 64) {
-        drop.add(parentIndex!);
-      }
-      continue;
-    }
+    // Keep keyed section wrappers even when they contain a visual card. The
+    // wrapper's testId is an independently usable locator (for example,
+    // scrollUntilVisible on a measurement section); the child card describes
+    // its visual content and does not make the wrapper redundant.
   }
 
   if (drop.isEmpty) return kept;
@@ -324,6 +324,13 @@ List<({Element element, UiElement ui})> absorbFormFieldLabels(
       if (textUi.testId != null && textUi.testId!.isNotEmpty) continue;
       final textBounds = textUi.bounds;
       if (textBounds == null) continue;
+      // A full-width heading above a compact checkbox is section copy, not
+      // the checkbox label. Input labels above full-width fields remain
+      // eligible for association.
+      if (control.type == 'checkbox' &&
+          textBounds.width > controlBounds.width * 2) {
+        continue;
+      }
       final label = (textUi.text ?? textUi.label)?.trim();
       if (label == null || label.isEmpty) continue;
       final score = labelAssociationScore(textBounds, controlBounds);

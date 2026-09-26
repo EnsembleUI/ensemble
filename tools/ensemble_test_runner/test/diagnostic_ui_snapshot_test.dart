@@ -13,6 +13,7 @@ import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
+import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
@@ -20,6 +21,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('report shows bounds overlay for a keyed widget target',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: SizedBox.expand())),
+    );
+    final observation = UiObservation(
+      observationId: 'widget-overlay',
+      revision: 1,
+      timestamp: DateTime.utc(2026),
+      screen: ScreenObservation.unknown(),
+      viewport: const UiViewport(width: 800, height: 600),
+      elements: const [
+        UiElement(
+          elementId: 'section',
+          testId: 'wifi_scan_measurement_section_speed',
+          type: 'widget',
+          suggestedLocator: ElementLocator(
+            id: 'wifi_scan_measurement_section_speed',
+          ),
+          state: UiElementState(visible: true),
+          bounds: UiBounds(left: 20, top: 30, width: 300, height: 120),
+        ),
+      ],
+    );
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawRect(const Rect.fromLTWH(0, 0, 800, 600), Paint());
+    final image = await recorder.endRecording().toImage(800, 600);
+
+    final overlays = observerOverlaysForReport(
+      observation: observation,
+      tester: tester,
+      image: image,
+    );
+
+    expect(overlays, hasLength(1));
+    expect(overlays.single['id'], 'wifi_scan_measurement_section_speed');
+    image.dispose();
+  });
+
   testWidgets('diagnostic snapshot warns on duplicate sibling locators',
       (tester) async {
     await tester.pumpWidget(

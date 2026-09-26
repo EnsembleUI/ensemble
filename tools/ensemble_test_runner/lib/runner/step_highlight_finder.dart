@@ -10,7 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// Finder used to draw the report screenshot highlight for [step].
 ///
 /// Supports YAML `id:`, structured `target:` (label/role/text/id), and
-/// text/`anyOf` assertion steps. Returns null when nothing can be resolved.
+/// text/`anyOf` and element-value/semantics assertion steps. Returns null when
+/// nothing can be resolved.
 Finder? stepHighlightFinder({
   required WidgetTester tester,
   required AssertionEngine assertions,

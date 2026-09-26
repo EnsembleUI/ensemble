@@ -90,4 +90,47 @@ void main() {
     expect(finder, isNotNull);
     expect(finder!.evaluate(), hasLength(1));
   });
+
+  testWidgets('stepHighlightFinder resolves value and semantics assertions',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TextField(
+            key: const ValueKey('room_name_input'),
+            controller: TextEditingController(),
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'highlight_value_and_semantics',
+        startScreen: 'RoomName',
+        steps: [],
+      ),
+    );
+    final assertions = AssertionEngine(tester: tester, context: context);
+
+    for (final step in [
+      const TestStep(type: 'expectValue', args: {'id': 'room_name_input'}),
+      const TestStep(
+        type: 'expectSemanticsLabel',
+        args: {'id': 'room_name_input', 'label': 'Room name'},
+      ),
+    ]) {
+      final finder = stepHighlightFinder(
+        tester: tester,
+        assertions: assertions,
+        step: step,
+      );
+      expect(finder, isNotNull, reason: step.type);
+      expect(
+        assertions.rectForVisuallyActionable(finder!),
+        isNotNull,
+        reason: step.type,
+      );
+    }
+  });
 }

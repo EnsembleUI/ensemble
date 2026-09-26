@@ -12,6 +12,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
+import 'package:ensemble_test_runner/session/observation/observer_json.dart';
 import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
@@ -20,6 +21,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('observe excludes elements retained by inactive routes',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const Scaffold(body: Text('Previous screen only')),
+      ),
+    );
+    Navigator.of(tester.element(find.text('Previous screen only'))).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Current screen')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase:
+            const EnsembleTestCase(id: 'current-route-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final texts = _flatten(observation.elements)
+        .map((element) => element.text)
+        .whereType<String>()
+        .toList();
+    expect(texts, contains('Current screen'));
+    expect(texts, isNot(contains('Previous screen only')));
+    await session.close();
+  });
+
   testWidgets('observe reports selected semantics and unknown obscuration',
       (tester) async {
     await tester.pumpWidget(
@@ -53,6 +94,100 @@ void main() {
         .singleWhere((element) => element.text == 'Current tab');
     expect(selected.state.selected, isTrue);
     expect(selected.state.obscured, isNull);
+    await session.close();
+  });
+
+  testWidgets('observe keeps visible status text inside a control host',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: InkWell(
+              onTap: () {},
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('Offline'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'status-text-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    expect(
+      _flatten(observation.elements)
+          .any((element) => element.text == 'Offline'),
+      isTrue,
+    );
+    await session.close();
+  });
+
+  testWidgets('wide section heading is not assigned to a checkbox',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 361,
+                child: Text('Which devices do you want to set a limit for?'),
+              ),
+              Checkbox(value: false, onChanged: (_) {}),
+            ],
+          ),
+        ),
+      ),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase:
+            const EnsembleTestCase(id: 'section-heading-checkbox', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+    final checkbox = flat.singleWhere((element) => element.type == 'checkbox');
+    expect(
+        checkbox.label, isNot('Which devices do you want to set a limit for?'));
+    expect(
+      flat.any((element) =>
+          element.type == 'text' &&
+          element.text == 'Which devices do you want to set a limit for?'),
+      isTrue,
+    );
     await session.close();
   });
 
@@ -528,9 +663,8 @@ void main() {
       );
       final flat = _flatten(observation.elements);
 
-      final checkboxes = flat
-          .where((e) => e.testId == 'restore_dns_checkbox')
-          .toList();
+      final checkboxes =
+          flat.where((e) => e.testId == 'restore_dns_checkbox').toList();
       expect(
         checkboxes,
         hasLength(1),
@@ -803,8 +937,7 @@ void main() {
       );
       expect(
         _flatten([toast]).any(
-          (e) =>
-              e.type == 'text' && (e.text ?? '').contains('No token found'),
+          (e) => e.type == 'text' && (e.text ?? '').contains('No token found'),
         ),
         isTrue,
         reason: 'message Text stays a child of the toast',
@@ -1126,7 +1259,8 @@ void main() {
     expect(dropdowns, hasLength(1));
     final dropdownFlat = _flatten(dropdowns);
     expect(
-      dropdownFlat.where((e) => e.type == 'text' && (e.text ?? '') == 'HGW_SAH'),
+      dropdownFlat
+          .where((e) => e.type == 'text' && (e.text ?? '') == 'HGW_SAH'),
       isEmpty,
       reason: 'value caption must not duplicate under the dropdown',
     );
@@ -1255,12 +1389,73 @@ void main() {
       // onTap (show password) — must not both advertise the same selector.
       // AppIcon renders the eye as Ensemble Image/SVG (not Flutter Icon).
       final png = Uint8List.fromList(<int>[
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-        0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
       ]);
       await tester.pumpWidget(
         MaterialApp(
@@ -1291,7 +1486,8 @@ void main() {
                                   SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: Image.memory(png, fit: BoxFit.contain),
+                                    child:
+                                        Image.memory(png, fit: BoxFit.contain),
                                   ),
                                 ],
                               ),
@@ -1315,7 +1511,8 @@ void main() {
           appHome: 'Home',
         ),
         context: EnsembleTestContext(
-          testCase: const EnsembleTestCase(id: 'wifi-password-dup-sel', steps: []),
+          testCase:
+              const EnsembleTestCase(id: 'wifi-password-dup-sel', steps: []),
           apiOverlay: TestApiProviderOverlay(mocks: const {}),
           logger: TestLogger(),
           setup: const EnsembleTestSetup(),
@@ -1331,9 +1528,8 @@ void main() {
       );
       final flat = _flatten(observation.elements);
       // Outer edit row stays a tappable control; ••••+eye is icon chrome.
-      final rowControls = flat
-          .where((e) => e.type == 'button' || e.type == 'card')
-          .toList();
+      final rowControls =
+          flat.where((e) => e.type == 'button' || e.type == 'card').toList();
       expect(
         rowControls,
         hasLength(1),
@@ -1695,9 +1891,14 @@ void main() {
 
     final override = flat.firstWhere((e) => e.testId == 'password_override');
     expect(override.type, 'textInput');
-    expect(override.text, isNull, reason: 'hint must not become value');
+    expect(override.text, '', reason: 'empty is a verified value');
     expect(override.label, 'Generated Password Override');
     expect(override.hint, 'Optional INHOME_GENERATED_PASSWORD');
+    final overrideJson = observerElementsToJson(observation)
+        .expand((element) => _flattenJson(element))
+        .singleWhere((element) => element['id'] == 'password_override');
+    expect(overrideJson['value'], '');
+    expect(overrideJson.containsKey('value'), isTrue);
 
     final stub = flat.firstWhere((e) => e.testId == 'stub_switch');
     expect(stub.type, 'switch');
@@ -1966,7 +2167,8 @@ void main() {
         ),
       );
 
-      final cards = observation.elements.where((e) => e.type == 'card').toList();
+      final cards =
+          observation.elements.where((e) => e.type == 'card').toList();
       expect(
         cards.length,
         greaterThanOrEqualTo(2),
@@ -1987,6 +2189,7 @@ void main() {
           collect(c);
         }
       }
+
       for (final root in observation.elements) {
         collect(root);
       }
@@ -2019,6 +2222,7 @@ void main() {
           collectEnriched(c);
         }
       }
+
       for (final root in enriched.elements) {
         collectEnriched(root);
       }
@@ -2110,7 +2314,8 @@ void main() {
         ),
       );
 
-      final card = observation.elements.where((e) => e.type == 'card').firstOrNull;
+      final card =
+          observation.elements.where((e) => e.type == 'card').firstOrNull;
       expect(card, isNotNull, reason: 'bordered panel must observe as card');
       expect(card!.state.enabled, isNull,
           reason: 'non-tappable card has no enabled flag');
@@ -2358,6 +2563,67 @@ void main() {
         isEmpty,
       );
       await session.close();
+    },
+  );
+
+  testWidgets(
+    'observe retains keyed section locator around a visual card',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: KeyedSubtree(
+                key: const ValueKey('wifi_scan_measurement_section_speed'),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 320,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text('Speed of your wifi'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+        context: EnsembleTestContext(
+          testCase: const EnsembleTestCase(id: 'keyed-section', steps: []),
+          apiOverlay: TestApiProviderOverlay(mocks: const {}),
+          logger: TestLogger(),
+          setup: const EnsembleTestSetup(),
+        ),
+        permissions: SessionPermissions.restrictedUi,
+      );
+      addTearDown(session.close);
+
+      final observation = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      final section = _flatten(observation.elements).singleWhere(
+        (element) => element.testId == 'wifi_scan_measurement_section_speed',
+      );
+      expect(section.bounds, isNotNull);
+      expect(section.children, isNotEmpty);
+      final serialized =
+          observerElementsToJson(observation).expand(_flattenJson).singleWhere(
+                (element) =>
+                    (element['locator']?['id'] ?? element['id']) ==
+                    'wifi_scan_measurement_section_speed',
+              );
+      expect(serialized['bounds'], isNotNull);
     },
   );
 
@@ -2635,7 +2901,8 @@ void main() {
           appHome: 'Home',
         ),
         context: EnsembleTestContext(
-          testCase: const EnsembleTestCase(id: 'scope-disabled-back', steps: []),
+          testCase:
+              const EnsembleTestCase(id: 'scope-disabled-back', steps: []),
           apiOverlay: TestApiProviderOverlay(mocks: const {}),
           logger: TestLogger(),
           setup: const EnsembleTestSetup(),
@@ -2749,7 +3016,8 @@ void main() {
           appHome: 'Home',
         ),
         context: EnsembleTestContext(
-          testCase: const EnsembleTestCase(id: 'classname-not-disabled', steps: []),
+          testCase:
+              const EnsembleTestCase(id: 'classname-not-disabled', steps: []),
           apiOverlay: TestApiProviderOverlay(mocks: const {}),
           logger: TestLogger(),
           setup: const EnsembleTestSetup(),
@@ -2840,6 +3108,22 @@ List<UiElement> _flatten(List<UiElement> roots) {
     walk(root);
   }
   return out;
+}
+
+List<Map<String, dynamic>> _flattenJson(Map<String, dynamic> root) {
+  final result = <Map<String, dynamic>>[];
+  void visit(Map<String, dynamic> element) {
+    result.add(element);
+    final children = element['children'];
+    if (children is List) {
+      for (final child in children.whereType<Map>()) {
+        visit(Map<String, dynamic>.from(child));
+      }
+    }
+  }
+
+  visit(root);
+  return result;
 }
 
 /// Mimics Ensemble `framework/widget/icon.dart` (subclasses Flutter [Icon]).

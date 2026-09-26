@@ -147,6 +147,9 @@ UiElement describeElement({
     testId: testId,
     text: text,
     label: effectiveLabel,
+    offscreen: offscreen,
+    hasBounds: bounds != null,
+    hasScrollableAncestor: _hasScrollableAncestor(element),
   );
   // Interactable = can run a gesture/edit step on this node right now.
   final interactable = visible &&
@@ -373,6 +376,21 @@ bool isPrimaryControlElement(Element element) {
 bool isStandaloneTextElement(Element element) {
   if (!_isVisibleTextHost(element)) return false;
   return !hasPrimaryControlAncestor(element);
+}
+
+/// User-facing text that should remain observable even when it is nested
+/// below a control host. The tree builder removes redundant control captions
+/// after collection, so filtering nested text here can otherwise hide
+/// meaningful status labels (for example, a badge rendered inside a custom
+/// row/control).
+bool isObservableTextElement(Element element) {
+  if (!_isVisibleTextHost(element)) return false;
+  if (_selfOrAncestor<EditableText>(element) != null ||
+      _selfOrAncestor<TextField>(element) != null ||
+      _selfOrAncestor<CupertinoTextField>(element) != null) {
+    return false;
+  }
+  return true;
 }
 
 /// Caption / badge [Text] nested under a tappable card, button, or row.
@@ -2109,26 +2127,27 @@ String? _readEditableValue(
   TextField? field,
   CupertinoTextField? cupertino,
 }) {
-  final fromField = field?.controller?.text.trim();
-  if (fromField != null && fromField.isNotEmpty) return fromField;
-  final fromCupertino = cupertino?.controller?.text.trim();
-  if (fromCupertino != null && fromCupertino.isNotEmpty) return fromCupertino;
+  final fromField = field?.controller?.text;
+  if (fromField != null) return fromField;
+  final fromCupertino = cupertino?.controller?.text;
+  if (fromCupertino != null) return fromCupertino;
 
   String? editableText;
+  var foundEditableText = false;
   void visit(Element e) {
-    if (editableText != null) return;
+    if (foundEditableText) return;
     if (!identical(e, element) && looksSecure(e, null)) return;
     final w = e.widget;
     if (w is EditableText) {
-      final value = w.controller.text.trim();
-      if (value.isNotEmpty) editableText = value;
+      editableText = w.controller.text;
+      foundEditableText = true;
       return;
     }
     e.visitChildren(visit);
   }
 
   visit(element);
-  return editableText;
+  return foundEditableText ? editableText : null;
 }
 
 /// InputDecoration / Cupertino placeholder — never used as [readText] value.
@@ -2539,6 +2558,18 @@ bool inViewport(WidgetTester tester, UiBounds bounds) {
   return (Offset.zero & size).overlaps(rect);
 }
 
+bool _hasScrollableAncestor(Element element) {
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    if (ancestor.widget is Scrollable) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
 /// YAML step names an agent/crawler can run **against this observed node**.
 ///
 /// Only lists steps that are actually targetable with the locators this node
@@ -2555,6 +2586,9 @@ List<String> supportedActionsFor(
   String? testId,
   String? text,
   String? label,
+  bool offscreen = false,
+  bool hasBounds = false,
+  bool hasScrollableAncestor = false,
 }) {
   final t = (type ?? '').trim().toLowerCase();
   final hasId = testId != null && testId.trim().isNotEmpty;
@@ -2572,7 +2606,6 @@ List<String> supportedActionsFor(
       'expectNotVisible',
       'expectExists',
       'expectNotExists',
-      'scrollUntilVisible',
     ]);
   }
 
@@ -2695,6 +2728,13 @@ List<String> supportedActionsFor(
       break;
   }
 
+  // Offscreen nodes with geometry can be resolved as snapshot/bounds targets,
+  // even when they have no test ID. Recommend scrolling them into view before
+  // any gesture; the action executor supports locator-backed targets.
+  if (offscreen && hasBounds && hasScrollableAncestor) {
+    actions.insert(0, 'scrollUntilVisible');
+  }
+
   // Stable order, unique.
   final seen = <String>{};
   return [
@@ -2713,6 +2753,10 @@ UiElement refreshObserveActions(UiElement element) {
     testId: element.testId,
     text: element.text,
     label: element.label,
+    offscreen: element.state.offscreen == true,
+    hasBounds: element.bounds != null,
+    hasScrollableAncestor:
+        element.supportedActions.contains('scrollUntilVisible'),
   );
   final visible = element.state.visible != false;
   final offscreen = element.state.offscreen == true;

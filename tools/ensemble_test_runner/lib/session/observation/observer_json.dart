@@ -135,8 +135,12 @@ String? _elementValue(
       return null;
   }
   if (element.state.secure == true) return null;
-  final text = element.text?.trim();
-  if (text == null || text.isEmpty) return null;
-  if (title != null && title.trim() == text) return null;
+  // An empty string is a verified input value, not an unknown value. Keep it
+  // so an agent can distinguish a cleared field from an unobserved value.
+  final text = element.text;
+  if (text == null) return null;
+  if (text.isNotEmpty && title != null && title.trim() == text.trim()) {
+    return null;
+  }
   return text;
 }

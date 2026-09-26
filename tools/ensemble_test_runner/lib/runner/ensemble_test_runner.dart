@@ -1393,7 +1393,9 @@ class EnsembleTestRunner {
         step.type == 'waitFor' ||
         step.type == 'expectTextContains' ||
         step.type == 'scrollUntilVisible' ||
-        step.type == 'expectVisible') {
+        step.type == 'expectVisible' ||
+        step.type == 'expectValue' ||
+        step.type == 'expectSemanticsLabel') {
       final text = step.args['text']?.toString();
       final anyOf = step.args['anyOf'];
       final id = step.args['id']?.toString();
