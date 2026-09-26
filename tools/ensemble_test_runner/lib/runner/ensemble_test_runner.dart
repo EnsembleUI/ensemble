@@ -556,7 +556,6 @@ class EnsembleTestRunner {
           final captureBeforeStep = _shouldCaptureBeforeStep(step);
           if (captureBeforeStep) {
             final didCapture = await _captureStepReportArtifacts(
-              session: session,
               executor: executor,
               step: step,
               stepIndex: i,
@@ -569,7 +568,6 @@ class EnsembleTestRunner {
               if (capturedStep) return;
               await _waitForHighlightTargetToPaint(executor, matchedStep);
               final didCapture = await _captureStepReportArtifacts(
-                session: session,
                 executor: executor,
                 step: matchedStep,
                 stepIndex: i,
@@ -586,7 +584,6 @@ class EnsembleTestRunner {
             executor.onWaitForNavigationMatched = (matchedStep) async {
               if (capturedStep) return;
               final didCapture = await _captureStepReportArtifacts(
-                session: session,
                 executor: executor,
                 step: matchedStep,
                 stepIndex: i,
@@ -606,7 +603,6 @@ class EnsembleTestRunner {
             Future<void> captureOptionalAction(TestStep matchedStep) async {
               if (capturedStep) return;
               final didCapture = await _captureStepReportArtifacts(
-                session: session,
                 executor: executor,
                 step: matchedStep,
                 labelStep: step,
@@ -646,23 +642,12 @@ class EnsembleTestRunner {
               !capturedStep &&
               optionalActionStep == null) {
             final didCapture = await _captureStepReportArtifacts(
-              session: session,
               executor: executor,
               step: step,
               stepIndex: i,
               options: StepScreenshotOptions.afterCondition(step),
             );
             if (didCapture) capturedStep = true;
-          }
-          // Pairs already wrote Observer. Fill only when a shot exists without
-          // overlays (should be rare after mid-wait allowWhileQueueBusy).
-          if (capturedStep && !hasStepObserver(ctx, i)) {
-            await captureStepObserverBestEffort(
-              session: session,
-              executor: executor,
-              stepIndex: i,
-              allowWhileQueueBusy: true,
-            );
           }
           await YamlTestSession.navigationFlow.flushPending();
           await _recordStorageStepDiff(
@@ -712,18 +697,10 @@ class EnsembleTestRunner {
           final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
           if (!capturedStep) {
             await _captureStepReportArtifacts(
-              session: session,
               executor: executor,
               step: step,
               stepIndex: i,
               options: StepScreenshotOptions.onFailure(),
-            );
-          } else if (!hasStepObserver(ctx, i)) {
-            await captureStepObserverBestEffort(
-              session: session,
-              executor: executor,
-              stepIndex: i,
-              allowWhileQueueBusy: true,
             );
           }
           await _settleLiveApiWorkBestEffort(tester, ctx);
@@ -796,15 +773,7 @@ class EnsembleTestRunner {
       try {
         _assertNoErrorWidgetAfterSuccess(tester, ctx);
       } catch (error) {
-        final failureIndex =
-            test.steps.isEmpty ? null : test.steps.length - 1;
-        if (failureIndex != null) {
-          await captureStepObserverBestEffort(
-            session: session,
-            executor: executor,
-            stepIndex: failureIndex,
-          );
-        }
+        final failureIndex = test.steps.isEmpty ? null : test.steps.length - 1;
         final failureMessage = error.toString();
         await _flushPendingScreenshots(
           ctx,
@@ -978,7 +947,6 @@ class EnsembleTestRunner {
 
   /// Screenshot + Observer as one pair. Skipped shots never write Observer.
   Future<bool> _captureStepReportArtifacts({
-    required LocalTestExecutionSession session,
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
@@ -1002,17 +970,6 @@ class EnsembleTestRunner {
                 requireVisibleActionHighlight:
                     options.requireVisibleActionHighlight,
               ),
-      captureObserver: () async {
-        // Transient waitForNavigation may have already paired Observer with
-        // the early frame; do not overwrite with the next route's tree.
-        if (hasStepObserver(executor.context, stepIndex)) return;
-        await captureStepObserverBestEffort(
-          session: session,
-          executor: executor,
-          stepIndex: stepIndex,
-          allowWhileQueueBusy: options.allowObserveWhileQueueBusy,
-        );
-      },
     );
   }
 
@@ -1027,6 +984,7 @@ class EnsembleTestRunner {
     bool waitForLottie = true,
     bool stabilize = true,
     bool forFailure = false,
+
     /// When true, skip the frame unless an action highlight lands on pixels
     /// that are not a flat empty region (avoids phantom optional-tap rings).
     bool requireVisibleActionHighlight = false,
@@ -1058,6 +1016,20 @@ class EnsembleTestRunner {
       executor.tester,
       secureContent: executor.context.config.screenshots.secureContent,
     );
+    // Read the widget tree in the same synchronous turn as the pixels. A
+    // route/timer callback can advance the live tree as soon as this method
+    // yields, so collecting Observer after returning the image can label it
+    // with the next screen.
+    DiagnosticUiSnapshot? observerSnapshot;
+    try {
+      observerSnapshot = captureDiagnosticUiSnapshot(
+        tester: executor.tester,
+        assertions: executor.assertions,
+        navigation: executor.services.navigation,
+      );
+    } catch (_) {
+      // Keep screenshot capture best-effort if Observer collection fails.
+    }
     final device = _screenshotDeviceTarget(executor.context);
     final highlight = _highlightForStep(
       executor: executor,
@@ -1101,6 +1073,15 @@ class EnsembleTestRunner {
         highlight: highlight,
       ),
     );
+    final snap = observerSnapshot;
+    if (snap != null) {
+      upsertStepObserverFromSnapshot(
+        ctx: executor.context,
+        tester: executor.tester,
+        stepIndex: stepIndex,
+        snap: snap,
+      );
+    }
     return true;
   }
 

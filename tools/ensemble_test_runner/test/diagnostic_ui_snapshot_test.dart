@@ -14,11 +14,134 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
+import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('diagnostic snapshot warns on duplicate sibling locators',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              ElevatedButton(onPressed: () {}, child: const Text('Continue')),
+              ElevatedButton(onPressed: () {}, child: const Text('Continue')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final observation = captureDiagnosticUiSnapshot(
+      tester: tester,
+      assertions: AssertionEngine(tester: tester),
+    ).observation;
+    final elements = <UiElement>[];
+    void collect(List<UiElement> nodes) {
+      for (final node in nodes) {
+        elements.add(node);
+        collect(node.children);
+      }
+    }
+
+    collect(observation.elements);
+    final buttons = elements
+        .where((element) =>
+            element.type == 'button' && element.label == 'Continue')
+        .toList();
+    expect(buttons, hasLength(2));
+    expect(
+        buttons.every((element) => element.suggestedLocator == null), isTrue);
+    expect(buttons.every((element) => element.locatorWarning != null), isTrue);
+  });
+
+  testWidgets('hidden duplicate does not warn on the visible unique text',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              Positioned(left: 20, top: 20, child: Text('WiFi extender 3')),
+              Offstage(child: Text('WiFi extender 3')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final observation = captureDiagnosticUiSnapshot(
+      tester: tester,
+      assertions: AssertionEngine(tester: tester),
+    ).observation;
+    final texts = <UiElement>[];
+    void collect(List<UiElement> elements) {
+      for (final element in elements) {
+        if (element.type == 'text' && element.text == 'WiFi extender 3') {
+          texts.add(element);
+        }
+        collect(element.children);
+      }
+    }
+
+    collect(observation.elements);
+    expect(texts, hasLength(2));
+    final visible =
+        texts.singleWhere((element) => element.state.visible == true);
+    expect(visible.locatorWarning, isNull);
+
+    final reportTree = observationElementsTreeForReport(observation);
+    final textNode = reportTree
+        .expand((node) => _flattenReportNodes(node))
+        .singleWhere((node) => node['title'] == 'WiFi extender 3');
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawRect(const Rect.fromLTWH(0, 0, 300, 300), Paint());
+    final image = await recorder.endRecording().toImage(300, 300);
+    final overlays = observerOverlaysForReport(
+      observation: observation,
+      tester: tester,
+      image: image,
+    );
+    expect(overlays.map((overlay) => overlay['index']),
+        contains(textNode['index']));
+
+    // Invisible nodes marked offscreen remain in the report tree, but cannot
+    // have an overlay. Their indices must still count for later visible rows.
+    final withOffscreenNode = UiObservation(
+      observationId: observation.observationId,
+      revision: observation.revision,
+      timestamp: observation.timestamp,
+      screen: observation.screen,
+      viewport: observation.viewport,
+      elements: [
+        const UiElement(
+          elementId: 'offscreen',
+          type: 'text',
+          text: 'Below the fold',
+          state: UiElementState(visible: false, offscreen: true),
+        ),
+        ...observation.elements,
+      ],
+    );
+    final withOffscreenTree =
+        observationElementsTreeForReport(withOffscreenNode);
+    final shiftedTextNode = withOffscreenTree
+        .expand((node) => _flattenReportNodes(node))
+        .singleWhere((node) => node['title'] == 'WiFi extender 3');
+    final shiftedOverlays = observerOverlaysForReport(
+      observation: withOffscreenNode,
+      tester: tester,
+      image: image,
+    );
+    expect(shiftedOverlays.map((overlay) => overlay['index']),
+        contains(shiftedTextNode['index']));
+    image.dispose();
+  });
+
   testWidgets(
     'diagnostic snapshot does not register ModalRoute dependents',
     (tester) async {
@@ -88,8 +211,7 @@ void main() {
         ),
       );
 
-      final handlesBefore =
-          tester.binding.debugOutstandingSemanticsHandles;
+      final handlesBefore = tester.binding.debugOutstandingSemanticsHandles;
 
       final snap = captureDiagnosticUiSnapshot(
         tester: tester,
@@ -158,12 +280,73 @@ void main() {
     (tester) async {
       // 1x1 PNG
       final png = Uint8List.fromList(<int>[
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-        0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
       ]);
       await tester.pumpWidget(
         MaterialApp(
@@ -200,12 +383,73 @@ void main() {
       // Mirrors inhome CloseAppButton: Column(semantics.label, onTap) → SVG
       // AppIcon, with an empty intermediate Semantics (Material/InkWell pattern).
       final png = Uint8List.fromList(<int>[
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-        0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-        0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
-        0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-        0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
-        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0D,
+        0x0A,
+        0x2D,
+        0xB4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
       ]);
       await tester.pumpWidget(
         MaterialApp(
@@ -341,8 +585,7 @@ void main() {
           ),
         ),
       );
-      final handlesBefore =
-          tester.binding.debugOutstandingSemanticsHandles;
+      final handlesBefore = tester.binding.debugOutstandingSemanticsHandles;
       final a =
           lightweightMutationFingerprint(tester: tester, routeName: 'Home');
       expect(tester.binding.debugOutstandingSemanticsHandles, handlesBefore);
@@ -526,15 +769,13 @@ void main() {
         tester: tester,
         assertions: AssertionEngine(tester: tester),
       );
-      final card = snap.observation.elements
-          .where((e) => e.type == 'card')
-          .first;
+      final card =
+          snap.observation.elements.where((e) => e.type == 'card').first;
       expect(card.suggestedLocator, isNull);
       expect(card.state.interactable, isFalse);
 
-      final icons = _flatten(card.children)
-          .where((e) => e.type == 'icon')
-          .toList();
+      final icons =
+          _flatten(card.children).where((e) => e.type == 'icon').toList();
       expect(icons, hasLength(5));
       for (var i = 0; i < icons.length; i++) {
         final icon = icons[i];
@@ -612,10 +853,12 @@ void main() {
           {
             'stepIndex': 0,
             'role': 'observer',
-            'screen': 'Login',
-            'elements': [
-              {'index': 1, 'type': 'button', 'title': 'Login', 'id': 'login'},
-            ],
+            'observationJson': {
+              'screen': 'Login',
+              'elements': [
+                {'index': 1, 'type': 'button', 'title': 'Login', 'id': 'login'},
+              ],
+            },
             'overlays': [
               {
                 'left': 5.0,
@@ -636,10 +879,12 @@ void main() {
           {
             'stepIndex': 1,
             'role': 'observer',
-            'screen': 'Home',
-            'elements': [
-              {'index': 1, 'type': 'text', 'title': 'Welcome'},
-            ],
+            'observationJson': {
+              'screen': 'Home',
+              'elements': [
+                {'index': 1, 'type': 'text', 'title': 'Welcome'},
+              ],
+            },
             'overlays': const [],
           },
           {
@@ -651,10 +896,12 @@ void main() {
           {
             'stepIndex': 2,
             'role': 'observer',
-            'screen': 'Home',
-            'elements': [
-              {'index': 1, 'type': 'button', 'title': 'Continue', 'id': 'go'},
-            ],
+            'observationJson': {
+              'screen': 'Home',
+              'elements': [
+                {'index': 1, 'type': 'button', 'title': 'Continue', 'id': 'go'},
+              ],
+            },
             'overlays': [
               {
                 'left': 10.0,
@@ -670,9 +917,10 @@ void main() {
       );
 
       expect(steps, hasLength(3));
-      expect(steps[0]['observer']['screen'], 'Login');
-      expect(steps[1]['observer']['screen'], 'Home');
-      expect(steps[2]['observer']['elements'].single['id'], 'go');
+      expect(steps[0]['observer']['observationJson']['screen'], 'Login');
+      expect(steps[1]['observer']['observationJson']['screen'], 'Home');
+      expect(steps[2]['observer']['observationJson']['elements'].single['id'],
+          'go');
       for (final step in steps) {
         expect(step['screenshots'], hasLength(1));
         expect((step['observer'] as Map).containsKey('file'), isFalse);
@@ -748,4 +996,15 @@ Future<ui.Image> _solidImage() async {
   final image = await picture.toImage(100, 100);
   picture.dispose();
   return image;
+}
+
+Iterable<Map<String, dynamic>> _flattenReportNodes(
+    Map<String, dynamic> root) sync* {
+  yield root;
+  final children = root['children'];
+  if (children is List) {
+    for (final child in children.whereType<Map<String, dynamic>>()) {
+      yield* _flattenReportNodes(child);
+    }
+  }
 }

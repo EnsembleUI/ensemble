@@ -201,14 +201,14 @@ class YamlStepDispatcher {
         );
       case 'scroll':
         return ScrollAction(
-          target: id != null ? target : null,
+          target: id != null || target.locator != null ? target : null,
           direction: _dir(step.args['direction']),
           distance: (step.args['distance'] as num?)?.toDouble(),
         );
       case 'swipe':
         return SwipeAction(
           direction: _dir(step.args['direction']),
-          target: id != null ? target : null,
+          target: id != null || target.locator != null ? target : null,
         );
       case 'drag':
         return DragAction(
@@ -217,7 +217,9 @@ class YamlStepDispatcher {
           dy: (step.args['dy'] as num?)?.toDouble() ?? 0,
         );
       case 'pullToRefresh':
-        return PullToRefreshAction(target: id != null ? target : null);
+        return PullToRefreshAction(
+          target: id != null || target.locator != null ? target : null,
+        );
       case 'chooseDate':
         return ChooseDateAction(
           target: target,
@@ -261,6 +263,9 @@ class YamlStepDispatcher {
           text: step.args['text']?.toString(),
           anyOf:
               (step.args['anyOf'] as List?)?.map((e) => e.toString()).toList(),
+          target: step.args.containsKey('target') || step.args.containsKey('id')
+              ? _targetFromArgs(step.args)
+              : null,
         );
       case 'waitForNavigation':
         return ScreenWait(screen: step.args['screen']?.toString() ?? '');

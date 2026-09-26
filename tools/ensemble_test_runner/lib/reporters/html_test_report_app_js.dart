@@ -1608,24 +1608,22 @@ const ensembleHtmlTestReportAppJs = r'''
     if (!panel) return;
     panel.innerHTML = '';
     const observer = data.observer;
-    if (!observer || typeof observer !== 'object') {
+    const payload = observer && observer.observationJson;
+    if (!payload || typeof payload !== 'object') {
       panel.hidden = true;
       window.__observerCopyPayload = null;
       window.__observerScreenshotContext = null;
       return;
     }
-    const elements = Array.isArray(observer.elements) ? observer.elements : [];
+    const elements = Array.isArray(payload.elements) ? payload.elements : [];
     const total = countObserverNodes(elements);
-    window.__observerCopyPayload = {
-      screen: observer.screen || null,
-      elements: elements,
-    };
+    window.__observerCopyPayload = payload;
     const shots = Array.isArray(data && data.screenshots) ? data.screenshots : [];
     window.__observerScreenshotContext = {
       frame: shots.length ? shots[shots.length - 1] : null,
       overlays: Array.isArray(observer.overlays) ? observer.overlays : [],
     };
-    const screen = observer.screen || '';
+    const screen = payload.screen || '';
     let html = '';
     html += '<div class="observer-toolbar">';
     if (screen) {
@@ -1757,9 +1755,9 @@ const ensembleHtmlTestReportAppJs = r'''
     if (titleEl) titleEl.textContent = heading;
 
     const kids = Array.isArray(el.children) ? el.children : [];
-    const actions = Array.isArray(el.supportedActions) ? el.supportedActions : [];
+    const actionExamples = Array.isArray(el.actionExamples) ? el.actionExamples : [];
     const options = Array.isArray(el.options) ? el.options : [];
-    const selector = formatObserverSelector(el.locator);
+    const selector = formatObserverSelector(observerElementLocator(el));
 
     let html = '';
     html += renderObserverElementPreview(index);
@@ -1796,10 +1794,37 @@ const ensembleHtmlTestReportAppJs = r'''
     if (el.checked != null) {
       html += '<span class="observer-detail-chip muted">checked=' + escapeHtml(String(el.checked)) + '</span>';
     }
-    if (el.enabled == null && el.interactable == null && el.checked == null) {
+    if (el.visible != null) {
+      html += '<span class="observer-detail-chip muted">visible=' + escapeHtml(String(el.visible)) + '</span>';
+    }
+    if (el.offscreen != null) {
+      html += '<span class="observer-detail-chip muted">offscreen=' + escapeHtml(String(el.offscreen)) + '</span>';
+    }
+    if (el.selected != null) {
+      html += '<span class="observer-detail-chip muted">selected=' + escapeHtml(String(el.selected)) + '</span>';
+    }
+    if (el.focused != null) {
+      html += '<span class="observer-detail-chip muted">focused=' + escapeHtml(String(el.focused)) + '</span>';
+    }
+    if (el.obscured != null) {
+      html += '<span class="observer-detail-chip muted">obscured=' + escapeHtml(String(el.obscured)) + '</span>';
+    }
+    if (el.secure != null) {
+      html += '<span class="observer-detail-chip muted">secure=' + escapeHtml(String(el.secure)) + '</span>';
+    }
+    if (el.enabled == null && el.interactable == null && el.checked == null &&
+        el.visible == null && el.offscreen == null && el.selected == null &&
+        el.focused == null && el.obscured == null && el.secure == null) {
       html += '<span class="observer-detail-empty">—</span>';
     }
     html += '</div></div>';
+
+    if (el.bounds != null) {
+      html += '<div class="observer-detail-row">';
+      html += '<div class="observer-detail-label">Bounds (logical px)</div>';
+      html += '<div class="observer-detail-value"><code>' +
+          escapeHtml(JSON.stringify(el.bounds)) + '</code></div></div>';
+    }
 
     if (el.value != null && String(el.value).length) {
       html += '<div class="observer-detail-row">';
@@ -1834,20 +1859,19 @@ const ensembleHtmlTestReportAppJs = r'''
     }
 
     html += '<div class="observer-detail-row">';
-    html += '<div class="observer-detail-label">Supported actions</div>';
-    if (actions.length) {
-      window.__observerActionYamlSnippets = [];
+    html += '<div class="observer-detail-label">Action examples</div>';
+    if (actionExamples.length) {
+      window.__observerActionYamlSnippets = actionExamples;
       html += '<div class="observer-detail-actions-list">';
-      actions.forEach(function (a, i) {
-        const yaml = formatObserverActionYaml(String(a), el);
-        window.__observerActionYamlSnippets[i] = yaml;
+      actionExamples.forEach(function (yaml, i) {
+        const action = observerActionName(yaml);
         html += '<div class="observer-detail-action">';
         html += '<div class="observer-detail-action-header">';
-        html += '<span class="observer-detail-action-name">' + escapeHtml(String(a)) + '</span>';
+        html += '<span class="observer-detail-action-name">' + escapeHtml(action) + '</span>';
         html += '<button type="button" class="observer-detail-copy-btn" onclick="copyObserverActionYaml(this, ' +
             i + ')">Copy</button>';
         html += '</div>';
-        html += '<pre class="observer-detail-action-yaml">' + escapeHtml(yaml) + '</pre>';
+        html += '<pre class="observer-detail-action-yaml">' + escapeHtml(String(yaml)) + '</pre>';
         html += '</div>';
       });
       html += '</div>';
@@ -1878,22 +1902,33 @@ const ensembleHtmlTestReportAppJs = r'''
       return o && String(o.index) === String(index);
     });
 
+    if (!match) {
+      const element = findObserverElementByIndex(index);
+      const offscreen = element && element.state &&
+          element.state.offscreen === true;
+      return '<div class="observer-detail-row">' +
+          '<div class="observer-detail-label">Screenshot</div>' +
+          '<div class="observer-detail-empty">' +
+          (offscreen
+            ? 'Element is outside this screenshot viewport; no overlay can be shown.'
+            : 'Screenshot has no bounds overlay for this element.') +
+          '</div></div>';
+    }
+
     let boundsAttr = '';
     let highlightHtml = '';
-    if (match) {
-      const left = Number(match.left || 0);
-      const top = Number(match.top || 0);
-      const width = Number(match.width || 0);
-      const height = Number(match.height || 0);
-      if (width > 0 && height > 0) {
-        boundsAttr = ' data-obs-left="' + left.toFixed(4) + '"' +
-            ' data-obs-top="' + top.toFixed(4) + '"' +
-            ' data-obs-width="' + width.toFixed(4) + '"' +
-            ' data-obs-height="' + height.toFixed(4) + '"';
-        highlightHtml = '<span class="screenshot-highlight observer tree-hover" style="left:' +
-            left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' +
-            width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"></span>';
-      }
+    const left = Number(match.left || 0);
+    const top = Number(match.top || 0);
+    const width = Number(match.width || 0);
+    const height = Number(match.height || 0);
+    if (width > 0 && height > 0) {
+      boundsAttr = ' data-obs-left="' + left.toFixed(4) + '"' +
+          ' data-obs-top="' + top.toFixed(4) + '"' +
+          ' data-obs-width="' + width.toFixed(4) + '"' +
+          ' data-obs-height="' + height.toFixed(4) + '"';
+      highlightHtml = '<span class="screenshot-highlight observer tree-hover" style="left:' +
+          left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' +
+          width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"></span>';
     }
 
     let html = '<div class="observer-detail-row">';
@@ -1905,9 +1940,6 @@ const ensembleHtmlTestReportAppJs = r'''
         '" alt="Selected element" loading="eager" decoding="async"/>';
     html += highlightHtml;
     html += '</div></div>';
-    if (!match) {
-      html += '<div class="observer-detail-empty">No bounds overlay for this element</div>';
-    }
     html += '</div></div>';
     return html;
   }
@@ -2067,119 +2099,28 @@ const ensembleHtmlTestReportAppJs = r'''
     const role = locator.role != null ? String(locator.role).trim() : '';
     if (role) parts.push('role=' + role);
     if (locator.occurrence != null) parts.push('occurrence=' + locator.occurrence);
+    if (locator.bounds && typeof locator.bounds === 'object') {
+      parts.push('bounds=' + JSON.stringify(locator.bounds));
+    }
     return parts.join(', ');
   }
 
-  function yamlScalar(value) {
-    if (value === true || value === false) return String(value);
-    if (typeof value === 'number' && isFinite(value)) return String(value);
-    const str = String(value == null ? '' : value);
-    if (str === '') return '""';
-    if (/^[A-Za-z0-9_./+-]+$/.test(str)) return str;
-    return '"' + str.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
-  }
-
-  function yamlObjectLines(obj, indent) {
-    const pad = '  '.repeat(indent);
-    const lines = [];
-    Object.keys(obj || {}).forEach(function (key) {
-      const val = obj[key];
-      if (val == null) return;
-      if (typeof val === 'object' && !Array.isArray(val)) {
-        lines.push(pad + key + ':');
-        lines.push.apply(lines, yamlObjectLines(val, indent + 1));
-      } else {
-        lines.push(pad + key + ': ' + yamlScalar(val));
-      }
-    });
-    return lines;
-  }
-
   function observerElementLocator(el) {
+    if (el && el.warning && el.bounds && typeof el.bounds === 'object') {
+      return { bounds: el.bounds };
+    }
     if (el && el.locator && typeof el.locator === 'object') return el.locator;
     if (el && el.id) return { id: String(el.id) };
+    if (el && el.bounds && typeof el.bounds === 'object') {
+      return { bounds: el.bounds };
+    }
     if (el && el.title) return { text: String(el.title) };
     return null;
   }
 
-  function isIdOnlyLocator(loc) {
-    if (!loc || !loc.id) return false;
-    return !loc.label && !loc.text && !loc.role && !loc.within && loc.occurrence == null;
-  }
-
-  function actionExtraFields(action, el) {
-    const title = el.title ? String(el.title) : '';
-    const textHint = title || (el.id ? String(el.id) : '...');
-    switch (action) {
-      case 'enterText':
-      case 'replaceText':
-        return {
-          value: el.value != null && String(el.value).length
-            ? String(el.value)
-            : '...',
-        };
-      case 'select':
-        return {
-          value: (Array.isArray(el.options) && el.options.length)
-            ? String(el.options[0])
-            : '...',
-        };
-      case 'selectIndex':
-        return { index: 0 };
-      case 'setSlider':
-        return { value: 0.5 };
-      case 'expectValue':
-        return {
-          equals: el.value != null && String(el.value).length
-            ? String(el.value)
-            : '...',
-        };
-      case 'expectChecked':
-        return el.checked != null ? { equals: !!el.checked } : {};
-      case 'waitForText':
-      case 'expectText':
-      case 'expectNoText':
-      case 'expectTextContains':
-        return { text: textHint };
-      default:
-        return {};
-    }
-  }
-
-  function usesTextArgOnly(action) {
-    return action === 'waitForText' ||
-        action === 'expectText' ||
-        action === 'expectNoText' ||
-        action === 'expectTextContains';
-  }
-
-  function formatObserverActionYaml(action, el) {
-    const extra = actionExtraFields(action, el);
-    const lines = [action + ':'];
-    if (usesTextArgOnly(action)) {
-      Object.keys(extra).forEach(function (key) {
-        lines.push('  ' + key + ': ' + yamlScalar(extra[key]));
-      });
-      return lines.join('\n');
-    }
-    const loc = observerElementLocator(el);
-    if (!loc) {
-      lines.push('  # no selector for this element');
-      Object.keys(extra).forEach(function (key) {
-        lines.push('  ' + key + ': ' + yamlScalar(extra[key]));
-      });
-      return lines.join('\n');
-    }
-    if (isIdOnlyLocator(loc)) {
-      lines.push('  id: ' + yamlScalar(loc.id));
-    } else {
-      lines.push('  target:');
-      lines.push.apply(lines, yamlObjectLines(loc, 2));
-    }
-    Object.keys(extra).forEach(function (key) {
-      lines.push('  ' + key + ': ' + yamlScalar(extra[key]));
-    });
-    return lines.join('\n');
+  function observerActionName(example) {
+    const match = String(example || '').trim().match(/^([A-Za-z][A-Za-z0-9]*):/);
+    return match ? match[1] : 'Action';
   }
 
   function bindObserverTreeHover(root) {
@@ -2362,17 +2303,21 @@ const ensembleHtmlTestReportAppJs = r'''
 
   function renderObserverTreeNode(el, depth) {
     const type = el.type || 'widget';
-    const id = el.id ? String(el.id) : '';
+    const id = el.id ? String(el.id) :
+        (el.locator && el.locator.id ? String(el.locator.id) : '');
     const title = el.title ? String(el.title) : '';
     // Prefer a single label — title, else id. Cards omit title so keyed cards
     // show their authoring id here instead of a borrowed child caption.
     const label = title || id;
-    const selector = formatObserverSelector(el.locator);
+    const selector = formatObserverSelector(observerElementLocator(el));
     const kids = Array.isArray(el.children) ? el.children : [];
     const hasKids = kids.length > 0;
-    const actions = Array.isArray(el.supportedActions) ? el.supportedActions : [];
+    const actionExamples = Array.isArray(el.actionExamples) ? el.actionExamples : [];
     const stateBits = [];
     if (el.enabled != null) stateBits.push('enabled=' + el.enabled);
+    if (el.visible != null) stateBits.push('visible=' + el.visible);
+    if (el.offscreen != null) stateBits.push('offscreen=' + el.offscreen);
+    if (el.selected != null) stateBits.push('selected=' + el.selected);
     if (el.checked != null) stateBits.push('checked=' + el.checked);
     if (el.interactable != null) stateBits.push('interactable=' + el.interactable);
     if (el.value) stateBits.push('value=' + String(el.value));
@@ -2402,12 +2347,12 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<span class="observer-hint-glyph" aria-hidden="true">sel</span>';
       html += '</span></span>';
     }
-    if (actions.length) {
+    if (actionExamples.length) {
       html += '<span class="observer-hint" tabindex="0" data-tip-title="Supported actions" data-tip-list="' +
-        escapeHtml(actions.join('|')) + '">';
-      html += '<span class="observer-hint-chip" aria-label="' + actions.length + ' supported actions">';
+        escapeHtml(actionExamples.map(observerActionName).join('|')) + '">';
+      html += '<span class="observer-hint-chip" aria-label="' + actionExamples.length + ' supported actions">';
       html += '<span class="observer-hint-glyph" aria-hidden="true">act</span>';
-      html += '<span class="observer-hint-count">' + actions.length + '</span>';
+      html += '<span class="observer-hint-count">' + actionExamples.length + '</span>';
       html += '</span></span>';
     }
     if (stateBits.length) {

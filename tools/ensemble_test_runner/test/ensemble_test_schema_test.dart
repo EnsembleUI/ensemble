@@ -62,6 +62,20 @@ void main() {
     expect(decoded, isNot(contains('oneOf')));
   });
 
+  test('element targets accept logical bounds', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    final locator = defs['elementLocator'] as Map<String, dynamic>;
+    final properties = locator['properties'] as Map<String, dynamic>;
+    expect(properties['bounds'], {'\$ref': '#/\$defs/elementBounds'});
+    final bounds = defs['elementBounds'] as Map<String, dynamic>;
+    expect(bounds['required'], ['left', 'top', 'width', 'height']);
+
+    final steps = schema['\$defs']['args_expectListContains'] as Map;
+    final stepProperties = steps['properties'] as Map;
+    expect(stepProperties['target'], {'\$ref': '#/\$defs/elementLocator'});
+  });
+
   test('schema rejects scenario-level mocks', () {
     final schema = EnsembleTestSchemaBuilder.build();
     final defs = schema['\$defs'] as Map<String, dynamic>;

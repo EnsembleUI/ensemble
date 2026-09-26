@@ -17,7 +17,6 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
-import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/step_report_capture.dart';
@@ -575,7 +574,6 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 tester: tester,
                 context: context,
                 session: attached,
-                executor: executor,
                 step: step,
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
@@ -586,7 +584,6 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 tester: tester,
                 context: context,
                 session: attached,
-                executor: executor,
                 step: step,
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
@@ -869,7 +866,6 @@ Future<void> _captureHostStepReportArtifactsSafely({
   required WidgetTester tester,
   required EnsembleTestContext context,
   required LocalTestExecutionSession session,
-  required TestStepExecutor executor,
   required TestStep step,
   required int stepIndex,
   required List<TestFailureDetails> secondaryFailures,
@@ -883,6 +879,8 @@ Future<void> _captureHostStepReportArtifactsSafely({
         await _captureHostStepScreenshotSafely(
           tester: tester,
           context: context,
+          assertions: session.assertions,
+          navigation: session.services.navigation,
           step: step,
           stepIndex: stepIndex,
           secondaryFailures: secondaryFailures,
@@ -892,12 +890,6 @@ Future<void> _captureHostStepReportArtifactsSafely({
             .length;
         return after > before;
       },
-      captureObserver: () => captureStepObserverBestEffort(
-        session: session,
-        executor: executor,
-        stepIndex: stepIndex,
-        allowWhileQueueBusy: true,
-      ),
     );
   } catch (_) {
     // Report capture must never replace the real test failure.
@@ -907,6 +899,8 @@ Future<void> _captureHostStepReportArtifactsSafely({
 Future<void> _captureHostStepScreenshotSafely({
   required WidgetTester tester,
   required EnsembleTestContext context,
+  required AssertionEngine assertions,
+  required NavigationTestService? navigation,
   required TestStep step,
   required int stepIndex,
   required List<TestFailureDetails> secondaryFailures,
@@ -915,6 +909,8 @@ Future<void> _captureHostStepScreenshotSafely({
     await captureHostStepScreenshot(
       tester: tester,
       context: context,
+      assertions: assertions,
+      navigation: navigation,
       step: step,
       stepIndex: stepIndex,
     );

@@ -5,10 +5,10 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 /// Kept free of Flutter imports so the CLI (`dart run`) can format observe
 /// output without loading `dart:ui`.
 String formatSuggestedSelector(ElementLocator locator) {
-  if (locator.id != null && locator.id!.trim().isNotEmpty) {
-    return 'id=${locator.id!.trim()}';
-  }
   final parts = <String>[];
+  if (locator.id != null && locator.id!.trim().isNotEmpty) {
+    parts.add('id=${locator.id!.trim()}');
+  }
   final within = locator.within;
   if (within != null && !within.isEmpty) {
     parts.add('within={${formatSuggestedSelector(within)}}');
@@ -28,6 +28,9 @@ String formatSuggestedSelector(ElementLocator locator) {
   final occurrence = locator.occurrence;
   if (occurrence != null) {
     parts.add('occurrence=$occurrence');
+  }
+  if (locator.bounds != null) {
+    parts.add('bounds=${locator.bounds!.toJson()}');
   }
   return parts.join(', ');
 }

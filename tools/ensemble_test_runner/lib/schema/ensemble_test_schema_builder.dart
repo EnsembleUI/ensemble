@@ -149,6 +149,17 @@ class EnsembleTestSchemaBuilder {
 
   static Map<String, dynamic> build() {
     final defs = <String, dynamic>{
+      'elementBounds': {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'left': {'type': 'number'},
+          'top': {'type': 'number'},
+          'width': {'type': 'number', 'exclusiveMinimum': 0},
+          'height': {'type': 'number', 'exclusiveMinimum': 0},
+        },
+        'required': ['left', 'top', 'width', 'height'],
+      },
       'elementLocator': {
         'type': 'object',
         'additionalProperties': false,
@@ -178,6 +189,7 @@ class EnsembleTestSchemaBuilder {
           },
           'within': {'\$ref': '#/\$defs/elementLocator'},
           'occurrence': {'type': 'integer', 'minimum': 0},
+          'bounds': {'\$ref': '#/\$defs/elementBounds'},
         },
         'anyOf': [
           {
@@ -191,6 +203,9 @@ class EnsembleTestSchemaBuilder {
           },
           {
             'required': ['role']
+          },
+          {
+            'required': ['bounds']
           },
         ],
       },

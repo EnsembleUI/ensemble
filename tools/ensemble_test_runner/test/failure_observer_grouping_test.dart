@@ -26,10 +26,12 @@ void main() {
         {
           'stepIndex': 0,
           'role': 'observer',
-          'screen': 'Login',
-          'elements': [
-            {'index': 1, 'type': 'button', 'title': 'Login', 'id': 'login'},
-          ],
+          'observationJson': {
+            'screen': 'Login',
+            'elements': [
+              {'index': 1, 'type': 'button', 'title': 'Login', 'id': 'login'},
+            ],
+          },
           'overlays': [
             {
               'left': 5.0,
@@ -50,10 +52,12 @@ void main() {
         {
           'stepIndex': 1,
           'role': 'observer',
-          'screen': 'Home',
-          'elements': [
-            {'index': 1, 'type': 'button', 'title': 'Continue', 'id': 'go'},
-          ],
+          'observationJson': {
+            'screen': 'Home',
+            'elements': [
+              {'index': 1, 'type': 'button', 'title': 'Continue', 'id': 'go'},
+            ],
+          },
           'overlays': [
             {
               'left': 10.0,
@@ -70,16 +74,16 @@ void main() {
 
     expect(steps, hasLength(2));
     expect(steps[0]['observer'], isNotNull);
-    expect(steps[0]['observer']['screen'], 'Login');
+    expect(steps[0]['observer']['observationJson']['screen'], 'Login');
     expect(steps[0]['screenshots'], hasLength(1));
     expect(steps[1]['screenshots'], hasLength(1));
     expect(steps[1]['screenshots'].single['file'], 'normal.webp');
     final observer = steps[1]['observer'] as Map;
-    expect(observer['screen'], 'Home');
+    expect(observer['observationJson']['screen'], 'Home');
     expect(observer.containsKey('screenshot'), isFalse);
     expect(observer.containsKey('file'), isFalse);
-    expect(observer['elements'], hasLength(1));
-    expect(observer['elements'].single['id'], 'go');
+    expect(observer['observationJson']['elements'], hasLength(1));
+    expect(observer['observationJson']['elements'].single['id'], 'go');
     expect(observer['overlays'], hasLength(1));
     expect(observer['overlays'].single['id'], 'go');
   });

@@ -263,10 +263,17 @@ class AssertionEngine {
   }
 
   void expectValue(String id, dynamic expected) {
-    final finder = finderForId(id);
+    expectValueFinder(finderForId(id), expected, description: 'id "$id"');
+  }
+
+  void expectValueFinder(
+    Finder finder,
+    dynamic expected, {
+    String description = 'target',
+  }) {
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure(
-        'Expected widget with id "$id" to be visible for expectValue.',
+        'Expected $description to be visible for expectValue.',
       );
     }
 
@@ -279,7 +286,7 @@ class AssertionEngine {
       final actual = editable.controller.text;
       if (actual != expected?.toString()) {
         throw EnsembleTestFailure(
-          'Expected input "$id" value "$expected", but got "$actual".',
+          'Expected input under $description to have value "$expected", but got "$actual".',
         );
       }
       return;
@@ -294,14 +301,14 @@ class AssertionEngine {
       final actual = field.controller?.text;
       if (actual != expected?.toString()) {
         throw EnsembleTestFailure(
-          'Expected input "$id" value "$expected", but got "$actual".',
+          'Expected input under $description to have value "$expected", but got "$actual".',
         );
       }
       return;
     }
 
     throw EnsembleTestFailure(
-      'No EditableText or TextField found under widget id "$id".',
+      'No EditableText or TextField found under $description.',
     );
   }
 
@@ -316,11 +323,18 @@ class AssertionEngine {
   }
 
   void expectCount(String id, int expected) {
-    final count = finderForId(id).evaluate().length;
+    expectCountFinder(finderForId(id), expected, description: 'id "$id"');
+  }
+
+  void expectCountFinder(
+    Finder finder,
+    int expected, {
+    String description = 'target',
+  }) {
+    final count = finder.evaluate().length;
     if (count != expected) {
       throw EnsembleTestFailure(
-        'Expected $expected widget(s) with id "$id", but found $count.',
-      );
+          'Expected $expected match(es) for $description, but found $count.');
     }
   }
 
@@ -405,9 +419,16 @@ class AssertionEngine {
   }
 
   void expectChecked(String id, bool expected) {
-    final finder = finderForId(id);
+    expectCheckedFinder(finderForId(id), expected, description: 'id "$id"');
+  }
+
+  void expectCheckedFinder(
+    Finder finder,
+    bool expected, {
+    String description = 'target',
+  }) {
     if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
+      throw EnsembleTestFailure('expectChecked: $description not found.');
     }
     final isChecked = _readSemantics(
       () => _semanticsIsChecked(
@@ -416,7 +437,7 @@ class AssertionEngine {
     );
     if (isChecked != expected) {
       throw EnsembleTestFailure(
-        'Expected "$id" checked=$expected, got $isChecked.',
+        'Expected $description checked=$expected, got $isChecked.',
       );
     }
   }
@@ -427,7 +448,8 @@ class AssertionEngine {
   bool _semanticsIsEnabled(SemanticsData data) {
     final dynamic compatibleData = data;
     try {
-      return compatibleData.flagsCollection.isEnabled == true;
+      return _semanticsFlagValue(compatibleData.flagsCollection.isEnabled) ==
+          true;
     } on NoSuchMethodError {
       return compatibleData.hasFlag(SemanticsFlag.isEnabled) == true;
     }
@@ -436,16 +458,39 @@ class AssertionEngine {
   bool _semanticsIsChecked(SemanticsData data) {
     final dynamic compatibleData = data;
     try {
-      return compatibleData.flagsCollection.isChecked == true;
+      return _semanticsFlagValue(compatibleData.flagsCollection.isChecked) ==
+          true;
     } on NoSuchMethodError {
       return compatibleData.hasFlag(SemanticsFlag.isChecked) == true;
     }
   }
 
+  bool? _semanticsFlagValue(Object? value) {
+    if (value is bool) return value;
+    return switch (value?.toString().split('.').last) {
+      'isTrue' || 'checked' => true,
+      'isFalse' || 'unchecked' => false,
+      _ => null,
+    };
+  }
+
   void expectProperty(String id, String property, dynamic expected) {
-    final finder = finderForId(id);
+    expectPropertyFinder(
+      finderForId(id),
+      property,
+      expected,
+      description: 'id "$id"',
+    );
+  }
+
+  void expectPropertyFinder(
+    Finder finder,
+    String property,
+    dynamic expected, {
+    String description = 'target',
+  }) {
     if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectProperty: widget "$id" not found.');
+      throw EnsembleTestFailure('expectProperty: $description not found.');
     }
     if (property == 'label') {
       final label = _readSemantics(() => tester.getSemantics(finder).label);
@@ -465,13 +510,28 @@ class AssertionEngine {
     String? itemId,
     bool atLeast = false,
   }) {
-    final listFinder = finderForId(listId);
+    expectListCountFinder(
+      finderForId(listId),
+      expected: expected,
+      itemFinder: itemId == null ? null : finderForId(itemId),
+      atLeast: atLeast,
+      description: 'list "$listId"',
+    );
+  }
+
+  void expectListCountFinder(
+    Finder listFinder, {
+    required int expected,
+    Finder? itemFinder,
+    bool atLeast = false,
+    String description = 'target list',
+  }) {
     if (listFinder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectListCount: list "$listId" not found.');
+      throw EnsembleTestFailure('expectListCount: $description not found.');
     }
-    final count = itemId != null
+    final count = itemFinder != null
         ? find
-            .descendant(of: listFinder, matching: finderForId(itemId))
+            .descendant(of: listFinder, matching: itemFinder)
             .evaluate()
             .length
         : find
@@ -482,25 +542,36 @@ class AssertionEngine {
     if (atLeast) {
       if (count < expected) {
         throw EnsembleTestFailure(
-          'Expected at least $expected items in "$listId", found $count.',
+          'Expected at least $expected items in $description, found $count.',
         );
       }
       return;
     }
     if (count != expected) {
       throw EnsembleTestFailure(
-        'Expected $expected items in "$listId", found $count.',
+        'Expected $expected items in $description, found $count.',
       );
     }
   }
 
   void expectListContains({required String listId, required String text}) {
-    final listFinder = finderForId(listId);
+    expectListContainsFinder(
+      finderForId(listId),
+      text,
+      description: 'list "$listId"',
+    );
+  }
+
+  void expectListContainsFinder(
+    Finder listFinder,
+    String text, {
+    String description = 'target list',
+  }) {
     final match =
         find.descendant(of: listFinder, matching: find.textContaining(text));
     if (match.evaluate().isEmpty) {
       throw EnsembleTestFailure(
-        'Expected list "$listId" to contain text "$text".',
+        'Expected $description to contain text "$text".',
       );
     }
   }
@@ -581,9 +652,15 @@ class AssertionEngine {
   }
 
   void expectAccessible(String id) {
-    final finder = finderForId(id);
+    expectAccessibleFinder(finderForId(id), description: 'id "$id"');
+  }
+
+  void expectAccessibleFinder(
+    Finder finder, {
+    String description = 'target',
+  }) {
     if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectAccessible: "$id" not found.');
+      throw EnsembleTestFailure('expectAccessible: $description not found.');
     }
     final hasAccessibleText = _readSemantics(() {
       final semantics = tester.getSemantics(finder);
@@ -591,17 +668,28 @@ class AssertionEngine {
     });
     if (!hasAccessibleText) {
       throw EnsembleTestFailure(
-        'Widget "$id" has no accessibility label or value.',
+        'Widget $description has no accessibility label or value.',
       );
     }
   }
 
   void expectSemanticsLabel(String id, String label) {
-    final finder = finderForId(id);
+    expectSemanticsLabelFinder(
+      finderForId(id),
+      label,
+      description: 'id "$id"',
+    );
+  }
+
+  void expectSemanticsLabelFinder(
+    Finder finder,
+    String label, {
+    String description = 'target',
+  }) {
     final actual = _readSemantics(() => tester.getSemantics(finder).label);
     if (actual != label) {
       throw EnsembleTestFailure(
-        'Expected semantics label "$label", got "$actual".',
+        'Expected semantics label "$label" for $description, got "$actual".',
       );
     }
   }
@@ -616,7 +704,16 @@ class AssertionEngine {
   }
 
   void expectNoOverflow(String id) {
-    final finder = finderForId(id);
+    expectNoOverflowFinder(finderForId(id), description: 'id "$id"');
+  }
+
+  void expectNoOverflowFinder(
+    Finder finder, {
+    String description = 'target',
+  }) {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure('expectNoOverflow: $description not found.');
+    }
     final renderObject = tester.renderObject(finder);
     if (renderObject is RenderBox && renderObject.hasSize) {
       // No direct overflow flag; presence without exception is sufficient.

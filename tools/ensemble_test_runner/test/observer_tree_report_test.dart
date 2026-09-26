@@ -24,7 +24,8 @@ void main() {
         enabled: true,
         testId: 'back_button',
       );
-      expect(enabled, containsAll(['tap', 'longPress', 'waitFor', 'expectVisible']));
+      expect(enabled,
+          containsAll(['tap', 'longPress', 'waitFor', 'expectVisible']));
 
       final unknown = supportedActionsFor(
         'icon',
@@ -235,14 +236,22 @@ void main() {
     expect(checkbox['index'], 2);
     expect(checkbox.containsKey('selector'), isFalse);
     expect(checkbox['locator'], {'id': 'restore_dns_checkbox'});
-    expect(checkbox['supportedActions'], contains('check'));
+    expect(
+      checkbox['actionExamples'],
+      contains(startsWith('check:')),
+    );
+    expect(checkbox.containsKey('supportedActions'), isFalse);
     expect(checkbox.containsKey('kind'), isFalse);
 
     final heading = tree[1];
     expect(heading['index'], 3);
     expect(heading.containsKey('selector'), isFalse);
     expect(heading['locator'], {'text': 'Wat wil je terugzetten?'});
-    expect(heading['supportedActions'], contains('waitForText'));
+    expect(
+      heading['actionExamples'],
+      contains(startsWith('waitForText:')),
+    );
+    expect(heading.containsKey('supportedActions'), isFalse);
     expect(heading['interactable'], isFalse);
     expect(heading.containsKey('locatorStatus'), isFalse);
   });
@@ -287,7 +296,7 @@ void main() {
     );
 
     final card = observationElementsTreeForReport(observation).single;
-    expect(card['id'], 'gateway_card');
+    expect(card['locator'], {'id': 'gateway_card'});
     expect(
       card.containsKey('title'),
       isFalse,
@@ -329,7 +338,7 @@ void main() {
     );
 
     final input = observationElementsTreeForReport(observation).single;
-    expect(input['id'], 'fwa_admin_password_input');
+    expect(input['locator'], {'id': 'fwa_admin_password_input'});
     expect(input['hint'], 'It is on the sticker under your modem');
     expect(input['title'], 'Enter the admin password');
   });
@@ -375,5 +384,42 @@ void main() {
     );
     final textChild = (toast['children'] as List).single as Map;
     expect(textChild['title'], 'Geen token gevonden, open de app opnieuw.');
+  });
+
+  test('report tree includes bounds, state, and offscreen elements', () {
+    final observation = UiObservation(
+      observationId: 'obs',
+      revision: 0,
+      timestamp: DateTime.utc(2026, 1, 1),
+      screen: const ScreenObservation(name: 'Scroll'),
+      elements: const [
+        UiElement(
+          elementId: 'offscreen',
+          type: 'button',
+          label: 'Continue',
+          state: UiElementState(
+            exists: true,
+            visible: false,
+            offscreen: true,
+            interactable: false,
+            selected: true,
+          ),
+          bounds: UiBounds(left: 12, top: 900, width: 120, height: 48),
+        ),
+      ],
+      viewport: const UiViewport(width: 390, height: 844),
+      observableFingerprint: '',
+      completeness: const ObservationCompleteness(),
+    );
+
+    final node = observationElementsTreeForReport(observation).single;
+    expect(node['visible'], false);
+    expect(node['offscreen'], true);
+    expect(node['selected'], true);
+    expect(node['interactable'], false);
+    expect(node['bounds'],
+        {'left': 12.0, 'top': 900.0, 'width': 120.0, 'height': 48.0});
+    expect(node.containsKey('obscured'), isFalse,
+        reason: 'unknown state is omitted rather than reported as false');
   });
 }

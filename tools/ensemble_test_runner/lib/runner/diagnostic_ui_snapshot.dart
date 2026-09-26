@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
@@ -51,6 +53,55 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   final withLocators = [
     for (final root in built.elements) _attachCheapSuggestedLocators(root),
   ];
+  final locatorEntries = <String, List<(UiElement, List<String>)>>{};
+  void collectLocators(List<UiElement> elements, List<String> ancestors) {
+    for (final element in elements) {
+      // Match observationElementsTreeForReport: hidden subtrees do not appear
+      // in the report and therefore must not make a visible locator ambiguous.
+      if (!_includeInObserverReport(element)) continue;
+      final locator = element.suggestedLocator;
+      if (locator != null) {
+        locatorEntries
+            .putIfAbsent(jsonEncode(locator.toJson()), () => [])
+            .add((element, ancestors));
+      }
+      collectLocators(element.children, [...ancestors, element.elementId]);
+    }
+  }
+
+  collectLocators(withLocators, const []);
+  final ambiguousElementIds = <String>{};
+  for (final entries in locatorEntries.values) {
+    for (var i = 0; i < entries.length; i++) {
+      for (var j = i + 1; j < entries.length; j++) {
+        final a = entries[i];
+        final b = entries[j];
+        // Parent and child can legitimately share a locator when Flutter
+        // merges semantics. Separate branches can resolve ambiguously.
+        if (!a.$2.contains(b.$1.elementId) && !b.$2.contains(a.$1.elementId)) {
+          ambiguousElementIds
+            ..add(a.$1.elementId)
+            ..add(b.$1.elementId);
+        }
+      }
+    }
+  }
+  UiElement markAmbiguities(UiElement element) {
+    final ambiguous = ambiguousElementIds.contains(element.elementId);
+    return element.copyWith(
+      children: [for (final child in element.children) markAmbiguities(child)],
+      suggestedLocator: ambiguous ? null : element.suggestedLocator,
+      clearSuggestedLocator: ambiguous,
+      locatorWarning: ambiguous
+          ? 'Suggested locator matches multiple observed elements'
+          : element.locatorWarning,
+      clearLocatorWarning: !ambiguous && element.locatorWarning == null,
+    );
+  }
+
+  final verifiedTree = [
+    for (final element in withLocators) markAmbiguities(element)
+  ];
   final screen = _screenObservation(navigation);
   final size = tester.view.physicalSize / tester.view.devicePixelRatio;
   return DiagnosticUiSnapshot(
@@ -59,7 +110,7 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
       revision: 0,
       timestamp: DateTime.now().toUtc(),
       screen: screen,
-      elements: withLocators,
+      elements: verifiedTree,
       viewport: UiViewport(
         width: size.width,
         height: size.height,
@@ -104,12 +155,14 @@ UiElement _attachCheapSuggestedLocators(
   ElementLocator? parentScope,
   int? iconOccurrenceAmongSiblings,
   int? iconSiblingCount,
+  int? occurrenceAmongSiblings,
 }) {
   final locator = cheapSuggestedLocator(
     element,
     parentScope: parentScope,
     iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
     iconSiblingCount: iconSiblingCount,
+    occurrenceAmongSiblings: occurrenceAmongSiblings,
   );
   // Inert cards keep no sel, but still scope nested icons via caption+role.
   final scopeForChildren =
@@ -119,9 +172,32 @@ UiElement _attachCheapSuggestedLocators(
     for (final child in element.children)
       if ((child.type ?? '').toLowerCase() == 'icon') child,
   ];
+  final siblingLocators = [
+    for (final child in element.children)
+      cheapSuggestedLocator(
+        child,
+        parentScope: scopeForChildren,
+      ),
+  ];
+  final siblingGroups = <String, List<int>>{};
+  for (var i = 0; i < siblingLocators.length; i++) {
+    final candidate = siblingLocators[i];
+    if (candidate == null) continue;
+    siblingGroups
+        .putIfAbsent(candidate.toJson().toString(), () => <int>[])
+        .add(i);
+  }
+  final occurrenceBySiblingIndex = <int, int>{};
+  for (final indexes in siblingGroups.values) {
+    if (indexes.length < 2) continue;
+    for (var occurrence = 0; occurrence < indexes.length; occurrence++) {
+      occurrenceBySiblingIndex[indexes[occurrence]] = occurrence;
+    }
+  }
   final children = <UiElement>[];
   var iconIndex = 0;
-  for (final child in element.children) {
+  for (var childIndex = 0; childIndex < element.children.length; childIndex++) {
+    final child = element.children[childIndex];
     final isIcon = (child.type ?? '').toLowerCase() == 'icon';
     children.add(
       _attachCheapSuggestedLocators(
@@ -130,6 +206,7 @@ UiElement _attachCheapSuggestedLocators(
         iconOccurrenceAmongSiblings:
             isIcon && iconKids.length > 1 ? iconIndex : null,
         iconSiblingCount: isIcon ? iconKids.length : null,
+        occurrenceAmongSiblings: occurrenceBySiblingIndex[childIndex],
       ),
     );
     if (isIcon) iconIndex++;
@@ -139,6 +216,9 @@ UiElement _attachCheapSuggestedLocators(
     children: children,
     suggestedLocator: locator,
     clearSuggestedLocator: true,
-    clearLocatorWarning: true,
+    clearLocatorWarning: false,
   );
 }
+
+bool _includeInObserverReport(UiElement element) =>
+    element.state.visible != false || element.state.offscreen == true;

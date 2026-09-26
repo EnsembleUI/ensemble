@@ -14,6 +14,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
+import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,8 @@ class TestStepExecutor {
   final TestExecutionConfig config;
   EnsembleConfig? _config;
   FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
+  Finder Function(ElementTarget target, {bool requireInteractive})?
+      resolveTargetFinder;
   FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
   FutureOr<void> Function(TestStep step)? onBeforeActionStep;
   FutureOr<void> Function(TestStep step)? onAfterActionStep;
@@ -69,11 +72,13 @@ class TestStepExecutor {
       return;
     }
     if (step.type == 'ifVisible') {
-      final id = step.args['id']?.toString();
-      if (id == null || id.isEmpty) {
-        throw EnsembleTestFailure('ifVisible requires "id"');
+      var isVisible = false;
+      try {
+        isVisible = finderForTargetStep(step).evaluate().isNotEmpty;
+      } on TestExecutionError catch (error) {
+        if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
       }
-      if (assertions.finderForId(id).evaluate().isNotEmpty) {
+      if (isVisible) {
         for (final nested in step.nestedSteps) {
           await execute(nested);
         }
@@ -118,13 +123,32 @@ class TestStepExecutor {
           step: step,
           text: step.args['text']?.toString(),
           anyOf: _stringListArg(step.args['anyOf']),
+          target: step.args['target'] is Map
+              ? ElementTarget(
+                  locator: ElementLocator.fromJson(
+                    Map<String, dynamic>.from(step.args['target'] as Map),
+                  ),
+                )
+              : step.args['bounds'] is Map
+                  ? ElementTarget(
+                      locator: ElementLocator(
+                        bounds: ElementBounds.fromJson(
+                          Map<String, dynamic>.from(
+                            step.args['bounds'] as Map,
+                          ),
+                        ),
+                      ),
+                    )
+                  : step.args['id'] != null
+                      ? ElementTarget(testId: step.args['id'].toString())
+                      : null,
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
         return;
       case 'waitForGone':
         await _waitForGone(
-          id: step.args['id']?.toString(),
+          target: _targetForStep(step),
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
@@ -266,10 +290,13 @@ class TestStepExecutor {
         );
         break;
       case 'expectVisible':
-        assertions.expectVisible(_requireId(step));
+        assertions.expectVisibleFinder(finderForTargetStep(step));
         break;
       case 'expectNotVisible':
-        assertions.expectNotVisible(_requireId(step));
+        assertions.expectVisibleFinder(
+          finderForTargetStep(step, requireInteractive: false),
+          visible: false,
+        );
         break;
       case 'expectText':
         final anyOf = _stringListArg(step.args['anyOf']);
@@ -294,13 +321,20 @@ class TestStepExecutor {
         }
         break;
       case 'expectEnabled':
-        assertions.expectEnabled(_requireId(step));
+        assertions.expectEnabledFinder(finderForTargetStep(step));
         break;
       case 'expectDisabled':
-        assertions.expectDisabled(_requireId(step));
+        assertions.expectEnabledFinder(
+          finderForTargetStep(step),
+          enabled: false,
+        );
         break;
       case 'expectValue':
-        assertions.expectValue(_requireId(step), step.args['equals']);
+        assertions.expectValueFinder(
+          finderForTargetStep(step),
+          step.args['equals'],
+          description: targetDescription(step),
+        );
         break;
       case 'expectApiCalled':
         final name = step.args['name']?.toString();
@@ -321,7 +355,11 @@ class TestStepExecutor {
         if (expected == null) {
           throw EnsembleTestFailure('expectCount requires "equals"');
         }
-        assertions.expectCount(_requireId(step), expected);
+        assertions.expectCountFinder(
+          finderForTargetStep(step),
+          expected,
+          description: targetDescription(step),
+        );
         break;
       case 'expectNavigateTo':
         final screen = step.args['screen']?.toString();
@@ -378,6 +416,45 @@ class TestStepExecutor {
   }
 
   String requireId(TestStep step) => _requireId(step);
+
+  Finder finderForTargetStep(
+    TestStep step, {
+    bool requireInteractive = true,
+  }) {
+    final target = _targetForStep(step);
+    if (target.locator != null || target.usesSnapshotElement) {
+      final resolve = resolveTargetFinder;
+      if (resolve == null) {
+        throw EnsembleTestFailure(
+          'Step "${step.type}" requires a session target resolver.',
+        );
+      }
+      return resolve(target, requireInteractive: requireInteractive);
+    }
+    final id = target.testId;
+    if (id == null || id.isEmpty) {
+      throw EnsembleTestFailure(
+          'Step "${step.type}" requires "id" or "target"');
+    }
+    return assertions.finderForId(id, skipOffstage: requireInteractive);
+  }
+
+  ElementTarget _targetForStep(TestStep step) {
+    final raw = step.args['target'];
+    if (raw is Map) {
+      return ElementTarget(
+        locator: ElementLocator.fromJson(Map<String, dynamic>.from(raw)),
+      );
+    }
+    final id = step.args['id']?.toString() ?? step.args['itemId']?.toString();
+    return ElementTarget(testId: id == null || id.isEmpty ? null : id);
+  }
+
+  String targetDescription(TestStep step) =>
+      step.args['id']?.toString() ??
+      step.args['itemId']?.toString() ??
+      step.args['target']?.toString() ??
+      'target';
 
   Future<void> tapWidget(String id, {int? timeoutMs}) =>
       _tap(id, timeoutMs: timeoutMs);
@@ -756,8 +833,7 @@ class TestStepExecutor {
 
   /// Live-binding only — FakeAsync widget tests must still fail-fast on
   /// recorded "wrong build scope" / overlay races (see fail_fast tests).
-  bool get _isLiveBinding =>
-      tester.binding is LiveTestWidgetsFlutterBinding;
+  bool get _isLiveBinding => tester.binding is LiveTestWidgetsFlutterBinding;
 
   void _drainTransientFlutterDiagnostics() {
     final swallowTransient = _isLiveBinding;
@@ -983,6 +1059,7 @@ class TestStepExecutor {
     String? id,
     String? text,
     List<String> anyOf = const [],
+    ElementTarget? target,
     required int timeoutMs,
   }) async {
     final textCandidates = <String>[
@@ -999,10 +1076,14 @@ class TestStepExecutor {
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
       await _pump(duration: config.waitPollInterval, label: 'waitFor');
       if (id != null &&
+          target?.normalizedLocator?.bounds == null &&
           assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
         return;
       }
-      final matchedText = _firstVisibleText(textCandidates);
+      final matchedText = _firstVisibleText(
+        textCandidates,
+        target: target,
+      );
       if (matchedText != null) {
         if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
           await onWaitForTextMatched!(_stepWithMatchedText(step!, matchedText));
@@ -1016,13 +1097,13 @@ class TestStepExecutor {
         : textCandidates.length == 1
             ? 'text "${textCandidates.single}"'
             : 'any text in ${textCandidates.map((t) => '"$t"').join(', ')}';
-    final target = id != null && textLabel != null
+    final targetLabel = id != null && textLabel != null
         ? 'id "$id" or $textLabel'
         : id != null
             ? 'id "$id"'
             : textLabel!;
     throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for $target. '
+      'Timed out after ${timeoutMs}ms waiting for $targetLabel. '
       '${id != null ? '${assertions.widgetIdFailureHint(id)} ${assertions.visibleTextSummary()}' : assertions.textFailureHint(textCandidates)}',
     );
   }
@@ -1035,9 +1116,46 @@ class TestStepExecutor {
     ];
   }
 
-  String? _firstVisibleText(List<String> candidates) {
+  String? _firstVisibleText(
+    List<String> candidates, {
+    ElementTarget? target,
+  }) {
+    Finder? targetFinder;
+    if (target != null) {
+      try {
+        targetFinder = resolveTargetFinder?.call(target);
+      } on TestExecutionError catch (error) {
+        if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
+      }
+      if (targetFinder == null || targetFinder.evaluate().isEmpty) return null;
+    }
     for (final text in candidates) {
-      if (assertions.isTextVisible(text)) return text;
+      if (target == null) {
+        if (assertions.isTextVisible(text)) return text;
+        continue;
+      }
+      final matching = find.text(text, skipOffstage: false).evaluate().where(
+        (element) {
+          if (!assertions.isElementVisuallyActionable(element)) return false;
+          if (targetFinder != null) {
+            final targetElements = targetFinder.evaluate();
+            return targetElements.any((targetElement) {
+              if (identical(element, targetElement)) return true;
+              var withinTarget = false;
+              element.visitAncestorElements((ancestor) {
+                if (identical(ancestor, targetElement)) {
+                  withinTarget = true;
+                  return false;
+                }
+                return true;
+              });
+              return withinTarget;
+            });
+          }
+          return false;
+        },
+      );
+      if (matching.isNotEmpty) return text;
     }
     return null;
   }
@@ -1225,22 +1343,31 @@ class TestStepExecutor {
   }
 
   Future<void> _waitForGone({
-    String? id,
+    required ElementTarget target,
     required int timeoutMs,
   }) async {
-    if (id == null || id.isEmpty) {
-      throw EnsembleTestFailure('waitForGone requires "id"');
-    }
-
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
       await _pump(duration: config.waitPollInterval, label: 'waitForGone');
-      if (assertions.finderForId(id).evaluate().isEmpty) {
-        return;
+      try {
+        if (finderForTargetStep(
+          TestStep(
+            type: 'waitForGone',
+            args: target.normalizedLocator != null
+                ? {'target': target.normalizedLocator!.toJson()}
+                : {'id': target.testId},
+          ),
+          requireInteractive: false,
+        ).evaluate().isEmpty) {
+          return;
+        }
+      } on TestExecutionError catch (error) {
+        if (error.code == TestExecutionErrorCode.elementNotFound) return;
+        rethrow;
       }
     }
     throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for id "$id" to disappear',
+      'Timed out after ${timeoutMs}ms waiting for target to disappear',
     );
   }
 

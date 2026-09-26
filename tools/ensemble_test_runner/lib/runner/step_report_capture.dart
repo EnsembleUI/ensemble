@@ -110,18 +110,21 @@ class StepScreenshotOptions {
       );
 }
 
-/// Atomically capture a step screenshot then its Observer overlays.
+/// Capture a report screenshot and, optionally, run a post-capture callback.
 ///
 /// Invariant: Observer is written only when [captureScreenshot] returns true
-/// (a frame was added). Skipped/failed shots never leave an orphan Observer.
+/// (a frame was added). Frame-aligned Observer data should be captured and
+/// stored from the same synchronous turn that freezes the screenshot; it may
+/// be added by [captureScreenshot] itself. [captureObserver] is optional for
+/// paths that do not need a separate post-capture callback.
 ///
-/// [captureObserver] should be best-effort and never throw.
+/// [captureObserver], when supplied, should be best-effort and never throw.
 Future<bool> captureStepReportArtifacts({
   required Future<bool> Function() captureScreenshot,
-  required Future<void> Function() captureObserver,
+  Future<void> Function()? captureObserver,
 }) async {
   final didCapture = await captureScreenshot();
   if (!didCapture) return false;
-  await captureObserver();
+  if (captureObserver != null) await captureObserver();
   return true;
 }

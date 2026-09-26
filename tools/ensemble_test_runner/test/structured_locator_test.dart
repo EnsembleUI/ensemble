@@ -7,6 +7,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/assertions/test_assertion.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
+import 'package:ensemble_test_runner/session/yaml/yaml_step_dispatcher.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
@@ -182,7 +183,8 @@ void main() {
     await session.close();
   });
 
-  testWidgets('const child within scope keeps element identity', (tester) async {
+  testWidgets('const child within scope keeps element identity',
+      (tester) async {
     const shared = Text('Continue');
     final taps = <String>[];
     await tester.pumpWidget(
@@ -270,6 +272,172 @@ void main() {
     );
     expect(ambiguous.error?.code.name, 'ambiguousTarget');
     await session.close();
+  });
+
+  testWidgets('bounds disambiguate identical controls and reject stale bounds',
+      (tester) async {
+    final taps = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Column(
+          children: [
+            ElevatedButton(
+              onPressed: () => taps.add('first'),
+              child: const Text('Continue'),
+            ),
+            ElevatedButton(
+              onPressed: () => taps.add('second'),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final rect = tester.getRect(find.text('Continue').last);
+    final targetBounds = ElementBounds(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    );
+    final session = _attach(tester);
+    final dispatcher = YamlStepDispatcher(session: session);
+
+    await dispatcher.execute(
+      TestStep(
+        type: 'tap',
+        args: {
+          'target': {
+            'text': 'Continue',
+            'bounds': targetBounds.toJson(),
+          },
+        },
+      ),
+    );
+    expect(taps, ['second']);
+
+    await dispatcher.execute(
+      TestStep(
+        type: 'waitForText',
+        args: {
+          'text': 'Continue',
+          'target': {'bounds': targetBounds.toJson()},
+        },
+      ),
+    );
+
+    final staleWait = await session.waitFor(
+      TextWait(
+        text: 'Continue',
+        target: const ElementTarget(
+          locator: ElementLocator(
+            bounds: ElementBounds(
+              left: -1000,
+              top: -1000,
+              width: 100,
+              height: 30,
+            ),
+          ),
+        ),
+      ),
+      timeout: const Duration(milliseconds: 100),
+    );
+    expect(staleWait.satisfied, isFalse);
+    await session.close();
+  });
+
+  testWidgets('bounds targets work for value and checked assertions',
+      (tester) async {
+    final controller = TextEditingController(text: 'hello');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: controller),
+                Checkbox(value: true, onChanged: (_) {}),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    final fieldRect = tester.getRect(find.byType(TextField));
+    final checkboxRect = tester.getRect(find.byType(Checkbox));
+    ElementBounds boundsFor(Rect rect) => ElementBounds(
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        );
+    final session = _attach(tester);
+    final dispatcher = YamlStepDispatcher(session: session);
+
+    await dispatcher.execute(
+      TestStep(
+        type: 'expectValue',
+        args: {
+          'target': {'bounds': boundsFor(fieldRect).toJson()},
+          'equals': 'hello',
+        },
+      ),
+    );
+    await dispatcher.execute(
+      TestStep(
+        type: 'expectChecked',
+        args: {
+          'target': {'bounds': boundsFor(checkboxRect).toJson()},
+          'equals': true,
+        },
+      ),
+    );
+    await session.close();
+    controller.dispose();
+  });
+
+  testWidgets('bounds target scopes list assertions', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Card(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [Text('First row'), Text('Second row')],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final rect = tester.getRect(find.byType(Card));
+    final bounds = ElementBounds(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    );
+    final dispatcher = YamlStepDispatcher(session: _attach(tester));
+    await dispatcher.execute(
+      TestStep(
+        type: 'expectListContains',
+        args: {
+          'target': {'bounds': bounds.toJson()},
+          'text': 'Second row',
+        },
+      ),
+    );
+    await dispatcher.execute(
+      TestStep(
+        type: 'expectNotEmpty',
+        args: {
+          'target': {'bounds': bounds.toJson()},
+        },
+      ),
+    );
+    await dispatcher.session.close();
   });
 
   testWidgets('modal overlay resolves the foreground button uniquely',

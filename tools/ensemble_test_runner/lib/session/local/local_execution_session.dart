@@ -73,6 +73,14 @@ class LocalTestExecutionSession implements TestExecutionSession {
       executor: executor,
       resolver: resolver,
     );
+    executor.resolveTargetFinder = (
+      target, {
+      bool requireInteractive = true,
+    }) =>
+        resolver.resolveFinder(
+          target,
+          requireInteractive: requireInteractive,
+        );
   }
 
   /// Attach to a launched application (suite mode).
@@ -406,13 +414,16 @@ class LocalTestExecutionSession implements TestExecutionSession {
             } else {
               await _waitForTarget(target, gone: gone, timeoutMs: timeoutMs);
             }
-          case TextWait(:final text, :final anyOf):
+          case TextWait(:final text, :final anyOf, :final target):
             await executor.execute(
               TestStep(
                 type: 'waitForText',
                 args: {
                   if (text != null) 'text': text,
                   if (anyOf != null) 'anyOf': anyOf,
+                  if (target?.normalizedLocator != null)
+                    'target': target!.normalizedLocator!.toJson(),
+                  if (target?.testId != null) 'id': target!.testId,
                   'timeoutMs': timeoutMs,
                 },
               ),

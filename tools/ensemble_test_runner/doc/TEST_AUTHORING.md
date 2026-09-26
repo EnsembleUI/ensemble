@@ -32,6 +32,21 @@ screenshots unless `screenshots.secureContent: allow` is explicitly selected.
 `skip` omits the frame when a password field is on screen; that must not fail
 the test. The default `mask` keeps the screenshot and covers the field.
 
+When the observer cannot produce a unique selector, use its logical-pixel
+bounds as another conjunctive target field:
+
+```yaml
+- tap:
+    target:
+      text: Wifiversterker 2
+      bounds: {left: 16, top: 653.75, width: 120.08, height: 22}
+```
+
+Bounds are matched against the current rendered element when the action runs;
+they do not send a raw coordinate tap. Include the observed text or role when
+available. If the screen has moved enough that the bounds no longer identify
+one element, the action fails instead of choosing another match.
+
 `ensemble_test_runner` can act as the execution backend for test authoring. The recommended loop is:
 
 Suites may set `mode: widget` (the default) or `mode: integration` in

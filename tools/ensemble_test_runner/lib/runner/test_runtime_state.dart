@@ -14,6 +14,7 @@ class TestRuntimeState {
   final List<AppFrameTimingEntry> appFrameTimings = [];
   final List<PerformanceMarker> performanceMarkers = [];
   final List<ScreenshotSheetFrame> screenshotSheetFrames = [];
+
   /// Live UI dumps for Step Details → Observer (one per step that was shot).
   final List<StepObserverArtifact> stepObservers = [];
   Map<String, dynamic>? authUser;
@@ -139,6 +140,8 @@ class StepObserverArtifact {
   StepObserverArtifact({
     required this.stepIndex,
     required this.elements,
+    required this.observationJson,
+    this.viewport,
     this.overlays = const [],
     this.screen,
     this.deviceId,
@@ -150,6 +153,8 @@ class StepObserverArtifact {
   final int stepIndex;
   final String? screen;
   final List<Map<String, dynamic>> elements;
+  final Map<String, dynamic> observationJson;
+  final Map<String, dynamic>? viewport;
   final List<Map<String, dynamic>> overlays;
   final String? deviceId;
   final String? deviceLabel;

@@ -93,8 +93,7 @@ Future<String?> writeScreenshotFrames({
       frameEntries.add({
         'stepIndex': observer.stepIndex,
         'role': 'observer',
-        if (observer.screen != null) 'screen': observer.screen,
-        'elements': observer.elements,
+        'observationJson': observer.observationJson,
         if (observer.overlays.isNotEmpty) 'overlays': observer.overlays,
       });
     }

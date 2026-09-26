@@ -64,6 +64,7 @@ UiElement describeElement({
     enabled = readEnabled(semanticsSource);
   }
   final checked = readChecked(semanticsSource);
+  final selected = useSemantics ? readSelected(tester, semanticsSource) : null;
   var text = secure ? null : readText(semanticsSource);
   var label = secure
       ? null
@@ -169,7 +170,9 @@ UiElement describeElement({
       enabled: enabled,
       secure: secure,
       offscreen: offscreen,
-      obscured: false,
+      // Hit testing against overlays is not verified by the observer.
+      obscured: null,
+      selected: selected,
       checked: checked,
     ),
     bounds: includeBounds ? bounds : null,
@@ -233,8 +236,7 @@ String resolveObservedWidgetType(Element element, {required String? testId}) {
         // Bottom sheets / feedback panels are visual cards that contain footer
         // CTAs — do not retype the panel as that button (loses card `within`
         // for nested dismiss icons).
-        if (type == 'card' &&
-            (ownedType == 'button' || ownedType == 'icon')) {
+        if (type == 'card' && (ownedType == 'button' || ownedType == 'icon')) {
           return type;
         }
         return ownedType;
@@ -734,16 +736,14 @@ BoxDecoration? _boxDecorationOf(Widget widget) {
   if (widget is DecoratedBox && widget.decoration is BoxDecoration) {
     return widget.decoration as BoxDecoration;
   }
-      if (widget is Material) {
+  if (widget is Material) {
     final shape = widget.shape;
     if (shape is RoundedRectangleBorder &&
         (widget.color != null || shape.side.width > 0)) {
       return BoxDecoration(
         color: widget.color,
         borderRadius: shape.borderRadius,
-        border: shape.side.width > 0
-            ? Border.fromBorderSide(shape.side)
-            : null,
+        border: shape.side.width > 0 ? Border.fromBorderSide(shape.side) : null,
       );
     }
   }
@@ -816,14 +816,14 @@ bool isNestedActionableElement(Element element) {
   }
   if (widget is EditableText) return false;
 
-    if (_isGenericTapTarget(widget)) {
-      // Inside Checkbox/TextField/IconButton — the host is the action, not this.
-      if (_hasSpecificControlAncestor(element)) return false;
-      // Nested under another nested action host — keep outermost only.
-      if (_hasNestedActionTapWrapperAncestor(element)) return false;
-      // KeyedSubtree(back_button) → InkWell: shell already observes as icon.
-      if (isRedundantLeafUnderKeyedIconShell(element)) return false;
-      if (!_genericTapTargetIsEnabled(widget)) return false;
+  if (_isGenericTapTarget(widget)) {
+    // Inside Checkbox/TextField/IconButton — the host is the action, not this.
+    if (_hasSpecificControlAncestor(element)) return false;
+    // Nested under another nested action host — keep outermost only.
+    if (_hasNestedActionTapWrapperAncestor(element)) return false;
+    // KeyedSubtree(back_button) → InkWell: shell already observes as icon.
+    if (isRedundantLeafUnderKeyedIconShell(element)) return false;
+    if (!_genericTapTargetIsEnabled(widget)) return false;
 
     final bounds = boundsFor(element);
     if (bounds == null) return false;
@@ -893,9 +893,7 @@ bool isRedundantLeafUnderKeyedIconShell(Element element) {
     return false;
   }
   if (_looksLikeCompactIconHitTarget(keyed!)) return true;
-  if (hostBounds != null &&
-      hostBounds.width <= 72 &&
-      hostBounds.height <= 72) {
+  if (hostBounds != null && hostBounds.width <= 72 && hostBounds.height <= 72) {
     return true;
   }
   // KeyedSubtree → IconButton / compact InkWell.
@@ -2026,6 +2024,39 @@ bool? readChecked(Element element) {
   return null;
 }
 
+/// Reads the selected semantics flag when the element exposes one.
+/// Semantics-disabled snapshots leave the value unknown.
+bool? readSelected(WidgetTester tester, Element element) {
+  try {
+    final node = tester.getSemantics(
+      find.byElementPredicate((candidate) => identical(candidate, element)),
+    );
+    // `flagsCollection` preserves the tri-state selected value (including
+    // unknown). Access it dynamically so the runner also remains compatible
+    // with older Flutter SDKs that predate this API.
+    final dynamic flags = (node as dynamic).flagsCollection;
+    final selected = flags.isSelected.toString().split('.').last;
+    return switch (selected) {
+      'isTrue' || 'true' => true,
+      'isFalse' || 'false' => false,
+      _ => null,
+    };
+  } on NoSuchMethodError {
+    // Legacy Flutter exposed only the bit-flag API, which cannot distinguish
+    // an explicit false from an unspecified selected state.
+    try {
+      final node = tester.getSemantics(
+        find.byElementPredicate((candidate) => identical(candidate, element)),
+      );
+      return (node as dynamic).hasFlag(SemanticsFlag.isSelected) as bool;
+    } catch (_) {
+      return null;
+    }
+  } catch (_) {
+    return null;
+  }
+}
+
 String? readText(Element element) {
   if (looksSecure(element, null)) return null;
 
@@ -2587,13 +2618,13 @@ List<String> supportedActionsFor(
         if (hasId) addEnabledAsserts();
         actions.addAll(secure
             ? const ['tap', 'enterText', 'clearText', 'focus', 'expectValue']
-          : const [
-              'tap',
-              'enterText',
-              'clearText',
-              'replaceText',
-              'submitText',
-              'focus',
+            : const [
+                'tap',
+                'enterText',
+                'clearText',
+                'replaceText',
+                'submitText',
+                'focus',
                 'expectValue',
               ]);
       }

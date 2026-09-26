@@ -113,7 +113,7 @@ void main() {
     await session.close();
   });
 
-  testWidgets('enrichSuggestedLocators warns on ambiguous duplicates',
+  testWidgets('enrichSuggestedLocators disambiguates duplicates by occurrence',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -156,16 +156,12 @@ void main() {
         .where((e) => (e.type ?? '').toLowerCase() == 'button')
         .toList();
     expect(buttons, isNotEmpty);
-    for (final button in buttons) {
-      expect(button.suggestedLocator, isNull);
-      expect(
-        button.locatorWarning,
-        anyOf(
-          contains('Ambiguous'),
-          equals('No stable locator available'),
-        ),
-      );
-    }
+    expect(buttons, hasLength(2));
+    expect(
+      buttons.map((button) => button.suggestedLocator?.occurrence).toSet(),
+      {0, 1},
+    );
+    expect(buttons.every((button) => button.locatorWarning == null), isTrue);
     await session.close();
   });
 
@@ -343,7 +339,8 @@ void main() {
     await session.close();
   });
 
-  testWidgets('enrichSuggestedLocators gives unlabeled tappable icons role=icon',
+  testWidgets(
+      'enrichSuggestedLocators gives unlabeled tappable icons role=icon',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -660,7 +657,11 @@ void main() {
                 Text('Before you start...'),
                 Row(children: [Text('•'), SizedBox(width: 8), Text('Tip one')]),
                 Row(children: [Text('•'), SizedBox(width: 8), Text('Tip two')]),
-                Row(children: [Text('•'), SizedBox(width: 8), Text('Tip three')]),
+                Row(children: [
+                  Text('•'),
+                  SizedBox(width: 8),
+                  Text('Tip three')
+                ]),
                 ElevatedButton(onPressed: null, child: Text('Start')),
               ],
             ),

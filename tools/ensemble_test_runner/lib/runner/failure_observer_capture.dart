@@ -11,6 +11,7 @@ import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
+import 'package:ensemble_test_runner/session/observation/observer_json.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +43,14 @@ Future<void> captureStepObserverBestEffort({
       navigation: session.services.navigation,
     );
     final device = ctx.testCase.deviceTarget;
+    final elements = observationElementsTreeForReport(snap.observation);
+    final viewport = snap.observation.viewport?.toJson();
+    final observationJson = observerPayloadToJson(
+      stepIndex: stepIndex,
+      screen: snap.screenLabel,
+      viewport: viewport,
+      elements: elements,
+    );
     final overlays = observerOverlaysForReport(
       observation: snap.observation,
       tester: executor.tester,
@@ -52,7 +61,9 @@ Future<void> captureStepObserverBestEffort({
       StepObserverArtifact(
         stepIndex: stepIndex,
         screen: snap.screenLabel,
-        elements: observationElementsTreeForReport(snap.observation),
+        elements: elements,
+        viewport: viewport,
+        observationJson: observationJson,
         overlays: overlays,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
@@ -84,6 +95,14 @@ void upsertStepObserverFromSnapshot({
   if (frame == null) return;
   try {
     final device = ctx.testCase.deviceTarget;
+    final elements = observationElementsTreeForReport(snap.observation);
+    final viewport = snap.observation.viewport?.toJson();
+    final observationJson = observerPayloadToJson(
+      stepIndex: stepIndex,
+      screen: snap.screenLabel,
+      viewport: viewport,
+      elements: elements,
+    );
     final overlays = observerOverlaysForReport(
       observation: snap.observation,
       tester: tester,
@@ -94,7 +113,9 @@ void upsertStepObserverFromSnapshot({
       StepObserverArtifact(
         stepIndex: stepIndex,
         screen: snap.screenLabel,
-        elements: observationElementsTreeForReport(snap.observation),
+        elements: elements,
+        viewport: viewport,
+        observationJson: observationJson,
         overlays: overlays,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
@@ -106,7 +127,6 @@ void upsertStepObserverFromSnapshot({
     // Observer capture must never replace the real test result.
   }
 }
-
 
 ScreenshotSheetFrame? _latestScreenshotFrame(
   EnsembleTestContext ctx,
@@ -141,9 +161,13 @@ List<Map<String, dynamic>> observerOverlaysForReport({
   // link tree rows ↔ screenshot highlights on hover.
   var index = 1;
   void walk(UiElement element) {
-    if (element.state.visible == false) return;
+    // Keep indices aligned with observationElementsTreeForReport, which
+    // retains offscreen nodes even when visible=false.
+    if (element.state.visible == false && element.state.offscreen != true) {
+      return;
+    }
     final myIndex = index++;
-    if (_shouldOverlay(element)) {
+    if (element.state.visible != false && _shouldOverlay(element)) {
       final overlay = _overlayPercent(
         element: element,
         logicalSize: logicalSize,
@@ -262,130 +286,15 @@ Map<String, dynamic>? _overlayPercent({
   };
 }
 
-/// Nested element tree for the HTML Screenshots tab (side panel) and
-/// agent/crawler JSON.
-///
-/// Preserves parent→child structure (e.g. unkeyed `card` wrapping a keyed
-/// checkbox). Concrete fields (`type`, `locator`, `supportedActions`,
-/// `interactable`, `children`) are enough for agents — no parallel `kind` /
-/// `locatorStatus` taxonomy.
+/// @nodoc Legacy report name retained for callers. Serialization now lives in
+/// the Observer layer so report consumers receive the already-built payload.
 List<Map<String, dynamic>> observationElementsTreeForReport(
   UiObservation observation,
-) {
-  final out = <Map<String, dynamic>>[];
-  var index = 1;
-  Map<String, dynamic>? build(UiElement element) {
-    if (element.state.visible == false) return null;
-    // Pre-order indices so parents sort before their children in the JSON.
-    final myIndex = index++;
-    final children = <Map<String, dynamic>>[];
-    for (final child in element.children) {
-      final built = build(child);
-      if (built != null) children.add(built);
-    }
-    return _elementNode(myIndex, element, children: children);
-  }
+) =>
+    observerElementsToJson(observation);
 
-  for (final root in observation.elements) {
-    final built = build(root);
-    if (built != null) out.add(built);
-  }
-  return out;
-}
-
-/// @nodoc Legacy alias — prefer [observationElementsTreeForReport].
+/// @nodoc Legacy alias.
 List<Map<String, dynamic>> flattenObservationElementsForReport(
   UiObservation observation,
 ) =>
-    observationElementsTreeForReport(observation);
-
-Map<String, dynamic> _elementNode(
-  int index,
-  UiElement element, {
-  required List<Map<String, dynamic>> children,
-}) {
-  final type = (element.type ?? element.role ?? 'widget').trim();
-  final title = _titleFor(element);
-  final locator = element.suggestedLocator;
-  final value = _valueFor(element, type: type, title: title);
-  final warning = element.locatorWarning?.trim();
-  return {
-    'index': index,
-    'type': type,
-    if (title != null && title.isNotEmpty) 'title': title,
-    if (element.testId != null && element.testId!.trim().isNotEmpty)
-      'id': element.testId!.trim(),
-    if (locator != null) 'locator': locator.toJson(),
-    if (warning != null && warning.isNotEmpty) 'warning': warning,
-    if (element.state.enabled != null) 'enabled': element.state.enabled,
-    if (element.state.checked != null) 'checked': element.state.checked,
-    if (element.state.interactable != null)
-      'interactable': element.state.interactable,
-    if (value != null) 'value': value,
-    if (element.hint != null && element.hint!.trim().isNotEmpty)
-      'hint': element.hint!.trim(),
-    if (element.options.isNotEmpty) 'options': element.options,
-    if (element.supportedActions.isNotEmpty)
-      'supportedActions': element.supportedActions,
-    if (children.isNotEmpty) 'children': children,
-  };
-}
-
-/// Editable / selected content only — never repeat a button/icon label as value.
-String? _valueFor(
-  UiElement element, {
-  required String type,
-  required String? title,
-}) {
-  switch (type.toLowerCase()) {
-    case 'textinput':
-    case 'textfield':
-    case 'dropdown':
-      break;
-    default:
-      return null;
-  }
-  final text = element.text?.trim();
-  if (text == null || text.isEmpty) return null;
-  if (title != null && title.trim() == text) return null;
-  return text;
-}
-
-String? _titleFor(UiElement element) {
-  final type = (element.type ?? '').toLowerCase();
-  switch (type) {
-    case 'text':
-      return _firstNonEmpty([element.text, element.label]);
-    case 'icon':
-      return _firstNonEmpty([element.text, element.label]);
-    case 'image':
-    case 'svg':
-    case 'gif':
-    case 'lottie':
-      return _firstNonEmpty([element.text, element.label, element.testId]);
-    case 'dropdown':
-    case 'switch':
-    case 'toggle':
-    case 'checkbox':
-    case 'textinput':
-    case 'textfield':
-      return _firstNonEmpty([element.label, element.testId]);
-    case 'button':
-      return _firstNonEmpty([element.text, element.label, element.testId]);
-    case 'toast':
-    case 'card':
-      // Containers — nested Text owns captions. Tree UI shows `id` when
-      // present; never emit a borrowed child caption as the parent title.
-      return null;
-    default:
-      return _firstNonEmpty([element.label, element.text, element.testId]);
-  }
-}
-
-String? _firstNonEmpty(List<String?> values) {
-  for (final value in values) {
-    final trimmed = value?.trim();
-    if (trimmed != null && trimmed.isNotEmpty) return trimmed;
-  }
-  return null;
-}
+    observerElementsToJson(observation);

@@ -139,6 +139,23 @@ UiElement _enrichTree({
         if (outcome.matchCount > bestAmbiguousCount) {
           bestAmbiguousCount = outcome.matchCount;
         }
+        // Prefer a meaningful selector with an explicit occurrence over
+        // falling back to screen coordinates. Occurrence is resolved against
+        // this selector's ordered match set, so it also works with bounds-free
+        // actions and remains scoped when the candidate contains `within`.
+        for (var occurrence = 0;
+            occurrence < outcome.matchCount;
+            occurrence++) {
+          final occurrenceCandidate = _withOccurrence(candidate, occurrence);
+          final occurrenceOutcome = _tryResolve(
+            resolver: resolver,
+            locator: occurrenceCandidate,
+            expected: live,
+          );
+          if (occurrenceOutcome.kind == _ResolveKind.uniqueMatch) {
+            return (locator: occurrenceCandidate, warning: null);
+          }
+        }
       case _ResolveKind.noMatch:
       case _ResolveKind.wrongElement:
         break;
@@ -185,6 +202,11 @@ List<ElementLocator> buildAgentLocatorCandidates(
     case 'text':
       // Skip list bullets / mask glyphs — never suggest text="•".
       if (text != null && !isDecorativeGlyphCaption(text)) {
+        // A parent scope is more stable and meaningful than selecting the Nth
+        // copy of the same text in the whole screen.
+        if (parentScope != null && !_locatorIsEmpty(parentScope)) {
+          out.add(ElementLocator(within: parentScope, text: text));
+        }
         out.add(ElementLocator(text: text));
       }
     case 'button':
@@ -256,9 +278,7 @@ List<ElementLocator> buildAgentLocatorCandidates(
 
   // Nested content under a scoped (usually tappable) parent.
   if (parentScope != null && !_locatorIsEmpty(parentScope)) {
-    if (type == 'text' &&
-        text != null &&
-        !isDecorativeGlyphCaption(text)) {
+    if (type == 'text' && text != null && !isDecorativeGlyphCaption(text)) {
       out.add(ElementLocator(within: parentScope, text: text));
     }
     if (type == 'icon' && tappable) {
@@ -283,10 +303,7 @@ List<ElementLocator> buildAgentLocatorCandidates(
 
   // Last resort: tappable icon with no caption and no parent scope (e.g. sheet
   // dismiss X at the observe root) — role alone so Supported actions ≠ empty sel.
-  if (type == 'icon' &&
-      tappable &&
-      caption == null &&
-      out.isEmpty) {
+  if (type == 'icon' && tappable && caption == null && out.isEmpty) {
     out.add(ElementLocator(role: 'icon'));
   }
 
@@ -299,6 +316,7 @@ ElementLocator? cheapSuggestedLocator(
   ElementLocator? parentScope,
   int? iconOccurrenceAmongSiblings,
   int? iconSiblingCount,
+  int? occurrenceAmongSiblings,
 }) {
   final candidates = buildAgentLocatorCandidates(
     element,
@@ -306,7 +324,11 @@ ElementLocator? cheapSuggestedLocator(
     iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
     iconSiblingCount: iconSiblingCount,
   );
-  return candidates.isEmpty ? null : candidates.first;
+  if (candidates.isEmpty) return null;
+  final candidate = candidates.first;
+  return occurrenceAmongSiblings == null
+      ? candidate
+      : _withOccurrence(candidate, occurrenceAmongSiblings);
 }
 
 /// `within=` scope for descendants — includes non-tappable cards/toasts.
@@ -346,11 +368,32 @@ bool _locatorsEquivalent(ElementLocator a, ElementLocator b) {
       a.text == b.text &&
       a.role == b.role &&
       a.occurrence == b.occurrence &&
+      _boundsEquivalent(a.bounds, b.bounds) &&
       ((a.within == null && b.within == null) ||
           (a.within != null &&
               b.within != null &&
               _locatorsEquivalent(a.within!, b.within!)));
 }
+
+ElementLocator _withOccurrence(ElementLocator locator, int occurrence) =>
+    ElementLocator(
+      id: locator.id,
+      text: locator.text,
+      label: locator.label,
+      role: locator.role,
+      within: locator.within,
+      occurrence: occurrence,
+      bounds: locator.bounds,
+    );
+
+bool _boundsEquivalent(ElementBounds? a, ElementBounds? b) =>
+    (a == null && b == null) ||
+    (a != null &&
+        b != null &&
+        a.left == b.left &&
+        a.top == b.top &&
+        a.width == b.width &&
+        a.height == b.height);
 
 List<ElementLocator> _dedupeLocators(List<ElementLocator> input) {
   final seen = <String>{};

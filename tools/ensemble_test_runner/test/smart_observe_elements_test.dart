@@ -20,6 +20,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('observe reports selected semantics and unknown obscuration',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Semantics(
+            selected: true,
+            child: const Text('Current tab'),
+          ),
+        ),
+      ),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'selected-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final selected = _flatten(observation.elements)
+        .singleWhere((element) => element.text == 'Current tab');
+    expect(selected.state.selected, isTrue);
+    expect(selected.state.obscured, isNull);
+    await session.close();
+  });
+
   testWidgets(
     'observe keeps one logical control per Text / TextField / button',
     (tester) async {

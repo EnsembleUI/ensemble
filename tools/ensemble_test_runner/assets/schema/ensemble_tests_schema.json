@@ -138,6 +138,32 @@
     "steps"
   ],
   "$defs": {
+    "elementBounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "left": {
+          "type": "number"
+        },
+        "top": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "left",
+        "top",
+        "width",
+        "height"
+      ]
+    },
     "elementLocator": {
       "type": "object",
       "additionalProperties": false,
@@ -178,6 +204,9 @@
         "occurrence": {
           "type": "integer",
           "minimum": 0
+        },
+        "bounds": {
+          "$ref": "#/$defs/elementBounds"
         }
       },
       "anyOf": [
@@ -199,6 +228,11 @@
         {
           "required": [
             "role"
+          ]
+        },
+        {
+          "required": [
+            "bounds"
           ]
         }
       ]
@@ -2016,6 +2050,9 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "itemId": {
           "type": "string"
         },
@@ -2025,6 +2062,18 @@
       },
       "required": [
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectListCount",
@@ -2042,13 +2091,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "text": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "text"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectListContains",
@@ -2065,10 +2128,22 @@
       "properties": {
         "itemId": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "itemId"
+      "anyOf": [
+        {
+          "required": [
+            "itemId"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectListItem",
@@ -2897,13 +2972,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "label": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "label"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectSemanticsLabel",

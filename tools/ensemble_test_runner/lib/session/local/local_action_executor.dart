@@ -5,6 +5,7 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
+import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:flutter/widgets.dart' show Element, Offset, Text;
@@ -178,6 +179,10 @@ class FlutterTargetResolver {
     if (matches.length <= 1) return matches;
 
     var collapsed = List<Element>.from(matches);
+    if (locator.bounds != null) {
+      collapsed = _deduplicateRenderObjects(collapsed);
+      return _dropDescendantsOfOtherMatches(collapsed);
+    }
     // Text locators: promote nested Text → actionable ancestor first, then
     // drop descendants. Do not semantics-node-dedup — Material may report
     // unstable/shared nodes and erase distinct sibling buttons.
@@ -191,6 +196,14 @@ class FlutterTargetResolver {
     }
     collapsed = _dropDescendantsOfOtherMatches(collapsed);
     return collapsed;
+  }
+
+  List<Element> _deduplicateRenderObjects(List<Element> matches) {
+    final seen = <Object>{};
+    return matches.where((element) {
+      final renderObject = element.renderObject;
+      return renderObject == null || seen.add(renderObject);
+    }).toList(growable: false);
   }
 
   List<Element> _deduplicateSemanticMatches(List<Element> matches) {
@@ -310,6 +323,14 @@ class FlutterTargetResolver {
                 inferSemanticRole(element, type) != role)) {
           return false;
         }
+        final expectedBounds = locator.bounds;
+        if (expectedBounds != null) {
+          final actualBounds = boundsFor(element);
+          if (actualBounds == null ||
+              !_boundsMatch(expectedBounds, actualBounds)) {
+            return false;
+          }
+        }
         return true;
       },
       skipOffstage: false,
@@ -335,8 +356,17 @@ class FlutterTargetResolver {
       if (locator.text != null) 'text="${locator.text}"',
       if (locator.label != null) 'label="${locator.label}"',
       if (locator.role != null) 'role="${locator.role}"',
+      if (locator.bounds != null) 'bounds=${locator.bounds!.toJson()}',
     ];
     return 'element(${fields.join(', ')})';
+  }
+
+  bool _boundsMatch(ElementBounds expected, UiBounds actual) {
+    const tolerance = 1.0;
+    return (expected.left - actual.left).abs() <= tolerance &&
+        (expected.top - actual.top).abs() <= tolerance &&
+        (expected.width - actual.width).abs() <= tolerance &&
+        (expected.height - actual.height).abs() <= tolerance;
   }
 
   /// TestId for YAML/[TestStepExecutor.execute] dispatch only.

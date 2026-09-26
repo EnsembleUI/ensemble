@@ -203,10 +203,9 @@ List<Map<String, dynamic>> groupLogsByStep({
     if (frame['role']?.toString() == 'observer') {
       // Elements + overlays only — no separate observer PNG in Screenshots.
       buckets[outlineIndex]['observer'] = {
-        'elements': frame['elements'] is List
-            ? List<dynamic>.from(frame['elements'] as List)
-            : const [],
-        if (frame['screen'] != null) 'screen': frame['screen'],
+        if (frame['observationJson'] is Map)
+          'observationJson':
+              Map<String, dynamic>.from(frame['observationJson'] as Map),
         if (frame['overlays'] is List)
           'overlays': List<dynamic>.from(frame['overlays'] as List),
       };
