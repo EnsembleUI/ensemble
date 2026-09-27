@@ -21,15 +21,20 @@ List<String> observerActionExamples({
     id: id,
     title: title,
   );
+  const textActions = {
+    'waitForText',
+    'expectText',
+    'expectNoText',
+    'expectTextContains',
+  };
   return [
     for (final action in actions)
-      if (target != null ||
-          const {
-            'waitForText',
-            'expectText',
-            'expectNoText',
-            'expectTextContains',
-          }.contains(action))
+      // Text assertions are screen-wide actions in the runner: they cannot
+      // use a locator to distinguish this node from another node with the
+      // same text. Do not attach a misleading example to an element when its
+      // locator could not be verified as unique. Other actions can still use
+      // the observed bounds fallback below.
+      if (target != null && !(warning != null && textActions.contains(action)))
         _formatExample(
           action,
           target: target,

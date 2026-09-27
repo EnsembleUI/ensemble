@@ -206,6 +206,17 @@ void main() {
         ],
       }),
     );
+    File(p.join(logsDir.path, 'login_flow_attempt_1_api_calls.json'))
+        .writeAsStringSync(jsonEncode({
+      'events': [
+        {
+          'name': 'loginRetry',
+          'timestamp': '2026-07-22T12:00:00.020',
+          'stepIndex': 1,
+          'statusCode': 503,
+        },
+      ],
+    }));
     File(p.join(logsDir.path, 'login_flow_storage.json')).writeAsStringSync(
       jsonEncode({
         'keys': {'token': 'abc'},
@@ -222,6 +233,9 @@ void main() {
     );
     File(p.join(logsDir.path, 'login_flow_app_console.log'))
         .writeAsStringSync('[2026-07-22T12:00:00.050][step=1] during wait\n');
+    File(p.join(logsDir.path, 'login_flow_attempt_1_app_console.log'))
+        .writeAsStringSync(
+            '--- Attempt 1 of 4 ---\n[2026-07-22T12:00:00.020][step=1] first attempt\n');
     File(p.join(logsDir.path, 'ok_home_app_console.log'))
         .writeAsStringSync('<no console output>\n');
 
@@ -251,6 +265,8 @@ void main() {
           logs: [
             'screenshots: $displayRoot/frames/login_flow_frames.json',
             'screenshotFrames: $displayRoot/frames/login_flow_frames.json',
+            'apiCalls: $displayRoot/logs/login_flow_attempt_1_api_calls.json',
+            'appLogs: $displayRoot/logs/login_flow_attempt_1_app_console.log',
             'apiCalls: $displayRoot/logs/login_flow_api_calls.json',
             'storage: $displayRoot/logs/login_flow_storage.json',
             'appLogs: $displayRoot/logs/login_flow_app_console.log',
@@ -349,12 +365,21 @@ void main() {
     final steps = failed['steps'] as List;
     expect(steps, hasLength(2));
     expect((steps[0] as Map)['apiCalls'], isEmpty);
-    expect(((steps[1] as Map)['apiCalls'] as List).first['name'], 'login');
+    final stepApiCalls = (steps[1] as Map)['apiCalls'] as List;
+    expect(stepApiCalls.map((event) => event['name']),
+        containsAll(['loginRetry', 'login']));
+    expect(stepApiCalls.firstWhere((event) => event['name'] == 'login')['name'],
+        'login');
     expect(
-      ((steps[1] as Map)['apiCalls'] as List).first['responseBody']['token'],
+      stepApiCalls.firstWhere(
+          (event) => event['name'] == 'login')['responseBody']['token'],
       'abc',
     );
     expect((steps[1] as Map)['appLogs'], isNotEmpty);
+    expect(
+      (steps[1] as Map)['appLogs'],
+      contains('[2026-07-22T12:00:00.020][step=1] first attempt'),
+    );
     expect(
       (steps[1] as Map)['appLogs'],
       contains('[2026-07-22T12:00:00.050][step=1] during wait'),
@@ -372,7 +397,9 @@ void main() {
     expect(raw.containsKey('blobs'), isTrue);
     final api = (((raw['tests'] as List).first as Map)['steps'] as List)[1]
         as Map<String, dynamic>;
-    final ev = (api['apiCalls'] as List).first as Map<String, dynamic>;
+    final ev = (api['apiCalls'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((event) => event['name'] == 'login');
     expect(ev['responseBody'], isA<Map>());
     expect((ev['responseBody'] as Map).containsKey(r'$b'), isTrue);
 

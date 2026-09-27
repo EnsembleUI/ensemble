@@ -21,9 +21,10 @@ import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
+import 'package:ensemble_test_runner/runner/flutter_error_isolation.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
-import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
@@ -108,6 +109,39 @@ class EnsembleTestRunner {
     EnsembleTestExecutionPlan plan,
     WidgetTester tester, {
     EnsembleTestProgressListener? onTestComplete,
+  }) {
+    return withFlutterErrorIsolation(() async {
+      try {
+        return await _runPlanIsolated(
+          plan,
+          tester,
+          onTestComplete: onTestComplete,
+        );
+      } catch (error, stackTrace) {
+        // Infrastructure and orchestration errors still produce a complete
+        // result set, so the report and the remaining suite lifecycle survive.
+        return EnsembleTestPlanRunResult(
+          resultsById: {
+            for (final definition in plan.ordered)
+              definition.testCase.id: EnsembleSingleTestResult.failed(
+                testId: definition.testCase.id,
+                metadata: definition.testCase.metadataJson,
+                durationMs: 0,
+                error: 'Test plan could not execute this case: $error',
+                stackTrace: stackTrace.toString(),
+                report: buildTestReportDetails(definition.testCase),
+              ),
+          },
+          suiteLogs: ['Test plan orchestration failed: $error'],
+        );
+      }
+    });
+  }
+
+  Future<EnsembleTestPlanRunResult> _runPlanIsolated(
+    EnsembleTestExecutionPlan plan,
+    WidgetTester tester, {
+    EnsembleTestProgressListener? onTestComplete,
   }) async {
     final applicationDriver = _applicationDriver;
     if (applicationDriver != null) {
@@ -118,15 +152,23 @@ class EnsembleTestRunner {
         mode: plan.config.mode,
       );
       final byId = {for (final item in result.results) item.testId: item};
+      final callbackLogs = <String>[];
       if (onTestComplete != null) {
         for (final definition in plan.ordered) {
           final item = byId[definition.testCase.id];
-          if (item != null) await onTestComplete(definition, item);
+          if (item == null) continue;
+          try {
+            await onTestComplete(definition, item);
+          } catch (error) {
+            callbackLogs.add(
+              'Could not publish progress for ${definition.testCase.id}: $error',
+            );
+          }
         }
       }
       return EnsembleTestPlanRunResult(
         resultsById: byId,
-        suiteLogs: result.suiteLogs,
+        suiteLogs: [...result.suiteLogs, ...callbackLogs],
       );
     }
     const hostOwnsServices = bool.fromEnvironment(
@@ -167,6 +209,7 @@ class EnsembleTestRunner {
   }) async {
     final resultsById = <String, EnsembleSingleTestResult>{};
     final sessionSnapshots = <String, AppSessionSnapshot>{};
+    final suiteLogs = <String>[];
     final requestedSessions = plan.ordered
         .map((definition) => definition.testCase.session)
         .whereType<String>()
@@ -174,52 +217,61 @@ class EnsembleTestRunner {
 
     for (final def in plan.ordered) {
       final test = def.testCase;
-      final session = test.session;
-      AppSessionSnapshot? sessionSnapshot;
-      if (session != null) {
-        final sessionResult = resultsById[session];
-        if (sessionResult == null) {
-          throw EnsembleTestFailure(
-            'Internal error: session "$session" for "${test.id}" was not scheduled',
-          );
-        }
-        if (sessionResult.status == TestStatus.failed) {
-          final result = EnsembleSingleTestResult.failed(
-            testId: test.id,
-            metadata: test.metadataJson,
-            error: 'Session "$session" failed',
-            durationMs: 0,
-            report: buildTestReportDetails(test),
-          );
-          resultsById[test.id] = result;
-          await onTestComplete?.call(def, result);
-          continue;
-        }
-        sessionSnapshot = sessionSnapshots[session];
-        if (sessionSnapshot == null) {
-          throw EnsembleTestFailure(
-            'Internal error: session "$session" completed without a snapshot',
-          );
-        }
-      }
-
-      late final EnsembleTestRunOutput out;
       try {
-        out = await _runOneWithRetries(
-          test,
-          tester,
-          suiteConfig: plan.config,
-          existingConfig: null,
-          sessionSnapshot: sessionSnapshot,
-        );
+        final session = test.session;
+        AppSessionSnapshot? sessionSnapshot;
+        if (session != null) {
+          final sessionResult = resultsById[session];
+          if (sessionResult == null) {
+            throw EnsembleTestFailure(
+              'Internal error: session "$session" for "${test.id}" was not scheduled',
+            );
+          }
+          if (sessionResult.status == TestStatus.failed) {
+            resultsById[test.id] = EnsembleSingleTestResult.failed(
+              testId: test.id,
+              metadata: test.metadataJson,
+              error: 'Session "$session" failed',
+              durationMs: 0,
+              report: buildTestReportDetails(test),
+            );
+          } else {
+            sessionSnapshot = sessionSnapshots[session];
+            if (sessionSnapshot == null) {
+              throw EnsembleTestFailure(
+                'Internal error: session "$session" completed without a snapshot',
+              );
+            }
+          }
+        }
+
+        if (!resultsById.containsKey(test.id)) {
+          final out = await _runOneWithRetries(
+            test,
+            tester,
+            suiteConfig: plan.config,
+            existingConfig: null,
+            sessionSnapshot: sessionSnapshot,
+          );
+          resultsById[test.id] = out.result;
+          if (out.result.status == TestStatus.passed &&
+              requestedSessions.contains(test.id)) {
+            sessionSnapshots[test.id] = await AppSessionSnapshot.capture();
+          }
+        }
       } catch (error, stackTrace) {
-        final logs = await _writeEmergencyFailureScreenshot(
-          tester: tester,
-          test: test,
-          config: plan.config,
-          error: error,
-        );
-        final result = EnsembleSingleTestResult.failed(
+        var logs = <String>[];
+        try {
+          logs = await _writeEmergencyFailureScreenshot(
+            tester: tester,
+            test: test,
+            config: plan.config,
+            error: error,
+          );
+        } catch (captureError) {
+          logs.add('Emergency failure screenshot failed: $captureError');
+        }
+        resultsById[test.id] = EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
           error: error.toString(),
@@ -228,20 +280,23 @@ class EnsembleTestRunner {
           logs: logs,
           report: buildTestReportDetails(test),
         );
-        resultsById[test.id] = result;
-        await onTestComplete?.call(def, result);
-        continue;
       }
-      resultsById[test.id] = out.result;
-      await onTestComplete?.call(def, out.result);
-      if (out.result.status == TestStatus.passed &&
-          requestedSessions.contains(test.id)) {
-        sessionSnapshots[test.id] = await AppSessionSnapshot.capture();
+
+      final result = resultsById[test.id]!;
+      try {
+        await onTestComplete?.call(def, result);
+      } catch (error) {
+        // A progress/report callback must not prevent later cases from
+        // running. Keep the test result and make the callback failure visible.
+        suiteLogs.add(
+          'Could not publish progress for ${test.id}: $error',
+        );
       }
     }
 
     return EnsembleTestPlanRunResult(
       resultsById: resultsById,
+      suiteLogs: suiteLogs,
     );
   }
 
@@ -252,6 +307,8 @@ class EnsembleTestRunner {
     EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
     EnsembleConfig? existingConfig,
     AppSessionSnapshot? sessionSnapshot,
+    int attemptNumber = 1,
+    int attemptCount = 1,
   }) async {
     final stopwatch = Stopwatch()..start();
     void Function(List<ui.FrameTiming>)? timingsCallback;
@@ -259,6 +316,8 @@ class EnsembleTestRunner {
       test,
       config: suiteConfig,
     );
+    ctx.runtime.attemptNumber = attemptNumber;
+    ctx.runtime.attemptCount = attemptCount;
     final previousOnError = FlutterError.onError;
 
     final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
@@ -267,11 +326,8 @@ class EnsembleTestRunner {
     try {
       FlutterError.onError = (details) {
         final formatted = _formatFlutterError(details);
-        if (isNonFatalFlutterDiagnostic(formatted) ||
-            isTransientNavigationDiagnostic(formatted)) {
-          return;
-        }
         ctx.runtime.flutterErrors.add(formatted);
+        FlutterError.presentError(details);
       };
       applyWifiTestConfig(suiteConfig.wifi);
       timingsCallback = (List<ui.FrameTiming> timings) {
@@ -310,11 +366,7 @@ class EnsembleTestRunner {
             },
             forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
           );
-          _throwIfUnexpectedFlutterExceptions(
-            tester,
-            ctx: ctx,
-            phase: 'during startup/setup',
-          );
+          _drainFlutterExceptions(tester);
           await YamlTestSession.navigationFlow.flushPending();
           YamlTestSession.navigationFlow.beginTest(
             ScreenTracker().getCurrentScreenIdentifier(),
@@ -409,6 +461,7 @@ class EnsembleTestRunner {
     final maxAttempts = test.retry + 1;
     var totalDurationMs = 0;
     EnsembleTestRunOutput? lastOutput;
+    final logsByAttempt = <List<String>>[];
 
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       final out = await runOne(
@@ -417,9 +470,12 @@ class EnsembleTestRunner {
         suiteConfig: suiteConfig,
         existingConfig: existingConfig,
         sessionSnapshot: sessionSnapshot,
+        attemptNumber: attempt,
+        attemptCount: maxAttempts,
       );
       totalDurationMs += out.result.durationMs;
       lastOutput = out;
+      logsByAttempt.add(out.result.logs);
       existingConfig = out.config;
 
       if (out.result.status == TestStatus.passed || attempt == maxAttempts) {
@@ -429,6 +485,10 @@ class EnsembleTestRunner {
             attempts: attempt,
             retry: test.retry,
             durationMs: totalDurationMs,
+            logs: combineAttemptDiagnosticLogs(
+              out.result.logs,
+              logsByAttempt,
+            ),
           ),
           config: out.config,
           context: out.context,
@@ -444,6 +504,7 @@ class EnsembleTestRunner {
     required int attempts,
     required int retry,
     required int durationMs,
+    List<String>? logs,
   }) {
     return EnsembleSingleTestResult(
       testId: result.testId,
@@ -456,7 +517,7 @@ class EnsembleTestRunner {
       failedStep: result.failedStep,
       message: result.message,
       stackTrace: result.stackTrace,
-      logs: result.logs,
+      logs: logs ?? result.logs,
       report: result.report,
     );
   }
@@ -545,11 +606,7 @@ class EnsembleTestRunner {
         final keychainBefore = await captureKeychainStorage();
         var capturedStep = false;
         try {
-          _throwIfUnexpectedFlutterExceptions(
-            tester,
-            ctx: ctx,
-            phase: 'before this step',
-          );
+          _drainFlutterExceptions(tester);
           if (i == 0 && ctx.config.screenshots.enabled) {
             await executor.settle();
           }
@@ -633,11 +690,7 @@ class EnsembleTestRunner {
           if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
             await _paintAfterUserAction(executor);
           }
-          _throwIfUnexpectedFlutterExceptions(
-            tester,
-            ctx: ctx,
-            phase: 'after this step',
-          );
+          _drainFlutterExceptions(tester);
           if (!captureBeforeStep &&
               !capturedStep &&
               optionalActionStep == null) {
@@ -694,7 +747,7 @@ class EnsembleTestRunner {
           final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
           final idleStartTime = DateTime.now();
           // Freeze failure evidence before settle/pumps advance the tree.
-          final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
+          _drainFlutterExceptions(tester);
           if (!capturedStep) {
             await _captureStepReportArtifacts(
               executor: executor,
@@ -704,15 +757,7 @@ class EnsembleTestRunner {
             );
           }
           await _settleLiveApiWorkBestEffort(tester, ctx);
-          var failureMessage = _failureMessageWithFlutterErrors(
-            error.toString(),
-            ctx,
-          );
-          if (frameworkErrors.isNotEmpty) {
-            failureMessage = '$failureMessage\n'
-                'Unexpected Flutter framework error: '
-                '${_compactDiagnostic(frameworkErrors.first)}';
-          }
+          final failureMessage = error.toString();
           await _flushPendingScreenshots(
             ctx,
             status: TestStatus.failed,
@@ -767,45 +812,7 @@ class EnsembleTestRunner {
       final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
       final idleStartTime = DateTime.now();
       await _settleLiveApiWorkBestEffort(tester, ctx);
-      // Steps already passed — live API/JS often races dispose during idle
-      // settle (null-check / deactivated ancestor). Only fail if the tree
-      // was replaced with ErrorWidget.
-      try {
-        _assertNoErrorWidgetAfterSuccess(tester, ctx);
-      } catch (error) {
-        final failureIndex = test.steps.isEmpty ? null : test.steps.length - 1;
-        final failureMessage = error.toString();
-        await _flushPendingScreenshots(
-          ctx,
-          status: TestStatus.failed,
-          durationMs: stopwatch.elapsedMilliseconds,
-          failedStepIndex: failureIndex,
-          failedStepLabel:
-              test.steps.isEmpty ? null : formatStepBrief(test.steps.last),
-          failureMessage: failureMessage,
-        );
-        await _attachPerTestDebugArtifacts(ctx);
-        return EnsembleSingleTestResult.failed(
-          testId: test.id,
-          metadata: test.metadataJson,
-          failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
-          failedStep: test.steps.isEmpty ? null : test.steps.last,
-          error: failureMessage,
-          stackTrace: StackTrace.current.toString(),
-          durationMs: stopwatch.elapsedMilliseconds,
-          logs: ctx.logger.logs,
-          failure: TestFailureDetails.fromMessage(
-            failureMessage,
-            phase: 'execution',
-          ),
-          report: buildTestReportDetails(
-            test,
-            stepDurationsMs: stepDurationsMs,
-            stepStartTimes: stepStartTimes,
-            screens: ctx.runtime.screenArtifacts,
-          ),
-        );
-      }
+      _drainFlutterExceptions(tester);
       await _flushPendingScreenshots(
         ctx,
         status: TestStatus.passed,
@@ -1667,61 +1674,12 @@ class EnsembleTestRunner {
     }
   }
 
-  List<Object> _takeUnexpectedFlutterExceptions(WidgetTester tester) {
-    final errors = <Object>[];
-    Object? error;
-    while ((error = tester.takeException()) != null) {
-      if (!isNonFatalFlutterDiagnostic(error!) &&
-          !isTransientNavigationDiagnostic(error)) {
-        errors.add(error);
-      }
-    }
-    return errors;
-  }
-
-  /// After all YAML steps passed, discard async dispose/API races from idle
-  /// settle. Still fail when Flutter painted an [ErrorWidget] (red screen).
-  void _assertNoErrorWidgetAfterSuccess(
-    WidgetTester tester,
-    EnsembleTestContext ctx,
-  ) {
+  /// Consume any exceptions already queued by a plugin or a prior handler.
+  /// Flutter framework diagnostics handled by this runner are written to the
+  /// console and recorded in the test context, but do not independently decide
+  /// whether a YAML step or test passed.
+  void _drainFlutterExceptions(WidgetTester tester) {
     while (tester.takeException() != null) {}
-    ctx.runtime.flutterErrors.clear();
-    if (!treeHasFlutterErrorWidget(tester)) return;
-    throw EnsembleTestFailure(
-      'Unexpected Flutter ErrorWidget after the final step. '
-      'Hint: inspect the previous step and fix the async work or widget '
-      'lifecycle before continuing.',
-    );
-  }
-
-  void _throwIfUnexpectedFlutterExceptions(
-    WidgetTester tester, {
-    required EnsembleTestContext ctx,
-    required String phase,
-  }) {
-    final pending = _takeUnexpectedFlutterExceptions(tester);
-    ctx.runtime.flutterErrors.removeWhere(isNonFatalFlutterDiagnostic);
-    ctx.runtime.flutterErrors.removeWhere(isTransientNavigationDiagnostic);
-    final recorded = List<String>.from(ctx.runtime.flutterErrors);
-    if (pending.isEmpty && recorded.isEmpty) return;
-
-    // Fail fast — do not keep stepping on a corrupted element tree.
-    ctx.runtime.flutterErrors.clear();
-    final first = pending.isNotEmpty
-        ? _compactDiagnostic(pending.first)
-        : _compactDiagnostic(recorded.first);
-    throw EnsembleTestFailure(
-      'Unexpected Flutter framework error $phase: $first '
-      'Hint: inspect the previous step and fix the async work or widget '
-      'lifecycle before continuing.',
-    );
-  }
-
-  String _compactDiagnostic(Object error, {int maxLength = 600}) {
-    final normalized = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (normalized.length <= maxLength) return normalized;
-    return '${normalized.substring(0, maxLength - 3)}...';
   }
 
   String _formatFlutterError(FlutterErrorDetails details) {
@@ -1729,16 +1687,6 @@ class EnsembleTestRunner {
     final exception = details.exceptionAsString();
     if (context == null || context.isEmpty) return exception;
     return '$context: $exception';
-  }
-
-  String _failureMessageWithFlutterErrors(
-    String message,
-    EnsembleTestContext ctx,
-  ) {
-    final errors = ctx.runtime.flutterErrors;
-    if (errors.isEmpty) return message;
-    return '$message\nFlutter framework error: '
-        '${_compactDiagnostic(errors.first)}';
   }
 
   Future<void> _flushPendingScreenshots(

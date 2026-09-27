@@ -21,6 +21,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('diagnostic visibility uses the serialized logical viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              Positioned(top: 820, child: Text('Below viewport')),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final observation = captureDiagnosticUiSnapshot(
+      tester: tester,
+      assertions: AssertionEngine(tester: tester),
+    ).observation;
+    final belowViewport = _flatten(observation.elements)
+        .singleWhere((element) => element.text == 'Below viewport');
+
+    expect(belowViewport.state.visible, isFalse);
+    expect(belowViewport.state.offscreen, isTrue);
+  });
+
   testWidgets('report shows bounds overlay for a keyed widget target',
       (tester) async {
     await tester.pumpWidget(
@@ -99,7 +129,7 @@ void main() {
     expect(buttons.every((element) => element.locatorWarning != null), isTrue);
   });
 
-  testWidgets('hidden duplicate does not warn on the visible unique text',
+  testWidgets('offstage duplicate is excluded from observer text',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -129,10 +159,9 @@ void main() {
     }
 
     collect(observation.elements);
-    expect(texts, hasLength(2));
-    final visible =
-        texts.singleWhere((element) => element.state.visible == true);
-    expect(visible.locatorWarning, isNull);
+    expect(texts, hasLength(1));
+    expect(texts.single.state.visible, isTrue);
+    expect(texts.single.locatorWarning, isNull);
 
     final reportTree = observationElementsTreeForReport(observation);
     final textNode = reportTree

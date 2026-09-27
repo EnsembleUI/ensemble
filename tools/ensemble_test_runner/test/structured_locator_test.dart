@@ -534,6 +534,40 @@ void main() {
     await session.close();
   });
 
+  testWidgets('observed keyed widget name works as an action selector',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ListView(
+            children: [
+              for (var i = 0; i < 30; i++)
+                SizedBox(height: 48, child: Text('Before $i')),
+              KeyedSubtree(
+                key: const ValueKey('GatewayHeader'),
+                child: const Text('KPN Box 12'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final session = _attach(tester);
+
+    final scrolled = await session.act(
+      const ScrollUntilVisibleAction(
+        target: ElementTarget(testId: 'GatewayHeader'),
+      ),
+    );
+    expect(scrolled.succeeded, isTrue, reason: scrolled.error?.toString());
+
+    final visible = await session.assertCondition(
+      const ElementVisibleAssertion(testId: 'GatewayHeader'),
+    );
+    expect(visible.passed, isTrue, reason: visible.message);
+    await session.close();
+  });
+
   testWidgets('unified observe stays within 2x keyed baseline', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

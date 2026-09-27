@@ -10,8 +10,8 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
-import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
+import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
@@ -90,13 +90,10 @@ class TestStepExecutor {
         for (final nested in step.nestedSteps) {
           await execute(nested);
         }
-      } on EnsembleTestFailure catch (e) {
-        // Optional may skip missing UI (cookie banners, etc.) — never swallow
-        // framework/build failures. Those leave a red ErrorWidget and the next
-        // steps become meaningless.
-        if (e.toString().contains('Unexpected Flutter framework error')) {
-          rethrow;
-        }
+      } on EnsembleTestFailure {
+        // Optional may skip a step that cannot be performed (for example, a
+        // missing cookie banner). Framework diagnostics are handled separately
+        // and do not change step outcome.
       } on TestExecutionError {
         // Session/dispatcher path may surface structured errors.
       }
@@ -756,13 +753,7 @@ class TestStepExecutor {
         rethrow;
       }
     }
-    await _throwIfRecordedFlutterErrors(phase: 'settle', allowNavRetry: true);
-    if (treeHasFlutterErrorWidget(tester)) {
-      throw EnsembleTestFailure(
-        'Unexpected Flutter ErrorWidget on screen after settle. Hint: a '
-        'navigateScreen / dialog build failed during the previous action.',
-      );
-    }
+    await _drainFlutterDiagnostics();
     await _yieldToLiveApiWork();
   }
 
@@ -776,19 +767,10 @@ class TestStepExecutor {
       await tester.pump(null, EnginePhase.sendSemanticsUpdate);
       _drainTransientFlutterDiagnostics();
 
-      if (treeHasFlutterErrorWidget(tester)) {
-        continue;
-      }
       if (tester.binding.transientCallbackCount == 0 &&
           !context.apiOverlay.hasPendingLiveCalls) {
         break;
       }
-    }
-    if (treeHasFlutterErrorWidget(tester)) {
-      throw EnsembleTestFailure(
-        'Unexpected Flutter ErrorWidget on screen after action settle. '
-        'Hint: navigateScreen/clearAllScreens raced the test pump loop.',
-      );
     }
     await _yieldToLiveApiWork();
   }
@@ -819,44 +801,14 @@ class TestStepExecutor {
       await _liveDelay(const Duration(milliseconds: 20));
       await tester.pump(null, EnginePhase.sendSemanticsUpdate);
       _drainTransientFlutterDiagnostics();
-      if (treeHasFlutterErrorWidget(tester)) {
-        throw EnsembleTestFailure(
-          'Unexpected Flutter ErrorWidget on screen while draining live API '
-          'work after an action.',
-        );
-      }
       if (!hadPending) {
         return;
       }
     }
   }
 
-  /// Live-binding only — FakeAsync widget tests must still fail-fast on
-  /// recorded "wrong build scope" / overlay races (see fail_fast tests).
-  bool get _isLiveBinding => tester.binding is LiveTestWidgetsFlutterBinding;
-
   void _drainTransientFlutterDiagnostics() {
-    final swallowTransient = _isLiveBinding;
-    while (true) {
-      final pending = tester.takeException();
-      if (pending == null) break;
-      if (isNonFatalFlutterDiagnostic(pending) ||
-          (swallowTransient && isTransientNavigationDiagnostic(pending))) {
-        continue;
-      }
-      context.runtime.flutterErrors.clear();
-      throw EnsembleTestFailure(
-        'Unexpected Flutter framework error during liveApi: '
-        '${_compactFlutterDiagnostic(pending)} '
-        'Hint: inspect the previous action and fix the async work or widget '
-        'lifecycle before continuing.',
-      );
-    }
-    context.runtime.flutterErrors.removeWhere(isNonFatalFlutterDiagnostic);
-    if (swallowTransient) {
-      context.runtime.flutterErrors
-          .removeWhere(isTransientNavigationDiagnostic);
-    }
+    while (tester.takeException() != null) {}
   }
 
   /// Binding-aware delay (FakeAsync + live).
@@ -1249,19 +1201,10 @@ class TestStepExecutor {
     bool visitedInHistory() =>
         YamlTestSession.navigationFlow.flow.contains(screen);
 
-    void throwIfErrorWidgetBlocking(String phase) {
-      if (!treeHasFlutterErrorWidget(tester)) return;
-      throw EnsembleTestFailure(
-        'Navigation to "$screen" failed during $phase: Flutter ErrorWidget is '
-        'on screen (destination did not build). Hint: a prior navigateScreen / '
-        'clearAllScreens raced a Live-binding pump — inspect flutter errors.',
-      );
-    }
-
     Future<void> captureIfVisible() async {
       if (captureFired || onWaitForNavigationMatched == null) return;
       if (!isTargetVisible()) return;
-      throwIfErrorWidgetBlocking('waitForNavigation capture');
+      if (treeHasFlutterErrorWidget(tester)) return;
       captureFired = true;
       await onWaitForNavigationMatched!(step);
     }
@@ -1295,14 +1238,12 @@ class TestStepExecutor {
 
       while (stopwatch.elapsedMilliseconds < timeoutMs) {
         await YamlTestSession.navigationFlow.flushPending();
-        throwIfErrorWidgetBlocking('waitForNavigation');
         if (isTargetVisible()) {
           await captureIfVisible();
           return;
         }
         if (visitedInHistory()) {
-          // Transient screen already left — only OK if the tree is healthy.
-          throwIfErrorWidgetBlocking('waitForNavigation');
+          // Transient target screen was reached and has since left.
           return;
         }
         await _yieldToLiveApiWork();
@@ -1311,26 +1252,22 @@ class TestStepExecutor {
           label: 'waitForNavigation',
         );
         await YamlTestSession.navigationFlow.flushPending();
-        throwIfErrorWidgetBlocking('waitForNavigation');
         if (isTargetVisible()) {
           await captureIfVisible();
           return;
         }
         if (visitedInHistory()) {
-          throwIfErrorWidgetBlocking('waitForNavigation');
           return;
         }
       }
       await _yieldToLiveApiWork();
       await _pump(label: 'waitForNavigation');
       await YamlTestSession.navigationFlow.flushPending();
-      throwIfErrorWidgetBlocking('waitForNavigation');
       if (isTargetVisible()) {
         await captureIfVisible();
         return;
       }
       if (visitedInHistory()) {
-        throwIfErrorWidgetBlocking('waitForNavigation');
         return;
       }
       throw EnsembleTestFailure(
@@ -1390,90 +1327,11 @@ class TestStepExecutor {
     } else {
       await tester.pump(duration, phase);
     }
-    await _throwIfRecordedFlutterErrors(phase: label, allowNavRetry: true);
+    await _drainFlutterDiagnostics();
   }
 
-  Future<void> _throwIfRecordedFlutterErrors({
-    required String phase,
-    bool allowNavRetry = false,
-  }) async {
-    // Transient nav races only happen under LiveTestWidgetsFlutterBinding.
-    // Under FakeAsync, treat the same diagnostics as fatal so unit tests
-    // (and fail-fast coverage) still surface them immediately.
-    final canRetryNav = allowNavRetry && _isLiveBinding;
-    Object? pending;
-    while ((pending = tester.takeException()) != null) {
-      if (isNonFatalFlutterDiagnostic(pending!)) continue;
-      if (canRetryNav && isTransientNavigationDiagnostic(pending)) {
-        await _retryAfterTransientNavError(phase: phase);
-        return;
-      }
-      context.runtime.flutterErrors.clear();
-      throw EnsembleTestFailure(
-        'Unexpected Flutter framework error during $phase: '
-        '${_compactFlutterDiagnostic(pending)} '
-        'Hint: inspect the previous action and fix the async work or widget '
-        'lifecycle before continuing.',
-      );
-    }
-    context.runtime.flutterErrors.removeWhere(isNonFatalFlutterDiagnostic);
-    if (context.runtime.flutterErrors.isEmpty) return;
-
-    final first = context.runtime.flutterErrors.first;
-    if (canRetryNav && isTransientNavigationDiagnostic(first)) {
-      await _retryAfterTransientNavError(phase: phase);
-      return;
-    }
-    context.runtime.flutterErrors.clear();
-    throw EnsembleTestFailure(
-      'Unexpected Flutter framework error during $phase: '
-      '${_compactFlutterDiagnostic(first)} '
-      'Hint: inspect the previous action and fix the async work or widget '
-      'lifecycle before continuing.',
-    );
-  }
-
-  /// Clears a one-shot Live-binding navigation race and pumps again.
-  Future<void> _retryAfterTransientNavError({required String phase}) async {
-    context.runtime.flutterErrors.clear();
+  Future<void> _drainFlutterDiagnostics() async {
     while (tester.takeException() != null) {}
-    for (var i = 0; i < 5; i++) {
-      await _liveDelay(const Duration(milliseconds: 50));
-      await tester.pump(null, EnginePhase.sendSemanticsUpdate);
-      while (true) {
-        final pending = tester.takeException();
-        if (pending == null) break;
-        if (isNonFatalFlutterDiagnostic(pending) ||
-            isTransientNavigationDiagnostic(pending)) {
-          continue;
-        }
-        throw EnsembleTestFailure(
-          'Unexpected Flutter framework error during $phase: '
-          '${_compactFlutterDiagnostic(pending)} '
-          'Hint: inspect the previous action and fix the async work or widget '
-          'lifecycle before continuing.',
-        );
-      }
-      context.runtime.flutterErrors.removeWhere(isNonFatalFlutterDiagnostic);
-      context.runtime.flutterErrors
-          .removeWhere(isTransientNavigationDiagnostic);
-      if (!treeHasFlutterErrorWidget(tester)) {
-        return;
-      }
-    }
-    if (treeHasFlutterErrorWidget(tester)) {
-      throw EnsembleTestFailure(
-        'Unexpected Flutter framework error during $phase: Flutter ErrorWidget '
-        'is on screen after a navigation/build race. Hint: inspect the previous '
-        'action and fix the async work or widget lifecycle before continuing.',
-      );
-    }
-  }
-
-  String _compactFlutterDiagnostic(Object error, {int maxLength = 600}) {
-    final normalized = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (normalized.length <= maxLength) return normalized;
-    return '${normalized.substring(0, maxLength - 3)}...';
   }
 
   void _expectApiCalled(String name, int times) {

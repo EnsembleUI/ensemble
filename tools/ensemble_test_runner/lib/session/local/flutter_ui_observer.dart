@@ -1,6 +1,9 @@
+import 'package:ensemble/page_model.dart';
+import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
+import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
@@ -160,7 +163,7 @@ class FlutterUiObserver implements UiObserver {
   ScreenObservation _screenObservation() {
     final nav = navigation;
     if (nav == null) return ScreenObservation.unknown();
-    final route = nav.currentRoute;
+    final route = _visibleRouteIdentifier() ?? nav.currentRoute;
     final history = List<String>.from(nav.routeHistory);
     if ((route == null || route.trim().isEmpty) && history.isEmpty) {
       return ScreenObservation.unknown();
@@ -171,6 +174,62 @@ class FlutterUiObserver implements UiObserver {
       navigationStack: history,
       unknown: false,
     );
+  }
+
+  /// Prefer the route that actually owns the visible widget tree. The
+  /// app-level screen tracker can briefly lag route pops while a lazy history
+  /// route is materialized; reporting that stale identifier makes otherwise
+  /// current elements look like content from another screen.
+  String? _visibleRouteIdentifier() {
+    String? visibleScreenIdentifier;
+    var visibleScreenDepth = -1;
+    for (final element in tester.allElements) {
+      if (!isUnderCurrentModalRoute(element)) continue;
+      if (isUnderOffstageAncestor(element)) continue;
+      final widget = element.widget;
+      if (widget is Screen) {
+        final payload = widget.screenPayload;
+        final name = payload?.screenName?.trim();
+        final id = payload?.screenId?.trim();
+        final identifier = name != null && name.isNotEmpty
+            ? name
+            : id != null && id.isNotEmpty
+                ? id
+                : null;
+        if (identifier != null) {
+          var depth = 0;
+          element.visitAncestorElements((_) {
+            depth++;
+            return true;
+          });
+          // A nested screen is the most specific identifier for the visible
+          // content (for example, a page inside a navigator hosted by a
+          // parent screen).
+          if (depth > visibleScreenDepth) {
+            visibleScreenIdentifier = identifier;
+            visibleScreenDepth = depth;
+          }
+        }
+      }
+    }
+    if (visibleScreenIdentifier != null) return visibleScreenIdentifier;
+
+    for (final element in tester.allElements) {
+      if (!isUnderCurrentModalRoute(element)) continue;
+      final route = modalRouteForElement(element);
+      if (route == null || !route.isCurrent) continue;
+      final settings = route.settings;
+      final arguments = settings.arguments;
+      if (arguments is ScreenPayload) {
+        final name = arguments.screenName?.trim();
+        if (name != null && name.isNotEmpty) return name;
+        final id = arguments.screenId?.trim();
+        if (id != null && id.isNotEmpty) return id;
+      }
+      final name = settings.name?.trim();
+      if (name != null && name.isNotEmpty && name != '/') return name;
+    }
+    return null;
   }
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})

@@ -36,8 +36,7 @@ bool isEnsembleTestProtocolLine(String line) {
 }
 
 /// Host path for the machine JSON report transported from an integration device.
-const ensembleTestMachineResultRelativePath =
-    'diagnostics/machine_result.json';
+const ensembleTestMachineResultRelativePath = 'diagnostics/machine_result.json';
 
 bool get usesDeviceArtifactTransport => _executionMode == 'integration';
 
@@ -213,3 +212,29 @@ bool isTransientArtifactLog(String log) {
 /// Durable suite/report links kept after transient cleanup.
 Iterable<String> durableArtifactLogs(Iterable<String> logs) =>
     logs.where((log) => !isTransientArtifactLog(log));
+
+/// Preserves console and API sidecars from every retry while retaining only
+/// the final attempt's other artifacts (such as its screenshot sheet).
+List<String> combineAttemptDiagnosticLogs(
+  List<String> finalAttemptLogs,
+  Iterable<List<String>> logsByAttempt,
+) {
+  final diagnosticLogs = <String>[];
+  for (final logs in logsByAttempt) {
+    for (final log in logs) {
+      final separator = log.indexOf(':');
+      if (separator <= 0) continue;
+      final label = log.substring(0, separator).trim();
+      if (label == 'appLogs' || label == 'apiCalls') {
+        diagnosticLogs.add(log);
+      }
+    }
+  }
+  final finalLogs = finalAttemptLogs.where((log) {
+    final separator = log.indexOf(':');
+    if (separator <= 0) return true;
+    final label = log.substring(0, separator).trim();
+    return label != 'appLogs' && label != 'apiCalls';
+  });
+  return [...diagnosticLogs, ...finalLogs];
+}

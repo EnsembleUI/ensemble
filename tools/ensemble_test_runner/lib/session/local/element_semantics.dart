@@ -4,6 +4,7 @@ import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
+import 'package:ensemble_test_runner/session/local/view_geometry.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -265,22 +266,26 @@ String resolveObservedWidgetType(Element element, {required String? testId}) {
     }
     return primaryType;
   }
-  String? nestedType;
+  final nestedTypes = <String>[];
   void visitNested(Element e) {
-    if (nestedType != null) return;
     if (isStandaloneTextElement(e)) {
-      nestedType = 'text';
+      nestedTypes.add('text');
       return;
     }
     if (isStandaloneMediaElement(e)) {
-      nestedType = mediaWidgetType(e.widget) ?? 'image';
+      nestedTypes.add(mediaWidgetType(e.widget) ?? 'image');
       return;
     }
     e.visitChildren(visitNested);
   }
 
   element.visitChildren(visitNested);
-  return nestedType ?? type;
+  // A keyed host may wrap a whole section (for example GatewayHeader with a
+  // title, illustration, and subtitle). Do not type that structural host as
+  // whichever text/media descendant happened to appear first. It is only a
+  // leaf alias when it owns one observable content node; otherwise preserve
+  // the generic `widget` type so its real children remain clear in the tree.
+  return nestedTypes.length == 1 ? nestedTypes.single : type;
 }
 
 String inferSemanticRole(Element element, String type) {
@@ -2231,7 +2236,7 @@ String? _nearestNonEmptySemanticsLabel(Element element) {
 /// Geometry / opacity / current-route visibility without InheritedWidget deps.
 bool isElementGeometricallyVisible(Element element, WidgetTester tester) {
   if (!isUnderCurrentModalRoute(element)) return false;
-  if (_isUnderOffstageAncestor(element)) return false;
+  if (isUnderOffstageAncestor(element)) return false;
   final renderObject = element.renderObject;
   if (renderObject is! RenderBox ||
       !renderObject.hasSize ||
@@ -2242,14 +2247,13 @@ bool isElementGeometricallyVisible(Element element, WidgetTester tester) {
   final topLeft = renderObject.localToGlobal(Offset.zero);
   final rect = topLeft & renderObject.size;
   if (!rect.isFinite || rect.isEmpty) return false;
-  final viewport = tester.binding.renderViews.first.paintBounds;
-  final visibleRect = rect.intersect(viewport);
-  return visibleRect != Rect.zero &&
-      visibleRect.width > 0 &&
-      visibleRect.height > 0;
+  return rectIntersectsLogicalViewport(rect, tester);
 }
 
-bool _isUnderOffstageAncestor(Element element) {
+/// Whether [element] is retained by an [Offstage] subtree rather than part of
+/// the current rendered screen. These nodes must not be classified as
+/// scrollable offscreen content.
+bool isUnderOffstageAncestor(Element element) {
   var isOffstage = false;
   element.visitAncestorElements((ancestor) {
     final renderObject = ancestor.renderObject;
@@ -2552,10 +2556,9 @@ UiBounds? boundsFor(Element element) {
 }
 
 bool inViewport(WidgetTester tester, UiBounds bounds) {
-  final size = tester.view.physicalSize / tester.view.devicePixelRatio;
   final rect =
       Rect.fromLTWH(bounds.left, bounds.top, bounds.width, bounds.height);
-  return (Offset.zero & size).overlaps(rect);
+  return rectIntersectsLogicalViewport(rect, tester);
 }
 
 bool _hasScrollableAncestor(Element element) {

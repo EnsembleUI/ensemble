@@ -2,10 +2,24 @@ import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
+import 'package:ensemble_test_runner/session/observation/observer_action_examples.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('ambiguous text does not get screen-wide assertion examples', () {
+    final examples = observerActionExamples(
+      actions: ['expectText', 'expectNoText', 'expectTextContains'],
+      title: 'WiFi extender 2',
+      id: null,
+      locator: null,
+      bounds: const {'left': 16, 'top': 100, 'width': 120, 'height': 22},
+      warning: 'Ambiguous locator (2 matches)',
+    );
+
+    expect(examples, isEmpty);
+  });
+
   group('supportedActionsFor', () {
     test('plain text lists wait/assert steps, not gestures', () {
       final steps = supportedActionsFor(

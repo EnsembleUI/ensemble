@@ -46,6 +46,11 @@ import 'package:flutter_test/flutter_test.dart';
       // screen content nor scrollable offscreen targets, so exclude them
       // before classifying or serializing observer nodes.
       if (!isUnderCurrentModalRoute(element)) continue;
+      // Some navigators retain route content in an Offstage subtree while a
+      // transition or route replacement is in progress. Geometry alone would
+      // label those nodes `offscreen=true`, incorrectly suggesting scrolling
+      // can reveal them.
+      if (isUnderOffstageAncestor(element)) continue;
 
       final ownedKey = hasCompactValueKey(element);
       final ownedId = readOwnedWidgetLocatorId(element);
@@ -153,14 +158,7 @@ import 'package:flutter_test/flutter_test.dart';
                   '')
               : '');
 
-      final renderObject = element.renderObject;
-      if (testId.isEmpty &&
-          renderObject != null &&
-          !seenRenderObjects.add(renderObject)) {
-        continue;
-      }
-
-      final elementId = 'el_${index++}';
+      final elementId = 'el_$index';
       final uiElement = describeElement(
         element: element,
         elementId: elementId,
@@ -171,6 +169,19 @@ import 'package:flutter_test/flutter_test.dart';
         useSemantics: useSemantics,
         registerRouteDependency: registerRouteDependency,
       );
+      // Generic gesture wrappers with no key, label, text, or generated
+      // action have no usable identity for the runner or a future agent. The
+      // integration binding can expose transparent host-area gestures as
+      // button-shaped nodes; publishing them only adds misleading controls to
+      // the observed screen.
+      if (_isUnaddressableAnonymousButton(uiElement)) continue;
+      final renderObject = element.renderObject;
+      if (testId.isEmpty &&
+          renderObject != null &&
+          !seenRenderObjects.add(renderObject)) {
+        continue;
+      }
+      index++;
       kept.add((element: element, ui: uiElement));
       handles[elementId] = SnapshotElementHandle(
         observationId: '',
@@ -200,6 +211,16 @@ import 'package:flutter_test/flutter_test.dart';
     );
   }
   return (elements: nestKeptElements(deduped), handles: handles);
+}
+
+bool _isUnaddressableAnonymousButton(UiElement element) {
+  bool hasValue(String? value) => value != null && value.trim().isNotEmpty;
+  return element.type == 'button' &&
+      !hasValue(element.testId) &&
+      !hasValue(element.label) &&
+      !hasValue(element.text) &&
+      element.supportedActions.isEmpty &&
+      element.state.interactable != true;
 }
 
 /// Drop host/leaf duplicates that survived the keep walk.

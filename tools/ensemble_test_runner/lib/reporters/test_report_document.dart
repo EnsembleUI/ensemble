@@ -251,12 +251,19 @@ class TestReportDocument {
     String artifactRoot,
     String displayRoot,
   ) {
-    final ref = _first(artifacts, 'appLogs');
-    if (ref == null) return const [];
-    final fsPath = filesystemPath(ref.path,
-        artifactRoot: artifactRoot, displayRoot: displayRoot);
-    if (fsPath == null || !File(fsPath).existsSync()) return const [];
-    return File(fsPath).readAsLinesSync();
+    final lines = <String>[];
+    for (final ref
+        in artifacts.where((artifact) => artifact.label == 'appLogs')) {
+      final fsPath = filesystemPath(ref.path,
+          artifactRoot: artifactRoot, displayRoot: displayRoot);
+      if (fsPath == null || !File(fsPath).existsSync()) continue;
+      try {
+        lines.addAll(File(fsPath).readAsLinesSync());
+      } catch (_) {
+        // A missing or unreadable attempt log should not hide other attempts.
+      }
+    }
+    return lines;
   }
 
   static List<Map<String, dynamic>> _readApiEvents(
@@ -264,21 +271,24 @@ class TestReportDocument {
     String artifactRoot,
     String displayRoot,
   ) {
-    final ref = _first(artifacts, 'apiCalls');
-    if (ref == null) return const [];
-    final fsPath = filesystemPath(ref.path,
-        artifactRoot: artifactRoot, displayRoot: displayRoot);
-    if (fsPath == null || !File(fsPath).existsSync()) return const [];
-    try {
-      final decoded = json.decode(File(fsPath).readAsStringSync());
-      if (decoded is! Map || decoded['events'] is! List) return const [];
-      return [
-        for (final ev in decoded['events'])
-          if (ev is Map) Map<String, dynamic>.from(ev),
-      ];
-    } catch (_) {
-      return const [];
+    final events = <Map<String, dynamic>>[];
+    for (final ref
+        in artifacts.where((artifact) => artifact.label == 'apiCalls')) {
+      final fsPath = filesystemPath(ref.path,
+          artifactRoot: artifactRoot, displayRoot: displayRoot);
+      if (fsPath == null || !File(fsPath).existsSync()) continue;
+      try {
+        final decoded = json.decode(File(fsPath).readAsStringSync());
+        if (decoded is! Map || decoded['events'] is! List) continue;
+        events.addAll([
+          for (final ev in decoded['events'])
+            if (ev is Map) Map<String, dynamic>.from(ev),
+        ]);
+      } catch (_) {
+        // Skip only the unreadable sidecar; retain events from other attempts.
+      }
     }
+    return events;
   }
 
   static Map<String, dynamic> _readStorage(

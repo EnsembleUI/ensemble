@@ -30,7 +30,7 @@ Future<String> writeDumpTreeLogFile({
 Future<String> writeApiCallsLog(EnsembleTestContext context) {
   return writeApiCallsLogFile(
     logger: context.logger,
-    filePrefix: context.testCase.id,
+    filePrefix: context.runtime.artifactFilePrefix(context.testCase.id),
     calls: context.apiOverlay.calls,
   );
 }
@@ -166,6 +166,12 @@ Future<String> writeStorageLog(
 
 Future<String> writeAppConsoleLog(EnsembleTestContext context) {
   final buffer = StringBuffer();
+  if (context.runtime.attemptCount > 1) {
+    buffer.writeln(
+      '--- Attempt ${context.runtime.attemptNumber} of '
+      '${context.runtime.attemptCount} ---',
+    );
+  }
   for (final line in context.runtime.consoleLogs) {
     buffer.writeln(line);
   }
@@ -179,7 +185,7 @@ Future<String> writeAppConsoleLog(EnsembleTestContext context) {
     }
   }
   return context.logger.writeLogFile(
-    testId: context.testCase.id,
+    testId: context.runtime.artifactFilePrefix(context.testCase.id),
     name: 'app_console',
     content: buffer.isEmpty ? '<no console output>\n' : buffer.toString(),
     extension: 'log',

@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
+import 'package:ensemble_test_runner/session/local/view_geometry.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -374,11 +375,7 @@ class AssertionEngine {
     final rect = topLeft & renderObject.size;
     if (!rect.isFinite || rect.isEmpty) return false;
 
-    final viewport = tester.binding.renderViews.first.paintBounds;
-    final visibleRect = rect.intersect(viewport);
-    return visibleRect != Rect.zero &&
-        visibleRect.width > 0 &&
-        visibleRect.height > 0;
+    return rectIntersectsLogicalViewport(rect, tester);
   }
 
   bool _isUnderOffstageAncestor(Element element) {

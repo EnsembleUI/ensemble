@@ -27,6 +27,14 @@ class TestRuntimeState {
   /// Used to attribute API calls and console lines to Step Details.
   int? currentStepIndex;
 
+  /// One-based attempt number and configured attempt count for the current
+  /// case. Used to keep retry diagnostics in distinct report sidecars.
+  int attemptNumber = 1;
+  int attemptCount = 1;
+
+  String artifactFilePrefix(String testId) =>
+      attemptCount > 1 ? '${testId}_attempt_$attemptNumber' : testId;
+
   /// Public-storage diffs captured at the end of each top-level step.
   final List<StorageStepDiff> storageStepDiffs = [];
   final List<StorageStepDiff> secureStorageStepDiffs = [];
@@ -52,6 +60,8 @@ class TestRuntimeState {
     locale = null;
     themeMode = null;
     currentStepIndex = null;
+    attemptNumber = 1;
+    attemptCount = 1;
     storageStepDiffs.clear();
     secureStorageStepDiffs.clear();
     keychainStepDiffs.clear();

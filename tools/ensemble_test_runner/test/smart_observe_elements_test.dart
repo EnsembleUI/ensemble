@@ -6,6 +6,7 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
+import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
@@ -21,6 +22,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('observer prefers the active route over stale tracker state',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const Scaffold(body: Text('Previous screen')),
+      ),
+    );
+    Navigator.of(tester.element(find.text('Previous screen'))).push<void>(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'DeviceDetails'),
+        builder: (_) => const Scaffold(body: Text('Current screen')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'active-route-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      services: ApplicationTestServices(navigation: _StaleNavigationService()),
+      permissions: SessionPermissions.restrictedUi,
+    );
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    expect(observation.screen.name, 'DeviceDetails');
+    await session.close();
+  });
+
   testWidgets('observe excludes elements retained by inactive routes',
       (tester) async {
     await tester.pumpWidget(
@@ -58,6 +96,103 @@ void main() {
         .toList();
     expect(texts, contains('Current screen'));
     expect(texts, isNot(contains('Previous screen only')));
+    await session.close();
+  });
+
+  testWidgets('observe excludes nested current routes under inactive routes',
+      (tester) async {
+    final rootNavigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: rootNavigator,
+        home: const Scaffold(body: Text('Root screen')),
+      ),
+    );
+    rootNavigator.currentState!.push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => Navigator(
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Nested stale screen')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    rootNavigator.currentState!.push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Top current screen')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'nested-route-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final texts = _flatten(observation.elements)
+        .map((element) => element.text)
+        .whereType<String>()
+        .toList();
+    expect(texts, contains('Top current screen'));
+    expect(texts, isNot(contains('Nested stale screen')));
+    await session.close();
+  });
+
+  testWidgets(
+      'observe excludes offstage nodes instead of calling them scrollable',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              const Text('Visible content'),
+              Positioned(
+                top: 1200,
+                child: Offstage(
+                  offstage: true,
+                  child: const Text('Offstage next screen content'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'offstage-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final texts = _flatten(observation.elements)
+        .map((element) => element.text)
+        .whereType<String>()
+        .toList();
+    expect(texts, contains('Visible content'));
+    expect(texts, isNot(contains('Offstage next screen content')));
     await session.close();
   });
 
@@ -446,6 +581,128 @@ void main() {
     );
 
     await session.close();
+  });
+
+  testWidgets('keyed content section stays a container in the observer tree',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KeyedSubtree(
+            key: const ValueKey('GatewayHeader'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('KPN Box 12'),
+                Text('Latest software installed'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(
+        appPath: 'unused/',
+        appHome: 'Home',
+      ),
+      context: EnsembleTestContext(
+        testCase:
+            const EnsembleTestCase(id: 'keyed-content-section', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final section = _flatten(observation.elements)
+        .singleWhere((element) => element.testId == 'GatewayHeader');
+
+    expect(section.type, 'widget');
+    expect(section.children.map((element) => element.type),
+        containsAll(<String?>['text', 'text']));
+    expect(section.children.map((element) => element.text),
+        containsAll(<String?>['KPN Box 12', 'Latest software installed']));
+  });
+
+  testWidgets('observer omits anonymous non-actionable button wrappers',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 62,
+                child: GestureDetector(
+                  onTap: () {},
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 62,
+                child: GestureDetector(
+                  onTap: () {},
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              Positioned(
+                top: 100,
+                left: 16,
+                child: TextButton(
+                  onPressed: () {},
+                  child: const Text('Continue'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'anonymous-buttons', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final elements = _flatten(observation.elements);
+    expect(
+      elements.where((element) =>
+          element.type == 'button' &&
+          element.label == null &&
+          element.text == null &&
+          element.testId == null),
+      isEmpty,
+    );
+    expect(elements.any((element) => element.label == 'Continue'), isTrue);
   });
 
   testWidgets('observe types cards separately from buttons', (tester) async {
@@ -3127,6 +3384,14 @@ List<Map<String, dynamic>> _flattenJson(Map<String, dynamic> root) {
 }
 
 /// Mimics Ensemble `framework/widget/icon.dart` (subclasses Flutter [Icon]).
+class _StaleNavigationService implements NavigationTestService {
+  @override
+  String? get currentRoute => 'ResetWizard';
+
+  @override
+  List<String> get routeHistory => const ['ResetWizard'];
+}
+
 class _EnsembleStyleIcon extends Icon {
   const _EnsembleStyleIcon(super.icon, {super.size});
 }
