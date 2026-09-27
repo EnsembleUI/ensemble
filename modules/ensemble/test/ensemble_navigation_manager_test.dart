@@ -53,6 +53,39 @@ void main() {
     return navigatorKey;
   }
 
+  test('screen rebuild keeps its route and does not duplicate history', () {
+    final tracker = ScreenTracker()..clearAll();
+    final detailsRoute = MaterialPageRoute<void>(
+      builder: (_) => const SizedBox.shrink(),
+    );
+    final restoreRoute = MaterialPageRoute<void>(
+      builder: (_) => const SizedBox.shrink(),
+    );
+
+    tracker.trackScreen(
+        screenName: 'DeviceDetails_Gateway', route: detailsRoute);
+    tracker.trackScreen(
+      screenName: 'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+      route: restoreRoute,
+    );
+    // Screen widgets report their payload without a route when rebuilding.
+    tracker.trackScreen(
+      screenName: 'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+    );
+
+    expect(
+      tracker.screenHistory.map((screen) => screen.screenName),
+      <String?>[
+        'DeviceDetails_Gateway',
+        'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+      ],
+    );
+    expect(tracker.currentScreen?.route, same(restoreRoute));
+
+    tracker.handleScreenPop(restoreRoute, detailsRoute);
+    expect(tracker.getCurrentScreenIdentifier(), 'DeviceDetails_Gateway');
+  });
+
   testWidgets('reconciles a partial prefix and removes obsolete routes',
       (tester) async {
     final navigatorKey = await pumpApp(tester);

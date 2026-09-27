@@ -323,6 +323,7 @@ class EnsembleTestRunner {
     final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
     final previousDrainPendingExceptions =
         LiveAsyncCallSupport.drainPendingExceptions;
+    final restoreDebugPrint = ctx.runtime.captureDebugPrint();
     try {
       FlutterError.onError = (details) {
         final formatted = _formatFlutterError(details);
@@ -335,8 +336,10 @@ class EnsembleTestRunner {
       };
 
       SchedulerBinding.instance.addTimingsCallback(timingsCallback);
-      ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
-      LiveAsyncCallSupport.runner = tester.runAsync;
+      Future<T?> runAppAsync<T>(Future<T> Function() callback) =>
+          ctx.runtime.runAsyncWithConsoleCapture(tester, callback);
+      ctx.apiOverlay.liveAsyncRunner = runAppAsync;
+      LiveAsyncCallSupport.runner = runAppAsync;
       // Inspect pending framework exceptions at explicit lifecycle boundaries;
       // do not discard them from async-call cleanup.
       LiveAsyncCallSupport.drainPendingExceptions = null;
@@ -445,6 +448,7 @@ class EnsembleTestRunner {
         SchedulerBinding.instance.removeTimingsCallback(callback);
       }
       FlutterError.onError = previousOnError;
+      restoreDebugPrint();
       LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
       LiveAsyncCallSupport.drainPendingExceptions =
           previousDrainPendingExceptions;

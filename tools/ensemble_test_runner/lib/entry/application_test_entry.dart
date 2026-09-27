@@ -562,19 +562,23 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   final stepStartTimes = <String>[];
   final previousOnError = FlutterError.onError;
   final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+  final restoreDebugPrint = context.runtime.captureDebugPrint();
   FlutterError.onError = (details) {
     final message = details.exceptionAsString();
     context.runtime.flutterErrors.add(message);
     FlutterError.presentError(details);
   };
-  context.apiOverlay.liveAsyncRunner = tester.runAsync;
-  LiveAsyncCallSupport.runner = tester.runAsync;
+  Future<T?> runAppAsync<T>(Future<T> Function() callback) =>
+      context.runtime.runAsyncWithConsoleCapture(tester, callback);
+  context.apiOverlay.liveAsyncRunner = runAppAsync;
+  LiveAsyncCallSupport.runner = runAppAsync;
   context.runtime.consoleLogs.add(
     context.runtime.formatConsoleLine('Started ${test.id}'),
   );
   try {
     await applyHostScreenshotViewport(tester, context, mode: mode);
-    await tester.runAsync(EnsembleTestHarness.ensureAppFontsLoaded);
+    await context.runtime.runAsyncWithConsoleCapture(
+        tester, EnsembleTestHarness.ensureAppFontsLoaded);
     await runZoned(
       () async {
         try {
@@ -587,7 +591,8 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             );
           }
           await _executeHostSetup(test);
-          await tester.runAsync(
+          await context.runtime.runAsyncWithConsoleCapture(
+            tester,
             () => EnsembleTestHarness.applyInPlaceSetup(context),
           );
           // Ensemble overlay path can be verified before launch. Pure Flutter
@@ -724,6 +729,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       }
     }
     FlutterError.onError = previousOnError;
+    restoreDebugPrint();
     LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
     context.apiOverlay.liveAsyncRunner = null;
     if (mode != ExecutionMode.integration) {

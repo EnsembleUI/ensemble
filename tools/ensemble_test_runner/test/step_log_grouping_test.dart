@@ -68,6 +68,40 @@ void main() {
       );
     });
 
+    testWidgets('captures debugPrint and async prints outside the test zone',
+        (tester) async {
+      final runtime = TestRuntimeState()..currentStepIndex = 2;
+      final restoreDebugPrint = runtime.captureDebugPrint();
+      try {
+        await tester.runAsync(() async {
+          debugPrint('async debugPrint');
+          print('async plain print');
+        });
+        await runtime.runAsyncWithConsoleCapture(tester, () async {
+          print('wrapped async plain print');
+        });
+      } finally {
+        restoreDebugPrint();
+      }
+
+      expect(
+        runtime.consoleLogs.where((line) => line.contains('async debugPrint')),
+        hasLength(1),
+      );
+      expect(
+        runtime.consoleLogs
+            .where((line) => line.endsWith('] async plain print')),
+        isEmpty,
+      );
+      expect(
+        runtime.consoleLogs
+            .where((line) => line.contains('wrapped async plain print')),
+        hasLength(1),
+      );
+      expect(runtime.consoleLogs.every((line) => line.contains('[step=2]')),
+          isTrue);
+    });
+
     testWidgets('skips device artifact protocol lines from app console',
         (tester) async {
       final runtime = TestRuntimeState()..currentStepIndex = 0;

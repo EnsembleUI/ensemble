@@ -88,11 +88,11 @@ class ScreenTracker {
     );
 
     _setCurrentScreen(newScreen);
-
   }
 
   /// Track screen from ScreenPayload
-  void trackScreenFromPayload(ScreenPayload? payload, {Route? route, bool isModal = false, int? viewGroupIndex}) {
+  void trackScreenFromPayload(ScreenPayload? payload,
+      {Route? route, bool isModal = false, int? viewGroupIndex}) {
     if (payload == null) return;
 
     trackScreen(
@@ -108,13 +108,12 @@ class ScreenTracker {
 
   /// Handle navigation pop - restore previous screen if available
   void handleScreenPop(Route poppedRoute, Route? previousRoute) {
-
     // IMPORTANT: When screens are tracked without route reference (e.g., from Screen widget),
     // we can't rely on route matching. Try to restore from stack when:
     // 1. Current screen's route matches the popped route, OR
     // 2. Current screen has no route reference AND we have stack to restore from
     final shouldRestoreFromStack = _currentScreen?.route == poppedRoute ||
-                                   (_currentScreen?.route == null && _screenStack.length > 1);
+        (_currentScreen?.route == null && _screenStack.length > 1);
 
     if (!shouldRestoreFromStack) return;
 
@@ -193,7 +192,8 @@ class ScreenTracker {
 
   /// Handle bottom navigation and ViewGroup screen changes (sidebar, drawer navigation)
   /// Tracks the screen with viewGroupIndex for proper restoration after backgrounding
-  void handleBottomNavChange(String? screenId, String? screenName, {Map<String, dynamic>? arguments, int? viewGroupIndex}) {
+  void handleBottomNavChange(String? screenId, String? screenName,
+      {Map<String, dynamic>? arguments, int? viewGroupIndex}) {
     trackScreen(
       screenId: screenId,
       screenName: screenName,
@@ -206,8 +206,8 @@ class ScreenTracker {
 
   /// Handle ViewGroup screen changes (sidebar, drawer navigation)
   /// Tracks the screen with viewGroupIndex for proper restoration after backgrounding
-  void handleViewGroupChange(String? screenId, String? screenName, {Map<String, dynamic>? arguments, int? viewGroupIndex}) {
-
+  void handleViewGroupChange(String? screenId, String? screenName,
+      {Map<String, dynamic>? arguments, int? viewGroupIndex}) {
     trackScreen(
       screenId: screenId,
       screenName: screenName,
@@ -238,7 +238,8 @@ class ScreenTracker {
   bool isScreenVisible({String? screenId, String? screenName}) {
     if (_currentScreen == null) return false;
     if (screenId != null && _currentScreen!.screenId == screenId) return true;
-    if (screenName != null && _currentScreen!.screenName == screenName) return true;
+    if (screenName != null && _currentScreen!.screenName == screenName)
+      return true;
     return false;
   }
 
@@ -257,11 +258,40 @@ class ScreenTracker {
     return _currentScreen?.viewGroupIndex != null;
   }
 
-  void _setCurrentScreen(VisibleScreen? screen, {bool isRestoringFromHistory = false}) {
+  void _setCurrentScreen(VisibleScreen? screen,
+      {bool isRestoringFromHistory = false}) {
+    final previousScreen = _currentScreen;
+
+    // A Screen widget can report itself again after rebuild with no Route
+    // reference. Treat that as a refresh of the same visible screen instead
+    // of another navigation-history entry, and keep the Route supplied by the
+    // Navigator observer so a later pop can restore the correct predecessor.
+    if (screen != null &&
+        !isRestoringFromHistory &&
+        previousScreen != null &&
+        _isSameVisibleScreen(previousScreen, screen)) {
+      screen = VisibleScreen(
+        screenId: screen.screenId ?? previousScreen.screenId,
+        screenName: screen.screenName ?? previousScreen.screenName,
+        isExternal: screen.isExternal,
+        isModal: screen.isModal,
+        visibleSince: previousScreen.visibleSince,
+        arguments: screen.arguments ?? previousScreen.arguments,
+        route: screen.route ?? previousScreen.route,
+        viewGroupIndex: screen.viewGroupIndex ?? previousScreen.viewGroupIndex,
+      );
+      if (_screenStack.isNotEmpty &&
+          _isSameVisibleScreen(_screenStack.last, previousScreen)) {
+        _screenStack[_screenStack.length - 1] = screen;
+      }
+    }
+
     _currentScreen = screen;
 
     // Push to stack if it's a new screen (but not when restoring from stack on back navigation)
-    if (screen != null && !isRestoringFromHistory) {
+    if (screen != null &&
+        !isRestoringFromHistory &&
+        !_identicalVisibleScreen(previousScreen, screen)) {
       _screenStack.add(screen); // Push to stack
 
       // Keep stack manageable (last 50 screens)
@@ -283,6 +313,28 @@ class ScreenTracker {
     // Notify listeners
     _screenChangeController.add(screen);
   }
+
+  bool _isSameVisibleScreen(VisibleScreen a, VisibleScreen b) {
+    final hasIdentifier = (a.screenName?.isNotEmpty ?? false) ||
+        (a.screenId?.isNotEmpty ?? false);
+    if (!hasIdentifier ||
+        a.screenId != b.screenId ||
+        a.screenName != b.screenName ||
+        a.viewGroupIndex != b.viewGroupIndex) {
+      return false;
+    }
+    // Two distinct non-null routes with the same screen name are separate
+    // visits. A null route on either side is a widget-level refresh.
+    return a.route == null || b.route == null || identical(a.route, b.route);
+  }
+
+  bool _identicalVisibleScreen(VisibleScreen? a, VisibleScreen? b) =>
+      a != null &&
+      b != null &&
+      a.screenId == b.screenId &&
+      a.screenName == b.screenName &&
+      a.viewGroupIndex == b.viewGroupIndex &&
+      identical(a.route, b.route);
 
   /// Dispose resources
   void dispose() {

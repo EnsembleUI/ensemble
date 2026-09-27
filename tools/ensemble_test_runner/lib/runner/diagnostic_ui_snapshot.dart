@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
 import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
@@ -102,7 +103,7 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   final verifiedTree = [
     for (final element in withLocators) markAmbiguities(element)
   ];
-  final screen = _screenObservation(navigation);
+  final screen = _screenObservation(navigation, tester);
   final size = tester.view.physicalSize / tester.view.devicePixelRatio;
   return DiagnosticUiSnapshot(
     observation: UiObservation(
@@ -127,11 +128,13 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   );
 }
 
-ScreenObservation _screenObservation(NavigationTestService? navigation) {
+ScreenObservation _screenObservation(
+  NavigationTestService? navigation,
+  WidgetTester tester,
+) {
   final nav = navigation;
-  if (nav == null) return ScreenObservation.unknown();
-  final route = nav.currentRoute;
-  final history = List<String>.from(nav.routeHistory);
+  final route = visibleScreenIdentifier(tester) ?? nav?.currentRoute;
+  final history = List<String>.from(nav?.routeHistory ?? const <String>[]);
   if ((route == null || route.trim().isEmpty) && history.isEmpty) {
     return ScreenObservation.unknown();
   }

@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:ensemble/page_model.dart';
+import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
@@ -21,6 +23,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('diagnostic screen label follows the visible route',
+      (tester) async {
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final navigation = _FakeNavigationService(
+      currentRoute: 'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+      routeHistory: const [
+        'DeviceDetails_Gateway',
+        'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        home: const Scaffold(body: Text('previous screen')),
+      ),
+    );
+    navigatorKey.currentState!.push<void>(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(
+          arguments: ScreenPayload(screenName: 'DeviceDetails_Gateway'),
+        ),
+        builder: (_) => const Scaffold(body: Text('visible screen')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final observation = captureDiagnosticUiSnapshot(
+      tester: tester,
+      assertions: AssertionEngine(tester: tester),
+      navigation: navigation,
+    ).observation;
+
+    expect(observation.screen.name, 'DeviceDetails_Gateway');
+    expect(
+      observation.screen.navigationStack,
+      navigation.routeHistory,
+    );
+  });
+
   testWidgets('diagnostic visibility uses the serialized logical viewport',
       (tester) async {
     tester.view.physicalSize = const Size(400, 800);
@@ -1038,6 +1079,19 @@ void main() {
       expect(body.suggestedLocator?.text, contains('KPN-FWA'));
     },
   );
+}
+
+class _FakeNavigationService implements NavigationTestService {
+  const _FakeNavigationService({
+    required this.currentRoute,
+    required this.routeHistory,
+  });
+
+  @override
+  final String? currentRoute;
+
+  @override
+  final List<String> routeHistory;
 }
 
 List<UiElement> _flatten(List<UiElement> roots) {
