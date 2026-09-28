@@ -22,6 +22,56 @@ abstract class EnsembleWidget<C extends EnsembleController>
 }
 
 abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
+  ScopeManager? _scopeManager;
+  ScopeManager? _registeredScope;
+  EnsembleController? _registeredController;
+
+  // A controller can be reused by more than one widget instance (for example,
+  // when a widget with an id is rebuilt). Do not remove the shared controller's
+  // bindings until the last widget using it in that page scope is gone.
+  static final Map<ScopeManager, Map<EnsembleController, int>>
+      _bindingOwnerCounts = {};
+
+  static void _retainBindingOwner(
+      ScopeManager scope, EnsembleController controller) {
+    final controllers = _bindingOwnerCounts.putIfAbsent(scope, () => {});
+    controllers[controller] = (controllers[controller] ?? 0) + 1;
+  }
+
+  static void _releaseBindingOwner(
+      ScopeManager? scope, EnsembleController? controller) {
+    if (scope == null || controller == null) return;
+
+    final controllers = _bindingOwnerCounts[scope];
+    final count = controllers?[controller];
+    if (count == null) return;
+
+    if (count <= 1) {
+      controllers!.remove(controller);
+      scope.removeBindingListeners(controller);
+      if (controllers.isEmpty) {
+        _bindingOwnerCounts.remove(scope);
+      }
+    } else {
+      controllers![controller] = count - 1;
+    }
+  }
+
+  void _syncBindingOwner(ScopeManager? scope) {
+    final controller = widget.controller;
+    if (identical(_registeredScope, scope) &&
+        identical(_registeredController, controller)) {
+      return;
+    }
+
+    _releaseBindingOwner(_registeredScope, _registeredController);
+    _registeredScope = scope;
+    _registeredController = controller;
+    if (scope != null) {
+      _retainBindingOwner(scope, controller);
+    }
+  }
+
   void _update() {
     setState(() {});
   }
@@ -36,12 +86,19 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   void didUpdateWidget(covariant W oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller.removeListener(_update);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      // Release the old controller immediately. The next build will register
+      // the replacement controller in the same scope.
+      _releaseBindingOwner(_registeredScope, _registeredController);
+      _registeredController = null;
+    }
     widget.controller.addListener(_update);
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_update);
+    _releaseBindingOwner(_registeredScope, _registeredController);
     super.dispose();
   }
 
@@ -49,6 +106,10 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
 
   @override
   Widget build(BuildContext context) {
+    // Cache the scope while the element is active; it can't be looked up in
+    // dispose(). Keep binding ownership scoped to this page and controller.
+    _scopeManager = DataScopeWidget.getScope(context);
+    _syncBindingOwner(_scopeManager);
     if (widget.controller is EnsembleWidgetController) {
       EnsembleWidgetController widgetController =
           widget.controller as EnsembleWidgetController;

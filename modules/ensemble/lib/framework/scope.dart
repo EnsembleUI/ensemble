@@ -584,7 +584,10 @@ mixin PageBindingManager on IsScopeManager {
     // if (count != null) {
     //   log("Removing ${count} binding listeners for (${destinationWidget.runtimeType} - ${destinationWidget.hashCode})");
     // }
-    listenerMap[destinationWidget]?.values.forEach((e) => e.cancel());
+    // Remove the entry as well, otherwise the page-scoped listenerMap keeps
+    // growing with keys for disposed widgets (and the cancelled subscriptions
+    // they hold) every time a dialog/overlay is opened and closed.
+    listenerMap.remove(destinationWidget)?.values.forEach((e) => e.cancel());
   }
 
   /// listen for changes on the bindingExpression and invoke onDataChange() callback.
