@@ -13,6 +13,14 @@ const ensembleHtmlTestReportAppJs = r'''
   let currentModalStepIndex = -1;
   let currentObserverDetailIndex = null;
   let activeStorageSubTab = 'public';
+  let historyLoaded = false;
+  let historyLoadPromise = null;
+  let historyData = null;
+  let historyRange = 20;
+  let historyModeFilter = 'all';
+  let historyDeviceFilter = 'all';
+  let historyTestFilter = '';
+  let historyOutcomeFilter = 'attention';
 
   /** Screenshot overlay visibility — shared across step modal + fullscreen sheet.
    *  Sheet defaults: observation layers off (clear picture); action rings on.
@@ -207,6 +215,8 @@ const ensembleHtmlTestReportAppJs = r'''
     try {
       db = await getHistoryDb(forceFetch);
       if (!db) return null;
+      const runColumns = new Set(rowsFromStatement(db.prepare('PRAGMA table_info(runs)')).map(row => row.name));
+      const runColumn = (name, alias) => runColumns.has(name) ? name + ' AS ' + alias : 'NULL AS ' + alias;
       const runs = rowsFromStatement(db.prepare(`
         SELECT
           id,
@@ -219,11 +229,26 @@ const ensembleHtmlTestReportAppJs = r'''
           commit_hash AS commitHash,
           branch,
           build_number AS buildNumber,
-          pr_number AS prNumber
+          pr_number AS prNumber,
+          ${runColumn('mode','mode')},
+          ${runColumn('platform','platform')},
+          ${runColumn('device_id','deviceId')},
+          ${runColumn('device_name','deviceName')}
         FROM runs
         ORDER BY id DESC
       `));
-      return { runs };
+      let testResults = [];
+      const tables = new Set(rowsFromStatement(db.prepare("SELECT name FROM sqlite_master WHERE type='table'")).map(row => row.name));
+      if (tables.has('test_results')) testResults = rowsFromStatement(db.prepare(`
+        SELECT
+          run_id AS runId, test_id AS testId, file_name AS fileName,
+          device, scenario, profile, feature, status, duration_ms AS durationMs,
+          attempts, failed_step_index AS failedStepIndex, failed_step AS failedStep,
+          error_kind AS errorKind, error_summary AS errorSummary
+        FROM test_results
+        ORDER BY run_id DESC, test_id
+      `));
+      return { runs, testResults };
     } catch (e) {
       return null;
     } finally {
@@ -297,8 +322,7 @@ const ensembleHtmlTestReportAppJs = r'''
     metrics += '<div class="metric-card metric-duration"><div class="metric-val">' + formatDuration(displayMs) + '</div><div class="metric-label">Suite Duration</div></div>';
     document.getElementById('metrics-grid').innerHTML = metrics;
 
-    renderHistory(null);
-    loadHistory().then(renderHistory);
+    document.getElementById('history-host').innerHTML = '<section class="history-container"><div class="no-chart-data">Open Run History to load saved run data.</div></section>';
     renderSuiteArtifacts(report.suiteArtifacts || []);
 
     window.currentReport = report;
@@ -369,7 +393,9 @@ const ensembleHtmlTestReportAppJs = r'''
   function drawDurationChart(chartRuns) {
     if (!chartRuns.length) return '<div class="no-chart-data">No data</div>';
     
-    const width = 500;
+    // Keep every retained run in the trend while giving each point enough
+    // horizontal room to inspect. The chart body scrolls when history grows.
+    const width = Math.max(500, chartRuns.length * 32);
     const height = 180;
     const paddingLeft = 45;
     const paddingRight = 15;
@@ -430,13 +456,16 @@ const ensembleHtmlTestReportAppJs = r'''
     });
     
     let xLabels = '';
+    const labelEvery = points.length <= 10
+      ? 1
+      : Math.max(1, Math.ceil(80 / stepX));
     points.forEach((pt, i) => {
-      if (points.length <= 10 || i % 2 === 0 || i === points.length - 1) {
+      if (i % labelEvery === 0 || i === points.length - 1) {
         xLabels += '<text x="' + pt.x + '" y="' + (height - 10) + '" fill="#9ca3af" font-size="9" text-anchor="middle">#' + pt.run.id + '</text>';
       }
     });
     
-    let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">';
+    let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">';
     svg += '<defs>';
     svg += '  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">';
     svg += '    <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.25"/>';
@@ -456,7 +485,7 @@ const ensembleHtmlTestReportAppJs = r'''
   function drawSuccessRateChart(chartRuns) {
     if (!chartRuns.length) return '<div class="no-chart-data">No data</div>';
     
-    const width = 500;
+    const width = Math.max(500, chartRuns.length * 32);
     const height = 180;
     const paddingLeft = 45;
     const paddingRight = 15;
@@ -533,12 +562,15 @@ const ensembleHtmlTestReportAppJs = r'''
         'onmousemove="moveChartTooltip(event)" ' +
         'onmouseout="hideChartTooltip()"/>';
       
-      if (barCount <= 10 || i % 2 === 0 || i === barCount - 1) {
+      const labelEvery = barCount <= 10
+        ? 1
+        : Math.max(1, Math.ceil(80 / totalBarWidth));
+      if (i % labelEvery === 0 || i === barCount - 1) {
         xLabels += '<text x="' + (xPass + singleBarWidth + gap / 2) + '" y="' + (height - 10) + '" fill="#9ca3af" font-size="9" text-anchor="middle">#' + run.id + '</text>';
       }
     });
     
-    let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">';
+    let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">';
     svg += yGrid;
     svg += bars;
     svg += xLabels;
@@ -550,115 +582,135 @@ const ensembleHtmlTestReportAppJs = r'''
   async function renderHistory(history) {
     const host = document.getElementById('history-host');
     if (!host) return;
-    const runs = (history && Array.isArray(history.runs)) ? history.runs : [];
+    historyData = history;
+    const allRuns = Array.isArray(history?.runs) ? history.runs : [];
+    const allResults = Array.isArray(history?.testResults) ? history.testResults : [];
+    const modes = [...new Set(allRuns.map(run => run.mode).filter(Boolean))];
+    const devices = [...new Set(allRuns.map(run => run.deviceName || run.deviceId).filter(Boolean))];
+    const runs = allRuns.filter(run => (historyModeFilter === 'all' || run.mode === historyModeFilter) &&
+      (historyDeviceFilter === 'all' || (run.deviceName || run.deviceId) === historyDeviceFilter));
+    const runIds = new Set(runs.map(run => Number(run.id)));
+    const rows = allResults.filter(row => runIds.has(Number(row.runId)));
     if (!runs.length) {
-      host.innerHTML = '';
+      host.innerHTML = '<section class="history-container"><div class="no-chart-data">No runs match these filters.</div></section>';
       return;
     }
-
-    let runsCount = runs.length;
-    let overallAvgDuration = 0;
-    let overallSuccessRate = 0;
-    let chartRuns = [];
-    let db = null;
-
-    try {
-      db = await getHistoryDb();
-      if (db) {
-        const summary = rowsFromStatement(db.prepare(`
-          SELECT
-            COUNT(*) AS count,
-            AVG(duration_ms) AS avgDuration,
-            SUM(passed_tests) AS sumPassed,
-            SUM(total_tests) AS sumTotal
-          FROM runs
-        `))[0];
-        
-        runsCount = summary.count || runs.length;
-        overallAvgDuration = Math.round(summary.avgDuration || 0);
-        overallSuccessRate = (summary.sumTotal || 0) > 0 ? Math.round((summary.sumPassed / summary.sumTotal) * 100) : 0;
-      }
-    } catch (e) {
-      if (runs.length) {
-        const sumDuration = runs.reduce((sum, r) => sum + (r.durationMs || 0), 0);
-        overallAvgDuration = Math.round(sumDuration / runs.length);
-        const totalPassed = runs.reduce((sum, r) => sum + (r.passed || 0), 0);
-        const totalTests = runs.reduce((sum, r) => sum + (r.total || 0), 0);
-        overallSuccessRate = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
-      }
-    } finally {
-      if (db) db.close();
-    }
-
-    chartRuns = [...runs].reverse().slice(-10);
+    const avg = Math.round(runs.reduce((sum, run) => sum + Number(run.durationMs || 0), 0) / runs.length);
+    const tests = runs.reduce((sum, run) => sum + Number(run.total || 0), 0);
+    const passed = runs.reduce((sum, run) => sum + Number(run.passed || 0), 0);
+    const success = tests ? Math.round(passed / tests * 100) : 0;
+    const chartRuns = runs.slice(0, Math.max(1, Number(historyRange) || 20)).reverse();
+    const chartLabel = chartRuns.length + (chartRuns.length === 1 ? ' Run' : ' Runs');
+    const selectOptions = (values, selected) => values.map(value => '<option value="' + escapeHtml(value) + '"' + (value === selected ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
+    const oldA = document.getElementById('history-compare-a')?.value;
+    const oldB = document.getElementById('history-compare-b')?.value;
+    const runA = runs.some(run => String(run.id) === oldA) ? Number(oldA) : Number(runs[Math.min(1, runs.length - 1)].id);
+    const runB = runs.some(run => String(run.id) === oldB) ? Number(oldB) : Number(runs[0].id);
+    const runOption = (run, selectedId) => '<option value="' + run.id + '"' + (Number(run.id) === selectedId ? ' selected' : '') + '>#' + run.id + ' · ' + escapeHtml(formatDateTime(run.createdAt)) + ' · ' + escapeHtml([run.mode,run.deviceName||run.deviceId].filter(Boolean).join(' / ') || 'unknown context') + '</option>';
 
     let html = '<section class="history-container">';
-    html += '<div class="history-metrics-grid">';
-    html += '  <div class="metric-card"><div class="metric-val">' + runsCount + '</div><div class="metric-label">Total Runs</div></div>';
-    html += '  <div class="metric-card"><div class="metric-val">' + formatDuration(overallAvgDuration) + '</div><div class="metric-label">Average Duration</div></div>';
-    html += '  <div class="metric-card"><div class="metric-val">' + overallSuccessRate + '%</div><div class="metric-label">Overall Success Rate</div></div>';
-    html += '</div>';
+    html += '<div class="history-controls">';
+    html += '<label>Mode <select onchange="setHistoryFilter(\'mode\', this.value)"><option value="all">All modes</option>' + selectOptions(modes, historyModeFilter) + '</select></label>';
+    html += '<label>Device <select onchange="setHistoryFilter(\'device\', this.value)"><option value="all">All devices</option>' + selectOptions(devices, historyDeviceFilter) + '</select></label>';
+    html += '<label>Chart range <select onchange="setHistoryRange(this.value)">' + [10,20,50,100,500].map(count => '<option value="' + count + '"' + (Number(historyRange) === count ? ' selected' : '') + '>Last ' + count + '</option>').join('') + '</select></label>';
+    html += '</div><div class="history-metrics-grid">';
+    html += '<div class="metric-card"><div class="metric-val">' + runs.length + '</div><div class="metric-label">Runs in view</div></div>';
+    html += '<div class="metric-card"><div class="metric-val">' + formatDuration(avg) + '</div><div class="metric-label">Average Duration</div></div>';
+    html += '<div class="metric-card"><div class="metric-val">' + success + '%</div><div class="metric-label">Test Success Rate</div></div></div>';
+    html += '<div class="history-charts-row"><div class="history-chart-card"><div class="history-chart-title">Execution Duration (' + chartLabel + ')</div><div class="history-chart-body">' + drawDurationChart(chartRuns) + '</div></div>';
+    html += '<div class="history-chart-card"><div class="history-chart-heading"><div class="history-chart-title">Test Volume & Results (' + chartLabel + ')</div><div class="history-legend"><span><i class="pass-key"></i>Passed</span><span><i class="fail-key"></i>Failed</span></div></div><div class="history-chart-body">' + drawSuccessRateChart(chartRuns) + '</div></div></div>';
 
-    html += '<div class="history-charts-row">';
-    html += '  <div class="history-chart-card">';
-    html += '    <div class="history-chart-title">Execution Duration (Last 10 Runs)</div>';
-    html += '    <div class="history-chart-body">' + drawDurationChart(chartRuns) + '</div>';
-    html += '  </div>';
-    html += '  <div class="history-chart-card">';
-    html += '    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">';
-    html += '      <div class="history-chart-title">Test Volume & Results (Last 10 Runs)</div>';
-    html += '      <div style="display:flex; gap:12px; font-size:0.7rem; font-weight:700;">';
-    html += '        <span style="display:flex; align-items:center; gap:5px; color:#94a3b8;"><span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:2px;"></span>Passed</span>';
-    html += '        <span style="display:flex; align-items:center; gap:5px; color:#94a3b8;"><span style="display:inline-block; width:8px; height:8px; background:#f43f5e; border-radius:2px;"></span>Failed</span>';
-    html += '      </div>';
-    html += '    </div>';
-    html += '    <div class="history-chart-body">' + drawSuccessRateChart(chartRuns) + '</div>';
-    html += '  </div>';
-    html += '</div>';
+    html += '<div class="history-card history-compare"><div class="history-header"><div><h2>Compare Runs</h2><p>Compare outcomes and duration across two executions.</p></div><span>' + (runs.length > 1 ? 'Latest run compared with baseline' : 'Two runs required') + '</span></div>';
+    html += '<div class="history-controls"><label>Baseline <select id="history-compare-a" onchange="renderHistory(historyData)">' + runs.map(run => runOption(run, runA)).join('') + '</select></label>';
+    html += '<label>Current <select id="history-compare-b" onchange="renderHistory(historyData)">' + runs.map(run => runOption(run, runB)).join('') + '</select></label></div>';
+    html += renderHistoryComparison(runs, rows, runA, runB) + '</div>';
 
-    html += '<div class="history-card" style="margin-top:0;">';
-    html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' total runs</span></div>';
-    html += '<div class="history-table-wrap"><table class="history-table">';
-    html += '<thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Branch</th></tr></thead><tbody>';
+    html += '<div class="history-card"><div class="history-header"><h2>Test Trends</h2><span>' + rows.length + ' test executions</span></div>';
+    html += '<div class="history-controls"><label>Find test <input id="history-test-search" value="' + escapeHtml(historyTestFilter) + '" placeholder="Name or file" oninput="setHistorySearch(this.value)"></label>';
+    html += '<label>Show <select onchange="setHistoryFilter(\'outcome\', this.value)">' + [['attention','Failures, flaky & slow'],['all','All tests'],['failing','Failed at least once'],['flaky','Flaky'],['slow','Slowest']].map(([value,label]) => '<option value="' + value + '"' + (historyOutcomeFilter === value ? ' selected' : '') + '>' + label + '</option>').join('') + '</select></label></div>';
+    html += renderTestTrends(rows, historyOutcomeFilter, historyTestFilter) + '</div>';
 
+    html += '<div class="history-card"><div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' runs in view · ' + allRuns.length + ' retained</span></div>';
+    html += '<div class="history-table-wrap"><table class="history-table"><thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Mode · Device</th><th>Branch</th></tr></thead><tbody>';
     runs.forEach(run => {
       const status = String(run.status || 'unknown').toLowerCase();
-      const statusClass = status === 'passed' ? 'passed' : 'failed';
-      const passed = Number(run.passed || 0);
-      const total = Number(run.total || 0);
-      const failed = Number(run.failed || 0);
-      const testsText = failed
-        ? (passed + ' passed, ' + failed + ' failed')
-        : (passed + '/' + total);
-      
-      const branch = run.branch ? String(run.branch) : '';
-      
-      const isCollapsible = failed > 0;
-      if (isCollapsible) {
-        html += '<tr onclick="toggleHistoryRunDetails(' + run.id + ')" style="cursor: pointer;">';
-        html += '<td><span class="history-caret" id="history-caret-' + run.id + '">▶</span>#' + escapeHtml(run.id || '') + '</td>';
-      } else {
-        html += '<tr>';
-        html += '<td>#' + escapeHtml(run.id || '') + '</td>';
-      }
-      
-      html += '<td>' + escapeHtml(formatDateTime(run.createdAt)) + '</td>';
-      html += '<td><span class="history-status ' + escapeHtml(statusClass) + '">' + escapeHtml(status) + '</span></td>';
-      html += '<td>' + escapeHtml(formatDuration(run.durationMs || 0)) + '</td>';
-      html += '<td>' + escapeHtml(testsText) + '</td>';
-      html += '<td>' + escapeHtml(branch || '-') + '</td>';
-      html += '</tr>';
-      
-      if (isCollapsible) {
-        html += '<tr class="history-detail-row" id="history-details-' + run.id + '" style="display: none;">';
-        html += '<td colspan="6"><div class="run-details-expanded-container"></div></td>';
-        html += '</tr>';
-      }
+      const failed = Number(run.failed || 0), total = Number(run.total || 0), countPassed = Number(run.passed || 0);
+      const testsText = failed ? (countPassed + ' passed, ' + failed + ' failed') : (countPassed + '/' + total);
+      html += '<tr' + (failed ? ' onclick="toggleHistoryRunDetails(' + run.id + ')" style="cursor:pointer"' : '') + '><td>' + (failed ? '<span class="history-caret" id="history-caret-' + run.id + '">▶</span>' : '') + '#' + escapeHtml(run.id) + '</td>';
+      html += '<td>' + escapeHtml(formatDateTime(run.createdAt)) + '</td><td><span class="history-status ' + (status === 'passed' ? 'passed' : 'failed') + '">' + escapeHtml(status) + '</span></td>';
+      html += '<td>' + escapeHtml(formatDuration(run.durationMs || 0)) + '</td><td>' + escapeHtml(testsText) + '</td>';
+      html += '<td>' + escapeHtml([run.mode,run.platform,run.deviceName || run.deviceId].filter(Boolean).join(' · ') || '—') + '</td><td>' + escapeHtml(run.branch || '—') + '</td></tr>';
+      if (failed) html += '<tr class="history-detail-row" id="history-details-' + run.id + '" style="display:none"><td colspan="7"><div class="run-details-expanded-container"></div></td></tr>';
     });
-
-    html += '</tbody></table></div></div></section>';
-    host.innerHTML = html;
+    host.innerHTML = html + '</tbody></table></div></div></section>';
   }
+
+  function historyIdentity(row) {
+    return [row.testId || '', row.scenario || '', row.profile || '', row.device || ''].join('|');
+  }
+
+  function renderTestTrends(rows, filter, search) {
+    if (!rows.length) return '<div class="no-chart-data">This database has no per-test summaries yet. Newly recorded runs will appear here.</div>';
+    const grouped = new Map();
+    rows.forEach(row => { const key = historyIdentity(row); if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(row); });
+    let tests = [...grouped.values()].map(items => {
+      items.sort((a,b) => Number(b.runId) - Number(a.runId));
+      const failures = items.filter(item => item.status === 'failed').length;
+      const flaky = (failures > 0 && failures < items.length) || items.some(item => Number(item.attempts) > 1);
+      return { items, latest: items[0], failures, flaky, avg: Math.round(items.reduce((sum,item) => sum + Number(item.durationMs || 0),0)/items.length) };
+    });
+    if (filter === 'failing') tests = tests.filter(test => test.failures > 0);
+    else if (filter === 'flaky') tests = tests.filter(test => test.flaky);
+    else if (filter === 'attention') tests = tests.filter(test => test.failures > 0 || test.flaky || test.avg >= 60000);
+    const needle = String(search || '').toLowerCase();
+    if (needle) tests = tests.filter(test => (test.latest.testId + ' ' + (test.latest.fileName || '')).toLowerCase().includes(needle));
+    tests.sort(filter === 'slow' ? (a,b) => b.avg-a.avg : (a,b) => b.failures-a.failures || Number(b.flaky)-Number(a.flaky) || b.avg-a.avg);
+    tests = tests.slice(0,300);
+    if (!tests.length) return '<div class="history-empty">' + (filter === 'attention'
+      ? '<strong>No issues surfaced in these runs.</strong><span>No failures, flaky tests, or tests averaging over one minute. Choose “All tests” to inspect every result.'
+      : 'No tests match this filter.') + '</div>';
+    const hasFailures = tests.some(test => test.failures > 0);
+    let html = '<div class="history-table-wrap"><table class="history-table trend-table"><thead><tr><th>Test</th><th>Runs</th><th>Pass / fail</th><th>Avg duration</th><th>Recent outcomes</th>' + (hasFailures ? '<th>Latest failure</th>' : '') + '</tr></thead><tbody>';
+    tests.forEach(test => {
+      const recent = test.items.slice(0,12).reverse().map(item => '<i class="trend-dot ' + (item.status === 'passed' ? 'pass' : 'fail') + '" title="Run #' + item.runId + ': ' + item.status + '"></i>').join('');
+      const failure = test.items.find(item => item.status === 'failed');
+      const detail = failure ? [failure.failedStep, failure.errorSummary].filter(Boolean).join(' · ') : '—';
+      html += '<tr><td><strong>' + escapeHtml(test.latest.testId || '(unknown)') + '</strong><small>' + escapeHtml([test.latest.fileName,test.latest.scenario,test.latest.profile,test.latest.device].filter(Boolean).join(' · ')) + '</small>' + (test.flaky ? '<span class="history-tag flaky">FLAKY</span>' : '') + '</td>';
+      html += '<td>' + test.items.length + '</td><td><span class="trend-pass">' + (test.items.length-test.failures) + '</span> / <span class="trend-fail">' + test.failures + '</span></td><td>' + escapeHtml(formatDuration(test.avg)) + '</td><td class="trend-spark">' + recent + '</td>';
+      if (hasFailures) html += '<td class="trend-error" title="' + escapeHtml(detail) + '">' + escapeHtml(detail) + '</td>';
+      html += '</tr>';
+    });
+    return html + '</tbody></table></div>';
+  }
+
+  function renderHistoryComparison(runs, rows, baselineId, currentId) {
+    const baseline = runs.find(run => Number(run.id) === baselineId), current = runs.find(run => Number(run.id) === currentId);
+    if (!baseline || !current) return '<div class="no-chart-data">Select available runs to compare.</div>';
+    if (baselineId === currentId) return '<div class="comparison-empty">Choose two different runs to compare their test outcomes.</div>';
+    const left = new Map(rows.filter(row => Number(row.runId) === baselineId).map(row => [historyIdentity(row),row]));
+    const right = new Map(rows.filter(row => Number(row.runId) === currentId).map(row => [historyIdentity(row),row]));
+    const delta=Number(current.durationMs||0)-Number(baseline.durationMs||0);
+    const deltaLabel = (delta > 0 ? '+' : delta < 0 ? '−' : '') + formatDuration(Math.abs(delta));
+    const bothHaveRows = left.size > 0 && right.size > 0;
+    if (!bothHaveRows) {
+      const mismatch = [baseline.mode,baseline.platform,baseline.deviceId||baseline.deviceName].join('|') !== [current.mode,current.platform,current.deviceId||current.deviceName].join('|');
+      let empty = '<div class="comparison-empty"><strong>Per-test comparison is unavailable for these runs.</strong><span>One run predates per-test history. New runs include it automatically.</span><span>Suite duration change: ' + escapeHtml(deltaLabel) + '</span></div>';
+      if (mismatch) empty += '<p class="comparison-note">Mode, platform, or device differs; even suite-level timing may not be directly comparable.</p>';
+      return empty;
+    }
+    let newFailures=0,recovered=0,added=0,removed=0; const changes=[];
+    new Set([...left.keys(),...right.keys()]).forEach(key => { const before=left.get(key),after=right.get(key); if(!before){added++;return;} if(!after){removed++;return;} if(before.status!==after.status){if(after.status==='failed')newFailures++;else recovered++;changes.push({before,after});} });
+    const mismatch = [baseline.mode,baseline.platform,baseline.deviceId||baseline.deviceName].join('|') !== [current.mode,current.platform,current.deviceId||current.deviceName].join('|');
+    let html='<div class="comparison-summary"><span>'+newFailures+' new failures</span><span>'+recovered+' recovered</span><span>'+added+' added</span><span>'+removed+' missing</span><span>Duration '+escapeHtml(deltaLabel)+'</span></div>';
+    if(mismatch) html+='<p class="comparison-note">Mode, platform, or device differs; compare outcomes with care.</p>';
+    if(changes.length) html+='<div class="comparison-changes">'+changes.slice(0,20).map(change=>'<div><strong>'+escapeHtml(change.after.testId)+'</strong><span>'+escapeHtml(change.before.status)+' → '+escapeHtml(change.after.status)+'</span></div>').join('')+'</div>';
+    else html+='<p class="comparison-note">No test status changes between these runs.</p>';
+    return html;
+  }
+
+  window.setHistoryRange = function(value) { historyRange=Number(value)||20; renderHistory(historyData); };
+  window.setHistorySearch = function(value) { historyTestFilter=value; const input=document.getElementById('history-test-search'); const pos=input?.selectionStart; renderHistory(historyData); const next=document.getElementById('history-test-search'); next?.focus(); if(pos!=null) next?.setSelectionRange(pos,pos); };
+  window.setHistoryFilter = function(type,value) { if(type==='mode') historyModeFilter=value; else if(type==='device') historyDeviceFilter=value; else if(type==='outcome') historyOutcomeFilter=value; renderHistory(historyData); };
 
   function renderSuiteArtifacts(artifacts) {
     const host = document.getElementById('suite-artifacts-host');
@@ -2544,6 +2596,25 @@ const ensembleHtmlTestReportAppJs = r'''
     document.querySelectorAll('.app-tab-content').forEach(content => {
       content.style.display = content.id === 'app-tab-content-' + tab ? 'block' : 'none';
     });
+    if (tab === 'history') ensureHistoryLoaded();
+  }
+
+  async function ensureHistoryLoaded() {
+    const host = document.getElementById('history-host');
+    if (!host || historyLoaded || historyLoadPromise) return historyLoadPromise;
+    host.innerHTML = '<section class="history-container"><div class="no-chart-data">Loading run history…</div></section>';
+    historyLoadPromise = loadHistory().then(history => {
+      historyLoaded = true;
+      if (!history) {
+        host.innerHTML = '<section class="history-container"><div class="no-chart-data">History is unavailable. Check that ensemble_test_history.db is present and readable.</div></section>';
+        return null;
+      }
+      return renderHistory(history).then(() => history);
+    }).catch(() => {
+      host.innerHTML = '<section class="history-container"><div class="no-chart-data">Could not load run history.</div></section>';
+      return null;
+    }).finally(() => { historyLoadPromise = null; });
+    return historyLoadPromise;
   }
 
   window.toggleHistoryRunDetails = function(runId) {
@@ -2585,6 +2656,9 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '    <div class="run-metadata-item"><strong>Commit:</strong> <span>' + escapeHtml(run.commit_hash || 'N/A') + '</span></div>';
       html += '    <div class="run-metadata-item"><strong>Build Number:</strong> <span>' + escapeHtml(run.build_number || 'N/A') + '</span></div>';
       html += '    <div class="run-metadata-item"><strong>PR Number:</strong> <span>' + escapeHtml(run.pr_number || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Mode:</strong> <span>' + escapeHtml(run.mode || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Platform:</strong> <span>' + escapeHtml(run.platform || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Device:</strong> <span>' + escapeHtml(run.device_name || run.device_id || 'N/A') + '</span></div>';
       html += '    <div class="run-metadata-item"><strong>Date:</strong> <span>' + escapeHtml(formatDateTime(run.created_at)) + '</span></div>';
       html += '    <div class="run-metadata-item"><strong>Duration:</strong> <span>' + escapeHtml(formatDuration(run.duration_ms || 0)) + '</span></div>';
       html += '  </div>';

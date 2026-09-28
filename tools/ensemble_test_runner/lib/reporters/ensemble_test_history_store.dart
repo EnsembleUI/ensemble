@@ -8,11 +8,11 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Appends compact historical suite results for quick trend/debug lookup.
 ///
-/// This intentionally stores only summary data. Full run details, logs, and
-/// screenshots stay in the latest report artifacts.
+/// Stores compact run and per-test summaries. Full logs and screenshots stay
+/// in the latest report artifacts.
 class EnsembleTestHistoryStore {
   static const fileName = 'ensemble_test_history.db';
-  static const maxRuns = 50;
+  static const maxRuns = 500;
 
   static bool _initialized = false;
 
@@ -72,22 +72,52 @@ class EnsembleTestHistoryStore {
           'build_number': _firstEnv(const ['BUILD_BUILDNUMBER']),
           'pr_number':
               _firstEnv(const ['SYSTEM_PULLREQUEST_PULLREQUESTNUMBER']),
+          'mode': _stringValue(result.metadata['mode']),
+          'platform': _stringValue(result.metadata['platform']) ??
+              _singleMetadataValue(result.results, 'platform'),
+          'device_id': _stringValue(result.metadata['deviceId']) ??
+              _singleDeviceValue(result.results, id: true),
+          'device_name': _stringValue(result.metadata['deviceName']) ??
+              _singleDeviceValue(result.results),
         });
 
-        for (final test in result.results
-            .where((test) => test.status == TestStatus.failed)) {
+        for (final test in result.results) {
           final testId = baseTestId(test.testId);
-          await txn.insert('failed_tests', {
+          final fileName = p.basename(filePathOf(test.testId));
+          final device = _deviceLabel(test);
+          final scenario = _stringValue(test.metadata['scenarioId']);
+          final profile = _stringValue(test.metadata['profile']);
+          final feature = _stringValue(test.metadata['feature']);
+          final error = _errorSummary(test.message);
+          await txn.insert('test_results', {
             'run_id': runId,
             'test_id': testId,
-            'base_id': testId,
-            'file_name': p.basename(filePathOf(test.testId)),
-            'device': _deviceId(test),
-            'scenario': test.metadata['scenarioId']?.toString(),
+            'file_name': fileName,
+            'device': device,
+            'scenario': scenario,
+            'profile': profile,
+            'feature': feature,
+            'status': test.status.name,
+            'duration_ms': test.durationMs,
+            'attempts': test.attempts,
             'failed_step_index': test.failedStepIndex,
             'failed_step': _failedStepLabel(test),
-            'error_summary': _errorSummary(test.message),
+            'error_kind': test.failure?.kind.name,
+            'error_summary': error,
           });
+          if (test.status == TestStatus.failed) {
+            await txn.insert('failed_tests', {
+              'run_id': runId,
+              'test_id': testId,
+              'base_id': testId,
+              'file_name': fileName,
+              'device': device,
+              'scenario': scenario,
+              'failed_step_index': test.failedStepIndex,
+              'failed_step': _failedStepLabel(test),
+              'error_summary': error,
+            });
+          }
         }
 
         await _pruneOldRuns(txn);
@@ -116,10 +146,15 @@ CREATE TABLE IF NOT EXISTS runs (
   commit_hash TEXT,
   branch TEXT,
   build_number TEXT,
-  pr_number TEXT
+  pr_number TEXT,
+  mode TEXT,
+  platform TEXT,
+  device_id TEXT,
+  device_name TEXT
 )
 ''');
     await _migrateRunsSchema(db);
+    await _ensureRunContextColumns(db);
     await db.execute('''
 CREATE TABLE IF NOT EXISTS failed_tests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,6 +170,32 @@ CREATE TABLE IF NOT EXISTS failed_tests (
   FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
 )
 ''');
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS test_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id INTEGER NOT NULL,
+  test_id TEXT NOT NULL,
+  file_name TEXT,
+  device TEXT,
+  scenario TEXT,
+  profile TEXT,
+  feature TEXT,
+  status TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 1,
+  failed_step_index INTEGER,
+  failed_step TEXT,
+  error_kind TEXT,
+  error_summary TEXT,
+  FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
+)
+''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_test_results_run ON test_results(run_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_test_results_test ON test_results(test_id, run_id)',
+    );
     await _migrateFailedTestsSchema(db);
     await _normalizeFailedTestIds(db);
   }
@@ -200,7 +261,11 @@ CREATE TABLE runs_migrated (
   commit_hash TEXT,
   branch TEXT,
   build_number TEXT,
-  pr_number TEXT
+  pr_number TEXT,
+  mode TEXT,
+  platform TEXT,
+  device_id TEXT,
+  device_name TEXT
 )
 ''');
       await db.execute('''
@@ -215,7 +280,11 @@ INSERT INTO runs_migrated (
   commit_hash,
   branch,
   build_number,
-  pr_number
+  pr_number,
+  mode,
+  platform,
+  device_id,
+  device_name
 )
 SELECT
   id,
@@ -228,13 +297,35 @@ SELECT
   commit_hash,
   branch,
   build_number,
-  pr_number
+  pr_number,
+  NULL,
+  NULL,
+  NULL,
+  NULL
 FROM runs
 ''');
       await db.execute('DROP TABLE runs');
       await db.execute('ALTER TABLE runs_migrated RENAME TO runs');
     } finally {
       await db.execute('PRAGMA foreign_keys=ON');
+    }
+  }
+
+  static Future<void> _ensureRunContextColumns(Database db) async {
+    final tableInfo = await db.rawQuery('PRAGMA table_info(runs)');
+    final columns = tableInfo
+        .map((row) => row['name']?.toString())
+        .whereType<String>()
+        .toSet();
+    for (final column in const [
+      'mode',
+      'platform',
+      'device_id',
+      'device_name',
+    ]) {
+      if (!columns.contains(column)) {
+        await db.execute('ALTER TABLE runs ADD COLUMN $column TEXT');
+      }
     }
   }
 
@@ -269,17 +360,61 @@ WHERE id NOT IN (
       oldIds,
     );
     await txn.rawDelete(
+      'DELETE FROM test_results WHERE run_id IN ($placeholders)',
+      oldIds,
+    );
+    await txn.rawDelete(
       'DELETE FROM runs WHERE id IN ($placeholders)',
       oldIds,
     );
   }
 
-  static String? _deviceId(EnsembleSingleTestResult test) {
+  static String? _deviceLabel(EnsembleSingleTestResult test) {
     final device = test.metadata['device'];
     if (device is Map) {
-      return device['id']?.toString();
+      return _stringValue(device['displayLabel']) ??
+          _stringValue(device['model']) ??
+          _stringValue(device['name']) ??
+          _stringValue(device['id']);
     }
-    return device?.toString();
+    return _stringValue(device);
+  }
+
+  static String? _singleDeviceValue(
+    List<EnsembleSingleTestResult> results, {
+    bool id = false,
+  }) {
+    final values = results
+        .map((test) {
+          final device = test.metadata['device'];
+          if (device is Map) {
+            return _stringValue(device[id ? 'id' : 'model']) ??
+                _stringValue(device['name']);
+          }
+          return _stringValue(device);
+        })
+        .whereType<String>()
+        .toSet();
+    return values.length == 1 ? values.single : null;
+  }
+
+  static String? _singleMetadataValue(
+    List<EnsembleSingleTestResult> results,
+    String key,
+  ) {
+    final values = results
+        .map((test) {
+          final device = test.metadata['device'];
+          return device is Map ? _stringValue(device[key]) : null;
+        })
+        .whereType<String>()
+        .toSet();
+    return values.length == 1 ? values.single : null;
+  }
+
+  static String? _stringValue(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   static String? _errorSummary(String? message) {

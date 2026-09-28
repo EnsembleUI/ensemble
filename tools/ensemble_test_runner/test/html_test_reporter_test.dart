@@ -62,6 +62,22 @@ void main() {
     expect(shell, contains('ensemble_test_history.db'));
     expect(shell, contains('sql-wasm.js'));
     expect(shell, contains('Test Execution History'));
+    expect(shell, contains('historyRange = 20'));
+    expect(shell, contains('function renderTestTrends'));
+    expect(shell, contains('function renderHistoryComparison'));
+    expect(shell, contains('Choose two different runs to compare'));
+    expect(
+        shell, contains('Per-test comparison is unavailable for these runs'));
+    expect(shell, contains('history-chart-heading'));
+    expect(shell, contains('No issues surfaced in these runs'));
+    expect(shell, contains('test_results'));
+    expect(shell, contains('ensureHistoryLoaded'));
+    expect(shell, contains('setHistorySearch'));
+    expect(shell, isNot(contains('Last 10 Runs')));
+    expect(shell, contains('chartRuns.length * 32'));
+    expect(shell, contains('overflow-x: auto;'));
+    expect(shell, contains("Execution Duration (' + chartLabel"));
+    expect(shell, contains("Test Volume & Results (' + chartLabel"));
     expect(shell, contains('DecompressionStream'));
     expect(shell, contains('report-loader'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
