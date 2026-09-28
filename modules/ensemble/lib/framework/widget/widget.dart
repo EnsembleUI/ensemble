@@ -37,8 +37,7 @@ abstract class EWidgetState<W extends HasController>
       return;
     }
     PageBindingManager.releaseBindingOwner(
-        _bindingOwnerScope, _bindingOwnerDestination,
-        preserveRegistration: true);
+        _bindingOwnerScope, _bindingOwnerDestination);
     _bindingOwnerScope = scope;
     _bindingOwnerDestination = destination;
     if (scope != null && destination != null) {
@@ -67,7 +66,8 @@ abstract class EWidgetState<W extends HasController>
   Widget build(BuildContext context) {
     _syncBindingOwner(scopeManager);
     if (widget is Invokable) {
-      scopeManager?.restoreBindingListeners(widget as Invokable);
+      scopeManager?.restoreBindingListeners(widget as Invokable,
+          ownerScope: scopeManager);
     }
     resolveStylesIfUnresolved(context);
 

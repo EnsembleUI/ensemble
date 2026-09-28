@@ -81,7 +81,7 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
     // dispose(). Keep binding ownership scoped to this page and controller.
     final scope = DataScopeWidget.getScope(context);
     _syncBindingOwner(scope);
-    scope?.restoreBindingListeners(widget.controller);
+    scope?.restoreBindingListeners(widget.controller, ownerScope: scope);
     if (widget.controller is EnsembleWidgetController) {
       EnsembleWidgetController widgetController =
           widget.controller as EnsembleWidgetController;

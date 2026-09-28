@@ -66,9 +66,18 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   /// call when the screen is being disposed
   /// TODO: consolidate listeners, location, eventBus, ...
   void dispose() {
-    // Child scopes share the page's event bus and PageData resources; only the
-    // page-owning scope may tear those shared resources down.
-    if (_parent != null) return;
+    if (_parent != null) {
+      // Child scopes share the page event bus and PageData timers/location
+      // resources, but own their binding registrations. Remove those without
+      // tearing down the shared page resources.
+      for (final destination in listenerMap.keys.toList()) {
+        removeBindingListenersForScope(destination, this);
+      }
+      PageBindingManager.clearBindingOwnersForScope(this);
+      return;
+    }
+
+    PageBindingManager.clearBindingOwners(pageData);
 
     // Cancel and release all page-owned bindings before destroying the event
     // bus. Child scopes share these subscriptions through PageData.
@@ -572,6 +581,38 @@ mixin PageBindingManager on IsScopeManager {
     scopes[ownerScope] = (scopes[ownerScope] ?? 0) + 1;
   }
 
+  @visibleForTesting
+  static int debugBindingOwnerCount(PageData pageData) {
+    final destinations = _bindingOwnerCounts[pageData];
+    if (destinations == null) return 0;
+    return destinations.values.fold<int>(
+        0, (count, scopes) => count + scopes.values.fold(0, (a, b) => a + b));
+  }
+
+  static void clearBindingOwners(PageData pageData) {
+    final destinations = _bindingOwnerCounts.remove(pageData);
+    if (destinations == null) return;
+    for (final destination in destinations.keys) {
+      clearBindingRegistrations(destination);
+    }
+  }
+
+  static void clearBindingOwnersForScope(ScopeManager ownerScope) {
+    final destinations = _bindingOwnerCounts[ownerScope.pageData];
+    if (destinations == null) return;
+    for (final destination in destinations.keys.toList()) {
+      ownerScope.removeBindingListenersForScope(destination, ownerScope);
+      final scopes = destinations[destination];
+      scopes?.remove(ownerScope);
+      if (scopes != null && scopes.isEmpty) {
+        destinations.remove(destination);
+      }
+    }
+    if (destinations.isEmpty) {
+      _bindingOwnerCounts.remove(ownerScope.pageData);
+    }
+  }
+
   static void releaseBindingOwner(
       ScopeManager? ownerScope, Invokable? destination,
       {bool preserveRegistration = false}) {
@@ -661,10 +702,15 @@ mixin PageBindingManager on IsScopeManager {
 
   /// Restore binding subscriptions for a destination whose widget state was
   /// disposed and later remounted from a cached widget instance.
-  void restoreBindingListeners(Invokable destinationWidget) {
+  void restoreBindingListeners(Invokable destinationWidget,
+      {ScopeManager? ownerScope}) {
     final registrations = _bindingRegistrations[destinationWidget];
     if (registrations == null) return;
     for (final registration in List<_BindingRegistration>.of(registrations)) {
+      if (ownerScope != null &&
+          !identical(registration.ownerScope, ownerScope)) {
+        continue;
+      }
       final scopeManager = registration.scopeManager;
       if (scopeManager == null) {
         registrations.remove(registration);
@@ -732,7 +778,9 @@ mixin PageBindingManager on IsScopeManager {
     final registrations = _bindingRegistrations[destinationWidget];
     final subscriptions = listenerMap[destinationWidget];
     if (registrations == null) {
-      removeBindingListeners(destinationWidget);
+      if (subscriptions?.isEmpty ?? false) {
+        listenerMap.remove(destinationWidget);
+      }
       return;
     }
     if (subscriptions == null) {
