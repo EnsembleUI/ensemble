@@ -520,6 +520,15 @@ class EnsembleTestSchemaBuilder {
               'description':
                   'Cap on YAML timer maxNumberOfTimes. Must outlive mid-test mock waits that rely on later polls.',
             },
+            'maxNumberOfTimesByScreen': {
+              'type': 'object',
+              'description':
+                  'Optional maxNumberOfTimes caps keyed by screen YAML filename without .yaml.',
+              'additionalProperties': {
+                'type': 'integer',
+                'minimum': 0,
+              },
+            },
           },
         },
         'dumpTree': {
