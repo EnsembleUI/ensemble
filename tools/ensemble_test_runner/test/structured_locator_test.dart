@@ -544,8 +544,8 @@ void main() {
               for (var i = 0; i < 30; i++)
                 SizedBox(height: 48, child: Text('Before $i')),
               KeyedSubtree(
-                key: const ValueKey('GatewayHeader'),
-                child: const Text('KPN Box 12'),
+                key: const ValueKey('DeviceHeader'),
+                child: const Text('Sample Device 12'),
               ),
             ],
           ),
@@ -556,13 +556,13 @@ void main() {
 
     final scrolled = await session.act(
       const ScrollUntilVisibleAction(
-        target: ElementTarget(testId: 'GatewayHeader'),
+        target: ElementTarget(testId: 'DeviceHeader'),
       ),
     );
     expect(scrolled.succeeded, isTrue, reason: scrolled.error?.toString());
 
     final visible = await session.assertCondition(
-      const ElementVisibleAssertion(testId: 'GatewayHeader'),
+      const ElementVisibleAssertion(testId: 'DeviceHeader'),
     );
     expect(visible.passed, isTrue, reason: visible.message);
     await session.close();

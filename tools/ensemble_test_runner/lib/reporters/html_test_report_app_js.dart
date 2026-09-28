@@ -1755,7 +1755,7 @@ const ensembleHtmlTestReportAppJs = r'''
     if (titleEl) titleEl.textContent = heading;
 
     const kids = Array.isArray(el.children) ? el.children : [];
-    const actionExamples = Array.isArray(el.actionExamples) ? el.actionExamples : [];
+    const actions = Array.isArray(el.actions) ? el.actions : [];
     const options = Array.isArray(el.options) ? el.options : [];
     const selector = formatObserverSelector(observerElementLocator(el));
 
@@ -1859,11 +1859,11 @@ const ensembleHtmlTestReportAppJs = r'''
     }
 
     html += '<div class="observer-detail-row">';
-    html += '<div class="observer-detail-label">Action examples</div>';
-    if (actionExamples.length) {
-      window.__observerActionYamlSnippets = actionExamples;
+    html += '<div class="observer-detail-label">Actions</div>';
+    if (actions.length) {
+      window.__observerActionYamlSnippets = actions;
       html += '<div class="observer-detail-actions-list">';
-      actionExamples.forEach(function (yaml, i) {
+      actions.forEach(function (yaml, i) {
         const action = observerActionName(yaml);
         html += '<div class="observer-detail-action">';
         html += '<div class="observer-detail-action-header">';
@@ -2312,7 +2312,7 @@ const ensembleHtmlTestReportAppJs = r'''
     const selector = formatObserverSelector(observerElementLocator(el));
     const kids = Array.isArray(el.children) ? el.children : [];
     const hasKids = kids.length > 0;
-    const actionExamples = Array.isArray(el.actionExamples) ? el.actionExamples : [];
+    const actions = Array.isArray(el.actions) ? el.actions : [];
     const stateBits = [];
     if (el.enabled != null) stateBits.push('enabled=' + el.enabled);
     if (el.visible != null) stateBits.push('visible=' + el.visible);
@@ -2347,12 +2347,12 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<span class="observer-hint-glyph" aria-hidden="true">sel</span>';
       html += '</span></span>';
     }
-    if (actionExamples.length) {
+    if (actions.length) {
       html += '<span class="observer-hint" tabindex="0" data-tip-title="Supported actions" data-tip-list="' +
-        escapeHtml(actionExamples.map(observerActionName).join('|')) + '">';
-      html += '<span class="observer-hint-chip" aria-label="' + actionExamples.length + ' supported actions">';
+        escapeHtml(actions.map(observerActionName).join('|')) + '">';
+      html += '<span class="observer-hint-chip" aria-label="' + actions.length + ' supported actions">';
       html += '<span class="observer-hint-glyph" aria-hidden="true">act</span>';
-      html += '<span class="observer-hint-count">' + actionExamples.length + '</span>';
+      html += '<span class="observer-hint-count">' + actions.length + '</span>';
       html += '</span></span>';
     }
     if (stateBits.length) {

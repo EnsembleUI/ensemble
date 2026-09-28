@@ -10,7 +10,7 @@ void main() {
   test('ambiguous text does not get screen-wide assertion examples', () {
     final examples = observerActionExamples(
       actions: ['expectText', 'expectNoText', 'expectTextContains'],
-      title: 'WiFi extender 2',
+      title: 'Network device 2',
       id: null,
       locator: null,
       bounds: const {'left': 16, 'top': 100, 'width': 120, 'height': 22},
@@ -20,9 +20,9 @@ void main() {
     expect(examples, isEmpty);
   });
 
-  group('supportedActionsFor', () {
+  group('actionsFor', () {
     test('plain text lists wait/assert steps, not gestures', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'text',
         secure: false,
         text: 'Wat wil je terugzetten?',
@@ -32,7 +32,7 @@ void main() {
     });
 
     test('keyed icon lists tap only when enabled is true', () {
-      final enabled = supportedActionsFor(
+      final enabled = actionsFor(
         'icon',
         secure: false,
         enabled: true,
@@ -41,7 +41,7 @@ void main() {
       expect(enabled,
           containsAll(['tap', 'longPress', 'waitFor', 'expectVisible']));
 
-      final unknown = supportedActionsFor(
+      final unknown = actionsFor(
         'icon',
         secure: false,
         testId: 'back_button',
@@ -49,7 +49,7 @@ void main() {
       expect(unknown, contains('waitFor'));
       expect(unknown, isNot(contains('tap')));
 
-      final disabled = supportedActionsFor(
+      final disabled = actionsFor(
         'icon',
         secure: false,
         enabled: false,
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('unkeyed button with caption lists tap via label/text', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'button',
         secure: false,
         enabled: true,
@@ -74,24 +74,24 @@ void main() {
 
     test('unkeyed button without caption has no gestures', () {
       expect(
-        supportedActionsFor('button', secure: false, enabled: true),
+        actionsFor('button', secure: false, enabled: true),
         isEmpty,
       );
     });
 
     test('unkeyed enabled card with caption lists tap', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'card',
         secure: false,
         enabled: true,
-        text: 'KPN Box 12',
-        label: 'KPN Box 12',
+        text: 'Sample Device 12',
+        label: 'Sample Device 12',
       );
       expect(steps, containsAll(['tap', 'longPress']));
     });
 
     test('offscreen bounds-backed card recommends scrolling into view', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'card',
         secure: false,
         enabled: true,
@@ -105,7 +105,7 @@ void main() {
 
     test('offscreen element outside a scrollable does not suggest scrolling',
         () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'button',
         secure: false,
         enabled: true,
@@ -117,7 +117,7 @@ void main() {
     });
 
     test('unkeyed non-tappable card has no interaction steps', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'card',
         secure: false,
         enabled: null,
@@ -128,7 +128,7 @@ void main() {
     });
 
     test('keyed checkbox lists form + wait steps', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'checkbox',
         secure: false,
         testId: 'restore_dns_checkbox',
@@ -148,7 +148,7 @@ void main() {
     });
 
     test('unkeyed enabled switch lists toggle steps', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'switch',
         secure: false,
         enabled: true,
@@ -162,7 +162,7 @@ void main() {
 
     test('textInput lists edit steps when keyed', () {
       expect(
-        supportedActionsFor(
+        actionsFor(
           'textInput',
           secure: false,
           testId: 'email',
@@ -170,7 +170,7 @@ void main() {
         containsAll(['enterText', 'replaceText', 'expectValue']),
       );
       expect(
-        supportedActionsFor(
+        actionsFor(
           'textInput',
           secure: true,
           testId: 'token',
@@ -180,7 +180,7 @@ void main() {
     });
 
     test('disabled keyed control keeps wait asserts but drops gestures', () {
-      final steps = supportedActionsFor(
+      final steps = actionsFor(
         'button',
         secure: false,
         enabled: false,
@@ -192,7 +192,7 @@ void main() {
 
     test('dropdown lists select steps', () {
       expect(
-        supportedActionsFor(
+        actionsFor(
           'dropdown',
           secure: false,
           testId: 'country',
@@ -221,7 +221,7 @@ void main() {
               testId: 'restore_dns_checkbox',
               type: 'checkbox',
               suggestedLocator: ElementLocator(id: 'restore_dns_checkbox'),
-              supportedActions: [
+              actions: [
                 'waitFor',
                 'tap',
                 'check',
@@ -242,7 +242,7 @@ void main() {
           type: 'text',
           text: 'Wat wil je terugzetten?',
           suggestedLocator: ElementLocator(text: 'Wat wil je terugzetten?'),
-          supportedActions: ['waitForText', 'expectText'],
+          actions: ['waitForText', 'expectText'],
           state: UiElementState(visible: true, interactable: false),
         ),
       ],
@@ -277,7 +277,7 @@ void main() {
     expect(checkbox.containsKey('selector'), isFalse);
     expect(checkbox['locator'], {'id': 'restore_dns_checkbox'});
     expect(
-      checkbox['actionExamples'],
+      checkbox['actions'],
       contains(startsWith('check:')),
     );
     expect(checkbox.containsKey('supportedActions'), isFalse);
@@ -288,7 +288,7 @@ void main() {
     expect(heading.containsKey('selector'), isFalse);
     expect(heading['locator'], {'text': 'Wat wil je terugzetten?'});
     expect(
-      heading['actionExamples'],
+      heading['actions'],
       contains(startsWith('waitForText:')),
     );
     expect(heading.containsKey('supportedActions'), isFalse);
@@ -305,11 +305,11 @@ void main() {
       elements: [
         const UiElement(
           elementId: 'card1',
-          testId: 'gateway_card',
+          testId: 'device_card',
           type: 'card',
-          text: 'KPN Box 12',
-          label: 'KPN Box 12',
-          suggestedLocator: ElementLocator(id: 'gateway_card'),
+          text: 'Sample Device 12',
+          label: 'Sample Device 12',
+          suggestedLocator: ElementLocator(id: 'device_card'),
           state: UiElementState(
             visible: true,
             enabled: true,
@@ -319,7 +319,7 @@ void main() {
             UiElement(
               elementId: 't1',
               type: 'text',
-              text: 'KPN Box 12',
+              text: 'Sample Device 12',
               state: UiElementState(visible: true, interactable: false),
             ),
           ],
@@ -336,14 +336,14 @@ void main() {
     );
 
     final card = observationElementsTreeForReport(observation).single;
-    expect(card['locator'], {'id': 'gateway_card'});
+    expect(card['locator'], {'id': 'device_card'});
     expect(
       card.containsKey('title'),
       isFalse,
       reason: 'card must not promote nested Text as its own title',
     );
     final textChild = (card['children'] as List).single as Map;
-    expect(textChild['title'], 'KPN Box 12');
+    expect(textChild['title'], 'Sample Device 12');
   });
 
   test('textInput report node includes hint placeholder', () {
@@ -355,11 +355,11 @@ void main() {
       elements: [
         const UiElement(
           elementId: 'pw1',
-          testId: 'fwa_admin_password_input',
+          testId: 'device_admin_password_input',
           type: 'textInput',
           label: 'Enter the admin password',
-          hint: 'It is on the sticker under your modem',
-          suggestedLocator: ElementLocator(id: 'fwa_admin_password_input'),
+          hint: 'It is on the sticker under your device',
+          suggestedLocator: ElementLocator(id: 'device_admin_password_input'),
           state: UiElementState(
             visible: true,
             enabled: true,
@@ -378,8 +378,8 @@ void main() {
     );
 
     final input = observationElementsTreeForReport(observation).single;
-    expect(input['locator'], {'id': 'fwa_admin_password_input'});
-    expect(input['hint'], 'It is on the sticker under your modem');
+    expect(input['locator'], {'id': 'device_admin_password_input'});
+    expect(input['hint'], 'It is on the sticker under your device');
     expect(input['title'], 'Enter the admin password');
   });
 

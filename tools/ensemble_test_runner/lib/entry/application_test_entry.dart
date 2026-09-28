@@ -11,7 +11,6 @@ import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/entry/host_test_artifacts.dart';
-import 'package:ensemble_test_runner/entry/observe_entry.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
@@ -24,10 +23,6 @@ import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
-import 'package:ensemble_test_runner/session/observation/observe_formatter.dart';
-import 'package:ensemble_test_runner/session/observation/observe_screenshot.dart';
-import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
-import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_test_runner/session/yaml/yaml_step_dispatcher.dart';
 import 'package:flutter/material.dart';
@@ -42,8 +37,6 @@ import 'package:integration_test/integration_test.dart';
 /// Future<void> main() => runApplicationYamlTests(driver: MyDriver());
 /// ```
 ///
-/// When `ensembleTestObserveOnly=true`, launches once, observes the UI, and
-/// exits without running YAML steps.
 Future<void> runApplicationYamlTests({
   required ApplicationTestDriver driver,
   String? testsAssetPrefix,
@@ -84,25 +77,6 @@ Future<void> registerApplicationYamlTests({
   // Uncaught plugin errors can finish the Flutter test before the suite
   // `finally` runs. tearDown still emits complete so the CLI gets a report.
   tearDown(completeTransportIfNeeded);
-
-  if (isApplicationObserveOnly) {
-    testWidgets('Application observe', (tester) async {
-      if (transport) {
-        emitEnsembleTestArtifactTransportBegin();
-      }
-      try {
-        await _runApplicationObserveOnly(
-          driver: driver,
-          tester: tester,
-          mode: resolved,
-          testsAssetPrefix: prefix,
-        );
-      } finally {
-        completeTransportIfNeeded();
-      }
-    });
-    return;
-  }
 
   testWidgets('Application *.test.yaml', (tester) async {
     await withFlutterErrorIsolation(() async {
@@ -155,141 +129,6 @@ Future<void> registerApplicationYamlTests({
       }
     });
   });
-}
-
-Future<void> _runApplicationObserveOnly({
-  required ApplicationTestDriver driver,
-  required WidgetTester tester,
-  required ExecutionMode mode,
-  required String testsAssetPrefix,
-}) async {
-  final suiteConfig =
-      await loadInspectUiSuiteConfig(testsAssetPrefix: testsAssetPrefix);
-  final devices = resolveInspectUiDevices(
-    suiteConfig.devices,
-    forScreenshots: inspectUiScreenshotEnabled,
-  );
-  final suiteContext = TestSuiteContext(
-    runId: 'observe_${DateTime.now().microsecondsSinceEpoch}',
-    config: suiteConfig,
-    launchKind: TestApplicationLaunchKind.applicationProvided,
-  );
-
-  var suiteSetupStarted = false;
-  try {
-    suiteSetupStarted = true;
-    await driver.setUpSuite(suiteContext);
-
-    final usedNames = <String>{};
-    final screenshotPaths = <String>[];
-    UiObservation? observation;
-
-    for (var i = 0; i < devices.length; i++) {
-      final device = devices[i];
-      final launchContext = TestLaunchContext(
-        attemptId: 'observe_$i',
-        attempt: i,
-        testCase: EnsembleTestCase(
-          id: 'observe',
-          steps: const [],
-          deviceTarget: device,
-          initialState: {
-            if ((device.locale ?? '').trim().isNotEmpty)
-              'env': {'APP_LOCALE': device.locale},
-          },
-        ),
-        config: suiteConfig,
-      );
-      final context = EnsembleTestContext.fromTestCase(
-        launchContext.testCase,
-        config: suiteConfig,
-      );
-      TestApplicationHandle? handle;
-      LocalTestExecutionSession? session;
-      var prepareAttempted = false;
-      try {
-        if (mode == ExecutionMode.widget) {
-          await applyInspectUiScreenshotViewport(tester, device);
-        }
-        prepareAttempted = true;
-        await driver.prepareTest(launchContext);
-        handle = await driver.launch(tester, launchContext);
-        await tester.pump();
-        session = LocalTestExecutionSession.attach(
-          tester: tester,
-          context: context,
-          services: handle.services,
-          sessionId: 'observe_${device.id}',
-          permissions: SessionPermissions.restrictedUi,
-        );
-        observation =
-            await session.observe(options: inspectUiObservationOptions);
-        observation = enrichSuggestedLocators(
-          observation: observation,
-          resolver: session.resolver,
-          registry: session.registry,
-        );
-        if (inspectUiScreenshotEnabled && mode == ExecutionMode.widget) {
-          final dir = inspectUiScreenshotDirFromEnvironment();
-          if (dir != null) {
-            final screenLabel = observation.screen.name ??
-                observation.screen.routeId ??
-                'screen';
-            var basename = inspectUiScreenshotBasename(
-              screen: screenLabel,
-              theme: device.theme,
-              locale: device.locale,
-            );
-            if (!usedNames.add(basename)) {
-              basename = inspectUiScreenshotBasename(
-                screen: screenLabel,
-                theme: device.theme,
-                locale: device.locale,
-                deviceId: device.id,
-                includeDeviceId: true,
-              );
-              usedNames.add(basename);
-            }
-            final path = await writeInspectUiScreenshotForDevice(
-              tester: tester,
-              observation: observation,
-              device: device,
-              outputPath: '$dir${Platform.pathSeparator}$basename.png',
-              secureContent: suiteConfig.screenshots.secureContent,
-            );
-            if (path != null) screenshotPaths.add(path);
-          }
-        }
-      } finally {
-        try {
-          await session?.close();
-        } catch (_) {}
-        if (prepareAttempted) {
-          try {
-            await driver.tearDownTest(tester, launchContext, handle);
-          } catch (_) {}
-        }
-      }
-    }
-
-    if (observation == null) {
-      fail('Application observe produced no observation.');
-    }
-    const ObserveFormatter().emit(
-      observation,
-      format: applicationObserveFormat(),
-      screenshotPaths: screenshotPaths,
-    );
-  } finally {
-    if (suiteSetupStarted) {
-      try {
-        await driver.tearDownSuite();
-      } catch (_) {}
-    }
-    if (mode != ExecutionMode.integration) {
-      await resetHostScreenshotViewport(tester);
-    }
-  }
 }
 
 void _ensureApplicationTestBinding(ExecutionMode mode) {
@@ -562,6 +401,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   final stepStartTimes = <String>[];
   final previousOnError = FlutterError.onError;
   final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+  final previousPlatformHttpRunner = LiveAsyncCallSupport.platformHttpRunner;
   final restoreDebugPrint = context.runtime.captureDebugPrint();
   FlutterError.onError = (details) {
     final message = details.exceptionAsString();
@@ -572,6 +412,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       context.runtime.runAsyncWithConsoleCapture(tester, callback);
   context.apiOverlay.liveAsyncRunner = runAppAsync;
   LiveAsyncCallSupport.runner = runAppAsync;
+  LiveAsyncCallSupport.platformHttpRunner = tester.runAsync;
   context.runtime.consoleLogs.add(
     context.runtime.formatConsoleLine('Started ${test.id}'),
   );
@@ -731,6 +572,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     FlutterError.onError = previousOnError;
     restoreDebugPrint();
     LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
+    LiveAsyncCallSupport.platformHttpRunner = previousPlatformHttpRunner;
     context.apiOverlay.liveAsyncRunner = null;
     if (mode != ExecutionMode.integration) {
       await resetHostScreenshotViewport(tester);

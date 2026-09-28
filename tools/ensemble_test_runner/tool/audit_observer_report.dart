@@ -296,8 +296,8 @@ class _ObserverReportAudit {
             final hasIdentity = element['title'] != null ||
                 element['id'] != null ||
                 element['locator'] != null ||
-                (element['actionExamples'] is List &&
-                    (element['actionExamples'] as List).isNotEmpty);
+                (element['actions'] is List &&
+                    (element['actions'] as List).isNotEmpty);
             if (element['visible'] == true &&
                 element['offscreen'] != true &&
                 !hasIdentity &&
@@ -337,7 +337,7 @@ class _ObserverReportAudit {
           final key = jsonEncode(_canonical(locator));
           locators.putIfAbsent(key, () => []).add(element);
         }
-        final examples = element['actionExamples'];
+        final examples = element['actions'];
         if (offscreen == true && examples is List) {
           final names = examples.whereType<String>().map(_actionName).toSet();
           final hasDirectAction = names.any(const {

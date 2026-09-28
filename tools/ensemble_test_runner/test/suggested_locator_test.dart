@@ -245,7 +245,7 @@ void main() {
     // Steps wait for KeyedSubtree(testId); bare Invokable must not match early.
     expect(finderForLocatorId('rgUrl').evaluate(), isEmpty);
 
-    // Observe still surfaces YAML id via Invokable for inspect-ui.
+    // Observe still surfaces YAML id via Invokable for report snapshots.
     final session = LocalTestExecutionSession.attach(
       tester: tester,
       harness: _harness(),
@@ -296,10 +296,12 @@ void main() {
             button: true,
             child: DropdownButton<String>(
               key: const ValueKey('deviceTypeSelector'),
-              value: 'HGW_SAH',
+              value: 'DEVICE_TYPE_A',
               items: const [
-                DropdownMenuItem(value: 'HGW_SAH', child: Text('HGW_SAH')),
-                DropdownMenuItem(value: 'FWA_ARC', child: Text('FWA_ARC')),
+                DropdownMenuItem(
+                    value: 'DEVICE_TYPE_A', child: Text('DEVICE_TYPE_A')),
+                DropdownMenuItem(
+                    value: 'DEVICE_TYPE_B', child: Text('DEVICE_TYPE_B')),
               ],
               onChanged: (_) {},
             ),
@@ -388,7 +390,7 @@ void main() {
   testWidgets(
     'CloseAppButton-style Semantics label yields label+role=icon selector',
     (tester) async {
-      // Mirrors inhome CloseAppButton.yaml: Column(semantics.label, onTap) →
+      // Mirrors sample_app CloseAppButton.yaml: Column(semantics.label, onTap) →
       // AppIcon without Icon.semanticLabel / testId.
       await tester.pumpWidget(
         MaterialApp(
@@ -450,7 +452,7 @@ void main() {
   testWidgets(
     'unlabeled sheet-close icon gets role=icon when it has tap actions',
     (tester) async {
-      // Gateway factory-reset sheet: Column(onTap) → AppIcon(close) with no
+      // Factory-reset sheet: Column(onTap) → AppIcon(close) with no
       // semantics.label — must not advertise tap with an empty selector.
       await tester.pumpWidget(
         MaterialApp(
@@ -491,7 +493,7 @@ void main() {
       );
       expect(icon.state.interactable, isTrue);
       expect(icon.state.enabled, isTrue);
-      expect(icon.supportedActions, contains('tap'));
+      expect(icon.actions, contains('tap'));
 
       final cheap = cheapSuggestedLocator(icon);
       expect(cheap, isNotNull);
@@ -577,7 +579,7 @@ void main() {
       final nestedClose = card.children.firstWhere(
         (e) => e.type == 'icon' && e.state.interactable == true,
       );
-      expect(nestedClose.supportedActions, contains('tap'));
+      expect(nestedClose.actions, contains('tap'));
       expect(nestedClose.suggestedLocator, isNotNull);
       expect(nestedClose.suggestedLocator!.role, 'icon');
       expect(nestedClose.suggestedLocator!.within?.role, 'card');
@@ -597,8 +599,8 @@ void main() {
             body: MergeSemantics(
               child: const Column(
                 children: [
-                  Text('Wifi naam'),
-                  Text('KPN'),
+                  Text('Network name'),
+                  Text('Sample'),
                 ],
               ),
             ),
@@ -627,19 +629,19 @@ void main() {
       final texts = _flatten(enriched.elements)
           .where((e) => (e.type ?? '').toLowerCase() == 'text')
           .toList();
-      final wifi = texts.firstWhere((e) => e.text == 'Wifi naam');
-      final kpn = texts.firstWhere((e) => e.text == 'KPN');
-      expect(wifi.suggestedLocator?.text, 'Wifi naam');
+      final wifi = texts.firstWhere((e) => e.text == 'Network name');
+      final exampleText = texts.firstWhere((e) => e.text == 'Sample');
+      expect(wifi.suggestedLocator?.text, 'Network name');
       expect(wifi.suggestedLocator?.label, isNull);
-      expect(kpn.suggestedLocator?.text, 'KPN');
-      expect(kpn.suggestedLocator?.label, isNull);
+      expect(exampleText.suggestedLocator?.text, 'Sample');
+      expect(exampleText.suggestedLocator?.label, isNull);
       expect(
         formatSuggestedSelector(wifi.suggestedLocator!),
-        contains('text="Wifi naam"'),
+        contains('text="Network name"'),
       );
       expect(
-        formatSuggestedSelector(kpn.suggestedLocator!),
-        contains('text="KPN"'),
+        formatSuggestedSelector(exampleText.suggestedLocator!),
+        contains('text="Sample"'),
       );
       await session.close();
     },

@@ -1210,7 +1210,7 @@ class TestStepExecutor {
     }
 
     // Capture as soon as ScreenTracker reports the target — before the next
-    // navigateScreen (e.g. AutoSignIn_Gateway → Home) can replace the pixels.
+    // navigateScreen (e.g. AutoSignIn_Device → Home) can replace the pixels.
     final screenSub = tracker.onScreenChange.listen((visible) async {
       final name = visible?.screenName ?? visible?.screenId;
       if (name == screen) {

@@ -139,8 +139,8 @@ UiElement describeElement({
         text = iconName;
       }
     }
-    // Nested icons inherit a parent card's merged semantics ("Guest wifi
-    // KPN_Gast") — drop those. Keep labels on compact tappable chrome
+    // Nested icons inherit a parent's merged semantics — drop those. Keep
+    // labels on compact tappable chrome
     // (CloseAppButton) and on Semantics authored for that chrome.
     final trimmedLabel = label?.trim();
     if (trimmedLabel != null &&
@@ -150,7 +150,7 @@ UiElement describeElement({
       label = null;
     }
   }
-  // Standalone text: never keep a merged semantics label (e.g. "Wifi naam KPN"
+  // Standalone text: never keep a merged semantics label (e.g. "Network name Guest_Network"
   // shared by both the label and value Text nodes).
   if (type == 'text') {
     final trimmedText = text?.trim();
@@ -199,7 +199,7 @@ UiElement describeElement({
     label: label,
     text: text,
   );
-  final actions = supportedActionsFor(
+  final actions = actionsFor(
     type,
     secure: secure,
     enabled: enabled,
@@ -238,7 +238,7 @@ UiElement describeElement({
       checked: checked,
     ),
     bounds: includeBounds ? bounds : null,
-    supportedActions: actions,
+    actions: actions,
   );
 }
 
@@ -338,7 +338,7 @@ String resolveObservedWidgetType(Element element, {required String? testId}) {
   }
 
   element.visitChildren(visitNested);
-  // A keyed host may wrap a whole section (for example GatewayHeader with a
+  // A keyed host may wrap a whole section (for example DeviceHeader with a
   // title, illustration, and subtitle). Do not type that structural host as
   // whichever text/media descendant happened to appear first. It is only a
   // leaf alias when it owns one observable content node; otherwise preserve
@@ -407,7 +407,7 @@ bool isActionableControl(Element element) {
 
 /// True when [element]'s widget **is** the logical control (not a descendant).
 ///
-/// Used by observe / inspect-ui so one [TextField] yields one `textInput` row
+/// Used by observation so one [TextField] yields one `textInput` row
 /// instead of every child under it.
 bool isPrimaryControlElement(Element element) {
   final widget = element.widget;
@@ -755,7 +755,7 @@ bool _hasNestedCardPrimary(Element element) {
         }
       }
       // Nested CTA / dismiss InkWells (NotificationCard "Turn on") are not
-      // the card primary — only card-sized keyed hosts (gateway_card).
+      // the card primary — only card-sized keyed hosts (device_card).
       if (keyed &&
           bounds != null &&
           (bounds.width > 96 || bounds.height > 72) &&
@@ -1573,7 +1573,7 @@ bool isDecorativeGlyphCaption(String? text) {
   final t = text?.trim() ?? '';
   if (t.isEmpty) return true;
   if (RegExp(r'^[•·\.●○\*‧∙]+$').hasMatch(t)) return true;
-  // Custom icon fonts (kpnUI LEDs, etc.) paint Private Use Area code points.
+  // Custom icon fonts (app-specific LEDs, etc.) paint Private Use Area code points.
   return t.runes.every(_isIconFontOrTofuCodePoint);
 }
 
@@ -2640,7 +2640,7 @@ bool _hasScrollableAncestor(Element element) {
 ///
 /// Wait/assert steps (`waitFor`, `expectVisible`, …) are included alongside
 /// gesture/edit steps so the list matches the test-step vocabulary.
-List<String> supportedActionsFor(
+List<String> actionsFor(
   String? type, {
   required bool secure,
   bool? enabled,
@@ -2804,10 +2804,10 @@ List<String> supportedActionsFor(
   ];
 }
 
-/// Recompute [UiElement.supportedActions] / interactable after label absorb.
+/// Recompute [UiElement.actions] / interactable after label absorb.
 UiElement refreshObserveActions(UiElement element) {
   final secure = element.state.secure == true;
-  final actions = supportedActionsFor(
+  final actions = actionsFor(
     element.type,
     secure: secure,
     enabled: element.state.enabled,
@@ -2816,8 +2816,7 @@ UiElement refreshObserveActions(UiElement element) {
     label: element.label,
     offscreen: element.state.offscreen == true,
     hasBounds: element.bounds != null,
-    hasScrollableAncestor:
-        element.supportedActions.contains('scrollUntilVisible'),
+    hasScrollableAncestor: element.actions.contains('scrollUntilVisible'),
   );
   final visible = element.state.visible != false;
   final offscreen = element.state.offscreen == true;
@@ -2827,7 +2826,7 @@ UiElement refreshObserveActions(UiElement element) {
       actions.any(_isInteractionStep);
   final prev = element.state;
   return element.copyWith(
-    supportedActions: actions,
+    actions: actions,
     state: UiElementState(
       exists: prev.exists,
       visible: prev.visible,

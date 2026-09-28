@@ -96,8 +96,8 @@ void main() {
           EnsembleSingleTestResult.passed(
             testId: 'ok',
             metadata: const {
-              'feature': 'fwa-installation',
-              'profile': 'fwa_arc',
+              'feature': 'alternate-installation',
+              'profile': 'alternate',
               'scenarioId': 'manual_connect',
               'scenarioDescription': 'Manual Wi-Fi connection.',
               'device': {
@@ -135,8 +135,8 @@ void main() {
     expect(complete['state'], 'complete');
     expect(complete['tests'], hasLength(1));
     expect(complete['tests'][0]['id'], 'ok');
-    expect(complete['tests'][0]['feature'], 'fwa-installation');
-    expect(complete['tests'][0]['profile'], 'fwa_arc');
+    expect(complete['tests'][0]['feature'], 'alternate-installation');
+    expect(complete['tests'][0]['profile'], 'alternate');
     expect(complete['tests'][0]['scenarioId'], 'manual_connect');
     expect(
       complete['tests'][0]['scenarioDescription'],
@@ -314,7 +314,7 @@ void main() {
     expect(
         html, contains('const payload = observer && observer.observationJson'));
     expect(html, contains('window.__observerCopyPayload = payload'));
-    expect(html, contains('el.actionExamples'));
+    expect(html, contains('el.actions'));
     expect(html, isNot(contains('formatObserverActionYaml')));
     expect(html, contains('return { bounds: el.bounds }'));
     expect(html, contains('bounds=\' + JSON.stringify(locator.bounds)'));

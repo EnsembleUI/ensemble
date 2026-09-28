@@ -298,6 +298,7 @@ void main() {
     expect(hasContrast, isTrue);
   });
 }
+
 Future<Uint8List> _rgba(ui.Image image) async {
   final data = await image.toByteData();
   return data!.buffer.asUint8List();

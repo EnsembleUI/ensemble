@@ -1,6 +1,6 @@
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 
-/// Compact YAML-mappable form of an [ElementLocator] for inspect-ui text.
+/// Compact YAML-mappable form of an [ElementLocator] for observer output.
 ///
 /// Kept free of Flutter imports so the CLI (`dart run`) can format observe
 /// output without loading `dart:ui`.

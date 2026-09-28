@@ -321,6 +321,7 @@ class EnsembleTestRunner {
     final previousOnError = FlutterError.onError;
 
     final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+    final previousPlatformHttpRunner = LiveAsyncCallSupport.platformHttpRunner;
     final previousDrainPendingExceptions =
         LiveAsyncCallSupport.drainPendingExceptions;
     final restoreDebugPrint = ctx.runtime.captureDebugPrint();
@@ -340,6 +341,7 @@ class EnsembleTestRunner {
           ctx.runtime.runAsyncWithConsoleCapture(tester, callback);
       ctx.apiOverlay.liveAsyncRunner = runAppAsync;
       LiveAsyncCallSupport.runner = runAppAsync;
+      LiveAsyncCallSupport.platformHttpRunner = tester.runAsync;
       // Inspect pending framework exceptions at explicit lifecycle boundaries;
       // do not discard them from async-call cleanup.
       LiveAsyncCallSupport.drainPendingExceptions = null;
@@ -450,6 +452,7 @@ class EnsembleTestRunner {
       FlutterError.onError = previousOnError;
       restoreDebugPrint();
       LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
+      LiveAsyncCallSupport.platformHttpRunner = previousPlatformHttpRunner;
       LiveAsyncCallSupport.drainPendingExceptions =
           previousDrainPendingExceptions;
     }
@@ -641,7 +644,7 @@ class EnsembleTestRunner {
             // Capture while the target screen is still the current route.
             // Immediate pixels are wrong for durable screens (Home) whose tracker
             // updates before paint; long waits are wrong for transient screens
-            // (AutoSignIn_Gateway → Home). Paint briefly, then choose.
+            // (AutoSignIn_Device → Home). Paint briefly, then choose.
             executor.onWaitForNavigationMatched = (matchedStep) async {
               if (capturedStep) return;
               final didCapture = await _captureStepReportArtifacts(
@@ -877,7 +880,7 @@ class EnsembleTestRunner {
     if (treeHasFlutterErrorWidget(executor.tester)) return false;
 
     // Hold a frame + Observer tree from the moment the tracker reports the
-    // target. Transient screens (AutoSignIn_Gateway) often leave during the
+    // target. Transient screens (AutoSignIn_Device) often leave during the
     // paint pumps below — re-observing then would label the next route.
     ui.Image? earlyImage;
     DiagnosticUiSnapshot? earlySnap;

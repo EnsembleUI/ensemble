@@ -76,8 +76,8 @@ Map<String, dynamic> _elementToJson(
   final warning = element.locatorWarning?.trim();
   final value = _elementValue(element, type: type, title: title);
   final bounds = element.bounds?.toJson();
-  final actionExamples = observerActionExamples(
-    actions: element.supportedActions,
+  final actions = observerActionExamples(
+    actions: element.actions,
     title: title,
     id: element.testId,
     locator: locator,
@@ -115,7 +115,7 @@ Map<String, dynamic> _elementToJson(
     if (element.hint != null && element.hint!.trim().isNotEmpty)
       'hint': element.hint!.trim(),
     if (element.options.isNotEmpty) 'options': element.options,
-    if (actionExamples.isNotEmpty) 'actionExamples': actionExamples,
+    if (actions.isNotEmpty) 'actions': actions,
     if (children.isNotEmpty) 'children': children,
   };
 }

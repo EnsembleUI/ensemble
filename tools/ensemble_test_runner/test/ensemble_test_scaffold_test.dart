@@ -17,8 +17,8 @@ void main() {
     ]);
 
     expect(result.created, isTrue);
-    final file =
-        File('${dir.path}/ensemble/apps/inhome/tests/login_valid.test.yaml');
+    final file = File(
+        '${dir.path}/ensemble/apps/sample_app/tests/login_valid.test.yaml');
     expect(file.existsSync(), isTrue);
     final content = file.readAsStringSync();
     expect(content, contains('id: login_valid'));
@@ -26,22 +26,23 @@ void main() {
     expect(content, contains('tags: [smoke]'));
     expect(content, contains('startScreen: Login'));
     expect(
-        Directory('${dir.path}/ensemble/apps/inhome/tests/mocks').existsSync(),
+        Directory('${dir.path}/ensemble/apps/sample_app/tests/mocks')
+            .existsSync(),
         isTrue);
   });
 }
 
 void _writeApp(Directory dir) {
   File('${dir.path}/pubspec.yaml').writeAsStringSync('name: sample_app');
-  Directory('${dir.path}/ensemble/apps/inhome/screens')
+  Directory('${dir.path}/ensemble/apps/sample_app/screens')
       .createSync(recursive: true);
   File('${dir.path}/ensemble/ensemble-config.yaml').writeAsStringSync('''
 definitions:
   local:
-    path: ensemble/apps/inhome
+    path: ensemble/apps/sample_app
     appHome: Login
 ''');
-  File('${dir.path}/ensemble/apps/inhome/screens/Login.yaml')
+  File('${dir.path}/ensemble/apps/sample_app/screens/Login.yaml')
       .writeAsStringSync('''
 View:
   body:

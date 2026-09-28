@@ -10,8 +10,6 @@ export 'observation/observation_options.dart';
 export 'observation/ui_element.dart';
 export 'observation/ui_observation.dart';
 export 'observation/ui_observer.dart';
-export 'observation/observe_formatter.dart';
-export 'observation/observe_screenshot.dart';
 export 'observation/suggested_locator.dart';
 export 'observation/suggested_locator_format.dart';
 export 'session_capabilities.dart';

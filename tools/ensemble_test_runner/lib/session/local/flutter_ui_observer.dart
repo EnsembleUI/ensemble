@@ -152,7 +152,7 @@ class FlutterUiObserver implements UiObserver {
         locatorWarning: element.locatorWarning,
         state: element.state,
         bounds: null,
-        supportedActions: element.supportedActions,
+        actions: element.actions,
         children: element.children.map(_withoutBounds).toList(growable: false),
         metadata: element.metadata,
       );

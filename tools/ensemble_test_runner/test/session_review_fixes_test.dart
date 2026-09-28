@@ -79,8 +79,8 @@ void main() {
     final title = obs.elements.firstWhere((e) => e.testId == 'title');
     expect(title.type, 'text');
     expect(title.text, 'Welcome');
-    expect(title.supportedActions, containsAll(['waitForText', 'expectText']));
-    expect(title.supportedActions, isNot(contains('tap')));
+    expect(title.actions, containsAll(['waitForText', 'expectText']));
+    expect(title.actions, isNot(contains('tap')));
     expect(title.state.interactable, isFalse);
     expect(title.bounds, isNotNull);
 
@@ -88,27 +88,27 @@ void main() {
     expect(login.type, 'button');
     expect(login.state.enabled, isTrue);
     expect(login.state.interactable, isTrue);
-    expect(login.supportedActions, containsAll(['tap', 'doubleTap', 'waitFor']));
-    expect(login.supportedActions, isNot(contains('enterText')));
+    expect(login.actions, containsAll(['tap', 'doubleTap', 'waitFor']));
+    expect(login.actions, isNot(contains('enterText')));
 
     final disabled =
         obs.elements.firstWhere((e) => e.testId == 'disabled_button');
     expect(disabled.state.enabled, isFalse);
     expect(disabled.state.interactable, isFalse);
-    expect(disabled.supportedActions, isNot(contains('tap')));
-    expect(disabled.supportedActions, contains('waitFor'));
+    expect(disabled.actions, isNot(contains('tap')));
+    expect(disabled.actions, contains('waitFor'));
 
     final email = obs.elements.firstWhere((e) => e.testId == 'email_field');
     expect(email.type, 'textInput');
     expect(email.text, 'a@b.com');
-    expect(email.supportedActions, containsAll(['enterText', 'expectValue']));
+    expect(email.actions, containsAll(['enterText', 'expectValue']));
     expect(email.state.interactable, isTrue);
 
     final token = obs.elements.firstWhere((e) => e.testId == 'token_field');
     expect(token.state.secure, isTrue);
     expect(token.text, isNull);
-    expect(token.supportedActions, isNot(contains('replaceText')));
-    expect(token.supportedActions, contains('enterText'));
+    expect(token.actions, isNot(contains('replaceText')));
+    expect(token.actions, contains('enterText'));
 
     await session.close();
   });

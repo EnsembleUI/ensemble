@@ -152,7 +152,7 @@ ScreenObservation _screenObservation(
 /// Decorative media (`image` / `svg` / …) without an id get **no** selector —
 /// there is no image wait/tap vocabulary.
 ///
-/// No live finder verification (that path is for inspect-ui only).
+/// No live finder verification (that path is for report-time snapshots only).
 UiElement _attachCheapSuggestedLocators(
   UiElement element, {
   ElementLocator? parentScope,

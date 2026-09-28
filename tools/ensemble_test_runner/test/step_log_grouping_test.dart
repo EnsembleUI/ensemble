@@ -197,7 +197,7 @@ void main() {
         ],
         apiEvents: [
           {
-            'name': 'getModemInfo',
+            'name': 'getDeviceInfo',
             'timestamp': '2026-07-22T12:00:01.010',
             'stepIndex': 1,
           },
@@ -208,7 +208,7 @@ void main() {
       expect(grouped, hasLength(3));
       expect(grouped[0]['apiCalls'], isEmpty);
       expect(grouped[1]['apiCalls'], isEmpty);
-      expect((grouped[2]['apiCalls'] as List).single['name'], 'getModemInfo');
+      expect((grouped[2]['apiCalls'] as List).single['name'], 'getDeviceInfo');
     });
 
     test('falls back to timestamp windows when stepIndex missing', () {

@@ -78,7 +78,8 @@ String lightweightMutationFingerprint({
   return sha256.convert(utf8.encode(buffer.toString())).toString();
 }
 
-void _writeElementTreeDigest(StringBuffer buffer, UiElement element, int depth) {
+void _writeElementTreeDigest(
+    StringBuffer buffer, UiElement element, int depth) {
   buffer.write('  ' * depth);
   buffer.write(_elementDigest(element));
   buffer.write('\n');
@@ -112,6 +113,6 @@ String _elementDigest(UiElement element) {
     bucket(b?.top),
     bucket(b?.width),
     bucket(b?.height),
-    element.supportedActions.join(','),
+    element.actions.join(','),
   ].join('|');
 }

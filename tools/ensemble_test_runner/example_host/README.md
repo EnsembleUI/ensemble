@@ -1,7 +1,7 @@
 # Flutter host + Ensemble child example
 
 This app is a Flutter host with Ensemble embedded as a child, the same shape as
-KPN `flutter_pca`: a Flutter login screen, then a Flutter shell that owns the
+Example `sample_host_app`: a Flutter login screen, then a Flutter shell that owns the
 bottom navigation. Ensemble is initialized when that shell appears — not on the
 login screen.
 
@@ -56,12 +56,6 @@ flutter pub get
 # Host-side widget tests (no simulator required).
 dart run ensemble_test_runner:ensemble_test \
   --tests-dir=tests \
-  --test-entry=test/application_yaml_tests.dart \
-  --mode=widget
-
-# Launch once and print live UI elements (no YAML run).
-# Add --screenshots for framed PNGs under build/ensemble_test_runner/inspect-ui/.
-dart run ensemble_test_runner:ensemble_test --inspect-ui \
   --test-entry=test/application_yaml_tests.dart \
   --mode=widget
 ```

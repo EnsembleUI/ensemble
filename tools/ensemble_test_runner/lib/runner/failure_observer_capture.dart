@@ -203,7 +203,7 @@ bool _shouldOverlay(UiElement element) {
   // the screenshot; only omit unkeyed structural wrappers.
   if (type == 'widget' && !_elementHasIdSelector(element)) return false;
   // Skip type-only parents when a *keyed card/toast* descendant is the real
-  // target (wrapper chrome beside `id=gateway_card`). Keyed CTA buttons inside
+  // target (wrapper chrome beside `id=device_card`). Keyed CTA buttons inside
   // NotificationCard must not suppress the banner chrome overlay.
   if (!_elementHasIdSelector(element) &&
       _subtreeHasKeyedCardOrToast(element.children)) {

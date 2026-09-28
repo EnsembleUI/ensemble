@@ -589,11 +589,11 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: KeyedSubtree(
-            key: const ValueKey('GatewayHeader'),
+            key: const ValueKey('DeviceHeader'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('KPN Box 12'),
+                Text('Sample Device 12'),
                 Text('Latest software installed'),
               ],
             ),
@@ -625,13 +625,15 @@ void main() {
       ),
     );
     final section = _flatten(observation.elements)
-        .singleWhere((element) => element.testId == 'GatewayHeader');
+        .singleWhere((element) => element.testId == 'DeviceHeader');
 
     expect(section.type, 'widget');
     expect(section.children.map((element) => element.type),
         containsAll(<String?>['text', 'text']));
-    expect(section.children.map((element) => element.text),
-        containsAll(<String?>['KPN Box 12', 'Latest software installed']));
+    expect(
+        section.children.map((element) => element.text),
+        containsAll(
+            <String?>['Sample Device 12', 'Latest software installed']));
   });
 
   testWidgets('observer omits anonymous non-actionable button wrappers',
@@ -738,7 +740,7 @@ void main() {
                   child: const Row(
                     children: [
                       Expanded(child: Text('Guest wifi')),
-                      Text('KPN_Gast'),
+                      Text('Guest_Network'),
                       Icon(Icons.chevron_right),
                     ],
                   ),
@@ -814,7 +816,8 @@ void main() {
     );
     final guestFlat = _flatten([guestCard]);
     expect(
-      guestFlat.any((e) => e.type == 'text' && (e.text ?? '') == 'KPN_Gast'),
+      guestFlat
+          .any((e) => e.type == 'text' && (e.text ?? '') == 'Guest_Network'),
       isTrue,
       reason: 'Status / value text nested under a tappable row must be kept',
     );
@@ -990,8 +993,8 @@ void main() {
               children: [
                 Card(
                   child: ListTile(
-                    key: const ValueKey('gateway_card'),
-                    title: const Text('KPN Box 12'),
+                    key: const ValueKey('device_card'),
+                    title: const Text('Sample Device 12'),
                     onTap: () {},
                   ),
                 ),
@@ -1030,7 +1033,7 @@ void main() {
         (e) => e.testId == 'back_button' || e.type == 'icon',
       );
       final cardIndex = roots.indexWhere(
-        (e) => e.testId == 'gateway_card' || e.type == 'card',
+        (e) => e.testId == 'device_card' || e.type == 'card',
       );
       expect(backIndex, greaterThanOrEqualTo(0), reason: 'back control kept');
       expect(cardIndex, greaterThanOrEqualTo(0), reason: 'body card kept');
@@ -1097,7 +1100,7 @@ void main() {
       expect(button.label, 'Netwerk');
       expect(button.role, 'button');
       expect(button.state.interactable, isTrue);
-      expect(button.supportedActions, contains('tap'));
+      expect(button.actions, contains('tap'));
 
       final result = await session.act(
         const TapAction(
@@ -1368,7 +1371,7 @@ void main() {
                 onTap: () {},
                 child: const Row(
                   children: [
-                    Text('HGW_SAH'),
+                    Text('DEVICE_TYPE_A'),
                     Icon(Icons.keyboard_arrow_down),
                   ],
                 ),
@@ -1461,7 +1464,7 @@ void main() {
                 onTap: () {},
                 child: const Row(
                   children: [
-                    Text('HGW_SAH'),
+                    Text('DEVICE_TYPE_A'),
                     Icon(Icons.keyboard_arrow_down),
                   ],
                 ),
@@ -1517,7 +1520,7 @@ void main() {
     final dropdownFlat = _flatten(dropdowns);
     expect(
       dropdownFlat
-          .where((e) => e.type == 'text' && (e.text ?? '') == 'HGW_SAH'),
+          .where((e) => e.type == 'text' && (e.text ?? '') == 'DEVICE_TYPE_A'),
       isEmpty,
       reason: 'value caption must not duplicate under the dropdown',
     );
@@ -1632,7 +1635,7 @@ void main() {
       final eye = flat.firstWhere((e) => e.type == 'icon');
       expect(eye.state.enabled, isTrue);
       expect(eye.state.interactable, isTrue);
-      expect(eye.supportedActions, contains('tap'));
+      expect(eye.actions, contains('tap'));
 
       await session.close();
     },
@@ -1845,7 +1848,7 @@ void main() {
                 child: const Row(
                   children: [
                     Expanded(child: Text('Guest wifi')),
-                    Text('KPN_Gast'),
+                    Text('Guest_Network'),
                     Icon(Icons.chevron_right),
                   ],
                 ),
@@ -1900,7 +1903,7 @@ void main() {
   testWidgets(
     'decorative arrow under LabelArrowButton-style button is dropped',
     (tester) async {
-      // inhome LabelArrowButton: compact CTA → Text + trailing arrow.
+      // compact CTA: Text with a trailing arrow.
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -1960,9 +1963,9 @@ void main() {
   testWidgets(
     'Ensemble Icon subclass glyph is not observed as text',
     (tester) async {
-      // inhome LedIndicator: Ensemble Icon (extends Flutter Icon) + label.
+      // status indicator: Ensemble Icon (extends Flutter Icon) plus label.
       // findAncestorWidgetOfExactType misses the subclass, so icon-font
-      // RichText used to leak as `text □` under gateway_card.
+      // RichText used to leak as `text □` under device_card.
       const ledGlyph = IconData(0xE953, fontFamily: 'MaterialIcons');
       await tester.pumpWidget(
         MaterialApp(
@@ -1971,12 +1974,12 @@ void main() {
               width: 360,
               height: 120,
               child: InkWell(
-                key: const ValueKey('gateway_card'),
+                key: const ValueKey('device_card'),
                 onTap: () {},
                 child: const Column(
                   children: [
-                    Text('KPN Box 12'),
-                    Text('Modem'),
+                    Text('Sample Device 12'),
+                    Text('Device'),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -2047,7 +2050,7 @@ void main() {
       expect(
         ledIcons.length,
         greaterThanOrEqualTo(2),
-        reason: 'gateway LED icons must observe as icon, not vanish',
+        reason: 'status LED icons must observe as icon, not vanish',
       );
       for (final icon in ledIcons) {
         expect(
@@ -2087,7 +2090,7 @@ void main() {
                 key: const ValueKey('password_override'),
                 controller: empty,
                 decoration: const InputDecoration(
-                  hintText: 'Optional INHOME_GENERATED_PASSWORD',
+                  hintText: 'Optional APP_GENERATED_PASSWORD',
                 ),
               ),
               const Text('Use Stub URL'),
@@ -2150,7 +2153,7 @@ void main() {
     expect(override.type, 'textInput');
     expect(override.text, '', reason: 'empty is a verified value');
     expect(override.label, 'Generated Password Override');
-    expect(override.hint, 'Optional INHOME_GENERATED_PASSWORD');
+    expect(override.hint, 'Optional APP_GENERATED_PASSWORD');
     final overrideJson = observerElementsToJson(observation)
         .expand((element) => _flattenJson(element))
         .singleWhere((element) => element['id'] == 'password_override');
@@ -2577,7 +2580,7 @@ void main() {
       expect(card!.state.enabled, isNull,
           reason: 'non-tappable card has no enabled flag');
       expect(card.state.interactable, isFalse);
-      expect(card.supportedActions, isNot(contains('tap')));
+      expect(card.actions, isNot(contains('tap')));
 
       final flatKids = _flatten(card.children);
       expect(
@@ -2628,7 +2631,7 @@ void main() {
     'NotificationCard-style banner observes as card wrapping CTA button, '
     'not button wrapping card',
     (tester) async {
-      // Mirrors inhome NotificationCard: decorated chrome (no onTap) + nested
+      // Decorated card chrome (no onTap) with nested
       // keyed "Turn on" CTA + dismiss icon.
       await tester.pumpWidget(
         MaterialApp(
@@ -2985,7 +2988,7 @@ void main() {
   testWidgets(
     'observe does not wrap a keyed tappable card in a decorative visual card',
     (tester) async {
-      // Devices ModemInfo: wrapperCard* Column chrome around gateway_card.
+      // Device details: wrapperCard* Column chrome around device_card.
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -3002,11 +3005,11 @@ void main() {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    key: const ValueKey('gateway_card'),
+                    key: const ValueKey('device_card'),
                     onTap: () {},
                     child: const SizedBox(
                       height: 120,
-                      child: Center(child: Text('KPN Box 12')),
+                      child: Center(child: Text('Sample Device 12')),
                     ),
                   ),
                 ),
@@ -3039,7 +3042,7 @@ void main() {
       final cards =
           observation.elements.where((e) => e.type == 'card').toList();
       expect(cards, hasLength(1), reason: 'wrapper chrome must not add a card');
-      expect(cards.single.testId, 'gateway_card');
+      expect(cards.single.testId, 'device_card');
       expect(cards.single.state.interactable, isTrue);
       expect(cards.single.children.where((e) => e.type == 'card'), isEmpty);
 
@@ -3051,7 +3054,7 @@ void main() {
     'observe treats Invokable isDisabled as enabled=false '
     'even when InkWell.onTap is still wired',
     (tester) async {
-      // Mirrors InHome BackButton: YAML keeps onTap + executeConditionalAction,
+      // Mirrors Sample App BackButton: YAML keeps onTap + executeConditionalAction,
       // and passes isDisabled as a custom-widget / Invokable input. InkWell.onTap
       // alone still looks enabled.
       await tester.pumpWidget(
@@ -3106,9 +3109,9 @@ void main() {
       expect(back.type, 'icon');
       expect(back.state.enabled, isFalse);
       expect(back.state.interactable, isFalse);
-      expect(back.supportedActions, isNot(contains('tap')));
-      expect(back.supportedActions, contains('waitFor'));
-      expect(back.supportedActions, contains('expectDisabled'));
+      expect(back.actions, isNot(contains('tap')));
+      expect(back.actions, contains('waitFor'));
+      expect(back.actions, contains('expectDisabled'));
 
       await session.close();
     },
@@ -3176,7 +3179,7 @@ void main() {
           .singleWhere((e) => e.testId == 'back_button');
       expect(back.state.enabled, isFalse);
       expect(back.state.interactable, isFalse);
-      expect(back.supportedActions, isNot(contains('tap')));
+      expect(back.actions, isNot(contains('tap')));
 
       await session.close();
     },
@@ -3233,7 +3236,7 @@ void main() {
           .singleWhere((e) => e.testId == 'back_button');
       expect(back.state.enabled, isTrue);
       expect(back.state.interactable, isTrue);
-      expect(back.supportedActions, contains('tap'));
+      expect(back.actions, contains('tap'));
 
       await session.close();
     },

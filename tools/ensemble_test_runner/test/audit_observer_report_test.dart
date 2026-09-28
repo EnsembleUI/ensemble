@@ -160,7 +160,7 @@ void main() {
     final report = File(p.join(temp.path, 'results.json'));
     final element = _element(1, 'Sensor 2', 100)
       ..['warning'] = 'Suggested locator matches multiple observed elements'
-      ..['actionExamples'] = [
+      ..['actions'] = [
         'expectText:\n  text: "Sensor 2"',
         'waitForText:\n  text: "Sensor 2"\n  occurrence: 2',
       ];
@@ -214,7 +214,7 @@ Map<String, dynamic> _referenceReport({bool includeForeignContent = true}) {
         900,
         visible: false,
         offscreen: true,
-        actionExamples: ['scrollUntilVisible: target by title'],
+        actions: ['scrollUntilVisible: target by title'],
       ),
       if (includeForeignContent) ...[
         _element(2, 'Account', 1000, visible: false, offscreen: true),
@@ -256,7 +256,7 @@ Map<String, dynamic> _element(
   num top, {
   bool visible = true,
   bool offscreen = false,
-  List<String> actionExamples = const [],
+  List<String> actions = const [],
 }) =>
     {
       'index': index,
@@ -267,5 +267,5 @@ Map<String, dynamic> _element(
       'enabled': false,
       'interactable': false,
       'bounds': {'left': 16, 'top': top, 'width': 260, 'height': 32},
-      'actionExamples': actionExamples,
+      'actions': actions,
     };

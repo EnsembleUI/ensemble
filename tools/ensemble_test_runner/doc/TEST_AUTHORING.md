@@ -106,7 +106,7 @@ mocks:
 
 initialState:
   storage:
-    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+    apiUrl: http://ensemble.test/api/devices
   env:
     APP_LOCALE: nl
 
@@ -197,7 +197,6 @@ mid-test `mocks` steps that wait for a later poll.
 
 `--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints (static EDL walk — no Flutter launch).
 
-For a live UI dump after launch, use `--inspect-ui` instead (see the runner README).
 
 ## Mocks
 
@@ -251,7 +250,7 @@ values and merges mock entries in order.
 
 ```yaml
 id: home_scenarios
-session: signin_to_gateway
+session: sign_in_session
 startScreen: Home
 
 mocks:

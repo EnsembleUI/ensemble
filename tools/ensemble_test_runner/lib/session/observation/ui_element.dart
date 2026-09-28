@@ -112,7 +112,7 @@ class UiElement {
 
   final UiElementState state;
   final UiBounds? bounds;
-  final List<String> supportedActions;
+  final List<String> actions;
   final List<UiElement> children;
   final Map<String, Object?> metadata;
 
@@ -129,7 +129,7 @@ class UiElement {
     this.locatorWarning,
     this.state = const UiElementState(),
     this.bounds,
-    this.supportedActions = const [],
+    this.actions = const [],
     this.children = const [],
     this.metadata = const {},
   });
@@ -143,8 +143,8 @@ class UiElement {
     );
     final locatorJson = suggestedLocator?.toJson();
     final boundsJson = bounds?.toJson();
-    final actionExamples = observerActionExamples(
-      actions: supportedActions,
+    final actions = observerActionExamples(
+      actions: this.actions,
       title: title,
       id: testId,
       locator: locatorJson,
@@ -172,7 +172,7 @@ class UiElement {
       if (locatorWarning != null) 'locatorWarning': locatorWarning,
       'state': state.toJson(),
       if (bounds != null) 'bounds': bounds!.toJson(),
-      if (actionExamples.isNotEmpty) 'actionExamples': actionExamples,
+      if (actions.isNotEmpty) 'actions': actions,
       if (children.isNotEmpty)
         'children': children.map((c) => c.toJson()).toList(),
       if (metadata.isNotEmpty) 'metadata': metadata,
@@ -183,8 +183,7 @@ class UiElement {
     final stateRaw = json['state'];
     final boundsRaw = json['bounds'];
     final childrenRaw = json['children'];
-    final actionsRaw = json['supportedActions'];
-    final actionExamplesRaw = json['actionExamples'];
+    final actionsRaw = json['actions'];
     final optionsRaw = json['options'];
     final locatorRaw = json['suggestedLocator'];
     return UiElement(
@@ -209,14 +208,12 @@ class UiElement {
       bounds: boundsRaw is Map
           ? UiBounds.fromJson(Map<String, dynamic>.from(boundsRaw))
           : null,
-      supportedActions: actionsRaw is List
-          ? actionsRaw.map((e) => e.toString()).toList()
-          : actionExamplesRaw is List
-              ? actionExamplesRaw
-                  .map((e) => _actionNameFromExample(e))
-                  .whereType<String>()
-                  .toList()
-              : const [],
+      actions: actionsRaw is List
+          ? actionsRaw
+              .map((action) => _actionNameFromExample(action))
+              .whereType<String>()
+              .toList()
+          : const [],
       children: childrenRaw is List
           ? childrenRaw
               .whereType<Map>()
@@ -255,7 +252,7 @@ class UiElement {
     bool clearLocatorWarning = false,
     UiElementState? state,
     UiBounds? bounds,
-    List<String>? supportedActions,
+    List<String>? actions,
     List<UiElement>? children,
     Map<String, Object?>? metadata,
   }) {
@@ -276,7 +273,7 @@ class UiElement {
           : (locatorWarning ?? this.locatorWarning),
       state: state ?? this.state,
       bounds: bounds ?? this.bounds,
-      supportedActions: supportedActions ?? this.supportedActions,
+      actions: actions ?? this.actions,
       children: children ?? this.children,
       metadata: metadata ?? this.metadata,
     );

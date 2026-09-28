@@ -55,14 +55,14 @@ void main() {
               secure: false,
             ),
             bounds: UiBounds(left: 0, top: 10, width: 100, height: 40),
-            supportedActions: ['tap', 'enterText'],
+            actions: ['tap', 'enterText'],
           ),
           UiElement(
             elementId: 'el_2',
             testId: 'password_field',
             type: 'textInput',
             state: UiElementState(secure: true, visible: true),
-            supportedActions: ['tap', 'enterText'],
+            actions: ['tap', 'enterText'],
           ),
         ],
         viewport:

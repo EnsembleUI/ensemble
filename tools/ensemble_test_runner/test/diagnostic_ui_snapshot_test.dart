@@ -27,10 +27,10 @@ void main() {
       (tester) async {
     final navigatorKey = GlobalKey<NavigatorState>();
     final navigation = _FakeNavigationService(
-      currentRoute: 'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+      currentRoute: 'Device_Reset_Confirmation',
       routeHistory: const [
-        'DeviceDetails_Gateway',
-        'Gateway_Factory_Reset_Flow_Reseting_Second_Page',
+        'DeviceDetails',
+        'Device_Reset_Confirmation',
       ],
     );
     await tester.pumpWidget(
@@ -42,7 +42,7 @@ void main() {
     navigatorKey.currentState!.push<void>(
       MaterialPageRoute<void>(
         settings: RouteSettings(
-          arguments: ScreenPayload(screenName: 'DeviceDetails_Gateway'),
+          arguments: ScreenPayload(screenName: 'DeviceDetails'),
         ),
         builder: (_) => const Scaffold(body: Text('visible screen')),
       ),
@@ -55,7 +55,7 @@ void main() {
       navigation: navigation,
     ).observation;
 
-    expect(observation.screen.name, 'DeviceDetails_Gateway');
+    expect(observation.screen.name, 'DeviceDetails');
     expect(
       observation.screen.navigationStack,
       navigation.routeHistory,
@@ -177,8 +177,8 @@ void main() {
         home: Scaffold(
           body: Stack(
             children: [
-              Positioned(left: 20, top: 20, child: Text('WiFi extender 3')),
-              Offstage(child: Text('WiFi extender 3')),
+              Positioned(left: 20, top: 20, child: Text('Network device 3')),
+              Offstage(child: Text('Network device 3')),
             ],
           ),
         ),
@@ -192,7 +192,7 @@ void main() {
     final texts = <UiElement>[];
     void collect(List<UiElement> elements) {
       for (final element in elements) {
-        if (element.type == 'text' && element.text == 'WiFi extender 3') {
+        if (element.type == 'text' && element.text == 'Network device 3') {
           texts.add(element);
         }
         collect(element.children);
@@ -207,7 +207,7 @@ void main() {
     final reportTree = observationElementsTreeForReport(observation);
     final textNode = reportTree
         .expand((node) => _flattenReportNodes(node))
-        .singleWhere((node) => node['title'] == 'WiFi extender 3');
+        .singleWhere((node) => node['title'] == 'Network device 3');
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     canvas.drawRect(const Rect.fromLTWH(0, 0, 300, 300), Paint());
@@ -242,7 +242,7 @@ void main() {
         observationElementsTreeForReport(withOffscreenNode);
     final shiftedTextNode = withOffscreenTree
         .expand((node) => _flattenReportNodes(node))
-        .singleWhere((node) => node['title'] == 'WiFi extender 3');
+        .singleWhere((node) => node['title'] == 'Network device 3');
     final shiftedOverlays = observerOverlaysForReport(
       observation: withOffscreenNode,
       tester: tester,
@@ -373,7 +373,7 @@ void main() {
       final button = _flatten(snap.observation.elements)
           .firstWhere((e) => e.type == 'button');
       expect(button.state.interactable, isTrue);
-      expect(button.supportedActions, contains('tap'));
+      expect(button.actions, contains('tap'));
       expect(button.suggestedLocator?.id, isNull);
       expect(button.suggestedLocator?.label, 'Netwerk');
       expect(button.suggestedLocator?.role, 'button');
@@ -483,7 +483,7 @@ void main() {
           isNull,
           reason: 'no image steps without id — do not invent label+role=image',
         );
-        expect(el.supportedActions, isEmpty);
+        expect(el.actions, isEmpty);
       }
     },
   );
@@ -491,7 +491,7 @@ void main() {
   testWidgets(
     'diagnostic snapshot keeps CloseAppButton a11y label as label+role=icon',
     (tester) async {
-      // Mirrors inhome CloseAppButton: Column(semantics.label, onTap) → SVG
+      // Mirrors sample_app CloseAppButton: Column(semantics.label, onTap) → SVG
       // AppIcon, with an empty intermediate Semantics (Material/InkWell pattern).
       final png = Uint8List.fromList(<int>[
         0x89,
@@ -725,8 +725,8 @@ void main() {
                         onTap: () {},
                         child: const Column(
                           children: [
-                            Text('KPN Box 12'),
-                            Text('Modem'),
+                            Text('Sample Device 12'),
+                            Text('Device'),
                             Icon(Icons.chevron_right),
                           ],
                         ),
@@ -741,8 +741,8 @@ void main() {
                       ),
                       child: const Column(
                         children: [
-                          Text('Wifi naam'),
-                          Text('KPN'),
+                          Text('Network name'),
+                          Text('Sample'),
                         ],
                       ),
                     ),
@@ -779,17 +779,17 @@ void main() {
       final flat = _flatten(snap.observation.elements);
 
       final tappableCard = flat.firstWhere(
-        (e) => e.type == 'card' && (e.text ?? '').contains('KPN Box 12'),
+        (e) => e.type == 'card' && (e.text ?? '').contains('Sample Device 12'),
       );
       expect(tappableCard.state.interactable, isTrue);
-      expect(tappableCard.suggestedLocator?.label, 'KPN Box 12');
+      expect(tappableCard.suggestedLocator?.label, 'Sample Device 12');
       expect(tappableCard.suggestedLocator?.role, 'card');
-      expect(tappableCard.supportedActions, contains('tap'));
+      expect(tappableCard.actions, contains('tap'));
 
       final inertCards = flat.where(
         (e) =>
             e.type == 'card' &&
-            (e.text ?? '').contains('Wifi naam') &&
+            (e.text ?? '').contains('Network name') &&
             e.state.interactable != true,
       );
       for (final card in inertCards) {
@@ -800,16 +800,16 @@ void main() {
         );
       }
 
-      final modem = flat.firstWhere(
-        (e) => e.type == 'text' && (e.text ?? '') == 'Modem',
+      final deviceText = flat.firstWhere(
+        (e) => e.type == 'text' && (e.text ?? '') == 'Device',
       );
-      expect(modem.suggestedLocator?.text, 'Modem');
+      expect(deviceText.suggestedLocator?.text, 'Device');
 
       // Decorative chevron under the card is not interactable — no sel.
       final chevrons = flat.where(
         (e) =>
             e.type == 'icon' &&
-            e.suggestedLocator?.within?.label == 'KPN Box 12',
+            e.suggestedLocator?.within?.label == 'Sample Device 12',
       );
       expect(
         chevrons,
@@ -891,7 +891,7 @@ void main() {
       for (var i = 0; i < icons.length; i++) {
         final icon = icons[i];
         expect(icon.state.interactable, isTrue);
-        expect(icon.supportedActions, contains('tap'));
+        expect(icon.actions, contains('tap'));
         expect(icon.suggestedLocator?.role, 'icon');
         expect(icon.suggestedLocator?.within?.role, 'card');
         expect(
@@ -931,7 +931,7 @@ void main() {
           .firstWhere((e) => e.type == 'switch');
       expect(sw.state.enabled, isTrue);
       expect(sw.state.interactable, isTrue);
-      expect(sw.supportedActions, contains('toggle'));
+      expect(sw.actions, contains('toggle'));
       expect(sw.suggestedLocator?.label, 'Kinder-Phone');
       expect(sw.suggestedLocator?.role, 'switch');
     },
@@ -1053,7 +1053,7 @@ void main() {
                     children: [
                       const TextSpan(text: 'Verbind je telefoon met '),
                       const TextSpan(
-                        text: 'KPN-FWA',
+                        text: 'Sample-Device',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const TextSpan(text: ' om verder te gaan.'),
@@ -1076,7 +1076,7 @@ void main() {
       );
       expect(body.type, 'text');
       expect(body.suggestedLocator?.text, contains('Verbind je telefoon'));
-      expect(body.suggestedLocator?.text, contains('KPN-FWA'));
+      expect(body.suggestedLocator?.text, contains('Sample-Device'));
     },
   );
 }

@@ -51,7 +51,7 @@ void main() {
         'Login',
         'InitApp',
         'AutoSignIn',
-        'AutoSignIn_Gateway',
+        'AutoSignIn_Device',
         'Home',
       ]);
 
@@ -154,7 +154,7 @@ void main() {
         EnsembleTestRunResult(
           results: [
             EnsembleSingleTestResult.passed(
-              testId: 'signin_to_gateway',
+              testId: 'sign_in_session',
               durationMs: 1200,
               attempts: 2,
               retry: 3,
@@ -234,7 +234,7 @@ void main() {
           results: [
             EnsembleSingleTestResult.failed(
               testId:
-                  'login_test  (ensemble/apps/inhome/tests/signin.test.yaml)',
+                  'login_test  (ensemble/apps/sample_app/tests/signin.test.yaml)',
               durationMs: 100,
               failedStep: const TestStep(
                 type: 'waitForNavigation',
@@ -244,15 +244,15 @@ void main() {
             ),
             EnsembleSingleTestResult.failed(
               testId:
-                  'smoke_navigations  (ensemble/apps/inhome/tests/smoke.test.yaml)',
+                  'smoke_navigations  (ensemble/apps/sample_app/tests/smoke.test.yaml)',
               durationMs: 0,
               error: 'Prerequisite "login_test" failed',
             ),
           ],
         ),
         failedPaths: const [
-          'ensemble/apps/inhome/tests/signin.test.yaml',
-          'ensemble/apps/inhome/tests/smoke.test.yaml',
+          'ensemble/apps/sample_app/tests/signin.test.yaml',
+          'ensemble/apps/sample_app/tests/smoke.test.yaml',
         ],
         pendingFrameworkExceptions: const [
           'Reentrant call to runAsync() denied.\nextra framework text',

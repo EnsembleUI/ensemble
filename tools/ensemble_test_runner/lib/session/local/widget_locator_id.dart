@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// (before State builds the KeyedSubtree) caused mid-transition taps and
 /// framework build-scope errors.
 ///
-/// Prefer [observeLocatorId] when attaching `testId` on observe / inspect-ui
+/// Prefer [observeLocatorId] when attaching `testId` on observation / report
 /// rows — this helper inherits any ancestor id (including page shells).
 String? readWidgetLocatorId(Element element) {
   final direct = readOwnedWidgetLocatorId(element);
@@ -21,7 +21,7 @@ String? readWidgetLocatorId(Element element) {
   return nearestOwnedLocatorIdAncestor(element);
 }
 
-/// Locator id for observe / inspect-ui / failure Observer rows.
+/// Locator id for observe / failure Observer rows.
 ///
 /// Same owned-id rules as [readWidgetLocatorId], but does **not** inherit a
 /// structural page/card shell key (e.g. screen `Home` / `AutoSignIn`) onto

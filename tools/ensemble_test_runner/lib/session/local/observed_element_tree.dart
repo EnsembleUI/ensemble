@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Builds the kept observe element tree from the live Flutter element walk.
 ///
-/// When [enableSemantics] is true (live inspect-ui), briefly enables a
+/// When [enableSemantics] is true (live observation), briefly enables a
 /// [SemanticsHandle] for richer labels. Diagnostic / report snapshots must
 /// pass `enableSemantics: false` so hot-path captures never toggle semantics.
 ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
@@ -219,7 +219,7 @@ bool _isUnaddressableAnonymousButton(UiElement element) {
       !hasValue(element.testId) &&
       !hasValue(element.label) &&
       !hasValue(element.text) &&
-      element.supportedActions.isEmpty &&
+      element.actions.isEmpty &&
       element.state.interactable != true;
 }
 
