@@ -332,11 +332,15 @@ class TimerRewriteConfig {
   /// like firmware disconnect waits from running for minutes under tests).
   final int? maxNumberOfTimes;
 
+  /// Optional per-screen cap, keyed by the screen YAML filename without `.yaml`.
+  final Map<String, int> maxNumberOfTimesByScreen;
+
   const TimerRewriteConfig({
     this.enabled = false,
     this.maxStartAfterSeconds = 1,
     this.maxRepeatIntervalSeconds = 1,
     this.maxNumberOfTimes,
+    this.maxNumberOfTimesByScreen = const {},
   });
 }
 

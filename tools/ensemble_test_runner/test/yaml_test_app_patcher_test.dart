@@ -452,6 +452,8 @@ timers:
   maxStartAfterSeconds: 1
   maxRepeatIntervalSeconds: 2
   maxNumberOfTimes: 10
+  maxNumberOfTimesByScreen:
+    Reset: 5
 ''');
     File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
         .writeAsStringSync('''
@@ -492,7 +494,7 @@ View:
   onLoad:
     startAfter: 1
     repeatInterval: 2
-    maxNumberOfTimes: 10
+    maxNumberOfTimes: 5
     # startAfter: 120
     nested:
       startAfter: 0
@@ -506,7 +508,7 @@ View:
   onLoad:
     startAfter: 1
     repeatInterval: 2
-    maxNumberOfTimes: 10
+    maxNumberOfTimes: 5
     # startAfter: 120
     nested:
       startAfter: 0

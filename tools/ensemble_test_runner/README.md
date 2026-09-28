@@ -152,6 +152,9 @@ timers:
   enabled: true
   maxStartAfterSeconds: 1
   maxRepeatIntervalSeconds: 1
+  # Optional per-screen maxNumberOfTimes cap (screen filename without .yaml).
+  maxNumberOfTimesByScreen:
+    FirmwareUpgrade: 15
 dumpTree:
   enabled: true
 logApiCalls:

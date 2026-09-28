@@ -399,6 +399,8 @@ class EnsembleTestParser {
                       fallback: 0,
                       fieldName: 'timers.maxNumberOfTimes',
                     ),
+              maxNumberOfTimesByScreen:
+                  _parseScreenTimerCaps(timersNode['maxNumberOfTimesByScreen']),
             ),
       dumpTree: dumpTreeNode == null
           ? const DumpTreeConfig()
@@ -613,6 +615,31 @@ class EnsembleTestParser {
       throw EnsembleTestFailure('"$fieldName" must be a non-negative integer');
     }
     return parsed;
+  }
+
+  static Map<String, int> _parseScreenTimerCaps(dynamic value) {
+    if (value == null) return const {};
+    if (value is! YamlMap) {
+      throw EnsembleTestFailure(
+        '"timers.maxNumberOfTimesByScreen" must be a map',
+      );
+    }
+    return value.map((key, cap) {
+      final screen = key.toString().trim();
+      if (screen.isEmpty) {
+        throw EnsembleTestFailure(
+          '"timers.maxNumberOfTimesByScreen" keys must not be empty',
+        );
+      }
+      return MapEntry(
+        screen,
+        _optionalNonNegativeInt(
+          cap,
+          fallback: 0,
+          fieldName: 'timers.maxNumberOfTimesByScreen.$screen',
+        ),
+      );
+    });
   }
 
   static String? _optionalString(dynamic value) {
