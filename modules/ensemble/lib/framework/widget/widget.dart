@@ -102,7 +102,11 @@ abstract class EWidgetState<W extends HasController>
       // add tooltip handling if tooltip message is specified
       if (widgetController.toolTip != null) {
         rtn = Utils.getTooltipWidget(
-            context, rtn, widgetController.toolTip, widgetController);
+          context,
+          rtn,
+          widgetController.toolTip,
+          widgetController
+        );
       }
 
       // in Web, capture the pointer if overlay on htmlelementview like Maps
@@ -120,9 +124,7 @@ abstract class EWidgetState<W extends HasController>
         rtn = AnimatedOpacity(
             // If visible, apply opacity if specified, else default to 1
             opacity: widgetController.visible != false
-                ? (Utils.optionalDouble(widgetController.opacity ?? 1,
-                        min: 0, max: 1.0) ??
-                    1)
+                ? (Utils.optionalDouble(widgetController.opacity ?? 1, min: 0, max: 1.0) ?? 1)
                 : 0,
             duration: widgetController.visibilityTransitionDuration!,
             child: rtn);
@@ -136,8 +138,9 @@ abstract class EWidgetState<W extends HasController>
       // Handle standalone opacity
       // Apply only if visibilityTransitionDuration is NOT set (to avoid double wrapping)
       // TV: Skip if tvOptions.opacity is set (wrapper handles both focused/unfocused)
-      final tvOptions =
-          widgetController is BoxController ? widgetController.tvOptions : null;
+      final tvOptions = widgetController is BoxController
+          ? widgetController.tvOptions
+          : null;
       final bool tvHandlesOpacity = Device().isTV &&
           tvOptions?.isEnabled == true &&
           tvOptions?.opacity != null;
@@ -145,9 +148,7 @@ abstract class EWidgetState<W extends HasController>
           widgetController.opacity != null &&
           !tvHandlesOpacity) {
         rtn = Opacity(
-          opacity: Utils.optionalDouble(widgetController.opacity!,
-                  min: 0, max: 1.0) ??
-              1.0,
+          opacity: Utils.optionalDouble(widgetController.opacity!, min: 0, max: 1.0) ?? 1.0,
           child: rtn,
         );
       }

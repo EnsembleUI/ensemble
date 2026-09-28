@@ -659,12 +659,14 @@ mixin PageBindingManager on IsScopeManager {
           .removeWhere((registration) => registration.scopeManager == null);
       for (final oldRegistration
           in List<_BindingRegistration>.of(existingRegistrations)) {
+        final oldOwnerScope = oldRegistration.ownerScope;
         if (oldRegistration.setterProperty ==
                 bindingDestination.setterProperty &&
             oldRegistration.scopeManager != null &&
-            !identical(oldRegistration.ownerScope, ownerScope)) {
+            oldOwnerScope != null &&
+            !identical(oldOwnerScope, ownerScope)) {
           removeBindingListenersForScope(
-              bindingDestination.widget, oldRegistration.ownerScope!);
+              bindingDestination.widget, oldOwnerScope);
         }
       }
     }
@@ -730,7 +732,7 @@ mixin PageBindingManager on IsScopeManager {
           final hash = getHash(
               destinationSetter: destination.setterProperty,
               source: source,
-              scopeManager: scopeManager);
+              scopeManager: _bindingHashScope(source, scopeManager));
           if (listenerMap[destinationWidget]?.containsKey(hash) ?? false) {
             continue;
           }
@@ -778,9 +780,10 @@ mixin PageBindingManager on IsScopeManager {
     final registrations = _bindingRegistrations[destinationWidget];
     final subscriptions = listenerMap[destinationWidget];
     if (registrations == null) {
-      if (subscriptions?.isEmpty ?? false) {
-        listenerMap.remove(destinationWidget);
-      }
+      // No managed registrations means this destination subscribed through a
+      // direct listen() call (e.g. Conditional/TabBar). Cancel its
+      // subscriptions so disposal does not leak them.
+      listenerMap.remove(destinationWidget)?.values.forEach((e) => e.cancel());
       return;
     }
     if (subscriptions == null) {
@@ -827,7 +830,7 @@ mixin PageBindingManager on IsScopeManager {
         final hash = getHash(
             destinationSetter: registration.setterProperty,
             source: source,
-            scopeManager: bindingScope);
+            scopeManager: _bindingHashScope(source, bindingScope));
         destinationSubscriptions.remove(hash)?.cancel();
       }
     }
@@ -869,13 +872,16 @@ mixin PageBindingManager on IsScopeManager {
       required Function onDataChange}) {
     // create a unique key to reference our listener. We used this to save
     // the listeners for clean up
-    // Keep subscriptions distinct by scope for every source. A page-level
-    // source can be observed by bindings in multiple child scopes, and removing
-    // one scope must not cancel another scope's subscription.
+    // Note that simple binding (i.e. custom widget's input variable) needs
+    // scopeManager to uniquely identify them (since multiple custom widgets
+    // can be created.
     int hash = getHash(
         destinationSetter: destination.setterProperty,
         source: bindingSource,
-        scopeManager: scopeManager);
+        scopeManager: (bindingSource is SimpleBindingSource ||
+                bindingSource is DeferredBindingSource)
+            ? scopeManager
+            : null);
 
     // clean up existing listener with the same signature
     if (listenerMap[destination.widget]?[hash] != null) {
@@ -919,6 +925,14 @@ mixin PageBindingManager on IsScopeManager {
     return Object.hash(destinationSetter, source.modelId, source.property,
         source.runtimeType, scopeManager);
   }
+
+  /// The scope that participates in the listener hash for [source]. Simple and
+  /// deferred sources need the scope to be uniquely identified (e.g. custom
+  /// widget input variables); other sources are page-wide.
+  ScopeManager? _bindingHashScope(BindingSource source, ScopeManager scope) =>
+      (source is SimpleBindingSource || source is DeferredBindingSource)
+          ? scope
+          : null;
 
   /// print a map of the current listeners on this scope
   void debugListenerMap() {

@@ -1,3 +1,4 @@
+
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -110,11 +111,16 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
             child: rtn);
       }
 
+
       // add tooltip handling if tooltip message is specified
       // add tooltip handling if tooltip message is specified
       if (widgetController.toolTip != null) {
         rtn = Utils.getTooltipWidget(
-            context, rtn, widgetController.toolTip, widgetController);
+          context,
+          rtn,
+          widgetController.toolTip,
+          widgetController
+        );
       }
 
       // in Web, capture the pointer if overlay on htmlelementview like Maps
