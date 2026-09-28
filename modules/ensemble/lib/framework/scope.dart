@@ -70,9 +70,6 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
       // Child scopes share the page event bus and PageData timers/location
       // resources, but own their binding registrations. Remove those without
       // tearing down the shared page resources.
-      for (final destination in listenerMap.keys.toList()) {
-        removeBindingListenersForScope(destination, this);
-      }
       PageBindingManager.clearBindingOwnersForScope(this);
       return;
     }
