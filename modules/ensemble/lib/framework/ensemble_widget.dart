@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -25,38 +24,6 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   ScopeManager? _registeredScope;
   EnsembleController? _registeredController;
 
-  // A controller can be reused by more than one widget instance (for example,
-  // when a widget with an id is rebuilt). Do not remove the shared controller's
-  // bindings until the last widget using it in that page scope is gone.
-  static final Map<PageData, Map<EnsembleController, int>>
-      _bindingOwnerCounts = {};
-
-  static void _retainBindingOwner(
-      ScopeManager scope, EnsembleController controller) {
-    final controllers =
-        _bindingOwnerCounts.putIfAbsent(scope.pageData, () => {});
-    controllers[controller] = (controllers[controller] ?? 0) + 1;
-  }
-
-  static void _releaseBindingOwner(
-      ScopeManager? scope, EnsembleController? controller) {
-    if (scope == null || controller == null) return;
-
-    final controllers = _bindingOwnerCounts[scope.pageData];
-    final count = controllers?[controller];
-    if (count == null) return;
-
-    if (count <= 1) {
-      controllers!.remove(controller);
-      scope.removeBindingListeners(controller);
-      if (controllers.isEmpty) {
-        _bindingOwnerCounts.remove(scope.pageData);
-      }
-    } else {
-      controllers![controller] = count - 1;
-    }
-  }
-
   void _syncBindingOwner(ScopeManager? scope) {
     final controller = widget.controller;
     if (identical(_registeredScope, scope) &&
@@ -64,11 +31,12 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
       return;
     }
 
-    _releaseBindingOwner(_registeredScope, _registeredController);
+    PageBindingManager.releaseBindingOwner(
+        _registeredScope, _registeredController);
     _registeredScope = scope;
     _registeredController = controller;
     if (scope != null) {
-      _retainBindingOwner(scope, controller);
+      PageBindingManager.retainBindingOwner(scope, controller);
     }
   }
 
@@ -89,7 +57,8 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
     if (!identical(oldWidget.controller, widget.controller)) {
       // Release the old controller immediately. The next build will register
       // the replacement controller in the same scope.
-      _releaseBindingOwner(_registeredScope, _registeredController);
+      PageBindingManager.releaseBindingOwner(
+          _registeredScope, _registeredController);
       _registeredController = null;
     }
     widget.controller.addListener(_update);
@@ -98,7 +67,9 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   @override
   void dispose() {
     widget.controller.removeListener(_update);
-    _releaseBindingOwner(_registeredScope, _registeredController);
+    PageBindingManager.releaseBindingOwner(
+        _registeredScope, _registeredController,
+        preserveRegistration: true);
     super.dispose();
   }
 
@@ -108,7 +79,9 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   Widget build(BuildContext context) {
     // Cache the scope while the element is active; it can't be looked up in
     // dispose(). Keep binding ownership scoped to this page and controller.
-    _syncBindingOwner(DataScopeWidget.getScope(context));
+    final scope = DataScopeWidget.getScope(context);
+    _syncBindingOwner(scope);
+    scope?.restoreBindingListeners(widget.controller);
     if (widget.controller is EnsembleWidgetController) {
       EnsembleWidgetController widgetController =
           widget.controller as EnsembleWidgetController;
@@ -137,16 +110,11 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
             child: rtn);
       }
 
-
       // add tooltip handling if tooltip message is specified
       // add tooltip handling if tooltip message is specified
       if (widgetController.toolTip != null) {
         rtn = Utils.getTooltipWidget(
-          context,
-          rtn,
-          widgetController.toolTip,
-          widgetController
-        );
+            context, rtn, widgetController.toolTip, widgetController);
       }
 
       // in Web, capture the pointer if overlay on htmlelementview like Maps

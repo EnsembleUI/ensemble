@@ -27,6 +27,24 @@ mixin HasItemTemplate<T extends Widget> {
 abstract class EWidgetState<W extends HasController>
     extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
+  ScopeManager? _bindingOwnerScope;
+  Invokable? _bindingOwnerDestination;
+
+  void _syncBindingOwner(ScopeManager? scope) {
+    final destination = widget is Invokable ? widget as Invokable : null;
+    if (identical(_bindingOwnerScope, scope) &&
+        identical(_bindingOwnerDestination, destination)) {
+      return;
+    }
+    PageBindingManager.releaseBindingOwner(
+        _bindingOwnerScope, _bindingOwnerDestination,
+        preserveRegistration: true);
+    _bindingOwnerScope = scope;
+    _bindingOwnerDestination = destination;
+    if (scope != null && destination != null) {
+      PageBindingManager.retainBindingOwner(scope, destination);
+    }
+  }
 
   void resolveStylesIfUnresolved(BuildContext context) {
     if (widget.controller is HasStyles) {
@@ -47,6 +65,10 @@ abstract class EWidgetState<W extends HasController>
 
   @override
   Widget build(BuildContext context) {
+    _syncBindingOwner(scopeManager);
+    if (widget is Invokable) {
+      scopeManager?.restoreBindingListeners(widget as Invokable);
+    }
     resolveStylesIfUnresolved(context);
 
     Widget rtn = buildWidget(context);
@@ -80,11 +102,7 @@ abstract class EWidgetState<W extends HasController>
       // add tooltip handling if tooltip message is specified
       if (widgetController.toolTip != null) {
         rtn = Utils.getTooltipWidget(
-          context,
-          rtn,
-          widgetController.toolTip,
-          widgetController
-        );
+            context, rtn, widgetController.toolTip, widgetController);
       }
 
       // in Web, capture the pointer if overlay on htmlelementview like Maps
@@ -102,7 +120,9 @@ abstract class EWidgetState<W extends HasController>
         rtn = AnimatedOpacity(
             // If visible, apply opacity if specified, else default to 1
             opacity: widgetController.visible != false
-                ? (Utils.optionalDouble(widgetController.opacity ?? 1, min: 0, max: 1.0) ?? 1)
+                ? (Utils.optionalDouble(widgetController.opacity ?? 1,
+                        min: 0, max: 1.0) ??
+                    1)
                 : 0,
             duration: widgetController.visibilityTransitionDuration!,
             child: rtn);
@@ -116,9 +136,8 @@ abstract class EWidgetState<W extends HasController>
       // Handle standalone opacity
       // Apply only if visibilityTransitionDuration is NOT set (to avoid double wrapping)
       // TV: Skip if tvOptions.opacity is set (wrapper handles both focused/unfocused)
-      final tvOptions = widgetController is BoxController
-          ? widgetController.tvOptions
-          : null;
+      final tvOptions =
+          widgetController is BoxController ? widgetController.tvOptions : null;
       final bool tvHandlesOpacity = Device().isTV &&
           tvOptions?.isEnabled == true &&
           tvOptions?.opacity != null;
@@ -126,7 +145,9 @@ abstract class EWidgetState<W extends HasController>
           widgetController.opacity != null &&
           !tvHandlesOpacity) {
         rtn = Opacity(
-          opacity: Utils.optionalDouble(widgetController.opacity!, min: 0, max: 1.0) ?? 1.0,
+          opacity: Utils.optionalDouble(widgetController.opacity!,
+                  min: 0, max: 1.0) ??
+              1.0,
           child: rtn,
         );
       }
@@ -222,15 +243,31 @@ abstract class EWidgetState<W extends HasController>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    scopeManager =
+    final nextScope =
         DataScopeWidget.getScope(context) ?? PageGroupWidget.getScope(context);
+    _syncBindingOwner(nextScope);
+    scopeManager = nextScope;
+  }
+
+  @override
+  void didUpdateWidget(covariant W oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget, widget) && oldWidget is Invokable) {
+      PageBindingManager.releaseBindingOwner(
+          _bindingOwnerScope, oldWidget as Invokable);
+      if (identical(_bindingOwnerDestination, oldWidget)) {
+        _bindingOwnerScope = null;
+        _bindingOwnerDestination = null;
+      }
+    }
   }
 
   @override
   void dispose() {
-    if (widget is Invokable) {
-      scopeManager?.removeBindingListeners(widget as Invokable);
-    }
+    PageBindingManager.releaseBindingOwner(
+        _bindingOwnerScope, _bindingOwnerDestination);
+    _bindingOwnerScope = null;
+    _bindingOwnerDestination = null;
     super.dispose();
   }
 
