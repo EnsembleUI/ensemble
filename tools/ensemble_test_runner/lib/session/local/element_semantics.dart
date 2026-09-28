@@ -1493,7 +1493,8 @@ String _inferGenericTapTargetType(Element element) {
   final hasIcon = _hasIconDescendant(element);
   // Prefer real captions over longer mask glyphs (WifiCard "••••" vs
   // "Wachtwoord") so the outer edit row is not mistyped as icon chrome.
-  final substantialText = _longestSubstantialTextDescendant(element) != null;
+  final substantialText =
+      _longestTextDescendant(element, substantialOnly: true) != null;
   final compact = _looksLikeCompactIconHitTarget(element);
   final bounds = boundsFor(element);
   final keyId = readValueKeyLocatorId(element) ?? '';
@@ -1585,33 +1586,6 @@ bool _isIconFontOrTofuCodePoint(int code) {
   if (code >= 0xF0000 && code <= 0xFFFFD) return true;
   if (code >= 0x100000 && code <= 0x10FFFD) return true;
   return false;
-}
-
-/// Longest descendant text that counts as a real caption (skips •••• masks).
-String? _longestSubstantialTextDescendant(Element element) {
-  String? longest;
-  void visit(Element e) {
-    final w = e.widget;
-    String? value;
-    if (w is Text) {
-      value = _textWidgetCaption(w);
-    } else if (w is RichText) {
-      if (_hasIconPaintAncestor(e)) {
-        value = null;
-      } else {
-        value = w.text.toPlainText();
-      }
-    }
-    if (value != null && _isSubstantialControlCaption(value)) {
-      if (longest == null || value.length > longest!.length) {
-        longest = value;
-      }
-    }
-    e.visitChildren(visit);
-  }
-
-  element.visitChildren(visit);
-  return longest;
 }
 
 /// True for Ensemble [ToastController] / fluttertoast FToast overlay banners.
@@ -1827,7 +1801,10 @@ bool _isDropdownChevronIcon(IconData? data) {
       data == Icons.arrow_downward_rounded;
 }
 
-String? _longestTextDescendant(Element element) {
+String? _longestTextDescendant(
+  Element element, {
+  bool substantialOnly = false,
+}) {
   String? longest;
   void visit(Element e) {
     final w = e.widget;
@@ -1841,7 +1818,9 @@ String? _longestTextDescendant(Element element) {
         value = w.text.toPlainText();
       }
     }
-    if (value != null && value.trim().isNotEmpty) {
+    if (value != null &&
+        value.trim().isNotEmpty &&
+        (!substantialOnly || _isSubstantialControlCaption(value))) {
       if (longest == null || value.length > longest!.length) {
         longest = value;
       }
@@ -2687,13 +2666,11 @@ List<String> actionsFor(
   }
 
   final canGesture = enabled != false;
+  addIdWaitAssert();
 
   switch (t) {
     case 'text':
       addTextWaitAssert();
-      if (hasId) {
-        addIdWaitAssert();
-      }
       // Plain text is not a gesture target.
       break;
     case 'toast':
@@ -2702,11 +2679,9 @@ List<String> actionsFor(
     case 'svg':
     case 'gif':
     case 'lottie':
-      addIdWaitAssert();
       break;
     case 'textinput':
     case 'textfield':
-      addIdWaitAssert();
       // Caption (hint / absorbed label) unlocks edit steps without a testId.
       if (canGesture && (hasId || hasCaption)) {
         if (hasId) addEnabledAsserts();
@@ -2724,7 +2699,6 @@ List<String> actionsFor(
       }
       break;
     case 'button':
-      addIdWaitAssert();
       // Unkeyed Ensemble tabs / CTAs: tap via label+role (or text+role).
       if (canGesture && (hasId || hasCaption)) {
         if (hasId) addEnabledAsserts();
@@ -2734,14 +2708,12 @@ List<String> actionsFor(
     case 'card':
       // Tap when the row is positively enabled (InkWell onTap) and either
       // keyed or has a caption agents can target via label+role.
-      addIdWaitAssert();
       if (enabled == true && (hasId || hasCaption)) {
         if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'longPress']);
       }
       break;
     case 'icon':
-      addIdWaitAssert();
       // Keyed icons always expose enable asserts when we know the state
       // (including disabled Ensemble back buttons with isDisabled=true).
       if (hasId && enabled != null) {
@@ -2754,7 +2726,6 @@ List<String> actionsFor(
       }
       break;
     case 'dropdown':
-      addIdWaitAssert();
       if (canGesture && (hasId || hasCaption)) {
         if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'select', 'selectIndex']);
@@ -2763,7 +2734,6 @@ List<String> actionsFor(
     case 'switch':
     case 'toggle':
     case 'checkbox':
-      addIdWaitAssert();
       // Enabled switches are tappable even without testId — agents use
       // absorbed label+role or within+role under a parent card.
       if (canGesture && (hasId || hasCaption || enabled == true)) {
@@ -2778,14 +2748,12 @@ List<String> actionsFor(
       }
       break;
     case 'slider':
-      addIdWaitAssert();
       if (canGesture && (hasId || hasCaption || enabled == true)) {
         if (hasId) addEnabledAsserts();
         actions.addAll(const ['tap', 'setSlider']);
       }
       break;
     default:
-      addIdWaitAssert();
       break;
   }
 
