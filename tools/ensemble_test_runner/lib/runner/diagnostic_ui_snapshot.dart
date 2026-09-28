@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
 import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
@@ -51,9 +50,26 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
     useSemantics: false,
     registerRouteDependency: false,
   );
-  final withLocators = [
-    for (final root in built.elements) _attachCheapSuggestedLocators(root),
-  ];
+  final withLocators = mapObservationLocatorTree(
+    elements: built.elements,
+    resolve: ({
+      required element,
+      parentScope,
+      iconOccurrenceAmongSiblings,
+      iconSiblingCount,
+      occurrenceAmongSiblings,
+    }) =>
+        (
+      locator: cheapSuggestedLocator(
+        element,
+        parentScope: parentScope,
+        iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+        iconSiblingCount: iconSiblingCount,
+        occurrenceAmongSiblings: occurrenceAmongSiblings,
+      ),
+      warning: null,
+    ),
+  );
   final locatorEntries = <String, List<(UiElement, List<String>)>>{};
   void collectLocators(List<UiElement> elements, List<String> ancestors) {
     for (final element in elements) {
@@ -143,83 +159,6 @@ ScreenObservation _screenObservation(
     routeId: route,
     navigationStack: history,
     unknown: false,
-  );
-}
-
-/// Owned ValueKey / Invokable id → `id=…`; otherwise agent caption / within
-/// locators from [cheapSuggestedLocator] (shared ranking with live enrich).
-///
-/// Decorative media (`image` / `svg` / …) without an id get **no** selector —
-/// there is no image wait/tap vocabulary.
-///
-/// No live finder verification (that path is for report-time snapshots only).
-UiElement _attachCheapSuggestedLocators(
-  UiElement element, {
-  ElementLocator? parentScope,
-  int? iconOccurrenceAmongSiblings,
-  int? iconSiblingCount,
-  int? occurrenceAmongSiblings,
-}) {
-  final locator = cheapSuggestedLocator(
-    element,
-    parentScope: parentScope,
-    iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
-    iconSiblingCount: iconSiblingCount,
-    occurrenceAmongSiblings: occurrenceAmongSiblings,
-  );
-  // Inert cards keep no sel, but still scope nested icons via caption+role.
-  final scopeForChildren =
-      locator ?? containerScopeLocator(element) ?? parentScope;
-
-  final iconKids = [
-    for (final child in element.children)
-      if ((child.type ?? '').toLowerCase() == 'icon') child,
-  ];
-  final siblingLocators = [
-    for (final child in element.children)
-      cheapSuggestedLocator(
-        child,
-        parentScope: scopeForChildren,
-      ),
-  ];
-  final siblingGroups = <String, List<int>>{};
-  for (var i = 0; i < siblingLocators.length; i++) {
-    final candidate = siblingLocators[i];
-    if (candidate == null) continue;
-    siblingGroups
-        .putIfAbsent(candidate.toJson().toString(), () => <int>[])
-        .add(i);
-  }
-  final occurrenceBySiblingIndex = <int, int>{};
-  for (final indexes in siblingGroups.values) {
-    if (indexes.length < 2) continue;
-    for (var occurrence = 0; occurrence < indexes.length; occurrence++) {
-      occurrenceBySiblingIndex[indexes[occurrence]] = occurrence;
-    }
-  }
-  final children = <UiElement>[];
-  var iconIndex = 0;
-  for (var childIndex = 0; childIndex < element.children.length; childIndex++) {
-    final child = element.children[childIndex];
-    final isIcon = (child.type ?? '').toLowerCase() == 'icon';
-    children.add(
-      _attachCheapSuggestedLocators(
-        child,
-        parentScope: scopeForChildren,
-        iconOccurrenceAmongSiblings:
-            isIcon && iconKids.length > 1 ? iconIndex : null,
-        iconSiblingCount: isIcon ? iconKids.length : null,
-        occurrenceAmongSiblings: occurrenceBySiblingIndex[childIndex],
-      ),
-    );
-    if (isIcon) iconIndex++;
-  }
-
-  return element.copyWith(
-    children: children,
-    suggestedLocator: locator,
-    clearSuggestedLocator: true,
-    clearLocatorWarning: false,
   );
 }
 

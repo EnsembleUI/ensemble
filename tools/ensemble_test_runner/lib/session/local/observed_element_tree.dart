@@ -75,41 +75,6 @@ import 'package:flutter_test/flutter_test.dart';
           allowInheritedId = true;
           if (ownedId != null) claimedOwnedIds.add(ownedId);
         }
-      } else if (underKeyed) {
-        if (isPrimaryControlElement(element) &&
-            !hasPrimaryControlAncestor(element)) {
-          if (readInvokableLocatorId(element) != null &&
-              nearestDescendantValueKeyLocatorId(element) != null) {
-            keep = false;
-          } else {
-            final scopeId = ownedId ??
-                nearestExclusiveKeyedWrapperId(
-                  element,
-                  viewport: viewportSize,
-                  routeName: routeName,
-                );
-            if (scopeId != null) {
-              keep = claimedOwnedIds.add(scopeId);
-            } else {
-              keep = true;
-            }
-            allowInheritedId = keep;
-          }
-        } else if (isNestedActionableElement(element)) {
-          // Nested actions under a keyed card / page shell (icons, buttons, …).
-          keep = true;
-        } else if (isObservableTextElement(element)) {
-          keep = true;
-        } else if (isNestedContentMediaElement(element)) {
-          keep = true;
-        } else if (isVisualCardContainerElement(element)) {
-          keep = true;
-        } else if (isStandaloneTextElement(element)) {
-          // Avoid KeyedSubtree(icon) + leaf media/text both observing as icon.
-          keep = !isRedundantLeafUnderKeyedIconShell(element);
-        } else if (isStandaloneMediaElement(element)) {
-          keep = !isRedundantLeafUnderKeyedIconShell(element);
-        }
       } else if (isPrimaryControlElement(element) &&
           !hasPrimaryControlAncestor(element)) {
         if (readInvokableLocatorId(element) != null &&
@@ -129,22 +94,8 @@ import 'package:flutter_test/flutter_test.dart';
           }
           allowInheritedId = keep;
         }
-      } else if (isNestedActionableElement(element)) {
-        // Nested actions under an unkeyed tappable settings row (card).
-        keep = true;
-      } else if (isObservableTextElement(element)) {
-        keep = true;
-      } else if (isNestedContentMediaElement(element)) {
-        keep = true;
-      } else if (isVisualCardContainerElement(element)) {
-        // Non-interactive bordered panels (FeedbackInput, etc.).
-        keep = true;
-      } else if (isStandaloneTextElement(element) &&
-          nearestOwnedLocatorIdAncestor(element) == null) {
-        keep = true;
-      } else if (isStandaloneMediaElement(element) &&
-          nearestOwnedLocatorIdAncestor(element) == null) {
-        keep = true;
+      } else {
+        keep = _keepUnkeyedElement(element, underKeyedAncestor: underKeyed);
       }
       if (!keep) continue;
 
@@ -211,6 +162,27 @@ import 'package:flutter_test/flutter_test.dart';
     );
   }
   return (elements: nestKeptElements(deduped), handles: handles);
+}
+
+bool _keepUnkeyedElement(
+  Element element, {
+  required bool underKeyedAncestor,
+}) {
+  if (isNestedActionableElement(element) ||
+      isObservableTextElement(element) ||
+      isNestedContentMediaElement(element) ||
+      isVisualCardContainerElement(element)) {
+    return true;
+  }
+
+  if (isStandaloneTextElement(element) || isStandaloneMediaElement(element)) {
+    if (underKeyedAncestor) {
+      // Avoid KeyedSubtree(icon) + leaf media/text both observing as icon.
+      return !isRedundantLeafUnderKeyedIconShell(element);
+    }
+    return nearestOwnedLocatorIdAncestor(element) == null;
+  }
+  return false;
 }
 
 bool _isUnaddressableAnonymousButton(UiElement element) {

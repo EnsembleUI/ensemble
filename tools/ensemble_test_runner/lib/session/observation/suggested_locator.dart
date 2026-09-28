@@ -19,15 +19,25 @@ UiObservation enrichSuggestedLocators({
   required FlutterTargetResolver resolver,
   required ObservationRegistry registry,
 }) {
-  final enriched = [
-    for (final root in observation.elements)
-      _enrichTree(
-        element: root,
-        observationId: observation.observationId,
-        resolver: resolver,
-        registry: registry,
-      ),
-  ];
+  final enriched = mapObservationLocatorTree(
+    elements: observation.elements,
+    resolve: ({
+      required element,
+      parentScope,
+      iconOccurrenceAmongSiblings,
+      iconSiblingCount,
+      occurrenceAmongSiblings,
+    }) =>
+        _suggestForElement(
+      element: element,
+      observationId: observation.observationId,
+      resolver: resolver,
+      registry: registry,
+      parentScope: parentScope,
+      iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+      iconSiblingCount: iconSiblingCount,
+    ),
+  );
   return UiObservation(
     schemaVersion: observation.schemaVersion,
     observationId: observation.observationId,
@@ -39,61 +49,6 @@ UiObservation enrichSuggestedLocators({
     observableFingerprint: observation.observableFingerprint,
     completeness: observation.completeness,
     screenshotArtifactId: observation.screenshotArtifactId,
-  );
-}
-
-UiElement _enrichTree({
-  required UiElement element,
-  required String observationId,
-  required FlutterTargetResolver resolver,
-  required ObservationRegistry registry,
-  ElementLocator? parentScope,
-  int? iconOccurrenceAmongSiblings,
-  int? iconSiblingCount,
-}) {
-  // Resolve this node before children so nested `within` can use our locator.
-  final result = _suggestForElement(
-    element: element,
-    observationId: observationId,
-    resolver: resolver,
-    registry: registry,
-    parentScope: parentScope,
-    iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
-    iconSiblingCount: iconSiblingCount,
-  );
-  // Inert cards still scope nested icons via caption+role (no card sel).
-  final scopeForChildren =
-      result.locator ?? containerScopeLocator(element) ?? parentScope;
-
-  final iconKids = [
-    for (final child in element.children)
-      if ((child.type ?? '').toLowerCase() == 'icon') child,
-  ];
-  final children = <UiElement>[];
-  var iconIndex = 0;
-  for (final child in element.children) {
-    final isIcon = (child.type ?? '').toLowerCase() == 'icon';
-    children.add(
-      _enrichTree(
-        element: child,
-        observationId: observationId,
-        resolver: resolver,
-        registry: registry,
-        parentScope: scopeForChildren,
-        iconOccurrenceAmongSiblings:
-            isIcon && iconKids.length > 1 ? iconIndex : null,
-        iconSiblingCount: isIcon ? iconKids.length : null,
-      ),
-    );
-    if (isIcon) iconIndex++;
-  }
-
-  return element.copyWith(
-    children: children,
-    suggestedLocator: result.locator,
-    clearSuggestedLocator: true,
-    locatorWarning: result.warning,
-    clearLocatorWarning: true,
   );
 }
 
@@ -169,6 +124,94 @@ UiElement _enrichTree({
     );
   }
   return (locator: null, warning: 'No stable locator available');
+}
+
+typedef ObserverLocatorResolution = ({
+  ElementLocator? locator,
+  String? warning,
+});
+
+typedef ObserverLocatorResolver = ObserverLocatorResolution Function({
+  required UiElement element,
+  ElementLocator? parentScope,
+  int? iconOccurrenceAmongSiblings,
+  int? iconSiblingCount,
+  int? occurrenceAmongSiblings,
+});
+
+/// Applies locator resolution to a tree while consistently deriving scopes and
+/// sibling occurrences for both live and diagnostic observations.
+List<UiElement> mapObservationLocatorTree({
+  required List<UiElement> elements,
+  required ObserverLocatorResolver resolve,
+}) {
+  UiElement visit(
+    UiElement element, {
+    ElementLocator? parentScope,
+    int? iconOccurrenceAmongSiblings,
+    int? iconSiblingCount,
+    int? occurrenceAmongSiblings,
+  }) {
+    final result = resolve(
+      element: element,
+      parentScope: parentScope,
+      iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+      iconSiblingCount: iconSiblingCount,
+      occurrenceAmongSiblings: occurrenceAmongSiblings,
+    );
+    // Inert cards still scope nested icons via caption+role (no card sel).
+    final scope =
+        result.locator ?? containerScopeLocator(element) ?? parentScope;
+    final iconCount = element.children
+        .where((child) => (child.type ?? '').toLowerCase() == 'icon')
+        .length;
+    final siblingCandidates = [
+      for (final child in element.children)
+        cheapSuggestedLocator(child, parentScope: scope),
+    ];
+    final siblingGroups = <String, List<int>>{};
+    for (var i = 0; i < siblingCandidates.length; i++) {
+      final candidate = siblingCandidates[i];
+      if (candidate == null) continue;
+      siblingGroups
+          .putIfAbsent(candidate.toJson().toString(), () => <int>[])
+          .add(i);
+    }
+    final occurrences = <int, int>{};
+    for (final indexes in siblingGroups.values) {
+      if (indexes.length < 2) continue;
+      for (var occurrence = 0; occurrence < indexes.length; occurrence++) {
+        occurrences[indexes[occurrence]] = occurrence;
+      }
+    }
+
+    final children = <UiElement>[];
+    var iconIndex = 0;
+    for (var i = 0; i < element.children.length; i++) {
+      final child = element.children[i];
+      final isIcon = (child.type ?? '').toLowerCase() == 'icon';
+      children.add(
+        visit(
+          child,
+          parentScope: scope,
+          iconOccurrenceAmongSiblings:
+              isIcon && iconCount > 1 ? iconIndex : null,
+          iconSiblingCount: isIcon ? iconCount : null,
+          occurrenceAmongSiblings: occurrences[i],
+        ),
+      );
+      if (isIcon) iconIndex++;
+    }
+    return element.copyWith(
+      children: children,
+      suggestedLocator: result.locator,
+      clearSuggestedLocator: true,
+      locatorWarning: result.warning,
+      clearLocatorWarning: true,
+    );
+  }
+
+  return [for (final element in elements) visit(element)];
 }
 
 /// Agent / report locator candidates in preference order.
