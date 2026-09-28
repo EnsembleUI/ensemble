@@ -2,6 +2,34 @@
 ///
 /// When [elementId] is set, [observationId] is required and resolution uses the
 /// observation registry only — never falls back to [testId].
+class ElementBounds {
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  const ElementBounds({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'left': left,
+        'top': top,
+        'width': width,
+        'height': height,
+      };
+
+  factory ElementBounds.fromJson(Map<String, dynamic> json) => ElementBounds(
+        left: (json['left'] as num).toDouble(),
+        top: (json['top'] as num).toDouble(),
+        width: (json['width'] as num).toDouble(),
+        height: (json['height'] as num).toDouble(),
+      );
+}
+
 class ElementLocator {
   final String? id;
   final String? text;
@@ -9,6 +37,7 @@ class ElementLocator {
   final String? role;
   final ElementLocator? within;
   final int? occurrence;
+  final ElementBounds? bounds;
 
   const ElementLocator({
     this.id,
@@ -17,10 +46,15 @@ class ElementLocator {
     this.role,
     this.within,
     this.occurrence,
+    this.bounds,
   });
 
   bool get isEmpty =>
-      id == null && text == null && label == null && role == null;
+      id == null &&
+      text == null &&
+      label == null &&
+      role == null &&
+      bounds == null;
 
   Map<String, dynamic> toJson() => {
         if (id != null) 'id': id,
@@ -29,6 +63,7 @@ class ElementLocator {
         if (role != null) 'role': role,
         if (within != null) 'within': within!.toJson(),
         if (occurrence != null) 'occurrence': occurrence,
+        if (bounds != null) 'bounds': bounds!.toJson(),
       };
 
   factory ElementLocator.fromJson(Map<String, dynamic> json) => ElementLocator(
@@ -42,6 +77,11 @@ class ElementLocator {
               )
             : null,
         occurrence: json['occurrence'] as int?,
+        bounds: json['bounds'] is Map
+            ? ElementBounds.fromJson(
+                Map<String, dynamic>.from(json['bounds'] as Map),
+              )
+            : null,
       );
 }
 

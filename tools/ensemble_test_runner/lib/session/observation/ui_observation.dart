@@ -144,6 +144,10 @@ class UiObservation {
         'timestamp': timestamp.toUtc().toIso8601String(),
         'screen': screen.toJson(),
         'elements': elements.map((e) => e.toJson()).toList(),
+        'coordinateSpace': const {
+          'unit': 'logicalPixels',
+          'origin': 'topLeft',
+        },
         if (viewport != null) 'viewport': viewport!.toJson(),
         if (screenshotArtifactId != null)
           'screenshotArtifactId': screenshotArtifactId,

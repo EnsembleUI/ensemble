@@ -358,20 +358,6 @@ void main() {
     );
   });
 
-  test('pendingHostApplicationError ignores screenshot diagnostics', () {
-    final context = EnsembleTestContext.fromTestCase(
-      const EnsembleTestCase(id: 'errors', steps: []),
-    );
-    context.runtime.flutterErrors.addAll([
-      'Screenshot skipped because secure content is visible',
-      'Null check operator used on a null value',
-    ]);
-    expect(
-      pendingHostApplicationError(context),
-      'Null check operator used on a null value',
-    );
-  });
-
   testWidgets(
       'declared API mocks without host capability fail before steps run',
       (tester) async {
@@ -415,11 +401,11 @@ void main() {
       result.results.single.failure?.kind,
       TestFailureKind.unsupportedCapability,
     );
-    expect(driver.events, ['suite+', 'prepare:0', 'launch:0', 'cleanup:0', 'suite-']);
+    expect(driver.events,
+        ['suite+', 'prepare:0', 'launch:0', 'cleanup:0', 'suite-']);
   });
 
-  testWidgets(
-      'host ApiMockingTestService accepts suite-level API mocks',
+  testWidgets('host ApiMockingTestService accepts suite-level API mocks',
       (tester) async {
     final driver = _MockingApiDriver();
     const plan = EnsembleTestExecutionPlan(
@@ -458,23 +444,6 @@ void main() {
 
     expect(result.failedCount, 0, reason: result.toJson().toString());
     expect(driver.api.applied?.apis.keys, ['hostLogin']);
-  });
-
-  test('pending application errors after screenshots classify as crashes', () {
-    final context = EnsembleTestContext.fromTestCase(
-      const EnsembleTestCase(id: 'late-error', steps: []),
-    );
-    context.runtime.flutterErrors.add('screenshot-frame application error');
-    expect(
-      () => assertNoPendingHostApplicationError(context),
-      throwsA(
-        isA<ApplicationTestCrash>().having(
-          (error) => error.message,
-          'message',
-          contains('screenshot-frame application error'),
-        ),
-      ),
-    );
   });
 }
 

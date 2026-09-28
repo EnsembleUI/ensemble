@@ -62,6 +62,22 @@ void main() {
     expect(shell, contains('ensemble_test_history.db'));
     expect(shell, contains('sql-wasm.js'));
     expect(shell, contains('Test Execution History'));
+    expect(shell, contains('historyRange = 20'));
+    expect(shell, contains('function renderTestTrends'));
+    expect(shell, contains('function renderHistoryComparison'));
+    expect(shell, contains('Choose two different runs to compare'));
+    expect(
+        shell, contains('Per-test comparison is unavailable for these runs'));
+    expect(shell, contains('history-chart-heading'));
+    expect(shell, contains('No issues surfaced in these runs'));
+    expect(shell, contains('test_results'));
+    expect(shell, contains('ensureHistoryLoaded'));
+    expect(shell, contains('setHistorySearch'));
+    expect(shell, isNot(contains('Last 10 Runs')));
+    expect(shell, contains('chartRuns.length * 32'));
+    expect(shell, contains('overflow-x: auto;'));
+    expect(shell, contains("Execution Duration (' + chartLabel"));
+    expect(shell, contains("Test Volume & Results (' + chartLabel"));
     expect(shell, contains('DecompressionStream'));
     expect(shell, contains('report-loader'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
@@ -72,7 +88,10 @@ void main() {
     expect(shell, contains('applyProfileFilter'));
     expect(shell, contains('features.length > 1'));
     expect(shell, contains('profiles.length > 1'));
-    expect(shell.length, lessThan(200000));
+    expect(shell, contains('modal-step-error'));
+    expect(shell, contains('stepFailureMessage'));
+    expect(shell, contains('window.stepMeta'));
+    expect(shell.length, lessThan(240000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
 
@@ -93,8 +112,8 @@ void main() {
           EnsembleSingleTestResult.passed(
             testId: 'ok',
             metadata: const {
-              'feature': 'fwa-installation',
-              'profile': 'fwa_arc',
+              'feature': 'alternate-installation',
+              'profile': 'alternate',
               'scenarioId': 'manual_connect',
               'scenarioDescription': 'Manual Wi-Fi connection.',
               'device': {
@@ -132,8 +151,8 @@ void main() {
     expect(complete['state'], 'complete');
     expect(complete['tests'], hasLength(1));
     expect(complete['tests'][0]['id'], 'ok');
-    expect(complete['tests'][0]['feature'], 'fwa-installation');
-    expect(complete['tests'][0]['profile'], 'fwa_arc');
+    expect(complete['tests'][0]['feature'], 'alternate-installation');
+    expect(complete['tests'][0]['profile'], 'alternate');
     expect(complete['tests'][0]['scenarioId'], 'manual_connect');
     expect(
       complete['tests'][0]['scenarioDescription'],
@@ -156,8 +175,7 @@ void main() {
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
     File(p.join(reportScreenshotsDir.path, 'login_flow_step1_0.png'))
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
-    File(p.join(framesDir.path, 'login_flow_frames.json'))
-        .writeAsStringSync(
+    File(p.join(framesDir.path, 'login_flow_frames.json')).writeAsStringSync(
       jsonEncode({
         'status': 'failed',
         'failedStepIndex': 1,
@@ -204,6 +222,17 @@ void main() {
         ],
       }),
     );
+    File(p.join(logsDir.path, 'login_flow_attempt_1_api_calls.json'))
+        .writeAsStringSync(jsonEncode({
+      'events': [
+        {
+          'name': 'loginRetry',
+          'timestamp': '2026-07-22T12:00:00.020',
+          'stepIndex': 1,
+          'statusCode': 503,
+        },
+      ],
+    }));
     File(p.join(logsDir.path, 'login_flow_storage.json')).writeAsStringSync(
       jsonEncode({
         'keys': {'token': 'abc'},
@@ -220,6 +249,9 @@ void main() {
     );
     File(p.join(logsDir.path, 'login_flow_app_console.log'))
         .writeAsStringSync('[2026-07-22T12:00:00.050][step=1] during wait\n');
+    File(p.join(logsDir.path, 'login_flow_attempt_1_app_console.log'))
+        .writeAsStringSync(
+            '--- Attempt 1 of 4 ---\n[2026-07-22T12:00:00.020][step=1] first attempt\n');
     File(p.join(logsDir.path, 'ok_home_app_console.log'))
         .writeAsStringSync('<no console output>\n');
 
@@ -249,6 +281,8 @@ void main() {
           logs: [
             'screenshots: $displayRoot/frames/login_flow_frames.json',
             'screenshotFrames: $displayRoot/frames/login_flow_frames.json',
+            'apiCalls: $displayRoot/logs/login_flow_attempt_1_api_calls.json',
+            'appLogs: $displayRoot/logs/login_flow_attempt_1_app_console.log',
             'apiCalls: $displayRoot/logs/login_flow_api_calls.json',
             'storage: $displayRoot/logs/login_flow_storage.json',
             'appLogs: $displayRoot/logs/login_flow_app_console.log',
@@ -282,8 +316,44 @@ void main() {
     expect(html, contains('results.json.gz'));
     expect(html, contains("fetch('results.json.gz"));
     expect(html, contains('switchModalTab(\'screenshots\')'));
+    expect(html, isNot(contains('switchModalTab(\'observer\')')));
+    expect(html, contains('modal-observer-side'));
+    expect(html, contains('screenshots-split'));
+    expect(html, contains('copyObserverJson'));
+    expect(html, contains('renderObserverTreeNode'));
+    expect(html, contains('observer-tree'));
+    expect(html, contains('bindObserverTreeHover'));
+    expect(html, contains('openObserverElementDetail'));
+    expect(html, contains('Bounds (logical px)'));
+    expect(html, contains('el.selected'));
+    expect(html, contains('el.offscreen'));
+    expect(
+        html, contains('const payload = observer && observer.observationJson'));
+    expect(html, contains('window.__observerCopyPayload = payload'));
+    expect(html, contains('el.actions'));
+    expect(html, isNot(contains('formatObserverActionYaml')));
+    expect(html, contains('return { bounds: el.bounds }'));
+    expect(html, contains('bounds=\' + JSON.stringify(locator.bounds)'));
+    expect(html, contains('navigateObserverElement'));
+    expect(html, contains('renderObserverElementPreview'));
+    expect(html, contains('Element is outside this screenshot viewport'));
+    expect(html, contains('Screenshot has no bounds overlay for this element'));
+    expect(html, contains('layoutObserverDetailPreview'));
+    expect(html, contains('observer-element-detail-overlay'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
+    expect(html, contains('layoutScreenshotChips'));
+    expect(html, contains('flattenScreenshotFramesWithOverlays'));
+    expect(html, contains('screenshotOverlayToolbarHtml'));
+    expect(html, contains('copyScreenshotOverlay'));
+    expect(html,
+        contains("screenshotOverlaySwitchHtml('obsHighlights', 'Elements')"));
+    expect(
+        html, contains("screenshotOverlaySwitchHtml('obsLabels', 'Labels')"));
+    expect(html,
+        contains("screenshotOverlaySwitchHtml('actionHighlights', 'Target')"));
+    expect(html, contains("screenshotOverlaySwitchHtml('showTree', 'Tree')"));
+    expect(html, contains('modal-screenshots-toolbar'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
 
@@ -311,12 +381,21 @@ void main() {
     final steps = failed['steps'] as List;
     expect(steps, hasLength(2));
     expect((steps[0] as Map)['apiCalls'], isEmpty);
-    expect(((steps[1] as Map)['apiCalls'] as List).first['name'], 'login');
+    final stepApiCalls = (steps[1] as Map)['apiCalls'] as List;
+    expect(stepApiCalls.map((event) => event['name']),
+        containsAll(['loginRetry', 'login']));
+    expect(stepApiCalls.firstWhere((event) => event['name'] == 'login')['name'],
+        'login');
     expect(
-      ((steps[1] as Map)['apiCalls'] as List).first['responseBody']['token'],
+      stepApiCalls.firstWhere(
+          (event) => event['name'] == 'login')['responseBody']['token'],
       'abc',
     );
     expect((steps[1] as Map)['appLogs'], isNotEmpty);
+    expect(
+      (steps[1] as Map)['appLogs'],
+      contains('[2026-07-22T12:00:00.020][step=1] first attempt'),
+    );
     expect(
       (steps[1] as Map)['appLogs'],
       contains('[2026-07-22T12:00:00.050][step=1] during wait'),
@@ -334,7 +413,9 @@ void main() {
     expect(raw.containsKey('blobs'), isTrue);
     final api = (((raw['tests'] as List).first as Map)['steps'] as List)[1]
         as Map<String, dynamic>;
-    final ev = (api['apiCalls'] as List).first as Map<String, dynamic>;
+    final ev = (api['apiCalls'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((event) => event['name'] == 'login');
     expect(ev['responseBody'], isA<Map>());
     expect((ev['responseBody'] as Map).containsKey(r'$b'), isTrue);
 

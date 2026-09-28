@@ -49,13 +49,14 @@ SCREEN TRACKER: Login
         '--quiet',
         '--doctor',
         '--inspect-app',
+        '--screen=Hello Home',
         '--validate-only',
         '--scaffold-test=login',
         '--report=json',
         '--report-file=build/results.json',
         '--id=login',
         '--feature=auth',
-        '--profile=fwa_arc',
+        '--profile=alternate',
         '--tag=smoke',
         '--path=auth/',
         '--mode=integration',
@@ -109,7 +110,7 @@ SCREEN TRACKER: Login
     const noisy = '''
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════
 The following EnsembleTestFailure was thrown running a test:
-No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/
+No declarative tests found. Add *.test.yaml files under ensemble/apps/sample_app/tests/
 
 When the exception was thrown, this was the stack:
 #0      EnsembleTestExecutionPlanner.build
@@ -120,7 +121,7 @@ The test description was:
 
     expect(
       extractKnownFailure(noisy),
-      'No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/',
+      'No declarative tests found. Add *.test.yaml files under ensemble/apps/sample_app/tests/',
     );
   });
 
@@ -157,6 +158,10 @@ When the exception was thrown, this was the stack:
       ),
       isFalse,
     );
+    expect(filter.shouldEmit('ENSEMBLE_TEST_OBSERVE_V1_BEGIN'), isFalse);
+    expect(filter.shouldEmit('Screen: Hello Home'), isFalse);
+    expect(filter.shouldEmit('ENSEMBLE_TEST_OBSERVE_V1_END'), isFalse);
+    expect(filter.shouldEmit('DEBUG after observe'), isTrue);
     expect(
       filter.shouldEmit(
         '(The following exception is now available via WidgetTester.takeException:)',

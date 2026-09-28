@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 /// Initializes Ensemble after the Flutter shell is reached, then hosts the
 /// Flutter bottom-nav app as `EnsembleApp(child:)`.
 ///
-/// This matches the KPN PCA pattern: login stays a Flutter `MaterialApp`,
+/// In this host example, login stays a Flutter `MaterialApp`,
 /// and Ensemble starts when the screen with the navbar and shop card appears.
 class EnsembleHost extends StatefulWidget {
   const EnsembleHost({super.key, required this.child});

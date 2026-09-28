@@ -1,7 +1,7 @@
 # Flutter host + Ensemble child example
 
 This app is a Flutter host with Ensemble embedded as a child, the same shape as
-KPN `flutter_pca`: a Flutter login screen, then a Flutter shell that owns the
+Example `sample_host_app`: a Flutter login screen, then a Flutter shell that owns the
 bottom navigation. Ensemble is initialized when that shell appears — not on the
 login screen.
 

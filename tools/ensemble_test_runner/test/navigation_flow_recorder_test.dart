@@ -15,7 +15,7 @@ void main() {
 
     flow.recordScreenChange(
       VisibleScreen(
-        screenName: 'AutoSignIn_Gateway',
+        screenName: 'AutoSignIn_Device',
         visibleSince: DateTime.now(),
       ),
     );
@@ -24,7 +24,7 @@ void main() {
     );
     await flow.flushPending();
 
-    expect(flow.flow, ['AutoSignIn', 'AutoSignIn_Gateway', 'Home']);
+    expect(flow.flow, ['AutoSignIn', 'AutoSignIn_Device', 'Home']);
   });
 
   test('onScreenAdded fires for each newly recorded screen', () async {
@@ -37,7 +37,7 @@ void main() {
 
     flow.recordScreenChange(
       VisibleScreen(
-        screenName: 'AutoSignIn_Gateway',
+        screenName: 'AutoSignIn_Device',
         visibleSince: DateTime.now(),
       ),
     );
@@ -46,7 +46,7 @@ void main() {
     );
     await flow.flushPending();
 
-    expect(flow.flow, ['AutoSignIn_Gateway', 'Home']);
-    expect(seen, ['AutoSignIn_Gateway', 'Home']);
+    expect(flow.flow, ['AutoSignIn_Device', 'Home']);
+    expect(seen, ['AutoSignIn_Device', 'Home']);
   });
 }

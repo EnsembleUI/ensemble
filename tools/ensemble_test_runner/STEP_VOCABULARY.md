@@ -51,7 +51,8 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 exact accessible or compound matching (`id`, `text`, `label`, `role`, `within`,
 zero-based `occurrence`). Fields are conjunctive; missing or ambiguous matches
 fail without heuristic fallback. Snapshot element IDs keep observation identity
-and never fall back to a locator.
+and never fall back to a locator. Supported `role` values: `button`, `text`,
+`textField`, `checkbox`, `switch`, `slider`, `dropdown`, `icon`, `widget`.
 
 ```yaml
 - tap:
@@ -128,14 +129,14 @@ after the suite:
 
 ```yaml
 services:
-  - name: modemStub
+  - name: testService
     command: .venv/bin/python
-    arguments: [modemstub/app.py]
-    workingDirectory: ensemble/apps/inhome/autotests
+    arguments: [test_service/app.py]
+    workingDirectory: ensemble/apps/sample_app/autotests
     readyUrl: /ping
 ```
 
-The runner assigns a free local port. Use `${services.modemStub.url}` in test
+The runner assigns a free local port. Use `${services.testService.url}` in test
 steps instead of repeating the endpoint.
 
 Use `httpRequest` for finite setup or state changes during a test:
@@ -143,7 +144,7 @@ Use `httpRequest` for finite setup or state changes during a test:
 ```yaml
 - httpRequest:
     method: POST
-    url: ${services.modemStub.url}/api/v1/stub/hard-reset
+    url: ${services.testService.url}/api/v1/stub/hard-reset
     body:
       loadDefaults: true
     expectStatus: 200

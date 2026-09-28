@@ -39,20 +39,20 @@ void main() {
     final dir = Directory.systemTemp.createTempSync('ensemble_package_info_');
     try {
       File('${dir.path}/pubspec.yaml').writeAsStringSync('''
-name: inhome
+name: sample_app
 version: 0.6.0+60
 ''');
       Directory('${dir.path}/ensemble').createSync();
       File('${dir.path}/ensemble/ensemble.properties').writeAsStringSync('''
-appId=com.kpn.inhome.dev
-appName=KPN InHome Dev
+appId=com.example.sampleapp.dev
+appName=Sample App Dev
 ''');
 
       expect(
         EnsembleTestHarness.packageInfoForTest(dir.path),
         {
-          'appName': 'KPN InHome Dev',
-          'packageName': 'com.kpn.inhome.dev',
+          'appName': 'Sample App Dev',
+          'packageName': 'com.example.sampleapp.dev',
           'version': '0.6.0',
           'buildNumber': '60',
         },
@@ -141,13 +141,13 @@ appName=KPN InHome Dev
     await applyYamlTestStorageBootstrap(
       const EnsembleTestSetup(
         initialKeychain: {
-          'kpnPsi': 'test-psi',
+          'sessionPsi': 'test-psi',
           'authPayload': {'token': 'abc'},
         },
       ),
     );
 
-    expect(await StorageManager().readSecurely('kpnPsi'), 'test-psi');
+    expect(await StorageManager().readSecurely('sessionPsi'), 'test-psi');
     expect(
       await StorageManager().readSecurely('authPayload'),
       {'token': 'abc'},

@@ -4,7 +4,9 @@ import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:flutter/foundation.dart' show DebugPrintCallback;
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Mutable runtime flags and logs for declarative test steps.
 class TestRuntimeState {
@@ -14,6 +16,9 @@ class TestRuntimeState {
   final List<AppFrameTimingEntry> appFrameTimings = [];
   final List<PerformanceMarker> performanceMarkers = [];
   final List<ScreenshotSheetFrame> screenshotSheetFrames = [];
+
+  /// Live UI dumps for Step Details → Observer (one per step that was shot).
+  final List<StepObserverArtifact> stepObservers = [];
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
@@ -23,6 +28,16 @@ class TestRuntimeState {
   /// Active top-level step index while `_executeSteps` runs (0-based).
   /// Used to attribute API calls and console lines to Step Details.
   int? currentStepIndex;
+
+  /// One-based attempt number and configured attempt count for the current
+  /// case. Used to keep retry diagnostics in distinct report sidecars.
+  int attemptNumber = 1;
+  int attemptCount = 1;
+
+  int _forwardingDebugPrint = 0;
+
+  String artifactFilePrefix(String testId) =>
+      attemptCount > 1 ? '${testId}_attempt_$attemptNumber' : testId;
 
   /// Public-storage diffs captured at the end of each top-level step.
   final List<StorageStepDiff> storageStepDiffs = [];
@@ -39,12 +54,18 @@ class TestRuntimeState {
     appFrameTimings.clear();
     performanceMarkers.clear();
     screenshotSheetFrames.clear();
+    for (final observer in stepObservers) {
+      observer.dispose();
+    }
+    stepObservers.clear();
     authUser = null;
     permissions.clear();
     deviceSize = null;
     locale = null;
     themeMode = null;
     currentStepIndex = null;
+    attemptNumber = 1;
+    attemptCount = 1;
     storageStepDiffs.clear();
     secureStorageStepDiffs.clear();
     keychainStepDiffs.clear();
@@ -69,11 +90,51 @@ class TestRuntimeState {
   /// stdout for the CLI, but are not stored as application console logs.
   ZoneSpecification get consoleCaptureZone => ZoneSpecification(
         print: (self, parent, zone, line) {
-          if (!isEnsembleTestProtocolLine(line)) {
+          if (_forwardingDebugPrint == 0 && !isEnsembleTestProtocolLine(line)) {
             consoleLogs.add(formatConsoleLine(line));
           }
           parent.print(zone, line);
         },
+      );
+
+  /// Captures [debugPrint] calls even when Flutter runs their callbacks in a
+  /// zone outside [consoleCaptureZone], as `WidgetTester.runAsync` does.
+  ///
+  /// The active Flutter test binding uses `debugPrintSynchronously`, which
+  /// forwards to `print`; suppress that nested zone callback while forwarding
+  /// so each debug message is recorded once.
+  VoidCallback captureDebugPrint() {
+    final previous = debugPrint;
+    late final DebugPrintCallback capture;
+    capture = (String? message, {int? wrapWidth}) {
+      final line = message ?? 'null';
+      if (!isEnsembleTestProtocolLine(line)) {
+        consoleLogs.add(formatConsoleLine(line));
+      }
+      _forwardingDebugPrint++;
+      try {
+        previous(message, wrapWidth: wrapWidth);
+      } finally {
+        _forwardingDebugPrint--;
+      }
+    };
+    debugPrint = capture;
+    return () {
+      if (identical(debugPrint, capture)) debugPrint = previous;
+    };
+  }
+
+  /// Runs asynchronous app work in a capture zone even when the test binding
+  /// moves execution out of the calling zone.
+  Future<T?> runAsyncWithConsoleCapture<T>(
+    WidgetTester tester,
+    Future<T> Function() callback,
+  ) =>
+      tester.runAsync(
+        () => runZoned<Future<T>>(
+          callback,
+          zoneSpecification: consoleCaptureZone,
+        ),
       );
 
   void addFrameTimings(List<ui.FrameTiming> timings) {
@@ -93,6 +154,12 @@ class TestRuntimeState {
 
   void addScreenshotSheetFrame(ScreenshotSheetFrame frame) {
     screenshotSheetFrames.add(frame);
+  }
+
+  /// Replace any existing observer for [artifact.stepIndex].
+  void upsertStepObserver(StepObserverArtifact artifact) {
+    stepObservers.removeWhere((o) => o.stepIndex == artifact.stepIndex);
+    stepObservers.add(artifact);
   }
 }
 
@@ -117,6 +184,38 @@ class ScreenshotSheetFrame {
     this.model,
     this.highlight,
   });
+}
+
+/// Observe snapshot for a step (nested element tree + HTML overlay percents).
+///
+/// [elements] is a parent→child tree (not a flat list). No second screenshot —
+/// overlays are drawn on that step's frame in the HTML report.
+class StepObserverArtifact {
+  StepObserverArtifact({
+    required this.stepIndex,
+    required this.elements,
+    required this.observationJson,
+    this.viewport,
+    this.overlays = const [],
+    this.screen,
+    this.deviceId,
+    this.deviceLabel,
+    this.platform,
+    this.model,
+  });
+
+  final int stepIndex;
+  final String? screen;
+  final List<Map<String, dynamic>> elements;
+  final Map<String, dynamic> observationJson;
+  final Map<String, dynamic>? viewport;
+  final List<Map<String, dynamic>> overlays;
+  final String? deviceId;
+  final String? deviceLabel;
+  final String? platform;
+  final String? model;
+
+  void dispose() {}
 }
 
 class ScreenshotHighlight {

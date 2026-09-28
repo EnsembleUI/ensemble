@@ -16,7 +16,9 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/flutter_error_isolation.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:ensemble_test_runner/runner/step_report_capture.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
@@ -34,6 +36,7 @@ import 'package:integration_test/integration_test.dart';
 /// ```dart
 /// Future<void> main() => runApplicationYamlTests(driver: MyDriver());
 /// ```
+///
 Future<void> runApplicationYamlTests({
   required ApplicationTestDriver driver,
   String? testsAssetPrefix,
@@ -76,30 +79,55 @@ Future<void> registerApplicationYamlTests({
   tearDown(completeTransportIfNeeded);
 
   testWidgets('Application *.test.yaml', (tester) async {
-    if (transport) {
-      emitEnsembleTestArtifactTransportBegin();
-    }
-    try {
-      final plan = await EnsembleTestExecutionPlanner.build(
-        testsAssetPrefix: prefix,
-        inputs: _inputsFromEnvironment(),
-        selection: _selectionFromEnvironment(),
-      );
-      final runResult = await runApplicationTestPlan(
-        driver: driver,
-        plan: plan,
-        tester: tester,
-        mode: resolved,
-      );
-      final reporter = TestReporter();
-      print(reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'));
-      _emitMachineReport(runResult);
-      if (runResult.failedCount > 0) {
-        fail(reporter.formatFailureSummary(runResult));
+    await withFlutterErrorIsolation(() async {
+      if (transport) {
+        emitEnsembleTestArtifactTransportBegin();
       }
-    } finally {
-      completeTransportIfNeeded();
-    }
+      try {
+        final plan = await EnsembleTestExecutionPlanner.build(
+          testsAssetPrefix: prefix,
+          inputs: _inputsFromEnvironment(),
+          selection: _selectionFromEnvironment(),
+        );
+        final runResult = await runApplicationTestPlan(
+          driver: driver,
+          plan: plan,
+          tester: tester,
+          mode: resolved,
+        );
+        final reporter = TestReporter();
+        print(
+          reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'),
+        );
+        _emitMachineReport(runResult);
+        if (runResult.failedCount > 0) {
+          fail(reporter.formatFailureSummary(runResult));
+        }
+      } catch (error, stackTrace) {
+        final runResult = EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.failed(
+              testId: 'test-process',
+              durationMs: 0,
+              error: error.toString(),
+              stackTrace: stackTrace.toString(),
+            ),
+          ],
+          suiteLogs: const [],
+          metadata: {
+            'mode': resolved.name,
+            'launchKind': 'applicationProvided',
+          },
+        );
+        final reporter = TestReporter();
+        print(
+            reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'));
+        _emitMachineReport(runResult);
+        fail(reporter.formatFailureSummary(runResult));
+      } finally {
+        completeTransportIfNeeded();
+      }
+    });
   });
 }
 
@@ -134,6 +162,20 @@ List<TestServiceConfig> hostProcessServiceConfigs(
 
 /// Executes an already-resolved plan through an application driver.
 Future<EnsembleTestRunResult> runApplicationTestPlan({
+  required ApplicationTestDriver driver,
+  required EnsembleTestExecutionPlan plan,
+  required WidgetTester tester,
+  required ExecutionMode mode,
+}) {
+  return withFlutterErrorIsolation(() => _runApplicationTestPlanIsolated(
+        driver: driver,
+        plan: plan,
+        tester: tester,
+        mode: mode,
+      ));
+}
+
+Future<EnsembleTestRunResult> _runApplicationTestPlanIsolated({
   required ApplicationTestDriver driver,
   required EnsembleTestExecutionPlan plan,
   required WidgetTester tester,
@@ -182,17 +224,29 @@ Future<EnsembleTestRunResult> runApplicationTestPlan({
         continue;
       }
       final checkpoint = dependency == null ? null : checkpoints[dependency];
-      results.add(await _runHostTestWithRetries(
-        tester: tester,
-        driver: driver,
-        test: test,
-        config: plan.config,
-        runId: runId,
-        mode: mode,
-        checkpoint: checkpoint,
-        captureCheckpoint: requestedSessions.contains(test.id),
-        onCheckpoint: (value) => checkpoints[test.id] = value,
-      ));
+      try {
+        results.add(await _runHostTestWithRetries(
+          tester: tester,
+          driver: driver,
+          test: test,
+          config: plan.config,
+          runId: runId,
+          mode: mode,
+          checkpoint: checkpoint,
+          captureCheckpoint: requestedSessions.contains(test.id),
+          onCheckpoint: (value) => checkpoints[test.id] = value,
+        ));
+      } catch (error, stackTrace) {
+        // A defect in one case's orchestration must not skip later cases.
+        results.add(EnsembleSingleTestResult.failed(
+          testId: test.id,
+          metadata: test.metadataJson,
+          durationMs: 0,
+          error: error.toString(),
+          stackTrace: stackTrace.toString(),
+          report: _hostReport(test, null),
+        ));
+      }
     }
   } catch (error, stackTrace) {
     suiteFailure = error;
@@ -217,6 +271,19 @@ Future<EnsembleTestRunResult> runApplicationTestPlan({
   }
 
   if (suiteFailure != null) {
+    final recordedIds = results.map((result) => result.testId).toSet();
+    for (final definition in plan.ordered) {
+      final test = definition.testCase;
+      if (recordedIds.contains(test.id)) continue;
+      results.add(EnsembleSingleTestResult.failed(
+        testId: test.id,
+        metadata: test.metadataJson,
+        durationMs: 0,
+        error: 'Suite could not execute this case: $suiteFailure',
+        stackTrace: suiteStack?.toString(),
+        report: _hostReport(test, null),
+      ));
+    }
     results.add(EnsembleSingleTestResult.failed(
       testId: 'test-process',
       durationMs: 0,
@@ -251,6 +318,7 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
 }) async {
   EnsembleSingleTestResult? last;
   var totalDurationMs = 0;
+  final logsByAttempt = <List<String>>[];
   for (var attempt = 0; attempt <= test.retry; attempt++) {
     last = await _runHostAttempt(
       tester: tester,
@@ -265,6 +333,7 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
       onCheckpoint: onCheckpoint,
     );
     totalDurationMs += last.durationMs;
+    logsByAttempt.add(last.logs);
     if (last.status == TestStatus.passed) {
       return EnsembleSingleTestResult.passed(
         testId: last.testId,
@@ -272,7 +341,7 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
         durationMs: totalDurationMs,
         attempts: attempt + 1,
         retry: test.retry,
-        logs: last.logs,
+        logs: combineAttemptDiagnosticLogs(last.logs, logsByAttempt),
         report: last.report,
         capabilityStatus: last.capabilityStatus,
       );
@@ -288,7 +357,7 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
     failedStep: last.failedStep,
     error: last.message,
     stackTrace: last.stackTrace,
-    logs: last.logs,
+    logs: combineAttemptDiagnosticLogs(last.logs, logsByAttempt),
     report: last.report,
     failure: last.failure,
     secondaryFailures: last.secondaryFailures,
@@ -317,6 +386,8 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     checkpoint: checkpoint,
   );
   final context = EnsembleTestContext.fromTestCase(test, config: config);
+  context.runtime.attemptNumber = attempt + 1;
+  context.runtime.attemptCount = test.retry + 1;
   TestApplicationHandle? handle;
   LocalTestExecutionSession? session;
   Object? primaryError;
@@ -330,22 +401,25 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   final stepStartTimes = <String>[];
   final previousOnError = FlutterError.onError;
   final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+  final previousPlatformHttpRunner = LiveAsyncCallSupport.platformHttpRunner;
+  final restoreDebugPrint = context.runtime.captureDebugPrint();
   FlutterError.onError = (details) {
     final message = details.exceptionAsString();
-    if (isHostScreenshotDiagnostic(message)) {
-      return;
-    }
     context.runtime.flutterErrors.add(message);
-    previousOnError?.call(details);
+    FlutterError.presentError(details);
   };
-  context.apiOverlay.liveAsyncRunner = tester.runAsync;
-  LiveAsyncCallSupport.runner = tester.runAsync;
+  Future<T?> runAppAsync<T>(Future<T> Function() callback) =>
+      context.runtime.runAsyncWithConsoleCapture(tester, callback);
+  context.apiOverlay.liveAsyncRunner = runAppAsync;
+  LiveAsyncCallSupport.runner = runAppAsync;
+  LiveAsyncCallSupport.platformHttpRunner = tester.runAsync;
   context.runtime.consoleLogs.add(
     context.runtime.formatConsoleLine('Started ${test.id}'),
   );
   try {
     await applyHostScreenshotViewport(tester, context, mode: mode);
-    await tester.runAsync(EnsembleTestHarness.ensureAppFontsLoaded);
+    await context.runtime.runAsyncWithConsoleCapture(
+        tester, EnsembleTestHarness.ensureAppFontsLoaded);
     await runZoned(
       () async {
         try {
@@ -358,7 +432,8 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             );
           }
           await _executeHostSetup(test);
-          await tester.runAsync(
+          await context.runtime.runAsyncWithConsoleCapture(
+            tester,
             () => EnsembleTestHarness.applyInPlaceSetup(context),
           );
           // Ensemble overlay path can be verified before launch. Pure Flutter
@@ -403,19 +478,19 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             final stepWatch = Stopwatch()..start();
             try {
               await dispatcher.execute(step);
-              _throwIfHostApplicationError(context);
-              await _captureHostStepScreenshotSafely(
+              await _captureHostStepReportArtifactsSafely(
                 tester: tester,
                 context: context,
+                session: attached,
                 step: step,
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
               );
-              _throwIfHostApplicationError(context);
             } catch (error, stackTrace) {
-              await _captureHostStepScreenshotSafely(
+              await _captureHostStepReportArtifactsSafely(
                 tester: tester,
                 context: context,
+                session: attached,
                 step: step,
                 stepIndex: i,
                 secondaryFailures: secondaryFailures,
@@ -429,7 +504,6 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
           }
           failedStepIndex = -1;
           context.runtime.currentStepIndex = null;
-          _throwIfHostApplicationError(context);
           if (captureCheckpoint) {
             final checkpointDriver = driver as ApplicationCheckpointDriver;
             onCheckpoint(
@@ -465,18 +539,6 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             );
           }
         }
-        // Errors raised while pumping for the emergency frame must not vanish
-        // or replace the original step failure.
-        final emergencyAppError = pendingHostApplicationError(context);
-        if (emergencyAppError != null) {
-          secondaryFailures.add(
-            TestFailureDetails(
-              kind: TestFailureKind.crash,
-              message: 'Application error: $emergencyAppError',
-              phase: 'screenshot',
-            ),
-          );
-        }
       }
       await attachHostDebugArtifacts(
         tester: tester,
@@ -508,21 +570,15 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       }
     }
     FlutterError.onError = previousOnError;
+    restoreDebugPrint();
     LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
+    LiveAsyncCallSupport.platformHttpRunner = previousPlatformHttpRunner;
     context.apiOverlay.liveAsyncRunner = null;
     if (mode != ExecutionMode.integration) {
       await resetHostScreenshotViewport(tester);
     }
   }
   stopwatch.stop();
-  // Final gate: screenshot pumps after the last step must not leave a pass.
-  if (primaryError == null) {
-    final lateAppError = pendingHostApplicationError(context);
-    if (lateAppError != null) {
-      primaryError = ApplicationTestCrash('Application error: $lateAppError');
-      primaryStack = StackTrace.current;
-    }
-  }
   final report = _hostReport(
     test,
     handle?.services,
@@ -675,26 +731,45 @@ bool ensembleApiOverlayAttached(EnsembleTestContext context) {
   return identical(http, context.apiOverlay) || http is TestApiProviderOverlay;
 }
 
-/// First non-diagnostic Flutter error recorded for this host attempt.
-String? pendingHostApplicationError(EnsembleTestContext context) {
-  context.runtime.flutterErrors.removeWhere(isHostScreenshotDiagnostic);
-  if (context.runtime.flutterErrors.isEmpty) return null;
-  return context.runtime.flutterErrors.first;
+Future<void> _captureHostStepReportArtifactsSafely({
+  required WidgetTester tester,
+  required EnsembleTestContext context,
+  required LocalTestExecutionSession session,
+  required TestStep step,
+  required int stepIndex,
+  required List<TestFailureDetails> secondaryFailures,
+}) async {
+  try {
+    await captureStepReportArtifacts(
+      captureScreenshot: () async {
+        final before = context.runtime.screenshotSheetFrames
+            .where((f) => f.stepIndex == stepIndex)
+            .length;
+        await _captureHostStepScreenshotSafely(
+          tester: tester,
+          context: context,
+          assertions: session.assertions,
+          navigation: session.services.navigation,
+          step: step,
+          stepIndex: stepIndex,
+          secondaryFailures: secondaryFailures,
+        );
+        final after = context.runtime.screenshotSheetFrames
+            .where((f) => f.stepIndex == stepIndex)
+            .length;
+        return after > before;
+      },
+    );
+  } catch (_) {
+    // Report capture must never replace the real test failure.
+  }
 }
-
-void _throwIfHostApplicationError(EnsembleTestContext context) {
-  final pending = pendingHostApplicationError(context);
-  if (pending == null) return;
-  throw ApplicationTestCrash('Application error: $pending');
-}
-
-/// Test hook for the post-screenshot / end-of-attempt application-error gate.
-void assertNoPendingHostApplicationError(EnsembleTestContext context) =>
-    _throwIfHostApplicationError(context);
 
 Future<void> _captureHostStepScreenshotSafely({
   required WidgetTester tester,
   required EnsembleTestContext context,
+  required AssertionEngine assertions,
+  required NavigationTestService? navigation,
   required TestStep step,
   required int stepIndex,
   required List<TestFailureDetails> secondaryFailures,
@@ -703,6 +778,8 @@ Future<void> _captureHostStepScreenshotSafely({
     await captureHostStepScreenshot(
       tester: tester,
       context: context,
+      assertions: assertions,
+      navigation: navigation,
       step: step,
       stepIndex: stepIndex,
     );

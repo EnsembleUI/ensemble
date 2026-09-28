@@ -70,7 +70,7 @@ startScreen: Home
 setup:
   - httpRequest:
       method: POST
-      url: ${services.modemStub.url}/api/v1/stub/scenario
+      url: ${services.testService.url}/api/v1/stub/scenario
       body: {testcase: home, responsename: offline}
 steps:
   - expectVisible: {id: offline_message}
@@ -108,19 +108,19 @@ mocks:
 
 initialState:
   storage:
-    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+    apiUrl: http://ensemble.test/api/devices
   env:
     APP_LOCALE: nl
 
 services:
-  - name: modemStub
+  - name: testService
     command: .venv/bin/python
-    arguments: [modemstub/app.py]
-    workingDirectory: ensemble/apps/inhome/autotests
+    arguments: [test_service/app.py]
+    workingDirectory: ensemble/apps/sample_app/autotests
     readyUrl: /ping
 
 The runner assigns a free local port. Tests can reference that resolved endpoint
-as `${services.modemStub.url}`.
+as `${services.testService.url}`.
 
 screenshots:
   enabled: true
@@ -152,6 +152,9 @@ timers:
   enabled: true
   maxStartAfterSeconds: 1
   maxRepeatIntervalSeconds: 1
+  # Optional per-screen maxNumberOfTimes cap (screen filename without .yaml).
+  maxNumberOfTimesByScreen:
+    FirmwareUpgrade: 15
 dumpTree:
   enabled: true
 logApiCalls:
@@ -178,6 +181,22 @@ report builds the contact-sheet gallery from the per-step PNGs in
 integration mode the same matrix is filtered to the connected target's
 platform: locale/theme still apply, viewport/model do not, and other platforms
 are skipped with a warning.
+
+## Report step capture (screenshot + Observer)
+
+Per-step report artifacts are written as an **atomic pair**: screenshot first,
+then Observer overlays mapped onto that PNG. If the shot is skipped, Observer
+is not written for that step.
+
+- **User actions** (tap, toggle, …): capture **before** the act so the gallery
+  shows the control that was targeted.
+- **Asserts / waits**: capture **after** the condition matches (or mid-wait for
+  `waitForText` / `waitForNavigation`) so overlays match the verified screen.
+- **Runtime observe** (`DiagnosticUiSnapshot` for locators / waits) is separate
+  from the report Observer tab and is not required to match a PNG.
+
+See `lib/runner/step_report_capture.dart` for the policy flags
+(`beforeAction`, `afterCondition`, `onFailure`).
 
 ## App setup
 
@@ -409,7 +428,9 @@ dart run ensemble_test_runner:ensemble_test --validate-only --report=json
 
 ### App inspection and scaffolding
 
-Emit app metadata for test authors:
+`--inspect-app` is a static EDL walk (no Flutter launch). It prints screens,
+widget IDs, APIs, and navigation targets from YAML definitions — useful when
+authoring tests offline:
 
 ```bash
 dart run ensemble_test_runner:ensemble_test --inspect-app
@@ -445,7 +466,7 @@ Run a subset:
 ```bash
 dart run ensemble_test_runner:ensemble_test --id=login_valid
 dart run ensemble_test_runner:ensemble_test --feature=login
-dart run ensemble_test_runner:ensemble_test --profile=fwa_arc
+dart run ensemble_test_runner:ensemble_test --profile=alternate
 dart run ensemble_test_runner:ensemble_test --tag=smoke
 dart run ensemble_test_runner:ensemble_test --path=auth/
 dart run ensemble_test_runner:ensemble_test --device=android_nl
@@ -509,7 +530,7 @@ override suite keys:
 # tests/config.yaml
 initialState:
   storage:
-    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+    apiUrl: http://ensemble.test/api/devices
   secureStorage:
     onboardingComplete: true
   keychain:
@@ -550,7 +571,7 @@ startScreen: Home
 setup:
   - httpRequest:
       method: POST
-      url: ${services.modemStub.url}/api/v1/stub/reset
+      url: ${services.testService.url}/api/v1/stub/reset
 steps:
   - tap: {id: devices_button}
 ```

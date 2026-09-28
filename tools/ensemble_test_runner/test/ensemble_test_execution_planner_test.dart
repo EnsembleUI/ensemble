@@ -128,7 +128,7 @@ steps:
     test('expands scenarios with bracketed ids', () async {
       const yaml = '''
 id: home_scenarios
-session: signin_to_gateway
+session: sign_in_session
 startScreen: Home
 scenarios:
   - id: v12_online
@@ -146,7 +146,7 @@ steps:
 
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'ensemble/apps/inhome/tests/home.test.yaml',
+        'ensemble/apps/sample_app/tests/home.test.yaml',
         yaml,
       );
 
@@ -157,8 +157,8 @@ steps:
           'home_scenarios[v14_empty]',
         ],
       );
-      expect(definitions[0].testCase.session, 'signin_to_gateway');
-      expect(definitions[1].testCase.session, 'signin_to_gateway');
+      expect(definitions[0].testCase.session, 'sign_in_session');
+      expect(definitions[1].testCase.session, 'sign_in_session');
       expect(definitions[0].testCase.scenarioId, 'v12_online');
       expect(definitions[0].testCase.scenarioDescription, 'V12 online state.');
       expect(definitions[1].testCase.scenarioId, 'v14_empty');
@@ -170,7 +170,7 @@ steps:
     test('skips empty discovered test files', () async {
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'ensemble/apps/inhome/tests/commented.test.yaml',
+        'ensemble/apps/sample_app/tests/commented.test.yaml',
         '''
 # id: disabled_test
 # startScreen: Home
@@ -192,11 +192,11 @@ id: service_url
 startScreen: Login
 steps:
   - httpRequest:
-      url: \${services.modemStub.url}/reset
+      url: \${services.testService.url}/reset
 ''',
         services: const [
           TestServiceConfig(
-            name: 'modemStub',
+            name: 'testService',
             command: 'python',
             url: 'http://127.0.0.1:5001',
           ),
@@ -410,7 +410,7 @@ steps:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/common.mock.json': '''
+        'suite/tests/mocks/primary/common.mock.json': '''
 {
   "getDevices": {
     "body": {"count": 2}
@@ -423,12 +423,12 @@ steps:
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
         'suite/tests/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_v12',
+        suiteDefaultProfile: 'primary_v12',
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/common.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/common.mock.json'],
             initialState: {
-              'storage': {'deviceType': 'HGW_SAH'},
+              'storage': {'deviceType': 'DEVICE_TYPE_A'},
               'keychain': {'adminPassword': 'dummyPassword'},
             },
           ),
@@ -438,7 +438,8 @@ steps:
 
       final test = definitions.single.testCase;
       expect((test.mocks.apis['getDevices']!.body as Map)['count'], 2);
-      expect((test.initialState['storage'] as Map)['deviceType'], 'HGW_SAH');
+      expect(
+          (test.initialState['storage'] as Map)['deviceType'], 'DEVICE_TYPE_A');
       expect((test.initialState['storage'] as Map)['screen'], 'home');
       expect(
         (test.initialState['keychain'] as Map)['adminPassword'],
@@ -448,27 +449,27 @@ steps:
 
     test('explicit profile overrides suite profile', () async {
       const yaml = '''
-id: home_fwa_profile
-profiles: fwa_arc
-startScreen: Home_FWA
+id: explicit_profile
+profiles: alternate
+startScreen: Home_Alternate
 steps:
   - expectVisible:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/common.mock.json': '''
+        'suite/tests/mocks/primary/common.mock.json': '''
 {
   "getDevices": {
-    "body": {"source": "hgw"}
+    "body": {"source": "primary"}
   }
 }
 ''',
-        'suite/tests/mocks/fwa/common.mock.json': '''
+        'suite/tests/mocks/alternate/common.mock.json': '''
 {
   "getDevices": {
-    "body": {"source": "fwa"}
+    "body": {"source": "alternate"}
   },
-  "getFWAStatus": {
+  "getDeviceStatus": {
     "body": {"mobile_status": {"Status": "True"}}
   }
 }
@@ -477,21 +478,21 @@ steps:
 
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'suite/tests/fwa/home.test.yaml',
+        'suite/tests/alternate/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_v12',
+        suiteDefaultProfile: 'primary_v12',
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/common.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/common.mock.json'],
             initialState: {
-              'storage': {'deviceType': 'HGW_SAH'},
+              'storage': {'deviceType': 'DEVICE_TYPE_A'},
             },
           ),
-          'fwa_arc': TestProfile(
-            mockFiles: ['mocks/fwa/common.mock.json'],
+          'alternate': TestProfile(
+            mockFiles: ['mocks/alternate/common.mock.json'],
             initialState: {
-              'storage': {'deviceType': 'FWA_ARC'},
-              'keychain': {'fwaPassword': 'dummyPassword'},
+              'storage': {'deviceType': 'DEVICE_TYPE_B'},
+              'keychain': {'adminPassword': 'dummyPassword'},
             },
           ),
         },
@@ -499,22 +500,24 @@ steps:
       );
 
       final test = definitions.single.testCase;
-      expect(test.profile, 'fwa_arc');
-      expect((test.mocks.apis['getDevices']!.body as Map)['source'], 'fwa');
-      expect(test.mocks.apis, contains('getFWAStatus'));
-      expect((test.initialState['storage'] as Map)['deviceType'], 'FWA_ARC');
+      expect(test.profile, 'alternate');
       expect(
-        (test.initialState['keychain'] as Map)['fwaPassword'],
+          (test.mocks.apis['getDevices']!.body as Map)['source'], 'alternate');
+      expect(test.mocks.apis, contains('getDeviceStatus'));
+      expect(
+          (test.initialState['storage'] as Map)['deviceType'], 'DEVICE_TYPE_B');
+      expect(
+        (test.initialState['keychain'] as Map)['adminPassword'],
         'dummyPassword',
       );
     });
 
     test('expands test profiles into profile-specific runs', () async {
       const yaml = '''
-id: hgw_home
+id: home_profiles
 profiles:
-  - hgw_v12
-  - hgw_v10
+  - primary_v12
+  - primary_v10
 startScreen: Home
 session: signed_in
 steps:
@@ -522,14 +525,14 @@ steps:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/v12.mock.json': '''
+        'suite/tests/mocks/primary/v12.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v12"}
   }
 }
 ''',
-        'suite/tests/mocks/hgw/v10.mock.json': '''
+        'suite/tests/mocks/primary/v10.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v10"}
@@ -543,14 +546,14 @@ steps:
         'suite/tests/home.test.yaml',
         yaml,
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/v12.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/v12.mock.json'],
             initialState: {
               'storage': {'deviceType': 'v12'},
             },
           ),
-          'hgw_v10': TestProfile(
-            mockFiles: ['mocks/hgw/v10.mock.json'],
+          'primary_v10': TestProfile(
+            mockFiles: ['mocks/primary/v10.mock.json'],
             initialState: {
               'storage': {'deviceType': 'v10'},
             },
@@ -561,11 +564,11 @@ steps:
 
       expect(
         definitions.map((definition) => definition.testCase.id),
-        ['hgw_home[hgw_v12]', 'hgw_home[hgw_v10]'],
+        ['home_profiles[primary_v12]', 'home_profiles[primary_v10]'],
       );
       expect(
         definitions.map((definition) => definition.testCase.session),
-        ['signed_in[hgw_v12]', 'signed_in[hgw_v10]'],
+        ['signed_in[primary_v12]', 'signed_in[primary_v10]'],
       );
       expect(
         definitions.map((definition) {
@@ -588,7 +591,7 @@ steps:
       id: login
 ''',
           'suite/tests/home.test.yaml': '''
-id: hgw_home
+id: home_profiles
 session: signed_in
 startScreen: Home
 steps:
@@ -597,25 +600,25 @@ steps:
 ''',
         },
         config: const EnsembleTestConfig(
-          defaultProfile: 'hgw_sah',
+          defaultProfile: 'primary_group',
           profileGroups: {
-            'hgw_sah': ['hgw_v12', 'hgw_v10'],
+            'primary_group': ['primary_v12', 'primary_v10'],
           },
           profiles: {
-            'hgw_v12': TestProfile(),
-            'hgw_v10': TestProfile(),
+            'primary_v12': TestProfile(),
+            'primary_v10': TestProfile(),
           },
         ),
-        selection: const EnsembleTestSelection(profiles: {'hgw_v10'}),
+        selection: const EnsembleTestSelection(profiles: {'primary_v10'}),
       );
 
       expect(
         plan.ordered.map((definition) => definition.testCase.id),
-        ['signed_in[hgw_v10]', 'hgw_home[hgw_v10]'],
+        ['signed_in[primary_v10]', 'home_profiles[primary_v10]'],
       );
       expect(
         plan.ordered.map((definition) => definition.testCase.profile),
-        ['hgw_v10', 'hgw_v10'],
+        ['primary_v10', 'primary_v10'],
       );
     });
 
@@ -624,15 +627,15 @@ steps:
       final plan = await EnsembleTestExecutionPlanner.buildForTest(
         assetContents: {
           'suite/tests/home.test.yaml': '''
-id: hgw_home
+id: home_profiles
 startScreen: Home
 steps:
   - expectVisible:
       id: home
 ''',
-          'suite/tests/fwa.test.yaml': '''
-id: fwa_home
-profiles: fwa_arc
+          'suite/tests/alternate.test.yaml': '''
+id: alternate_home
+profiles: alternate
 startScreen: Home
 steps:
   - expectVisible:
@@ -640,43 +643,43 @@ steps:
 ''',
         },
         config: const EnsembleTestConfig(
-          defaultProfile: 'hgw_sah',
+          defaultProfile: 'primary_group',
           profileGroups: {
-            'hgw_sah': ['hgw_v12'],
+            'primary_group': ['primary_v12'],
           },
           profiles: {
-            'hgw_v12': TestProfile(),
-            'fwa_arc': TestProfile(),
+            'primary_v12': TestProfile(),
+            'alternate': TestProfile(),
           },
         ),
-        selection: const EnsembleTestSelection(profiles: {'hgw_sah'}),
+        selection: const EnsembleTestSelection(profiles: {'primary_group'}),
       );
 
       expect(
         plan.ordered.map((definition) => definition.testCase.id),
-        ['hgw_home'],
+        ['home_profiles'],
       );
-      expect(plan.ordered.single.testCase.profile, 'hgw_v12');
+      expect(plan.ordered.single.testCase.profile, 'primary_v12');
     });
 
     test('expands suite default group for tests without profile selectors',
         () async {
       const yaml = '''
-id: hgw_home
+id: home_profiles
 startScreen: Home
 steps:
   - expectVisible:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/v12.mock.json': '''
+        'suite/tests/mocks/primary/v12.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v12"}
   }
 }
 ''',
-        'suite/tests/mocks/hgw/v10.mock.json': '''
+        'suite/tests/mocks/primary/v10.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v10"}
@@ -689,16 +692,16 @@ steps:
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
         'suite/tests/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_sah',
+        suiteDefaultProfile: 'primary_group',
         suiteProfileGroups: const {
-          'hgw_sah': ['hgw_v12', 'hgw_v10'],
+          'primary_group': ['primary_v12', 'primary_v10'],
         },
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/v12.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/v12.mock.json'],
           ),
-          'hgw_v10': TestProfile(
-            mockFiles: ['mocks/hgw/v10.mock.json'],
+          'primary_v10': TestProfile(
+            mockFiles: ['mocks/primary/v10.mock.json'],
           ),
         },
         assetLoader: (path) async => assets[path]!,
@@ -706,24 +709,24 @@ steps:
 
       expect(
         definitions.map((definition) => definition.testCase.id),
-        ['hgw_home[hgw_v12]', 'hgw_home[hgw_v10]'],
+        ['home_profiles[primary_v12]', 'home_profiles[primary_v10]'],
       );
     });
 
     test('test profiles selector overrides suite default group', () async {
       const yaml = '''
-id: fwa_home
-profiles: fwa
-startScreen: FwaHome
+id: alternate_home
+profiles: alternate
+startScreen: AlternateHome
 steps:
   - expectVisible:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/fwa/arc.mock.json': '''
+        'suite/tests/mocks/alternate/arc.mock.json': '''
 {
-  "getFwaStatus": {
-    "body": {"device": "fwa"}
+  "getDeviceStatus": {
+    "body": {"device": "alternate"}
   }
 }
 ''',
@@ -731,26 +734,26 @@ steps:
 
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'suite/tests/fwa/home.test.yaml',
+        'suite/tests/alternate/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_sah',
+        suiteDefaultProfile: 'primary_group',
         suiteProfileGroups: const {
-          'hgw_sah': ['hgw_v12'],
-          'fwa': ['fwa_arc'],
+          'primary_group': ['primary_v12'],
+          'alternate': ['alternate'],
         },
         suiteProfiles: const {
-          'hgw_v12': TestProfile(),
-          'fwa_arc': TestProfile(
-            mockFiles: ['mocks/fwa/arc.mock.json'],
+          'primary_v12': TestProfile(),
+          'alternate': TestProfile(
+            mockFiles: ['mocks/alternate/arc.mock.json'],
           ),
         },
         assetLoader: (path) async => assets[path]!,
       );
 
       final test = definitions.single.testCase;
-      expect(test.id, 'fwa_home');
-      expect(test.profile, 'fwa_arc');
-      expect(test.mocks.apis, contains('getFwaStatus'));
+      expect(test.id, 'alternate_home');
+      expect(test.profile, 'alternate');
+      expect(test.mocks.apis, contains('getDeviceStatus'));
     });
 
     test('fails clearly for unknown explicit profile', () async {
@@ -768,7 +771,7 @@ steps:
           'suite/tests/home.test.yaml',
           yaml,
           suiteProfiles: const {
-            'hgw_v12': TestProfile(),
+            'primary_v12': TestProfile(),
           },
         ),
         throwsA(

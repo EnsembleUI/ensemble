@@ -460,6 +460,7 @@ List<String> _unsupportedTestRootKeys(YamlMap map) {
     'startScreen',
     'startScreenInputs',
     'session',
+    'profiles',
     'initialState',
     'setup',
     'mocks',

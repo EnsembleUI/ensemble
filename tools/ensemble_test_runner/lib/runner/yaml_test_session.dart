@@ -57,7 +57,7 @@ class NavigationFlowRecorder {
   void _onScreenChange(VisibleScreen? screen) {
     if (screen == null) return;
     // Queue every change — coalescing to the latest drops transient screens
-    // (e.g. AutoSignIn_Gateway → Home in the same event loop turn).
+    // (e.g. AutoSignIn_Device → Home in the same event loop turn).
     _pendingScreens.add(screen);
   }
 

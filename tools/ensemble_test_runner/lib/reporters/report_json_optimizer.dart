@@ -174,6 +174,10 @@ class ReportJsonOptimizer {
             if (s is Map) Map<String, dynamic>.from(s),
         ];
       }
+      final observer = step['observer'];
+      if (observer is Map && observer.isNotEmpty) {
+        out['observer'] = Map<String, dynamic>.from(observer);
+      }
       return out;
     }
 
@@ -353,6 +357,7 @@ class ReportJsonOptimizer {
               'secureStorageChanges': step['secureStorageChanges'] ?? const [],
               'keychainChanges': step['keychainChanges'] ?? const [],
               'screenshots': step['screenshots'] ?? const [],
+              'observer': step['observer'],
             };
             step.putIfAbsent('apiCalls', () => const []);
             step.putIfAbsent('appLogs', () => const []);
@@ -360,6 +365,7 @@ class ReportJsonOptimizer {
             step.putIfAbsent('secureStorageChanges', () => const []);
             step.putIfAbsent('keychainChanges', () => const []);
             step.putIfAbsent('screenshots', () => const []);
+            step.putIfAbsent('observer', () => null);
           } else if (parentPayload != null) {
             step['apiCalls'] = parentPayload['apiCalls'];
             step['appLogs'] = parentPayload['appLogs'];
@@ -368,6 +374,7 @@ class ReportJsonOptimizer {
                 parentPayload['secureStorageChanges'];
             step['keychainChanges'] = parentPayload['keychainChanges'];
             step['screenshots'] = parentPayload['screenshots'];
+            step['observer'] = parentPayload['observer'];
           } else {
             step['apiCalls'] = const [];
             step['appLogs'] = const [];
@@ -375,6 +382,7 @@ class ReportJsonOptimizer {
             step['secureStorageChanges'] = const [];
             step['keychainChanges'] = const [];
             step['screenshots'] = const [];
+            step['observer'] = null;
           }
         }
       }

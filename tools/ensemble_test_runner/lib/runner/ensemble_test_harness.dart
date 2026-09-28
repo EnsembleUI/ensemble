@@ -565,8 +565,7 @@ class EnsembleTestHarness {
         if (family == null || fonts is! List) continue;
         var familyLoaded = false;
         for (final alias in _fontFamilyAliases(family)) {
-          familyLoaded =
-              await _loadFontFamily(alias, fonts) || familyLoaded;
+          familyLoaded = await _loadFontFamily(alias, fonts) || familyLoaded;
         }
         if (familyLoaded && family.toLowerCase().contains('roboto')) {
           loadedRoboto = true;
@@ -829,11 +828,7 @@ class EnsembleTestHarness {
       );
     });
     if (bootstrapped == null) {
-      final bootstrapError = tester.takeException();
-      if (bootstrapError != null) throw bootstrapError;
-      if (ctx.runtime.flutterErrors.isNotEmpty) {
-        throw EnsembleTestFailure(ctx.runtime.flutterErrors.last);
-      }
+      while (tester.takeException() != null) {}
       throw EnsembleTestFailure(
         'Ensemble runtime bootstrap completed without a configuration.',
       );

@@ -101,7 +101,8 @@ Future<void> main() async {
     expect(entry, isNot(contains('runEnsembleYamlTests(')));
     expect(entry, contains('ensemble_integration_test_entry.dart'));
     expect(entry, contains('captureCertificateForHost'));
-    expect(entry, contains("import 'package:sample_app/main.dart' as starter;"));
+    expect(
+        entry, contains("import 'package:sample_app/main.dart' as starter;"));
     patcher.restore();
   });
 

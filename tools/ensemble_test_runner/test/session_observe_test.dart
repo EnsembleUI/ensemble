@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -7,6 +9,7 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
+import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +25,21 @@ EnsembleTestHarness _harness() => EnsembleTestHarness(
       appPath: 'unused/',
       appHome: 'Home',
     );
+
+List<UiElement> _flattenElements(List<UiElement> roots) {
+  final out = <UiElement>[];
+  void walk(UiElement e) {
+    out.add(e);
+    for (final child in e.children) {
+      walk(child);
+    }
+  }
+
+  for (final root in roots) {
+    walk(root);
+  }
+  return out;
+}
 
 void main() {
   testWidgets('session observe redacts password fields', (tester) async {
@@ -141,7 +159,8 @@ void main() {
         synchronization: ObservationSynchronization.immediate,
       ),
     );
-    final dups = obs.elements.where((e) => e.testId == 'dup').toList();
+    final dups =
+        _flattenElements(obs.elements).where((e) => e.testId == 'dup').toList();
     expect(dups.length, greaterThanOrEqualTo(2));
     final second = dups.last;
 
@@ -168,6 +187,44 @@ void main() {
     expect(stale.error?.code, TestExecutionErrorCode.staleObservation);
     expect(taps, ['second']);
 
+    await session.close();
+  });
+
+  testWidgets('nested observe while leaf queue is busy does not deadlock',
+      (tester) async {
+    // Mid-wait screenshot callbacks hold the session queue, then call observe
+    // for overlays. Nested queue.run used to hang the worker forever.
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Text('Hello', key: ValueKey('hello')),
+        ),
+      ),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: _harness(),
+      context: _ctx('nested-observe'),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final nested = session.queue.run(() async {
+      final obs = await session.observe(
+        options: const ObservationOptions(
+          synchronization: ObservationSynchronization.immediate,
+        ),
+      );
+      return obs.observationId;
+    });
+
+    final observationId = await nested.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => throw TimeoutException(
+        'observe nested under LeafCommandQueue deadlocked',
+      ),
+    );
+    expect(observationId, isNotEmpty);
     await session.close();
   });
 

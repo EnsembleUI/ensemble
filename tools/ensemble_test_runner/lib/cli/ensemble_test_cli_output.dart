@@ -7,6 +7,8 @@ const noDeclarativeTestsPrefix = 'No declarative tests found.';
 const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 const junitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
 const artifactProtocolPrefix = 'ENSEMBLE_TEST_ARTIFACT_V1:';
+const observerProtocolPrefix = 'ENSEMBLE_TEST_OBSERVE_V1_';
+const observerScreenPrefix = 'Screen:';
 const flutterExceptionStart = '══╡ EXCEPTION CAUGHT BY ';
 const flutterTakeExceptionHint =
     '(The following exception is now available via WidgetTester.takeException:)';
@@ -23,6 +25,8 @@ class LiveFlutterTestOutputFilter {
     if (line.startsWith(jsonReportPrefix) ||
         line.startsWith(junitReportPrefix) ||
         line.contains(artifactProtocolPrefix) ||
+        line.startsWith(observerProtocolPrefix) ||
+        line.startsWith(observerScreenPrefix) ||
         line.startsWith(flutterTakeExceptionHint)) {
       return false;
     }
@@ -134,6 +138,7 @@ List<String> flutterTestArguments(List<String> arguments) {
         a == '--scaffold-test' ||
         a.startsWith('--scaffold-test=') ||
         a.startsWith('--screen=') ||
+        a == '--screen' ||
         a.startsWith('--id=') ||
         a.startsWith('--feature=') ||
         a.startsWith('--profile=') ||
@@ -151,6 +156,9 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--test-entry') ||
         a == '--verbose' ||
         a == '--quiet') {
+      if (a == '--screen') {
+        i++;
+      }
       continue;
     }
     forwarded.add(a);

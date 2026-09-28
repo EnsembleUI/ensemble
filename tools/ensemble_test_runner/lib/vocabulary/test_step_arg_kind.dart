@@ -308,10 +308,32 @@ extension TestStepArgKindSchema on TestStepArgKind {
           required: ['equals'],
         );
       case TestStepArgKind.expectListCount:
-        return _object(
-          properties: {'id': _string, 'itemId': _string, 'equals': _integer},
+        return _targetable(
+          properties: {'itemId': _string, 'equals': _integer},
           required: ['equals'],
         );
+      case TestStepArgKind.expectListContains:
+        return _targetable(
+          properties: {'text': _string},
+          required: ['text'],
+        );
+      case TestStepArgKind.expectListItem:
+        return {
+          'type': 'object',
+          'properties': {
+            'itemId': _string,
+            'target': _ref('elementLocator'),
+          },
+          'anyOf': const [
+            {
+              'required': ['itemId']
+            },
+            {
+              'required': ['target']
+            },
+          ],
+          'additionalProperties': false,
+        };
       case TestStepArgKind.screenRequired:
         return _object(
           properties: {'screen': _string, 'name': _string},
@@ -411,16 +433,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
           },
           required: ['names'],
         );
-      case TestStepArgKind.expectListContains:
-        return _object(
-          properties: {'id': _string, 'text': _string},
-          required: ['id', 'text'],
-        );
-      case TestStepArgKind.expectListItem:
-        return _object(
-          properties: {'itemId': _string},
-          required: ['itemId'],
-        );
       case TestStepArgKind.expectBackStack:
         return _object(
           properties: {
@@ -435,9 +447,9 @@ extension TestStepArgKindSchema on TestStepArgKind {
       case TestStepArgKind.expectCanGoBack:
         return _object(properties: {'equals': _boolean});
       case TestStepArgKind.expectSemanticsLabel:
-        return _object(
-          properties: {'id': _string, 'label': _string},
-          required: ['id', 'label'],
+        return _targetable(
+          properties: {'label': _string},
+          required: ['label'],
         );
     }
   }

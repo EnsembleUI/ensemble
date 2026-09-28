@@ -1003,6 +1003,8 @@ Future<ProcessResult> _runParallelFlutterTests(
   final workerResults = await Future.wait(futures);
   runDone = true;
   await progressPoller;
+  // Live ✓/✗ streaming is done — progress files have finished their job.
+  _deleteArtifactSubdir(appDir, 'worker_progress');
 
   try {
     for (var i = 0; i < workerReportFiles.length; i++) {
@@ -1019,6 +1021,8 @@ Future<ProcessResult> _runParallelFlutterTests(
     reportFiles: workerReportFiles,
     appDir: appDir,
   );
+  // Shard JSONs are merged into memory — drop per-worker report files.
+  _deleteArtifactSubdir(appDir, 'worker_reports');
   merged = _mergeParallelSuiteArtifacts(merged);
   merged = await _withHtmlReport(
     appDir,
@@ -1213,6 +1217,17 @@ void _cleanParallelRunArtifacts(String appDir) {
       Directory(p.join(root.path, 'report', 'screenshots'));
   if (reportScreenshots.existsSync()) {
     reportScreenshots.deleteSync(recursive: true);
+  }
+}
+
+/// Deletes one subdirectory under `build/ensemble_test_runner/` when its job
+/// is finished (progress after live polling, reports after merge).
+void _deleteArtifactSubdir(String appDir, String name) {
+  final directory = Directory(
+    p.join(appDir, 'build', 'ensemble_test_runner', name),
+  );
+  if (directory.existsSync()) {
+    directory.deleteSync(recursive: true);
   }
 }
 
@@ -2311,7 +2326,7 @@ EnsembleTestRunResult _mergeWorkerReports(
   final mergedResults = <EnsembleSingleTestResult>[];
   final suiteLogs = <String>[];
   final metadata = <String, dynamic>{};
-  final seenPassedDependencies = <String>{};
+  final seenPassedTestIds = <String>{};
 
   for (var i = 0; i < results.length; i++) {
     final result = results[i];
@@ -2339,9 +2354,7 @@ EnsembleTestRunResult _mergeWorkerReports(
     suiteLogs.addAll(workerRun.suiteLogs);
     for (final test in workerRun.results) {
       final baseId = _baseTestId(test.testId);
-      final isPassedDependency =
-          test.status == TestStatus.passed && _isRepeatedDependency(baseId);
-      if (isPassedDependency && !seenPassedDependencies.add(baseId)) {
+      if (test.status == TestStatus.passed && !seenPassedTestIds.add(baseId)) {
         continue;
       }
       mergedResults.add(test);
@@ -2544,8 +2557,6 @@ void _writeCliTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
     }
   }
 }
-
-bool _isRepeatedDependency(String testId) => testId == 'signin_to_gateway';
 
 String _baseTestId(String value) {
   final index = value.indexOf('  (');
@@ -3157,10 +3168,19 @@ void _writeStatus(
   stderr.writeln(message);
 }
 
-void _writeProcessStreams(ProcessResult result) {
+void _writeProcessStreams(
+  ProcessResult result, {
+  bool toStderr = false,
+}) {
   final out = _withoutArtifactProtocolLines(result.stdout?.toString() ?? '');
   final err = _withoutArtifactProtocolLines(result.stderr?.toString() ?? '');
-  if (out.isNotEmpty) stdout.write(out);
+  if (out.isNotEmpty) {
+    if (toStderr) {
+      stderr.write(out);
+    } else {
+      stdout.write(out);
+    }
+  }
   if (err.isNotEmpty) stderr.write(err);
 }
 

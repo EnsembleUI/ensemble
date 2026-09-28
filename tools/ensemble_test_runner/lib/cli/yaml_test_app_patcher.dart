@@ -517,7 +517,13 @@ Future<void> main() => application_yaml_tests.main();
     for (final entity in screensDir.listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.yaml')) continue;
       final original = entity.readAsStringSync();
-      final rewritten = _capTimerValues(original, config);
+      final screenCap = config
+          .maxNumberOfTimesByScreen[p.basenameWithoutExtension(entity.path)];
+      final rewritten = _capTimerValues(
+        original,
+        config,
+        maxNumberOfTimes: screenCap ?? config.maxNumberOfTimes,
+      );
       if (rewritten == original) continue;
       entity.writeAsStringSync(rewritten);
     }
@@ -544,18 +550,40 @@ Future<void> main() => application_yaml_tests.main();
         timers['maxRepeatIntervalSeconds'],
         fallback: 1,
       ),
+      maxNumberOfTimes: timers['maxNumberOfTimes'] == null
+          ? null
+          : _parseNonNegativeInt(
+              timers['maxNumberOfTimes'],
+              fallback: 0,
+            ),
+      maxNumberOfTimesByScreen: _parseScreenTimerCaps(
+        timers['maxNumberOfTimesByScreen'],
+      ),
     );
+  }
+
+  static Map<String, int> _parseScreenTimerCaps(dynamic value) {
+    if (value is! YamlMap) return const {};
+    final caps = <String, int>{};
+    value.forEach((key, rawCap) {
+      final cap = _parseNonNegativeInt(rawCap, fallback: -1);
+      if (cap >= 0) caps[key.toString()] = cap;
+    });
+    return caps;
   }
 
   static String _capTimerValues(
     String content,
-    TimerRewriteConfig config,
-  ) {
+    TimerRewriteConfig config, {
+    int? maxNumberOfTimes,
+  }) {
     final startAfter =
         RegExp(r'^(\s*startAfter:\s*)(\d+)(\s*)$', multiLine: true);
     final repeatInterval =
         RegExp(r'^(\s*repeatInterval:\s*)(\d+)(\s*)$', multiLine: true);
-    return content
+    final maxNumberOfTimesPattern =
+        RegExp(r'^(\s*maxNumberOfTimes:\s*)(\d+)(\s*)$', multiLine: true);
+    var rewritten = content
         .replaceAllMapped(
           startAfter,
           (match) => _capTimerLine(match, config.maxStartAfterSeconds),
@@ -564,6 +592,14 @@ Future<void> main() => application_yaml_tests.main();
           repeatInterval,
           (match) => _capTimerLine(match, config.maxRepeatIntervalSeconds),
         );
+    final maxTimes = maxNumberOfTimes ?? config.maxNumberOfTimes;
+    if (maxTimes != null) {
+      rewritten = rewritten.replaceAllMapped(
+        maxNumberOfTimesPattern,
+        (match) => _capTimerLine(match, maxTimes),
+      );
+    }
+    return rewritten;
   }
 
   static String _capTimerLine(Match match, int maxValue) {

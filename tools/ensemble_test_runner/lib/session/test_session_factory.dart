@@ -1,5 +1,6 @@
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_test_runner/session/test_execution_session.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 
 /// Configuration for creating a [TestExecutionSession].
 ///
@@ -13,6 +14,7 @@ class TestSessionConfiguration {
   final SessionPermissions permissions;
   final Duration? defaultActionTimeout;
   final Duration? defaultWaitTimeout;
+  final TestDeviceTarget? deviceTarget;
 
   TestSessionConfiguration({
     this.sessionId,
@@ -21,6 +23,7 @@ class TestSessionConfiguration {
     SessionPermissions? permissions,
     this.defaultActionTimeout,
     this.defaultWaitTimeout,
+    this.deviceTarget,
   }) : permissions = permissions ?? SessionPermissions.restrictedUi;
 
   Map<String, dynamic> toJson() => {
@@ -33,10 +36,12 @@ class TestSessionConfiguration {
           'defaultActionTimeoutMs': defaultActionTimeout!.inMilliseconds,
         if (defaultWaitTimeout != null)
           'defaultWaitTimeoutMs': defaultWaitTimeout!.inMilliseconds,
+        if (deviceTarget != null) 'device': deviceTarget!.toJson(),
       };
 
   factory TestSessionConfiguration.fromJson(Map<String, dynamic> json) {
     final permsRaw = json['permissions'];
+    final deviceRaw = json['device'];
     return TestSessionConfiguration(
       sessionId: json['sessionId']?.toString(),
       startScreen: json['startScreen']?.toString(),
@@ -51,6 +56,15 @@ class TestSessionConfiguration {
           : null,
       defaultWaitTimeout: json['defaultWaitTimeoutMs'] is int
           ? Duration(milliseconds: json['defaultWaitTimeoutMs'] as int)
+          : null,
+      deviceTarget: deviceRaw is Map
+          ? TestDeviceTarget(
+              id: deviceRaw['id']?.toString() ?? 'device',
+              platform: deviceRaw['platform']?.toString() ?? 'ios',
+              model: deviceRaw['model']?.toString() ?? 'iPhone 15 Pro',
+              locale: deviceRaw['locale']?.toString(),
+              theme: deviceRaw['theme']?.toString(),
+            )
           : null,
     );
   }

@@ -236,6 +236,7 @@ class HtmlTestReporter {
       <button class="modal-close-btn" onclick="closeStepDialog(event)">&times;</button>
     </div>
     <div class="modal-body">
+      <div id="modal-step-error" class="modal-step-error" style="display: none;"></div>
       <div class="modal-tabs">
         <button class="modal-tab-btn active" data-tab="api" onclick="switchModalTab('api')">🌐 API Calls (<span id="modal-api-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="logs" onclick="switchModalTab('logs')">📝 Console Logs (<span id="modal-logs-count">0</span>)</button>
@@ -252,11 +253,30 @@ class HtmlTestReporter {
         <div id="modal-storage-list" class="modal-list logs-terminal"></div>
       </div>
       <div class="modal-tab-content" id="modal-tab-screenshots" style="display: none;">
-        <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
+        <div id="modal-screenshots-toolbar" class="screenshot-overlay-toolbar-host"></div>
+        <div class="screenshots-split">
+          <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
+          <aside id="modal-observer-side" class="modal-observer-side" hidden></aside>
+        </div>
       </div>
     </div>
   </div>
   <button class="modal-nav-btn next" onclick="navigateStep(1, event)">&#10095;</button>
+</div>
+
+<div id="observer-element-detail-overlay" class="modal-overlay observer-element-detail-overlay" style="display: none;" onclick="closeObserverElementDetail(event)">
+  <button type="button" class="modal-nav-btn prev" id="observer-element-detail-prev" onclick="navigateObserverElement(-1, event)" aria-label="Previous element">&#10094;</button>
+  <div class="observer-element-detail-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-badge">ELEMENT</span>
+        <h3 id="observer-element-detail-title"></h3>
+      </div>
+      <button class="modal-close-btn" onclick="closeObserverElementDetail(event)">&times;</button>
+    </div>
+    <div class="modal-body observer-element-detail-body" id="observer-element-detail-body"></div>
+  </div>
+  <button type="button" class="modal-nav-btn next" id="observer-element-detail-next" onclick="navigateObserverElement(1, event)" aria-label="Next element">&#10095;</button>
 </div>
 
 <div id="fullscreen-card-overlay" class="modal-overlay" style="display: none;" onclick="closeFullscreenCard(event)">

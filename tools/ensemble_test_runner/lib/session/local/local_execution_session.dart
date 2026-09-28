@@ -73,6 +73,14 @@ class LocalTestExecutionSession implements TestExecutionSession {
       executor: executor,
       resolver: resolver,
     );
+    executor.resolveTargetFinder = (
+      target, {
+      bool requireInteractive = true,
+    }) =>
+        resolver.resolveFinder(
+          target,
+          requireInteractive: requireInteractive,
+        );
   }
 
   /// Attach to a launched application (suite mode).
@@ -257,6 +265,11 @@ class LocalTestExecutionSession implements TestExecutionSession {
     ObservationOptions options = const ObservationOptions(),
   }) {
     _ensureOpen();
+    // Mid-wait / mid-act screenshot callbacks already hold [queue]. Nesting
+    // another [queue.run] deadlocks the worker. Observe is a read-only snapshot.
+    if (queue.isBusy) {
+      return observer.observe(options);
+    }
     return queue.run(() => observer.observe(options));
   }
 
@@ -401,13 +414,16 @@ class LocalTestExecutionSession implements TestExecutionSession {
             } else {
               await _waitForTarget(target, gone: gone, timeoutMs: timeoutMs);
             }
-          case TextWait(:final text, :final anyOf):
+          case TextWait(:final text, :final anyOf, :final target):
             await executor.execute(
               TestStep(
                 type: 'waitForText',
                 args: {
                   if (text != null) 'text': text,
                   if (anyOf != null) 'anyOf': anyOf,
+                  if (target?.normalizedLocator != null)
+                    'target': target!.normalizedLocator!.toJson(),
+                  if (target?.testId != null) 'id': target!.testId,
                   'timeoutMs': timeoutMs,
                 },
               ),
@@ -475,10 +491,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
       try {
         _ensureAssertPermitted(assertion);
         switch (assertion) {
-          case ElementVisibleAssertion(
-              :final target,
-              :final visible
-            ):
+          case ElementVisibleAssertion(:final target, :final visible):
             if (target.locator == null && !target.usesSnapshotElement) {
               await executor.execute(TestStep(
                 type: visible ? 'expectVisible' : 'expectNotVisible',
@@ -504,10 +517,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 visible: true,
               );
             }
-          case ElementExistsAssertion(
-              :final target,
-              :final exists
-            ):
+          case ElementExistsAssertion(:final target, :final exists):
             if (target.locator == null && !target.usesSnapshotElement) {
               await executor.execute(TestStep(
                 type: exists ? 'expectExists' : 'expectNotExists',
@@ -544,10 +554,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
                 },
               ),
             );
-          case ElementEnabledAssertion(
-              :final target,
-              :final enabled
-            ):
+          case ElementEnabledAssertion(:final target, :final enabled):
             if (target.locator == null && !target.usesSnapshotElement) {
               await executor.execute(TestStep(
                 type: enabled ? 'expectEnabled' : 'expectDisabled',

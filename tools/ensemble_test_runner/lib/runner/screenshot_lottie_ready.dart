@@ -8,8 +8,8 @@ const Duration kScreenshotLottieReadyTimeout = Duration(seconds: 2);
 
 /// Representative progress for contact-sheet frames.
 ///
-/// Several inhome Lotties (e.g. `Experia_modem_connect_*`) only draw a solid
-/// Grey/Darkmode background at progress 0 — devices/cables animate in later.
+/// Some app illustrations only draw a solid background at progress 0;
+/// devices and cables animate in later.
 /// Seeking here makes screenshots show the intended illustration.
 const double kScreenshotLottieProgress = 0.45;
 

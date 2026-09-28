@@ -86,10 +86,15 @@ class ExtendedStepHandlers {
         await _pullToRefresh(executor, step);
         return true;
       case 'expectExists':
-        executor.assertions.expectExists(executor.requireId(step));
+        executor.assertions.expectExistsFinder(
+          executor.finderForTargetStep(step, requireInteractive: false),
+        );
         return true;
       case 'expectNotExists':
-        executor.assertions.expectNotExists(executor.requireId(step));
+        executor.assertions.expectExistsFinder(
+          executor.finderForTargetStep(step, requireInteractive: false),
+          exists: false,
+        );
         return true;
       case 'expectTextContains':
         final anyOfRaw = step.args['anyOf'];
@@ -121,60 +126,72 @@ class ExtendedStepHandlers {
         executor.assertions.expectTextContains(text);
         return true;
       case 'expectChecked':
-        executor.assertions.expectChecked(
-          executor.requireId(step),
+        executor.assertions.expectCheckedFinder(
+          executor.finderForTargetStep(step),
           step.args['equals'] as bool? ?? true,
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectSelected':
-        executor.assertions.expectChecked(
-          executor.requireId(step),
+        executor.assertions.expectCheckedFinder(
+          executor.finderForTargetStep(step),
           step.args['equals'] as bool? ?? true,
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectProperty':
-        executor.assertions.expectProperty(
-          executor.requireId(step),
+        executor.assertions.expectPropertyFinder(
+          executor.finderForTargetStep(step),
           step.args['property']?.toString() ?? 'label',
           step.args['equals'],
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectStyle':
-        executor.assertions.expectProperty(
-          executor.requireId(step),
+        executor.assertions.expectPropertyFinder(
+          executor.finderForTargetStep(step),
           'style',
           step.args['equals'],
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectListCount':
-        executor.assertions.expectListCount(
-          listId: step.args['id']?.toString() ?? executor.requireId(step),
+        executor.assertions.expectListCountFinder(
+          executor.finderForTargetStep(step),
           expected: step.args['equals'] as int? ??
               (throw EnsembleTestFailure('expectListCount requires "equals"')),
-          itemId: step.args['itemId']?.toString(),
+          itemFinder: step.args['itemId'] == null
+              ? null
+              : executor.assertions.finderForId(step.args['itemId'].toString()),
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectListContains':
-        executor.assertions.expectListContains(
-          listId: step.args['id']?.toString() ?? '',
-          text: step.args['text']?.toString() ?? '',
+        executor.assertions.expectListContainsFinder(
+          executor.finderForTargetStep(step),
+          step.args['text']?.toString() ?? '',
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectListItem':
-        executor.assertions
-            .expectVisible(step.args['itemId']?.toString() ?? '');
+        executor.assertions.expectVisibleFinder(
+          executor.finderForTargetStep(step),
+          visible: true,
+        );
         return true;
       case 'expectEmpty':
-        executor.assertions.expectListCount(
-          listId: executor.requireId(step),
+        executor.assertions.expectListCountFinder(
+          executor.finderForTargetStep(step),
           expected: 0,
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectNotEmpty':
-        executor.assertions.expectListCount(
-          listId: executor.requireId(step),
+        executor.assertions.expectListCountFinder(
+          executor.finderForTargetStep(step),
           expected: 1,
           atLeast: true,
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectNotVisited':
@@ -247,16 +264,23 @@ class ExtendedStepHandlers {
             .expectConsoleLog(step.args['contains']?.toString() ?? '');
         return true;
       case 'expectAccessible':
-        executor.assertions.expectAccessible(executor.requireId(step));
+        executor.assertions.expectAccessibleFinder(
+          executor.finderForTargetStep(step),
+          description: executor.targetDescription(step),
+        );
         return true;
       case 'expectSemanticsLabel':
-        executor.assertions.expectSemanticsLabel(
-          executor.requireId(step),
+        executor.assertions.expectSemanticsLabelFinder(
+          executor.finderForTargetStep(step),
           step.args['label']?.toString() ?? '',
+          description: executor.targetDescription(step),
         );
         return true;
       case 'expectNoOverflow':
-        executor.assertions.expectNoOverflow(executor.requireId(step));
+        executor.assertions.expectNoOverflowFinder(
+          executor.finderForTargetStep(step),
+          description: executor.targetDescription(step),
+        );
         return true;
       case 'expectError':
         executor.assertions.expectErrorRecorded(
