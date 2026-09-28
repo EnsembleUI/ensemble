@@ -125,12 +125,10 @@ UiElement describeElement({
   final checked = readChecked(semanticsSource);
   final selected = useSemantics ? readSelected(tester, semanticsSource) : null;
   var text = secure ? null : readText(semanticsSource);
-  var label = secure
-      ? null
-      : (useSemantics
-          ? readControlLabel(semanticsSource, tester)
-          : readControlLabelWithoutSemantics(semanticsSource));
-  final hint = secure ? null : readHint(semanticsSource);
+  var label = useSemantics
+      ? readControlLabel(semanticsSource, tester)
+      : readControlLabelWithoutSemantics(semanticsSource);
+  final hint = readHint(semanticsSource);
   // Icons rarely have Text; fall back to tooltip / semanticLabel only.
   if (type == 'icon') {
     if ((text == null || text.isEmpty) && (label == null || label.isEmpty)) {

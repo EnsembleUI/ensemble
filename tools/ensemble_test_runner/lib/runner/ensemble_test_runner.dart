@@ -1050,6 +1050,7 @@ class EnsembleTestRunner {
       image: image,
       step: step,
       device: device,
+      observerSnapshot: observerSnapshot,
       forFailure: forFailure,
     );
     if (requireVisibleActionHighlight) {
@@ -1312,16 +1313,19 @@ class EnsembleTestRunner {
     final finder = _highlightFinder(executor, step);
     if (finder == null) return null;
 
-    // Prefer the same visibility rules as taps: current route, on-screen, and
-    // hit-testable for user actions. Never fall back to off-route finder.first.
-    final requireHitTestable = _isUserActionStep(step);
+    // Text mutation screenshots are captured after the edit. Flutter may put
+    // selection handles over the field and intercept a fresh hit test, so use
+    // the field's current visible geometry without requiring hit-testing.
+    final requireHitTestable =
+        _isUserActionStep(step) && !_isTextMutationStep(step);
     final rect = executor.assertions.rectForVisuallyActionable(
       finder,
       requireHitTestable: requireHitTestable,
     );
     if (rect != null) return rect;
 
-    // Non-action asserts may highlight a visible but non-hit-testable widget.
+    // Assertions and post-edit screenshots may highlight visible geometry
+    // without requiring the widget to remain hit-testable at capture time.
     if (!requireHitTestable) {
       return executor.assertions.rectForVisuallyActionable(finder);
     }
@@ -1456,9 +1460,17 @@ class EnsembleTestRunner {
     required ui.Image image,
     required TestStep step,
     required TestDeviceTarget? device,
+    DiagnosticUiSnapshot? observerSnapshot,
     bool forFailure = false,
   }) {
-    final rect = _highlightRectForStep(executor, step, forFailure: forFailure);
+    final rect =
+        _highlightRectForStep(executor, step, forFailure: forFailure) ??
+            (observerSnapshot == null
+                ? null
+                : observedIdHighlightRect(
+                    step: step,
+                    observation: observerSnapshot.observation,
+                  ));
     if (rect == null) return null;
 
     final tester = executor.tester;
@@ -1474,10 +1486,7 @@ class EnsembleTestRunner {
       imageSize: Size(image.width.toDouble(), image.height.toDouble()),
     );
 
-    final isTapStep = step.type == 'tap' ||
-        step.type == 'doubleTap' ||
-        step.type == 'longPress' ||
-        step.type == 'tapAt';
+    final isActionStep = _isUserActionStep(step);
 
     final frameDevice = !framesScreenshotsWithDeviceBezel || device == null
         ? null
@@ -1499,7 +1508,7 @@ class EnsembleTestRunner {
     return ScreenshotHighlight(
       kind: forFailure
           ? 'failure'
-          : isTapStep
+          : isActionStep
               ? 'action'
               : 'assertion',
       left: framedRect.left,

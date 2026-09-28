@@ -7,6 +7,18 @@ import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('structural widgets do not borrow descendant text as their title', () {
+    expect(
+      observerElementTitleForFields(
+        type: 'widget',
+        label: null,
+        text: 'Home',
+        testId: 'home_screen',
+      ),
+      isNull,
+    );
+  });
+
   test('ambiguous text does not get screen-wide assertion examples', () {
     final examples = observerActionExamples(
       actions: ['expectText', 'expectNoText', 'expectTextContains'],

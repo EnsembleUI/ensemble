@@ -41,6 +41,11 @@ import 'package:flutter_test/flutter_test.dart';
     final routeName = navigation?.currentRoute?.trim();
 
     for (final element in tester.allElements) {
+      // Flutter paints text selection handles in OverlayEntries. Their small
+      // gesture/painter subtree can look exactly like an app icon/button to
+      // the generic observer classifier, but it is an editing affordance for
+      // the focused text field, not independent screen content.
+      if (_isTextSelectionHandleElement(element)) continue;
       // allElements includes widgets retained by inactive routes (including
       // the previous screen beneath a pushed route). They are neither current
       // screen content nor scrollable offscreen targets, so exclude them
@@ -162,6 +167,23 @@ import 'package:flutter_test/flutter_test.dart';
     );
   }
   return (elements: nestKeptElements(deduped), handles: handles);
+}
+
+bool _isTextSelectionHandleElement(Element element) {
+  bool isHandleOverlay(Element candidate) => candidate.widget.runtimeType
+      .toString()
+      .contains('SelectionHandleOverlay');
+
+  if (isHandleOverlay(element)) return true;
+  var found = false;
+  element.visitAncestorElements((ancestor) {
+    if (isHandleOverlay(ancestor)) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 bool _keepUnkeyedElement(
@@ -305,6 +327,10 @@ List<({Element element, UiElement ui})> absorbFormFieldLabels(
   for (var i = 0; i < kept.length; i++) {
     final control = kept[i].ui;
     if (!formTypes.contains(control.type)) continue;
+    // Explicit labels from InputDecoration / semantics are more reliable than
+    // nearby layout text. Only infer a sibling label when the control has no
+    // authored label, otherwise a heading above the field can replace it.
+    if (control.label?.trim().isNotEmpty == true) continue;
     final controlBounds = control.bounds;
     if (controlBounds == null) continue;
 

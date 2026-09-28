@@ -393,6 +393,59 @@ void main() {
     },
   );
 
+  testWidgets('observe does not expose Flutter text selection handles',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TextField(
+            key: const ValueKey('email_field'),
+            controller: TextEditingController(),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('email_field')));
+    await tester.enterText(find.byKey(const ValueKey('email_field')), 'a@b.c');
+    await tester.pump();
+    expect(
+      tester.allElements.any(
+        (element) => element.widget.runtimeType
+            .toString()
+            .contains('SelectionHandleOverlay'),
+      ),
+      isTrue,
+      reason: 'the fixture must include Flutter’s internal editing handle',
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: EnsembleTestHarness(appPath: 'unused/', appHome: 'Home'),
+      context: EnsembleTestContext(
+        testCase:
+            const EnsembleTestCase(id: 'text-selection-observe', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+      permissions: SessionPermissions.restrictedUi,
+    );
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final flat = _flatten(observation.elements);
+    expect(flat.where((element) => element.type == 'textInput'), hasLength(1));
+    expect(
+      flat.where((element) => element.type == 'icon'),
+      isEmpty,
+      reason: 'Flutter caret/selection handles are not app controls',
+    );
+    await session.close();
+  });
+
   testWidgets('observe keeps unkeyed primaries under a keyed page shell',
       (tester) async {
     await tester.pumpWidget(
@@ -2068,8 +2121,10 @@ void main() {
       (tester) async {
     final filled = TextEditingController(text: 'http://instellen.local/ws');
     final empty = TextEditingController();
+    final secret = TextEditingController(text: 'hidden-secret');
     addTearDown(filled.dispose);
     addTearDown(empty.dispose);
+    addTearDown(secret.dispose);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -2092,6 +2147,17 @@ void main() {
                 decoration: const InputDecoration(
                   hintText: 'Optional APP_GENERATED_PASSWORD',
                 ),
+              ),
+              const Text('Flutter host login'),
+              const TextField(
+                key: ValueKey('email_field'),
+                decoration: InputDecoration(labelText: 'Email'),
+              ),
+              TextField(
+                key: const ValueKey('secure_password'),
+                controller: secret,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password'),
               ),
               const Text('Use Stub URL'),
               Switch(
@@ -2154,6 +2220,16 @@ void main() {
     expect(override.text, '', reason: 'empty is a verified value');
     expect(override.label, 'Generated Password Override');
     expect(override.hint, 'Optional APP_GENERATED_PASSWORD');
+    final email = flat.firstWhere((e) => e.testId == 'email_field');
+    expect(email.type, 'textInput');
+    expect(email.label, 'Email');
+    final securePassword = flat.firstWhere(
+      (e) => e.testId == 'secure_password',
+    );
+    expect(securePassword.label, 'Password');
+    expect(securePassword.text, isNull);
+    expect(securePassword.state.secure, isTrue);
+
     final overrideJson = observerElementsToJson(observation)
         .expand((element) => _flattenJson(element))
         .singleWhere((element) => element['id'] == 'password_override');

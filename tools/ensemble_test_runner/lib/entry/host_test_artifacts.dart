@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
@@ -12,6 +14,10 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
+import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
+import 'package:ensemble_test_runner/runner/step_highlight_finder.dart';
+import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,6 +78,14 @@ Future<void> captureHostStepScreenshot({
       secureContent: context.config.screenshots.secureContent,
     );
     final device = hostScreenshotDevice(context);
+    final highlight = _hostStepHighlight(
+      tester: tester,
+      assertions: assertions,
+      step: step,
+      image: image,
+      device: device,
+      observation: observerSnapshot?.observation,
+    );
     context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
         stepIndex: stepIndex,
@@ -81,6 +95,7 @@ Future<void> captureHostStepScreenshot({
         deviceLabel: device?.displayLabel,
         platform: device?.platform,
         model: device?.model,
+        highlight: highlight,
       ),
     );
     final snap = observerSnapshot;
@@ -101,6 +116,84 @@ Future<void> captureHostStepScreenshot({
     // application FlutterErrors recorded for the host attempt.
   }
 }
+
+ScreenshotHighlight? _hostStepHighlight({
+  required WidgetTester tester,
+  required AssertionEngine assertions,
+  required TestStep step,
+  required ui.Image image,
+  required TestDeviceTarget? device,
+  required UiObservation? observation,
+}) {
+  final finder = stepHighlightFinder(
+    tester: tester,
+    assertions: assertions,
+    step: step,
+  );
+  ui.Rect? rect;
+  if (finder != null) {
+    // Host screenshots are captured after each step. Mutation steps can leave
+    // selection handles on top of the field, so don't require a fresh hit test
+    // for those; they still need current-route, visible geometry.
+    final requireHitTestable = _isHostUserAction(step) &&
+        step.type != 'enterText' &&
+        step.type != 'clearText' &&
+        step.type != 'replaceText';
+    rect = assertions.rectForVisuallyActionable(
+      finder,
+      requireHitTestable: requireHitTestable,
+    );
+  }
+  rect ??= observation == null
+      ? null
+      : observedIdHighlightRect(step: step, observation: observation);
+  if (rect == null) return null;
+
+  final viewSize = tester.binding.renderViews.first.size;
+  final scaled = screenshotLogicalRectToImagePixels(
+    logicalRect: rect,
+    logicalSize: viewSize,
+    imageSize: ui.Size(image.width.toDouble(), image.height.toDouble()),
+  );
+  if (scaled.isEmpty) return null;
+  final frameDevice = !framesScreenshotsWithDeviceBezel || device == null
+      ? null
+      : resolveScreenshotDevice({
+          'platform': device.platform,
+          'model': device.model,
+        });
+  final framed = screenshotHighlightPercentRect(
+    rectInImagePixels: scaled,
+    imageSize: ui.Size(image.width.toDouble(), image.height.toDouble()),
+    frameDevice: frameDevice,
+  );
+  if (framed.isEmpty) return null;
+  return ScreenshotHighlight(
+    kind: _isHostUserAction(step) ? 'action' : 'assertion',
+    left: framed.left,
+    top: framed.top,
+    width: framed.width,
+    height: framed.height,
+  );
+}
+
+bool _isHostUserAction(TestStep step) => const {
+      'tap',
+      'tapAt',
+      'doubleTap',
+      'longPress',
+      'toggle',
+      'check',
+      'uncheck',
+      'enterText',
+      'clearText',
+      'replaceText',
+      'submitText',
+      'focus',
+      'select',
+      'selectIndex',
+      'setSlider',
+    }.contains(step.type);
 
 /// One last frame when a host test dies before any step screenshot landed.
 Future<void> captureHostEmergencyScreenshot({

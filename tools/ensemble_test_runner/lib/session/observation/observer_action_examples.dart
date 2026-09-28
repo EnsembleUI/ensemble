@@ -66,7 +66,7 @@ String? observerElementTitleForFields({
     'textfield' =>
       [label, testId],
     'button' => [text, label, testId],
-    'toast' || 'card' => <String?>[],
+    'toast' || 'card' || 'widget' => <String?>[],
     _ => [label, text, testId],
   };
   for (final value in values) {

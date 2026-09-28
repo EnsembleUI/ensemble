@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -5,6 +7,8 @@ import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_action_executor.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
+import 'package:ensemble_test_runner/session/observation/ui_element.dart';
+import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Finder used to draw the report screenshot highlight for [step].
@@ -65,6 +69,47 @@ Finder? stepHighlightFinder({
     }
   }
   return null;
+}
+
+/// Bounds fallback for a step target when its live finder cannot provide a
+/// render object (for example, a keyed host wrapper around a text field).
+/// Use only a unique, visible observer match so this never invents a target.
+Rect? observedIdHighlightRect({
+  required TestStep step,
+  required UiObservation observation,
+}) {
+  String? id = step.args['id']?.toString();
+  if (id == null || id.isEmpty) {
+    final target = step.args['target'];
+    if (target is Map) {
+      id = target['id']?.toString();
+    }
+  }
+  if (id == null || id.isEmpty) return null;
+
+  final matches = <UiElement>[];
+  void visit(List<UiElement> elements) {
+    for (final element in elements) {
+      if (element.testId == id &&
+          element.state.visible == true &&
+          element.state.offscreen != true &&
+          element.bounds != null) {
+        matches.add(element);
+      }
+      visit(element.children);
+    }
+  }
+
+  visit(observation.elements);
+  if (matches.length != 1) return null;
+  final bounds = matches.single.bounds!;
+  final rect = Rect.fromLTWH(
+    bounds.left,
+    bounds.top,
+    bounds.width,
+    bounds.height,
+  );
+  return rect.isFinite && !rect.isEmpty ? rect : null;
 }
 
 /// Convenience overload for [TestStepExecutor] call sites.
