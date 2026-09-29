@@ -1,19 +1,24 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
 /// Replaces a file in one rename operation so readers never see a partial file.
 class AtomicFile {
   static void writeBytesSync(File target, List<int> bytes) {
-    target.parent.createSync(recursive: true);
-    final temporary = File(
-      '${target.path}.tmp-${pid}-${DateTime.now().microsecondsSinceEpoch}',
-    );
-    try {
-      temporary.writeAsBytesSync(bytes, flush: true);
-      temporary.renameSync(target.path);
-    } finally {
-      if (temporary.existsSync()) temporary.deleteSync();
-    }
+    return RunnerBenchmark.sync('artifact', 'writeBytesSync', () {
+      target.parent.createSync(recursive: true);
+      final temporary = File(
+        '${target.path}.tmp-${pid}-${DateTime.now().microsecondsSinceEpoch}',
+      );
+      try {
+        temporary.writeAsBytesSync(bytes, flush: true);
+        temporary.renameSync(target.path);
+        RunnerBenchmark.count('bytesWritten', bytes.length);
+        RunnerBenchmark.count('filesWritten', 1);
+      } finally {
+        if (temporary.existsSync()) temporary.deleteSync();
+      }
+    });
   }
 
   static void writeStringSync(
@@ -21,6 +26,8 @@ class AtomicFile {
     String contents, {
     Encoding encoding = utf8,
   }) {
-    writeBytesSync(target, encoding.encode(contents));
+    return RunnerBenchmark.sync('artifact', 'writeStringSync', () {
+      writeBytesSync(target, encoding.encode(contents));
+    });
   }
 }

@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -89,33 +90,36 @@ Future<void> applyYamlTestBootstrap(
 }
 
 Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
-  for (final entry in setup.initialPublicStorage?.entries ??
-      const Iterable<MapEntry<String, dynamic>>.empty()) {
-    await StorageManager().write(entry.key, entry.value);
-  }
-  final secureEntries = setup.initialSecureStorage?.entries.toList() ??
-      const <MapEntry<String, dynamic>>[];
-  if (secureEntries.isNotEmpty) {
-    await SecretsStore().initialize();
-    installTestEncryptionKey();
-  }
-  for (final entry in secureEntries) {
-    EncryptedStorageManager.setSecureStorage({
-      'key': entry.key,
-      'value': entry.value,
-    });
-    // The runtime API is synchronous for compatibility with released
-    // Ensemble versions, while GetStorage persists asynchronously. Wait for
-    // the backend entry to become observable before mounting the app.
-    for (var attempt = 0; attempt < 50; attempt++) {
-      if (StorageManager().read('enc_${entry.key}') != null) break;
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+  return await RunnerBenchmark.async(
+      'lifecycle', 'applyYamlTestStorageBootstrap', () async {
+    for (final entry in setup.initialPublicStorage?.entries ??
+        const Iterable<MapEntry<String, dynamic>>.empty()) {
+      await StorageManager().write(entry.key, entry.value);
     }
-  }
-  for (final entry in setup.initialKeychain?.entries ??
-      const Iterable<MapEntry<String, dynamic>>.empty()) {
-    await StorageManager().writeSecurely(key: entry.key, value: entry.value);
-  }
+    final secureEntries = setup.initialSecureStorage?.entries.toList() ??
+        const <MapEntry<String, dynamic>>[];
+    if (secureEntries.isNotEmpty) {
+      await SecretsStore().initialize();
+      installTestEncryptionKey();
+    }
+    for (final entry in secureEntries) {
+      EncryptedStorageManager.setSecureStorage({
+        'key': entry.key,
+        'value': entry.value,
+      });
+      // The runtime API is synchronous for compatibility with released
+      // Ensemble versions, while GetStorage persists asynchronously. Wait for
+      // the backend entry to become observable before mounting the app.
+      for (var attempt = 0; attempt < 50; attempt++) {
+        if (StorageManager().read('enc_${entry.key}') != null) break;
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    }
+    for (final entry in setup.initialKeychain?.entries ??
+        const Iterable<MapEntry<String, dynamic>>.empty()) {
+      await StorageManager().writeSecurely(key: entry.key, value: entry.value);
+    }
+  });
 }
 
 /// Installs the per-run test encryption key into [SecretsStore] and clears the
@@ -450,19 +454,21 @@ class EnsembleTestHarness {
   }
 
   Future<EnsembleConfig> buildConfig({Locale? forcedLocale}) async {
-    final normalized = normalizeAppPath(appPath);
-    final i18n = I18nProps(i18nPath ?? '${normalized}translations');
+    return await RunnerBenchmark.async('lifecycle', 'buildConfig', () async {
+      final normalized = normalizeAppPath(appPath);
+      final i18n = I18nProps(i18nPath ?? '${normalized}translations');
 
-    final provider = await LocalDefinitionProvider(
-      normalized,
-      appHome,
-      i18nProps: i18n,
-      initialForcedLocale: forcedLocale,
-    ).init();
+      final provider = await LocalDefinitionProvider(
+        normalized,
+        appHome,
+        i18nProps: i18n,
+        initialForcedLocale: forcedLocale,
+      ).init();
 
-    final config = EnsembleConfig(definitionProvider: provider);
-    final updated = await config.updateAppBundle();
-    return updated;
+      final config = EnsembleConfig(definitionProvider: provider);
+      final updated = await config.updateAppBundle();
+      return updated;
+    });
   }
 
   static Future<void> initializeRealApiProviders(EnsembleConfig config) async {
@@ -522,33 +528,36 @@ class EnsembleTestHarness {
     TestApiProviderOverlay? apiOverlay,
     bool clearPersistentState = false,
   }) async {
-    runtimeAdapter.initialize();
-    await ensureAppFontsLoaded();
+    return await RunnerBenchmark.async('lifecycle', 'bootstrapRuntime',
+        () async {
+      runtimeAdapter.initialize();
+      await ensureAppFontsLoaded();
 
-    final env = Map<String, dynamic>.from(config.envOverrides ?? {});
-    env['firebase_app_check'] = 'false';
-    if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
-      env.addAll(setup.envOverrides!);
-    }
-    config.updateEnvOverrides(env);
-    Ensemble().setEnsembleConfig(config);
-    if (externalMethods != null && externalMethods!.isNotEmpty) {
-      Ensemble().setExternalMethods(externalMethods!);
-    }
+      final env = Map<String, dynamic>.from(config.envOverrides ?? {});
+      env['firebase_app_check'] = 'false';
+      if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
+        env.addAll(setup.envOverrides!);
+      }
+      config.updateEnvOverrides(env);
+      Ensemble().setEnsembleConfig(config);
+      if (externalMethods != null && externalMethods!.isNotEmpty) {
+        Ensemble().setExternalMethods(externalMethods!);
+      }
 
-    await Ensemble().initManagers();
-    if (clearPersistentState) {
-      await _clearPersistentTestState();
-    }
-    await initializeRealApiProviders(config);
+      await Ensemble().initManagers();
+      if (clearPersistentState) {
+        await _clearPersistentTestState();
+      }
+      await initializeRealApiProviders(config);
 
-    if (apiOverlay != null) {
-      installTestApiOverlay(config, apiOverlay);
-    }
-    await applyYamlTestStorageBootstrap(setup);
+      if (apiOverlay != null) {
+        installTestApiOverlay(config, apiOverlay);
+      }
+      await applyYamlTestStorageBootstrap(setup);
 
-    YamlTestSession.markRuntimeBootstrapped();
-    return config;
+      YamlTestSession.markRuntimeBootstrapped();
+      return config;
+    });
   }
 
   static Future<void> ensureAppFontsLoaded() async {
@@ -797,76 +806,78 @@ class EnsembleTestHarness {
     Future<void> Function()? beforeBootstrap,
     Locale? forcedLocale,
   }) async {
-    // Independent tests need a new EnsembleApp state. Pumping another
-    // EnsembleApp of the same type would otherwise reuse the prior route.
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    resetTestRuntime();
-    ScreenTracker().clearAll();
-    YamlTestSession.navigationFlow.clear();
-    await beforeBootstrap?.call();
-
-    final ctx = context ??
-        EnsembleTestContext.fromTestCase(
-          testCase,
-          config: suiteConfig,
-        );
-    await applyViewport(
-      tester,
-      ctx,
-      screenshotDevice: screenshotDeviceForTestCase(testCase, ctx.config),
-    );
-    var config = existingConfig ?? await buildConfig();
-    final bootstrapped = await tester.runAsync(() async {
-      return bootstrapRuntime(
-        config,
-        ctx.setup,
-        apiOverlay: ctx.apiOverlay,
-        clearPersistentState:
-            runtimeAdapter.clearsPersistentStateBetweenIndependentTests &&
-                testCase.session == null,
-      );
-    });
-    if (bootstrapped == null) {
-      while (tester.takeException() != null) {}
-      throw EnsembleTestFailure(
-        'Ensemble runtime bootstrap completed without a configuration.',
-      );
-    }
-    config = bootstrapped;
-
-    final startScreen = testCase.startScreen;
-    if (startScreen == null || startScreen.isEmpty) {
-      throw EnsembleTestFailure(
-        'loadScreen requires startScreen on test "${testCase.id}"',
-      );
-    }
-
-    final deviceTheme = testCase.deviceTarget?.theme;
-    await tester.runAsync(() => seedEnsembleTestTheme(deviceTheme));
-
-    // Skip re-initializing providers in EnsembleApp.initApp; bootstrapRuntime
-    // already installed real providers and mock overlays.
-    config.appBundle = null;
-    await tester.pumpWidget(
-      EnsembleApp(
-        ensembleConfig: config,
-        screenPayload: ScreenPayload(
-          screenId: startScreen,
-          screenName: startScreen,
-          arguments: testCase.startScreenInputs,
-        ),
-        forcedLocale: forcedLocale,
-      ),
-    );
-
-    await waitForInitialWidgets(tester, testCase: testCase);
-    final appliedTheme = applyDeviceThemeForTestCase(testCase);
-    if (appliedTheme != null) {
-      ctx.runtime.themeMode = appliedTheme;
+    return await RunnerBenchmark.async('lifecycle', 'loadScreen', () async {
+      // Independent tests need a new EnsembleApp state. Pumping another
+      // EnsembleApp of the same type would otherwise reuse the prior route.
+      await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
-    }
-    return config;
+      resetTestRuntime();
+      ScreenTracker().clearAll();
+      YamlTestSession.navigationFlow.clear();
+      await beforeBootstrap?.call();
+
+      final ctx = context ??
+          EnsembleTestContext.fromTestCase(
+            testCase,
+            config: suiteConfig,
+          );
+      await applyViewport(
+        tester,
+        ctx,
+        screenshotDevice: screenshotDeviceForTestCase(testCase, ctx.config),
+      );
+      var config = existingConfig ?? await buildConfig();
+      final bootstrapped = await tester.runAsync(() async {
+        return bootstrapRuntime(
+          config,
+          ctx.setup,
+          apiOverlay: ctx.apiOverlay,
+          clearPersistentState:
+              runtimeAdapter.clearsPersistentStateBetweenIndependentTests &&
+                  testCase.session == null,
+        );
+      });
+      if (bootstrapped == null) {
+        while (tester.takeException() != null) {}
+        throw EnsembleTestFailure(
+          'Ensemble runtime bootstrap completed without a configuration.',
+        );
+      }
+      config = bootstrapped;
+
+      final startScreen = testCase.startScreen;
+      if (startScreen == null || startScreen.isEmpty) {
+        throw EnsembleTestFailure(
+          'loadScreen requires startScreen on test "${testCase.id}"',
+        );
+      }
+
+      final deviceTheme = testCase.deviceTarget?.theme;
+      await tester.runAsync(() => seedEnsembleTestTheme(deviceTheme));
+
+      // Skip re-initializing providers in EnsembleApp.initApp; bootstrapRuntime
+      // already installed real providers and mock overlays.
+      config.appBundle = null;
+      await tester.pumpWidget(
+        EnsembleApp(
+          ensembleConfig: config,
+          screenPayload: ScreenPayload(
+            screenId: startScreen,
+            screenName: startScreen,
+            arguments: testCase.startScreenInputs,
+          ),
+          forcedLocale: forcedLocale,
+        ),
+      );
+
+      await waitForInitialWidgets(tester, testCase: testCase);
+      final appliedTheme = applyDeviceThemeForTestCase(testCase);
+      if (appliedTheme != null) {
+        ctx.runtime.themeMode = appliedTheme;
+        await tester.pump();
+      }
+      return config;
+    });
   }
 
   static Future<void> openSessionScreen(
@@ -906,14 +917,16 @@ class EnsembleTestHarness {
     EnsembleTestContext context, {
     DeviceInfo? screenshotDevice,
   }) async {
-    if (runtimeAdapter.usesPhysicalDisplay) {
-      _recordPhysicalDisplaySize(tester, context);
-      return;
-    }
-    if (screenshotDevice != null) {
-      await _setViewportForDevice(tester, context, screenshotDevice);
-    }
-    await _ensureDefaultViewport(tester, context);
+    return await RunnerBenchmark.async('lifecycle', 'applyViewport', () async {
+      if (runtimeAdapter.usesPhysicalDisplay) {
+        _recordPhysicalDisplaySize(tester, context);
+        return;
+      }
+      if (screenshotDevice != null) {
+        await _setViewportForDevice(tester, context, screenshotDevice);
+      }
+      await _ensureDefaultViewport(tester, context);
+    });
   }
 
   static void _recordPhysicalDisplaySize(
@@ -1012,17 +1025,20 @@ class EnsembleTestHarness {
   }
 
   static Future<void> applyInPlaceSetup(EnsembleTestContext ctx) async {
-    final config = Ensemble().getConfig();
-    if (config != null) {
-      await applyYamlTestBootstrap(config, ctx.setup);
-    }
-    ctx.applyRuntimeEnv();
-    for (final entry in ctx.testCase.mocks.apis.entries) {
-      ctx.apiOverlay.setMock(entry.key, entry.value);
-    }
-    if (config != null) {
-      installTestApiOverlay(config, ctx.apiOverlay);
-    }
+    return await RunnerBenchmark.async('lifecycle', 'applyInPlaceSetup',
+        () async {
+      final config = Ensemble().getConfig();
+      if (config != null) {
+        await applyYamlTestBootstrap(config, ctx.setup);
+      }
+      ctx.applyRuntimeEnv();
+      for (final entry in ctx.testCase.mocks.apis.entries) {
+        ctx.apiOverlay.setMock(entry.key, entry.value);
+      }
+      if (config != null) {
+        installTestApiOverlay(config, ctx.apiOverlay);
+      }
+    });
   }
 
   /// Wipes all public / encrypted / keychain storage. Destructive — only used
@@ -1060,8 +1076,11 @@ class EnsembleTestHarness {
 
   /// Restores the cached pre-suite storage baseline (capturing it first if needed).
   static Future<void> restorePreSuiteStorage() async {
-    await ensurePreSuiteStorageSnapshot();
-    await _preSuiteStorageSnapshot!.restore();
+    return await RunnerBenchmark.async('lifecycle', 'restorePreSuiteStorage',
+        () async {
+      await ensurePreSuiteStorageSnapshot();
+      await _preSuiteStorageSnapshot!.restore();
+    });
   }
 
   /// Restores the pre-suite baseline at suite teardown (including after

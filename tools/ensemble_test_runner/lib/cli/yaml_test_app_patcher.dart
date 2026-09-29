@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -185,8 +186,10 @@ Future<void> main() async {
 
   /// Restores every file touched by a successful [enable].
   void restore() {
-    if (!_enabled) return;
-    _rollbackMutations();
+    return RunnerBenchmark.sync('cli', 'restore', () {
+      if (!_enabled) return;
+      _rollbackMutations();
+    });
   }
 
   /// Rolls back backups and deletes created files regardless of [_enabled].

@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -102,11 +103,14 @@ Future<void> writeEnsembleTestArtifactBytes(
   List<int> bytes, {
   String mimeType = 'application/octet-stream',
 }) async {
-  await ensembleTestArtifactSink.write(
-    p.posix.join(directoryName.replaceAll('\\', '/'), fileName),
-    bytes,
-    mimeType: mimeType,
-  );
+  return await RunnerBenchmark.async(
+      'artifact', 'writeEnsembleTestArtifactBytes', () async {
+    await ensembleTestArtifactSink.write(
+      p.posix.join(directoryName.replaceAll('\\', '/'), fileName),
+      bytes,
+      mimeType: mimeType,
+    );
+  });
 }
 
 Future<void> writeEnsembleTestArtifactString(

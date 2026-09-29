@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:ui' as ui;
 
 import 'package:ensemble/action/navigation_action.dart';
@@ -539,125 +540,140 @@ class ExtendedStepHandlers {
     WidgetTester tester, {
     SecureScreenshotPolicy secureContent = SecureScreenshotPolicy.mask,
   }) {
-    final renderView = tester.binding.renderViews.first;
-    final layer = renderView.debugLayer;
-    if (layer is! OffsetLayer) {
-      throw EnsembleTestFailure(
-        'screenshot requires a painted render view.',
-      );
-    }
-
-    final view = renderView.flutterView;
-    final image = layer.toImageSync(
-      screenshotLayerBounds(
-        physicalSize: view.physicalSize,
-        paintBounds: renderView.paintBounds,
-      ),
-      pixelRatio: screenshotLayerPixelRatio,
-    );
-    final secureRects = <Rect>[];
-    final seen = <RenderObject>{};
-    for (final element in tester.allElements) {
-      final widget = element.widget;
-      if (widget is! EditableText || !widget.obscureText) continue;
-      final renderObject = element.renderObject;
-      if (renderObject is! RenderBox ||
-          !renderObject.hasSize ||
-          renderObject.size.isEmpty ||
-          !seen.add(renderObject)) {
-        continue;
+    return RunnerBenchmark.sync('screenshot', 'captureScreenshotImage', () {
+      RunnerBenchmark.dimension('secureContent', secureContent.name);
+      RunnerBenchmark.dimension('renderingIncluded', true);
+      final renderView = tester.binding.renderViews.first;
+      final layer = renderView.debugLayer;
+      if (layer is! OffsetLayer) {
+        throw EnsembleTestFailure(
+          'screenshot requires a painted render view.',
+        );
       }
-      secureRects
-          .add(renderObject.localToGlobal(Offset.zero) & renderObject.size);
-    }
-    if (secureRects.isEmpty || secureContent == SecureScreenshotPolicy.allow) {
-      return image;
-    }
-    if (secureContent == SecureScreenshotPolicy.skip) {
-      image.dispose();
-      throw EnsembleTestFailure(
-        'Screenshot skipped because secure content is visible.',
-      );
-    }
-    final logicalSize = tester.view.physicalSize / tester.view.devicePixelRatio;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.drawImage(image, Offset.zero, Paint());
-    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    for (final rect in secureRects) {
-      canvas.drawRect(
-        screenshotLogicalRectToImagePixels(
-          logicalRect: rect,
-          logicalSize: logicalSize,
-          imageSize: imageSize,
+
+      final view = renderView.flutterView;
+      final image = layer.toImageSync(
+        screenshotLayerBounds(
+          physicalSize: view.physicalSize,
+          paintBounds: renderView.paintBounds,
         ),
-        Paint()..color = const Color(0xFF202124),
+        pixelRatio: screenshotLayerPixelRatio,
       );
-    }
-    final picture = recorder.endRecording();
-    final masked = picture.toImageSync(image.width, image.height);
-    picture.dispose();
-    image.dispose();
-    return masked;
+      final secureRects = <Rect>[];
+      RunnerBenchmark.count('framesCaptured', 1);
+      RunnerBenchmark.count('pixels', image.width * image.height);
+      final seen = <RenderObject>{};
+      for (final element in tester.allElements) {
+        final widget = element.widget;
+        if (widget is! EditableText || !widget.obscureText) continue;
+        final renderObject = element.renderObject;
+        if (renderObject is! RenderBox ||
+            !renderObject.hasSize ||
+            renderObject.size.isEmpty ||
+            !seen.add(renderObject)) {
+          continue;
+        }
+        secureRects
+            .add(renderObject.localToGlobal(Offset.zero) & renderObject.size);
+      }
+      if (secureRects.isEmpty ||
+          secureContent == SecureScreenshotPolicy.allow) {
+        return image;
+      }
+      if (secureContent == SecureScreenshotPolicy.skip) {
+        RunnerBenchmark.count('framesDropped', 1);
+        image.dispose();
+        throw EnsembleTestFailure(
+          'Screenshot skipped because secure content is visible.',
+        );
+      }
+      final logicalSize =
+          tester.view.physicalSize / tester.view.devicePixelRatio;
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawImage(image, Offset.zero, Paint());
+      final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+      for (final rect in secureRects) {
+        canvas.drawRect(
+          screenshotLogicalRectToImagePixels(
+            logicalRect: rect,
+            logicalSize: logicalSize,
+            imageSize: imageSize,
+          ),
+          Paint()..color = const Color(0xFF202124),
+        );
+      }
+      final picture = recorder.endRecording();
+      final masked = picture.toImageSync(image.width, image.height);
+      picture.dispose();
+      image.dispose();
+      return masked;
+    });
   }
 
   static Future<Uint8List> encodeScreenshotImage(
     ui.Image image,
     DeviceInfo device,
   ) async {
-    final byteData = await _addDeviceFrame(image, device);
-    if (byteData == null) {
-      throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
-    }
-    return byteData.buffer.asUint8List();
+    return await RunnerBenchmark.async('screenshot', 'encodeScreenshotImage',
+        () async {
+      final byteData = await _addDeviceFrame(image, device);
+      if (byteData == null) {
+        throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
+      }
+      return byteData.buffer.asUint8List();
+    });
   }
 
   static Future<ByteData?> _addDeviceFrame(
     ui.Image screenImage,
     DeviceInfo device,
   ) async {
-    final padding = device.frameSize.shortestSide * 0.025;
-    final outputWidth = (device.frameSize.width + padding * 2).ceil();
-    final outputHeight = (device.frameSize.height + padding * 2).ceil();
+    return await RunnerBenchmark.async('screenshot', 'addDeviceFrame',
+        () async {
+      final padding = device.frameSize.shortestSide * 0.025;
+      final outputWidth = (device.frameSize.width + padding * 2).ceil();
+      final outputHeight = (device.frameSize.height + padding * 2).ceil();
 
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(
-      recorder,
-      Rect.fromLTWH(0, 0, outputWidth.toDouble(), outputHeight.toDouble()),
-    );
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(
+        recorder,
+        Rect.fromLTWH(0, 0, outputWidth.toDouble(), outputHeight.toDouble()),
+      );
 
-    canvas.drawColor(const Color(0x00000000), BlendMode.src);
-    canvas.save();
-    canvas.translate(padding, padding);
-    device.framePainter.paint(canvas, device.frameSize);
+      canvas.drawColor(const Color(0x00000000), BlendMode.src);
+      canvas.save();
+      canvas.translate(padding, padding);
+      device.framePainter.paint(canvas, device.frameSize);
 
-    final screenPath = device.screenPath;
-    final screenRect = screenPath.getBounds();
-    canvas.save();
-    canvas.clipPath(screenPath);
-    canvas.drawRect(screenRect, Paint()..color = const Color(0xFFFFFFFF));
-    final imageSize = Size(
-      screenImage.width.toDouble(),
-      screenImage.height.toDouble(),
-    );
-    canvas.drawImageRect(
-      screenImage,
-      Offset.zero & imageSize,
-      screenshotFittedScreenRect(
-        imageSize: imageSize,
-        screenRect: screenRect,
-      ),
-      Paint()..filterQuality = FilterQuality.high,
-    );
-    canvas.restore();
-    canvas.restore();
+      final screenPath = device.screenPath;
+      final screenRect = screenPath.getBounds();
+      canvas.save();
+      canvas.clipPath(screenPath);
+      canvas.drawRect(screenRect, Paint()..color = const Color(0xFFFFFFFF));
+      final imageSize = Size(
+        screenImage.width.toDouble(),
+        screenImage.height.toDouble(),
+      );
+      canvas.drawImageRect(
+        screenImage,
+        Offset.zero & imageSize,
+        screenshotFittedScreenRect(
+          imageSize: imageSize,
+          screenRect: screenRect,
+        ),
+        Paint()..filterQuality = FilterQuality.high,
+      );
+      canvas.restore();
+      canvas.restore();
 
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(outputWidth, outputHeight);
-    picture.dispose();
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    return byteData;
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(outputWidth, outputHeight);
+      picture.dispose();
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      return byteData;
+    });
   }
 
   static bool _deepEquals(dynamic a, dynamic b) {

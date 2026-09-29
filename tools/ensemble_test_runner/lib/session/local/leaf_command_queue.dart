@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:collection';
 
 /// Non-reentrant async queue for **leaf** session operations only.
@@ -28,18 +29,20 @@ class LeafCommandQueue {
         StateError('LeafCommandQueue is closed'),
       );
     }
+    final waiting = RunnerBenchmark.pending('queue', 'wait');
     final token = Object();
     final previous = _tail;
     final gate = Completer<void>();
     _tail = gate.future;
 
     return previous.catchError((_) {}).then((_) async {
+      waiting?.finish();
       if (_closed) {
         throw StateError('LeafCommandQueue is closed');
       }
       _owner = token;
       try {
-        return await body();
+        return await RunnerBenchmark.async('queue', 'execute', body);
       } finally {
         if (identical(_owner, token)) {
           _owner = null;

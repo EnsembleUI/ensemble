@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:flutter/widgets.dart';
@@ -20,15 +21,17 @@ const double kScreenshotLottieProgress = 0.45;
 /// not ready; capturing then yields a blank box when `placeholderColor` is
 /// transparent.
 bool areVisibleLottiesReady(WidgetTester tester) {
-  for (final element in find.byType(EnsembleLottie).evaluate()) {
-    if (!_isVisibleOnScreen(tester, element)) continue;
-    final widget = element.widget;
-    if (widget is! EnsembleLottie) continue;
-    final controller = widget.controller;
-    if (controller.source.trim().isEmpty) continue;
-    if (!controller.compositionReady) return false;
-  }
-  return true;
+  return RunnerBenchmark.sync('screenshot', 'areVisibleLottiesReady', () {
+    for (final element in find.byType(EnsembleLottie).evaluate()) {
+      if (!_isVisibleOnScreen(tester, element)) continue;
+      final widget = element.widget;
+      if (widget is! EnsembleLottie) continue;
+      final controller = widget.controller;
+      if (controller.source.trim().isEmpty) continue;
+      if (!controller.compositionReady) return false;
+    }
+    return true;
+  });
 }
 
 /// Holds each loaded Lottie on a mid-animation frame for screenshot capture.
@@ -39,15 +42,18 @@ void seekVisibleLottiesForScreenshot(
   WidgetTester tester, {
   double progress = kScreenshotLottieProgress,
 }) {
-  final clamped = progress.clamp(0.0, 1.0);
-  for (final element in find.byType(EnsembleLottie).evaluate()) {
-    if (!_isVisibleOnScreen(tester, element)) continue;
-    final widget = element.widget;
-    if (widget is! EnsembleLottie) continue;
-    final animation = widget.controller.lottieController;
-    if (animation == null || animation.duration == null) continue;
-    animation.value = clamped;
-  }
+  return RunnerBenchmark.sync('screenshot', 'seekVisibleLottiesForScreenshot',
+      () {
+    final clamped = progress.clamp(0.0, 1.0);
+    for (final element in find.byType(EnsembleLottie).evaluate()) {
+      if (!_isVisibleOnScreen(tester, element)) continue;
+      final widget = element.widget;
+      if (widget is! EnsembleLottie) continue;
+      final animation = widget.controller.lottieController;
+      if (animation == null || animation.duration == null) continue;
+      animation.value = clamped;
+    }
+  });
 }
 
 bool _isVisibleOnScreen(WidgetTester tester, Element element) {
@@ -81,16 +87,19 @@ Future<void> waitForVisibleLottiesReady(
   Duration pollInterval = const Duration(milliseconds: 50),
   double progress = kScreenshotLottieProgress,
 }) async {
-  final stopwatch = Stopwatch()..start();
-  while (stopwatch.elapsed < timeout) {
-    if (areVisibleLottiesReady(tester)) {
-      seekVisibleLottiesForScreenshot(tester, progress: progress);
-      await tester.pump();
-      return;
+  return await RunnerBenchmark.async('screenshot', 'waitForVisibleLottiesReady',
+      () async {
+    final stopwatch = Stopwatch()..start();
+    while (stopwatch.elapsed < timeout) {
+      if (areVisibleLottiesReady(tester)) {
+        seekVisibleLottiesForScreenshot(tester, progress: progress);
+        await tester.pump();
+        return;
+      }
+      await tester.pump(pollInterval);
+      await _yieldToRealAsyncWork(tester);
     }
-    await tester.pump(pollInterval);
-    await _yieldToRealAsyncWork(tester);
-  }
+  });
 }
 
 Future<void> _yieldToRealAsyncWork(WidgetTester tester) async {

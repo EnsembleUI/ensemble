@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
@@ -15,92 +16,103 @@ bool _didResolveCwebpPath = false;
 /// Frame manifests are updated atomically; PNG remains the fallback whenever
 /// the bundled encoder is unavailable or does not produce a smaller image.
 Future<void> optimizeTransportedScreenshotsForHost(String artifactRoot) async {
-  final manifestsDir = Directory(p.join(artifactRoot, 'frames'));
-  final legacyManifestsDir = Directory(p.join(artifactRoot, 'screenshots'));
-  final imagesDir = Directory(p.join(artifactRoot, 'report', 'screenshots'));
-  if (!imagesDir.existsSync()) return;
+  return await RunnerBenchmark.async(
+      'screenshot', 'optimizeTransportedScreenshotsForHost', () async {
+    final manifestsDir = Directory(p.join(artifactRoot, 'frames'));
+    final legacyManifestsDir = Directory(p.join(artifactRoot, 'screenshots'));
+    final imagesDir = Directory(p.join(artifactRoot, 'report', 'screenshots'));
+    if (!imagesDir.existsSync()) return;
 
-  final converted = <String, String>{};
+    final converted = <String, String>{};
 
-  Future<void> optimizeManifests(Directory dir) async {
-    if (!dir.existsSync()) return;
-    for (final entity in dir.listSync().whereType<File>()) {
-      if (!entity.path.endsWith('_frames.json')) continue;
-      final dynamic decoded;
-      try {
-        decoded = json.decode(entity.readAsStringSync());
-      } catch (_) {
-        continue;
-      }
-      if (decoded is! Map || decoded['frames'] is! List) continue;
-      var changed = false;
-      for (final dynamic rawFrame in decoded['frames'] as List) {
-        if (rawFrame is! Map) continue;
-        final fileName = rawFrame['file']?.toString();
-        if (fileName == null || !fileName.endsWith('.png')) continue;
-        final existingConversion = converted[fileName];
-        if (existingConversion != null) {
-          rawFrame['file'] = existingConversion;
-          changed = true;
+    Future<void> optimizeManifests(Directory dir) async {
+      if (!dir.existsSync()) return;
+      for (final entity in dir.listSync().whereType<File>()) {
+        if (!entity.path.endsWith('_frames.json')) continue;
+        final dynamic decoded;
+        try {
+          decoded = json.decode(entity.readAsStringSync());
+        } catch (_) {
           continue;
         }
-        final png = File(p.join(imagesDir.path, fileName));
-        if (!png.existsSync()) continue;
-        final pngBytes = png.readAsBytesSync();
-        final webpBytes = await _encodeWebP(pngBytes);
-        if (webpBytes == null || webpBytes.length >= pngBytes.length) continue;
-        final webpName = '${p.basenameWithoutExtension(fileName)}.webp';
-        AtomicFile.writeBytesSync(
-          File(p.join(imagesDir.path, webpName)),
-          webpBytes,
-        );
-        rawFrame['file'] = webpName;
-        converted[fileName] = webpName;
-        png.deleteSync();
-        changed = true;
-      }
-      if (changed) {
-        AtomicFile.writeStringSync(
-          entity,
-          const JsonEncoder.withIndent('  ').convert(decoded),
-        );
+        if (decoded is! Map || decoded['frames'] is! List) continue;
+        var changed = false;
+        for (final dynamic rawFrame in decoded['frames'] as List) {
+          if (rawFrame is! Map) continue;
+          final fileName = rawFrame['file']?.toString();
+          if (fileName == null || !fileName.endsWith('.png')) continue;
+          final existingConversion = converted[fileName];
+          if (existingConversion != null) {
+            rawFrame['file'] = existingConversion;
+            changed = true;
+            continue;
+          }
+          final png = File(p.join(imagesDir.path, fileName));
+          if (!png.existsSync()) continue;
+          final pngBytes = png.readAsBytesSync();
+          final webpBytes = await _encodeWebP(pngBytes);
+          if (webpBytes == null || webpBytes.length >= pngBytes.length)
+            continue;
+          final webpName = '${p.basenameWithoutExtension(fileName)}.webp';
+          AtomicFile.writeBytesSync(
+            File(p.join(imagesDir.path, webpName)),
+            webpBytes,
+          );
+          rawFrame['file'] = webpName;
+          converted[fileName] = webpName;
+          png.deleteSync();
+          changed = true;
+        }
+        if (changed) {
+          AtomicFile.writeStringSync(
+            entity,
+            const JsonEncoder.withIndent('  ').convert(decoded),
+          );
+        }
       }
     }
-  }
 
-  await optimizeManifests(manifestsDir);
-  await optimizeManifests(legacyManifestsDir);
+    await optimizeManifests(manifestsDir);
+    await optimizeManifests(legacyManifestsDir);
+  });
 }
 
 Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
-  final cwebpPath = await _resolveCwebpPath();
-  if (cwebpPath == null) return null;
-  final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
-  try {
-    final input = File(p.join(tempDir.path, 'input.png'));
-    final output = File(p.join(tempDir.path, 'output.webp'));
-    input.writeAsBytesSync(pngBytes);
-    final result = await Process.run(cwebpPath, [
-      '-quiet',
-      '-q',
-      '$_webPQuality',
-      '-m',
-      '4',
-      '-metadata',
-      'none',
-      input.path,
-      '-o',
-      output.path,
-    ]);
-    if (result.exitCode != 0 || !output.existsSync()) return null;
-    return output.readAsBytesSync();
-  } catch (_) {
-    return null;
-  } finally {
+  return await RunnerBenchmark.async('screenshot', 'encodeHostWebP', () async {
+    if (RunnerBenchmark.collector?.disabledExecutables.contains('cwebp') ==
+        true) {
+      RunnerBenchmark.dimension('codecFallback', 'controlled-unavailable-webp');
+      return null;
+    }
+    final cwebpPath = await _resolveCwebpPath();
+    if (cwebpPath == null) return null;
+    final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
     try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {}
-  }
+      final input = File(p.join(tempDir.path, 'input.png'));
+      final output = File(p.join(tempDir.path, 'output.webp'));
+      input.writeAsBytesSync(pngBytes);
+      final result = await Process.run(cwebpPath, [
+        '-quiet',
+        '-q',
+        '$_webPQuality',
+        '-m',
+        '4',
+        '-metadata',
+        'none',
+        input.path,
+        '-o',
+        output.path,
+      ]);
+      if (result.exitCode != 0 || !output.existsSync()) return null;
+      return output.readAsBytesSync();
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        tempDir.deleteSync(recursive: true);
+      } catch (_) {}
+    }
+  });
 }
 
 Future<String?> _resolveCwebpPath() async {

@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
@@ -19,37 +20,39 @@ UiObservation enrichSuggestedLocators({
   required FlutterTargetResolver resolver,
   required ObservationRegistry registry,
 }) {
-  final enriched = mapObservationLocatorTree(
-    elements: observation.elements,
-    resolve: ({
-      required element,
-      parentScope,
-      iconOccurrenceAmongSiblings,
-      iconSiblingCount,
-      occurrenceAmongSiblings,
-    }) =>
-        _suggestForElement(
-      element: element,
+  return RunnerBenchmark.sync('observer', 'enrichSuggestedLocators', () {
+    final enriched = mapObservationLocatorTree(
+      elements: observation.elements,
+      resolve: ({
+        required element,
+        parentScope,
+        iconOccurrenceAmongSiblings,
+        iconSiblingCount,
+        occurrenceAmongSiblings,
+      }) =>
+          _suggestForElement(
+        element: element,
+        observationId: observation.observationId,
+        resolver: resolver,
+        registry: registry,
+        parentScope: parentScope,
+        iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+        iconSiblingCount: iconSiblingCount,
+      ),
+    );
+    return UiObservation(
+      schemaVersion: observation.schemaVersion,
       observationId: observation.observationId,
-      resolver: resolver,
-      registry: registry,
-      parentScope: parentScope,
-      iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
-      iconSiblingCount: iconSiblingCount,
-    ),
-  );
-  return UiObservation(
-    schemaVersion: observation.schemaVersion,
-    observationId: observation.observationId,
-    revision: observation.revision,
-    timestamp: observation.timestamp,
-    screen: observation.screen,
-    elements: enriched,
-    viewport: observation.viewport,
-    observableFingerprint: observation.observableFingerprint,
-    completeness: observation.completeness,
-    screenshotArtifactId: observation.screenshotArtifactId,
-  );
+      revision: observation.revision,
+      timestamp: observation.timestamp,
+      screen: observation.screen,
+      elements: enriched,
+      viewport: observation.viewport,
+      observableFingerprint: observation.observableFingerprint,
+      completeness: observation.completeness,
+      screenshotArtifactId: observation.screenshotArtifactId,
+    );
+  });
 }
 
 ({ElementLocator? locator, String? warning}) _suggestForElement({
@@ -145,73 +148,75 @@ List<UiElement> mapObservationLocatorTree({
   required List<UiElement> elements,
   required ObserverLocatorResolver resolve,
 }) {
-  UiElement visit(
-    UiElement element, {
-    ElementLocator? parentScope,
-    int? iconOccurrenceAmongSiblings,
-    int? iconSiblingCount,
-    int? occurrenceAmongSiblings,
-  }) {
-    final result = resolve(
-      element: element,
-      parentScope: parentScope,
-      iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
-      iconSiblingCount: iconSiblingCount,
-      occurrenceAmongSiblings: occurrenceAmongSiblings,
-    );
-    // Inert cards still scope nested icons via caption+role (no card sel).
-    final scope =
-        result.locator ?? containerScopeLocator(element) ?? parentScope;
-    final iconCount = element.children
-        .where((child) => (child.type ?? '').toLowerCase() == 'icon')
-        .length;
-    final siblingCandidates = [
-      for (final child in element.children)
-        cheapSuggestedLocator(child, parentScope: scope),
-    ];
-    final siblingGroups = <String, List<int>>{};
-    for (var i = 0; i < siblingCandidates.length; i++) {
-      final candidate = siblingCandidates[i];
-      if (candidate == null) continue;
-      siblingGroups
-          .putIfAbsent(candidate.toJson().toString(), () => <int>[])
-          .add(i);
-    }
-    final occurrences = <int, int>{};
-    for (final indexes in siblingGroups.values) {
-      if (indexes.length < 2) continue;
-      for (var occurrence = 0; occurrence < indexes.length; occurrence++) {
-        occurrences[indexes[occurrence]] = occurrence;
-      }
-    }
-
-    final children = <UiElement>[];
-    var iconIndex = 0;
-    for (var i = 0; i < element.children.length; i++) {
-      final child = element.children[i];
-      final isIcon = (child.type ?? '').toLowerCase() == 'icon';
-      children.add(
-        visit(
-          child,
-          parentScope: scope,
-          iconOccurrenceAmongSiblings:
-              isIcon && iconCount > 1 ? iconIndex : null,
-          iconSiblingCount: isIcon ? iconCount : null,
-          occurrenceAmongSiblings: occurrences[i],
-        ),
+  return RunnerBenchmark.sync('observer', 'mapObservationLocatorTree', () {
+    UiElement visit(
+      UiElement element, {
+      ElementLocator? parentScope,
+      int? iconOccurrenceAmongSiblings,
+      int? iconSiblingCount,
+      int? occurrenceAmongSiblings,
+    }) {
+      final result = resolve(
+        element: element,
+        parentScope: parentScope,
+        iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+        iconSiblingCount: iconSiblingCount,
+        occurrenceAmongSiblings: occurrenceAmongSiblings,
       );
-      if (isIcon) iconIndex++;
-    }
-    return element.copyWith(
-      children: children,
-      suggestedLocator: result.locator,
-      clearSuggestedLocator: true,
-      locatorWarning: result.warning,
-      clearLocatorWarning: true,
-    );
-  }
+      // Inert cards still scope nested icons via caption+role (no card sel).
+      final scope =
+          result.locator ?? containerScopeLocator(element) ?? parentScope;
+      final iconCount = element.children
+          .where((child) => (child.type ?? '').toLowerCase() == 'icon')
+          .length;
+      final siblingCandidates = [
+        for (final child in element.children)
+          cheapSuggestedLocator(child, parentScope: scope),
+      ];
+      final siblingGroups = <String, List<int>>{};
+      for (var i = 0; i < siblingCandidates.length; i++) {
+        final candidate = siblingCandidates[i];
+        if (candidate == null) continue;
+        siblingGroups
+            .putIfAbsent(candidate.toJson().toString(), () => <int>[])
+            .add(i);
+      }
+      final occurrences = <int, int>{};
+      for (final indexes in siblingGroups.values) {
+        if (indexes.length < 2) continue;
+        for (var occurrence = 0; occurrence < indexes.length; occurrence++) {
+          occurrences[indexes[occurrence]] = occurrence;
+        }
+      }
 
-  return [for (final element in elements) visit(element)];
+      final children = <UiElement>[];
+      var iconIndex = 0;
+      for (var i = 0; i < element.children.length; i++) {
+        final child = element.children[i];
+        final isIcon = (child.type ?? '').toLowerCase() == 'icon';
+        children.add(
+          visit(
+            child,
+            parentScope: scope,
+            iconOccurrenceAmongSiblings:
+                isIcon && iconCount > 1 ? iconIndex : null,
+            iconSiblingCount: isIcon ? iconCount : null,
+            occurrenceAmongSiblings: occurrences[i],
+          ),
+        );
+        if (isIcon) iconIndex++;
+      }
+      return element.copyWith(
+        children: children,
+        suggestedLocator: result.locator,
+        clearSuggestedLocator: true,
+        locatorWarning: result.warning,
+        clearLocatorWarning: true,
+      );
+    }
+
+    return [for (final element in elements) visit(element)];
+  });
 }
 
 /// Agent / report locator candidates in preference order.

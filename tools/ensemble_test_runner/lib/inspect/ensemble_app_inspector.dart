@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -81,22 +82,24 @@ class EnsembleAppInspector {
   EnsembleAppInspector(this.appDir);
 
   EnsembleAppInspection inspect() {
-    final config = _loadLocalConfig();
-    final appPath = config.path;
-    final appRoot = Directory(p.join(appDir, appPath));
-    if (!appRoot.existsSync()) {
-      throw StateError('definitions.local.path does not exist: $appPath');
-    }
+    return RunnerBenchmark.sync('tools', 'inspect', () {
+      final config = _loadLocalConfig();
+      final appPath = config.path;
+      final appRoot = Directory(p.join(appDir, appPath));
+      if (!appRoot.existsSync()) {
+        throw StateError('definitions.local.path does not exist: $appPath');
+      }
 
-    return EnsembleAppInspection(
-      appDir: appDir,
-      appPath: appPath,
-      appHome: config.appHome,
-      screens: _inspectScreens(appPath, appRoot),
-      widgets: _listYamlNames(Directory(p.join(appRoot.path, 'widgets'))),
-      actions: _listYamlNames(Directory(p.join(appRoot.path, 'actions'))),
-      scripts: _listNames(Directory(p.join(appRoot.path, 'scripts')), '.js'),
-    );
+      return EnsembleAppInspection(
+        appDir: appDir,
+        appPath: appPath,
+        appHome: config.appHome,
+        screens: _inspectScreens(appPath, appRoot),
+        widgets: _listYamlNames(Directory(p.join(appRoot.path, 'widgets'))),
+        actions: _listYamlNames(Directory(p.join(appRoot.path, 'actions'))),
+        scripts: _listNames(Directory(p.join(appRoot.path, 'scripts')), '.js'),
+      );
+    });
   }
 
   _LocalConfig _loadLocalConfig() {

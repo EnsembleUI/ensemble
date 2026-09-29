@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 
 /// When report artifacts (screenshot + Observer) are taken relative to the step.
@@ -123,8 +124,11 @@ Future<bool> captureStepReportArtifacts({
   required Future<bool> Function() captureScreenshot,
   Future<void> Function()? captureObserver,
 }) async {
-  final didCapture = await captureScreenshot();
-  if (!didCapture) return false;
-  if (captureObserver != null) await captureObserver();
-  return true;
+  return await RunnerBenchmark.async('workflow', 'captureStepReportArtifacts',
+      () async {
+    final didCapture = await captureScreenshot();
+    if (!didCapture) return false;
+    if (captureObserver != null) await captureObserver();
+    return true;
+  });
 }

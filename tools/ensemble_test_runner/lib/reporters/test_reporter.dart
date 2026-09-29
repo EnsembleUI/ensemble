@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
@@ -68,35 +69,38 @@ class TestReporter {
     EnsembleTestRunResult result, {
     String? testFile,
   }) {
-    final buffer = StringBuffer();
-    final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
+    return RunnerBenchmark.sync('report', 'formatSummary', () {
+      final buffer = StringBuffer();
+      final totalMs =
+          result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
 
-    buffer.writeln('┌─ Ensemble YAML tests ─────────────────────────────');
-    if (testFile != null) {
-      buffer.writeln('│  $testFile');
-      buffer.writeln('│');
-    }
-
-    for (var i = 0; i < result.results.length; i++) {
-      final r = result.results[i];
-      if (i > 0) buffer.writeln('│');
-      _writeTestCase(buffer, r);
-    }
-
-    final suiteArtifacts = durableArtifactLogs(result.suiteLogs).toList();
-    if (suiteArtifacts.isNotEmpty) {
-      buffer.writeln('│');
-      buffer.writeln('│  suite artifacts:');
-      for (final log in suiteArtifacts) {
-        buffer.writeln('│       $log');
+      buffer.writeln('┌─ Ensemble YAML tests ─────────────────────────────');
+      if (testFile != null) {
+        buffer.writeln('│  $testFile');
+        buffer.writeln('│');
       }
-    }
 
-    buffer.writeln('│');
-    buffer.writeln(
-      '└─ ${result.summary} · ${totalMs}ms total',
-    );
-    return buffer.toString();
+      for (var i = 0; i < result.results.length; i++) {
+        final r = result.results[i];
+        if (i > 0) buffer.writeln('│');
+        _writeTestCase(buffer, r);
+      }
+
+      final suiteArtifacts = durableArtifactLogs(result.suiteLogs).toList();
+      if (suiteArtifacts.isNotEmpty) {
+        buffer.writeln('│');
+        buffer.writeln('│  suite artifacts:');
+        for (final log in suiteArtifacts) {
+          buffer.writeln('│       $log');
+        }
+      }
+
+      buffer.writeln('│');
+      buffer.writeln(
+        '└─ ${result.summary} · ${totalMs}ms total',
+      );
+      return buffer.toString();
+    });
   }
 
   /// Formats the short failure passed to Flutter's test framework.
@@ -108,44 +112,46 @@ class TestReporter {
     Iterable<String> failedPaths = const [],
     Iterable<Object?> pendingFrameworkExceptions = const [],
   }) {
-    final failed = result.results
-        .where((r) => r.status == TestStatus.failed)
-        .toList(growable: false);
-    final paths = failedPaths.toList(growable: false);
-    final buffer = StringBuffer()
-      ..writeln(
-        'Failed YAML tests (${result.failedCount}/${result.results.length}):',
-      );
+    return RunnerBenchmark.sync('report', 'formatFailureSummary', () {
+      final failed = result.results
+          .where((r) => r.status == TestStatus.failed)
+          .toList(growable: false);
+      final paths = failedPaths.toList(growable: false);
+      final buffer = StringBuffer()
+        ..writeln(
+          'Failed YAML tests (${result.failedCount}/${result.results.length}):',
+        );
 
-    for (var i = 0; i < failed.length; i++) {
-      final r = failed[i];
-      final path = i < paths.length ? paths[i] : null;
-      final label = path == null || r.testId.contains(path)
-          ? r.testId
-          : '${r.testId} ($path)';
-      final failedStep = r.failedStep != null
-          ? ' (failed: ${formatStepBrief(r.failedStep!)})'
-          : r.failedStepIndex != null
-              ? ' (failed: step ${r.failedStepIndex! + 1})'
-              : '';
-      buffer.writeln('- $label: ${r.message ?? 'failed'}$failedStep');
-    }
-
-    final pending = pendingFrameworkExceptions
-        .map((e) => e?.toString().trim() ?? '')
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false);
-    if (pending.isNotEmpty) {
-      buffer.writeln();
-      buffer.writeln('Pending Flutter framework exceptions:');
-      for (final exception in pending) {
-        buffer.writeln('- ${_firstLine(exception)}');
+      for (var i = 0; i < failed.length; i++) {
+        final r = failed[i];
+        final path = i < paths.length ? paths[i] : null;
+        final label = path == null || r.testId.contains(path)
+            ? r.testId
+            : '${r.testId} ($path)';
+        final failedStep = r.failedStep != null
+            ? ' (failed: ${formatStepBrief(r.failedStep!)})'
+            : r.failedStepIndex != null
+                ? ' (failed: step ${r.failedStepIndex! + 1})'
+                : '';
+        buffer.writeln('- $label: ${r.message ?? 'failed'}$failedStep');
       }
-    }
 
-    buffer.writeln();
-    buffer.write('See the Ensemble YAML tests report above.');
-    return buffer.toString();
+      final pending = pendingFrameworkExceptions
+          .map((e) => e?.toString().trim() ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
+      if (pending.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln('Pending Flutter framework exceptions:');
+        for (final exception in pending) {
+          buffer.writeln('- ${_firstLine(exception)}');
+        }
+      }
+
+      buffer.writeln();
+      buffer.write('See the Ensemble YAML tests report above.');
+      return buffer.toString();
+    });
   }
 
   void _writeTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {

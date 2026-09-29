@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -32,99 +33,105 @@ class ScreenshotSheetAggregator {
     String? failureMessage,
     List<StepObserverArtifact> stepObservers = const [],
   }) async {
-    if (!screenshots.enabled) {
-      _disposeFrames(frames);
-      for (final observer in stepObservers) {
-        observer.dispose();
+    return await RunnerBenchmark.async('screenshot', 'completeRun', () async {
+      if (!screenshots.enabled) {
+        _disposeFrames(frames);
+        for (final observer in stepObservers) {
+          observer.dispose();
+        }
+        return null;
       }
-      return null;
-    }
-    if (frames.isEmpty && devices.isEmpty && stepObservers.isEmpty) {
-      return null;
-    }
+      if (frames.isEmpty && devices.isEmpty && stepObservers.isEmpty) {
+        return null;
+      }
 
-    final sheetId = testCase.resolvedScreenshotSheetId;
-    final runId = testCase.id;
-    final group = _groupFor(sheetId);
-    final deviceId = testCase.deviceTarget?.id;
+      final sheetId = testCase.resolvedScreenshotSheetId;
+      final runId = testCase.id;
+      final group = _groupFor(sheetId);
+      final deviceId = testCase.deviceTarget?.id;
 
-    if (group.completedRunIds.contains(runId)) {
-      if (deviceId != null) {
-        group.frames.removeWhere((frame) => frame.deviceId == deviceId);
+      if (group.completedRunIds.contains(runId)) {
+        if (deviceId != null) {
+          group.frames.removeWhere((frame) => frame.deviceId == deviceId);
+        } else {
+          group.frames.clear();
+        }
       } else {
-        group.frames.clear();
+        group.completedRunIds.add(runId);
       }
-    } else {
-      group.completedRunIds.add(runId);
-    }
 
-    group.frames.addAll(frames);
-    for (final observer in stepObservers) {
-      group.stepObservers.removeWhere((o) => o.stepIndex == observer.stepIndex);
-      group.stepObservers.add(observer);
-    }
-    group.durationByRunId[runId] = durationMs;
-    if (status == TestStatus.failed) {
-      group.status = TestStatus.failed;
-      group.failedStepIndex = failedStepIndex;
-      group.failedStepLabel = failedStepLabel;
-      group.failureMessage = failureMessage;
-      group.failedDeviceId = deviceId;
-    } else if (group.status != TestStatus.failed) {
-      group.status = status;
-      if (deviceId != null && group.failedDeviceId == deviceId) {
-        group.failedStepIndex = null;
-        group.failedStepLabel = null;
-        group.failureMessage = null;
-        group.failedDeviceId = null;
+      group.frames.addAll(frames);
+      for (final observer in stepObservers) {
+        group.stepObservers
+            .removeWhere((o) => o.stepIndex == observer.stepIndex);
+        group.stepObservers.add(observer);
       }
-    }
-
-    final ready = group.completedRunIds.length >= expectedRunsPerSheet;
-    if (!ready) {
-      return null;
-    }
-
-    final path = await writeScreenshotFrames(
-      testId: sheetId,
-      config: screenshots,
-      frames: List<ScreenshotSheetFrame>.from(group.frames),
-      status: group.status ?? status,
-      failedStepIndex: group.failedStepIndex,
-      failedStepLabel: group.failedStepLabel,
-      failureMessage: group.failureMessage,
-      failedDeviceId: group.failedDeviceId,
-      stepObservers: List<StepObserverArtifact>.from(group.stepObservers),
-    );
-    group.stepObservers.clear();
-    _groups.remove(sheetId);
-    return path;
-  }
-
-  Future<void> flushRemaining() async {
-    for (final entry in _groups.entries.toList()) {
-      final sheetId = entry.key;
-      final group = entry.value;
-      if (group.frames.isEmpty && group.stepObservers.isEmpty) {
-        _groups.remove(sheetId);
-        continue;
+      group.durationByRunId[runId] = durationMs;
+      if (status == TestStatus.failed) {
+        group.status = TestStatus.failed;
+        group.failedStepIndex = failedStepIndex;
+        group.failedStepLabel = failedStepLabel;
+        group.failureMessage = failureMessage;
+        group.failedDeviceId = deviceId;
+      } else if (group.status != TestStatus.failed) {
+        group.status = status;
+        if (deviceId != null && group.failedDeviceId == deviceId) {
+          group.failedStepIndex = null;
+          group.failedStepLabel = null;
+          group.failureMessage = null;
+          group.failedDeviceId = null;
+        }
       }
-      await writeScreenshotFrames(
+
+      final ready = group.completedRunIds.length >= expectedRunsPerSheet;
+      if (!ready) {
+        return null;
+      }
+
+      final path = await writeScreenshotFrames(
         testId: sheetId,
         config: screenshots,
         frames: List<ScreenshotSheetFrame>.from(group.frames),
-        status: group.status ?? TestStatus.failed,
+        status: group.status ?? status,
         failedStepIndex: group.failedStepIndex,
         failedStepLabel: group.failedStepLabel,
-        failureMessage: group.failureMessage ??
-            'Incomplete device matrix '
-                '(${group.completedRunIds.length}/$expectedRunsPerSheet runs)',
+        failureMessage: group.failureMessage,
         failedDeviceId: group.failedDeviceId,
         stepObservers: List<StepObserverArtifact>.from(group.stepObservers),
       );
       group.stepObservers.clear();
       _groups.remove(sheetId);
-    }
+      return path;
+    });
+  }
+
+  Future<void> flushRemaining() async {
+    return await RunnerBenchmark.async('screenshot', 'flushRemaining',
+        () async {
+      for (final entry in _groups.entries.toList()) {
+        final sheetId = entry.key;
+        final group = entry.value;
+        if (group.frames.isEmpty && group.stepObservers.isEmpty) {
+          _groups.remove(sheetId);
+          continue;
+        }
+        await writeScreenshotFrames(
+          testId: sheetId,
+          config: screenshots,
+          frames: List<ScreenshotSheetFrame>.from(group.frames),
+          status: group.status ?? TestStatus.failed,
+          failedStepIndex: group.failedStepIndex,
+          failedStepLabel: group.failedStepLabel,
+          failureMessage: group.failureMessage ??
+              'Incomplete device matrix '
+                  '(${group.completedRunIds.length}/$expectedRunsPerSheet runs)',
+          failedDeviceId: group.failedDeviceId,
+          stepObservers: List<StepObserverArtifact>.from(group.stepObservers),
+        );
+        group.stepObservers.clear();
+        _groups.remove(sheetId);
+      }
+    });
   }
 
   _SheetGroup _groupFor(String sheetId) =>

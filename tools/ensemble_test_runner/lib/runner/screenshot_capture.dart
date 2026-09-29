@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -162,46 +163,49 @@ Future<bool> screenshotImageRegionHasContrast({
   required Rect region,
   double minDistance = 18,
 }) async {
-  if (region.isEmpty || !region.isFinite) return false;
-  final left = region.left.floor().clamp(0, image.width - 1);
-  final top = region.top.floor().clamp(0, image.height - 1);
-  final right = region.right.ceil().clamp(left + 1, image.width);
-  final bottom = region.bottom.ceil().clamp(top + 1, image.height);
-  if (right <= left || bottom <= top) return false;
+  return await RunnerBenchmark.async(
+      'screenshot', 'screenshotImageRegionHasContrast', () async {
+    if (region.isEmpty || !region.isFinite) return false;
+    final left = region.left.floor().clamp(0, image.width - 1);
+    final top = region.top.floor().clamp(0, image.height - 1);
+    final right = region.right.ceil().clamp(left + 1, image.width);
+    final bottom = region.bottom.ceil().clamp(top + 1, image.height);
+    if (right <= left || bottom <= top) return false;
 
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-  if (byteData == null) return false;
-  final bytes = byteData.buffer.asUint8List();
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (byteData == null) return false;
+    final bytes = byteData.buffer.asUint8List();
 
-  final regionMean = _sampleRgbMean(
-    bytes: bytes,
-    imageWidth: image.width,
-    imageHeight: image.height,
-    left: left,
-    top: top,
-    right: right,
-    bottom: bottom,
-  );
-  if (regionMean == null) return false;
+    final regionMean = _sampleRgbMean(
+      bytes: bytes,
+      imageWidth: image.width,
+      imageHeight: image.height,
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+    );
+    if (regionMean == null) return false;
 
-  // Prefer a strip just above the control (typical loading-frame emptiness).
-  final stripHeight = math.max(4, (bottom - top) ~/ 2);
-  var bgTop = top - stripHeight - 2;
-  var bgBottom = top - 2;
-  if (bgTop < 0 || bgBottom <= bgTop) {
-    // Fall back to top-left corner of the capture.
-    bgTop = 0;
-    bgBottom = math.min(stripHeight, image.height);
-  }
-  final bgMean = _sampleRgbMean(
-    bytes: bytes,
-    imageWidth: image.width,
-    imageHeight: image.height,
-    left: left,
-    top: bgTop,
-    right: right,
-    bottom: bgBottom,
-  );
-  if (bgMean == null) return false;
-  return regionMean.distanceTo(bgMean) >= minDistance;
+    // Prefer a strip just above the control (typical loading-frame emptiness).
+    final stripHeight = math.max(4, (bottom - top) ~/ 2);
+    var bgTop = top - stripHeight - 2;
+    var bgBottom = top - 2;
+    if (bgTop < 0 || bgBottom <= bgTop) {
+      // Fall back to top-left corner of the capture.
+      bgTop = 0;
+      bgBottom = math.min(stripHeight, image.height);
+    }
+    final bgMean = _sampleRgbMean(
+      bytes: bytes,
+      imageWidth: image.width,
+      imageHeight: image.height,
+      left: left,
+      top: bgTop,
+      right: right,
+      bottom: bgBottom,
+    );
+    if (bgMean == null) return false;
+    return regionMean.distanceTo(bgMean) >= minDistance;
+  });
 }

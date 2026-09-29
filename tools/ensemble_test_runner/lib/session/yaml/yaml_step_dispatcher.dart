@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/assertions/test_assertion.dart';
@@ -22,63 +23,65 @@ class YamlStepDispatcher {
   final LocalTestExecutionSession session;
 
   Future<void> execute(TestStep step) async {
-    final canonical = TestStepVocabulary.resolveStepType(step.type);
-    final path = YamlStepMigrationMatrix.pathFor(canonical) ??
-        YamlStepMigrationMatrix.pathFor(step.type);
+    return await RunnerBenchmark.async('execution', 'yamlDispatch', () async {
+      final canonical = TestStepVocabulary.resolveStepType(step.type);
+      final path = YamlStepMigrationMatrix.pathFor(canonical) ??
+          YamlStepMigrationMatrix.pathFor(step.type);
 
-    if (path == YamlStepPath.control) {
-      await _executeControl(step, canonical);
-      return;
-    }
-
-    if (path == YamlStepPath.act) {
-      final action = _actionForStep(step, canonical);
-      final result = await session.act(action);
-      if (!result.succeeded) {
-        final error = result.error;
-        if (error != null) throw error;
-        throw EnsembleTestFailure('Action ${action.type} failed');
+      if (path == YamlStepPath.control) {
+        await _executeControl(step, canonical);
+        return;
       }
-      return;
-    }
 
-    if (path == YamlStepPath.wait) {
-      final condition = _toWait(step, step.type) ??
-          GenericWait(
-            name: step.type,
-            args: Map<String, dynamic>.from(step.args),
-          );
-      final result = await session.waitFor(
-        condition,
-        timeout: step.args['timeoutMs'] is int
-            ? Duration(milliseconds: step.args['timeoutMs'] as int)
-            : null,
-      );
-      if (!result.satisfied) {
-        final error = result.error;
-        if (error != null) throw error;
-        throw EnsembleTestFailure('Wait ${condition.type} failed');
-      }
-      return;
-    }
-
-    if (path == YamlStepPath.assert_) {
-      final assertion = _toAssertion(step, step.type);
-      if (assertion != null) {
-        final result = await session.assertCondition(assertion);
-        if (!result.passed) {
+      if (path == YamlStepPath.act) {
+        final action = _actionForStep(step, canonical);
+        final result = await session.act(action);
+        if (!result.succeeded) {
           final error = result.error;
           if (error != null) throw error;
-          throw EnsembleTestFailure(
-            result.message ?? 'Assertion ${assertion.type} failed',
-          );
+          throw EnsembleTestFailure('Action ${action.type} failed');
         }
         return;
       }
-    }
 
-    // Privileged, lifecycle, diagnostic, and unmapped leaf types.
-    await session.executor.execute(step.withCanonicalType(canonical));
+      if (path == YamlStepPath.wait) {
+        final condition = _toWait(step, step.type) ??
+            GenericWait(
+              name: step.type,
+              args: Map<String, dynamic>.from(step.args),
+            );
+        final result = await session.waitFor(
+          condition,
+          timeout: step.args['timeoutMs'] is int
+              ? Duration(milliseconds: step.args['timeoutMs'] as int)
+              : null,
+        );
+        if (!result.satisfied) {
+          final error = result.error;
+          if (error != null) throw error;
+          throw EnsembleTestFailure('Wait ${condition.type} failed');
+        }
+        return;
+      }
+
+      if (path == YamlStepPath.assert_) {
+        final assertion = _toAssertion(step, step.type);
+        if (assertion != null) {
+          final result = await session.assertCondition(assertion);
+          if (!result.passed) {
+            final error = result.error;
+            if (error != null) throw error;
+            throw EnsembleTestFailure(
+              result.message ?? 'Assertion ${assertion.type} failed',
+            );
+          }
+          return;
+        }
+      }
+
+      // Privileged, lifecycle, diagnostic, and unmapped leaf types.
+      await session.executor.execute(step.withCanonicalType(canonical));
+    });
   }
 
   Future<void> _executeControl(TestStep step, String canonical) async {

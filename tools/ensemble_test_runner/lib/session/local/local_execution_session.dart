@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
@@ -264,13 +265,15 @@ class LocalTestExecutionSession implements TestExecutionSession {
   Future<UiObservation> observe({
     ObservationOptions options = const ObservationOptions(),
   }) {
-    _ensureOpen();
-    // Mid-wait / mid-act screenshot callbacks already hold [queue]. Nesting
-    // another [queue.run] deadlocks the worker. Observe is a read-only snapshot.
-    if (queue.isBusy) {
-      return observer.observe(options);
-    }
-    return queue.run(() => observer.observe(options));
+    return RunnerBenchmark.future('session', 'observe', () {
+      _ensureOpen();
+      // Mid-wait / mid-act screenshot callbacks already hold [queue]. Nesting
+      // another [queue.run] deadlocks the worker. Observe is a read-only snapshot.
+      if (queue.isBusy) {
+        return observer.observe(options);
+      }
+      return queue.run(() => observer.observe(options));
+    });
   }
 
   @override
@@ -278,59 +281,61 @@ class LocalTestExecutionSession implements TestExecutionSession {
     TestAction action, {
     String? expectedObservationId,
   }) {
-    _ensureOpen();
-    return queue.run(() async {
-      final actionId = 'action_${_actionSeq++}';
-      final before = _revision;
-      final sw = Stopwatch()..start();
-      try {
-        _ensureActionPermitted(action);
-        if (expectedObservationId != null) {
-          final target = action.primaryTarget;
-          if (target != null && target.usesSnapshotElement) {
-            if (target.observationId != expectedObservationId) {
-              throw TestExecutionError(
-                code: TestExecutionErrorCode.staleObservation,
-                message:
-                    'expectedObservationId "$expectedObservationId" does not '
-                    'match target observationId "${target.observationId}".',
-              );
+    return RunnerBenchmark.future('session', 'act', () {
+      _ensureOpen();
+      return queue.run(() async {
+        final actionId = 'action_${_actionSeq++}';
+        final before = _revision;
+        final sw = Stopwatch()..start();
+        try {
+          _ensureActionPermitted(action);
+          if (expectedObservationId != null) {
+            final target = action.primaryTarget;
+            if (target != null && target.usesSnapshotElement) {
+              if (target.observationId != expectedObservationId) {
+                throw TestExecutionError(
+                  code: TestExecutionErrorCode.staleObservation,
+                  message:
+                      'expectedObservationId "$expectedObservationId" does not '
+                      'match target observationId "${target.observationId}".',
+                );
+              }
             }
           }
+          await actionExecutor.execute(action);
+          await observer.syncRevisionAfterMutation();
+          return ActionResult(
+            actionId: actionId,
+            status: ActionStatus.succeeded,
+            beforeRevision: before,
+            afterRevision: _revision,
+            duration: sw.elapsed,
+          );
+        } on TestExecutionError catch (error) {
+          await observer.syncRevisionAfterMutation();
+          return ActionResult(
+            actionId: actionId,
+            status: ActionStatus.failed,
+            beforeRevision: before,
+            afterRevision: _revision,
+            duration: sw.elapsed,
+            error: error,
+          );
+        } on EnsembleTestFailure catch (error) {
+          await observer.syncRevisionAfterMutation();
+          final mapped = mapExecutorFailure(error);
+          return ActionResult(
+            actionId: actionId,
+            status: mapped.code == TestExecutionErrorCode.actionTimeout
+                ? ActionStatus.timedOut
+                : ActionStatus.failed,
+            beforeRevision: before,
+            afterRevision: _revision,
+            duration: sw.elapsed,
+            error: mapped,
+          );
         }
-        await actionExecutor.execute(action);
-        await observer.syncRevisionAfterMutation();
-        return ActionResult(
-          actionId: actionId,
-          status: ActionStatus.succeeded,
-          beforeRevision: before,
-          afterRevision: _revision,
-          duration: sw.elapsed,
-        );
-      } on TestExecutionError catch (error) {
-        await observer.syncRevisionAfterMutation();
-        return ActionResult(
-          actionId: actionId,
-          status: ActionStatus.failed,
-          beforeRevision: before,
-          afterRevision: _revision,
-          duration: sw.elapsed,
-          error: error,
-        );
-      } on EnsembleTestFailure catch (error) {
-        await observer.syncRevisionAfterMutation();
-        final mapped = mapExecutorFailure(error);
-        return ActionResult(
-          actionId: actionId,
-          status: mapped.code == TestExecutionErrorCode.actionTimeout
-              ? ActionStatus.timedOut
-              : ActionStatus.failed,
-          beforeRevision: before,
-          afterRevision: _revision,
-          duration: sw.elapsed,
-          error: mapped,
-        );
-      }
+      });
     });
   }
 
@@ -378,220 +383,224 @@ class LocalTestExecutionSession implements TestExecutionSession {
     WaitCondition condition, {
     Duration? timeout,
   }) {
-    _ensureOpen();
-    return queue.run(() async {
-      final waitId = 'wait_${_actionSeq++}';
-      final sw = Stopwatch()..start();
-      try {
-        _ensureWaitPermitted(condition);
-        final timeoutMs = timeout?.inMilliseconds ??
-            executor.config.defaultWaitTimeout.inMilliseconds;
-        switch (condition) {
-          case PumpWait(:final duration):
-            await executor.execute(
-              TestStep(
-                type: duration == Duration.zero ? 'pump' : 'wait',
-                args: {'durationMs': duration.inMilliseconds},
-              ),
-            );
-          case SettleWait(:final timeout):
-            await executor.execute(
-              TestStep(
-                type: 'settle',
-                args: {
-                  if (timeout != null) 'timeoutMs': timeout.inMilliseconds,
-                },
-              ),
-            );
-          case ElementWait(:final target, :final gone):
-            if (target.locator == null && !target.usesSnapshotElement) {
+    return RunnerBenchmark.future('session', 'waitFor', () {
+      _ensureOpen();
+      return queue.run(() async {
+        final waitId = 'wait_${_actionSeq++}';
+        final sw = Stopwatch()..start();
+        try {
+          _ensureWaitPermitted(condition);
+          final timeoutMs = timeout?.inMilliseconds ??
+              executor.config.defaultWaitTimeout.inMilliseconds;
+          switch (condition) {
+            case PumpWait(:final duration):
               await executor.execute(
                 TestStep(
-                  type: gone ? 'waitForGone' : 'waitFor',
-                  args: {'id': target.testId, 'timeoutMs': timeoutMs},
+                  type: duration == Duration.zero ? 'pump' : 'wait',
+                  args: {'durationMs': duration.inMilliseconds},
                 ),
               );
-            } else {
-              await _waitForTarget(target, gone: gone, timeoutMs: timeoutMs);
-            }
-          case TextWait(:final text, :final anyOf, :final target):
-            await executor.execute(
-              TestStep(
-                type: 'waitForText',
-                args: {
-                  if (text != null) 'text': text,
-                  if (anyOf != null) 'anyOf': anyOf,
-                  if (target?.normalizedLocator != null)
-                    'target': target!.normalizedLocator!.toJson(),
-                  if (target?.testId != null) 'id': target!.testId,
-                  'timeoutMs': timeoutMs,
-                },
-              ),
-            );
-          case ScreenWait(:final screen):
-            await executor.execute(
-              TestStep(
-                type: 'waitForNavigation',
-                args: {'screen': screen, 'timeoutMs': timeoutMs},
-              ),
-            );
-          case ApiWait(:final name, :final args):
-            await executor.execute(
-              TestStep(
-                type: 'waitForApi',
-                args: {
-                  if (name != null) 'name': name,
-                  ...args,
-                  'timeoutMs': timeoutMs,
-                },
-              ),
-            );
-          case GenericWait(:final name, :final args):
-            await executor.execute(
-              TestStep(
-                type: name,
-                args: {
-                  ...args,
-                  if (!args.containsKey('timeoutMs')) 'timeoutMs': timeoutMs,
-                },
-              ),
-            );
+            case SettleWait(:final timeout):
+              await executor.execute(
+                TestStep(
+                  type: 'settle',
+                  args: {
+                    if (timeout != null) 'timeoutMs': timeout.inMilliseconds,
+                  },
+                ),
+              );
+            case ElementWait(:final target, :final gone):
+              if (target.locator == null && !target.usesSnapshotElement) {
+                await executor.execute(
+                  TestStep(
+                    type: gone ? 'waitForGone' : 'waitFor',
+                    args: {'id': target.testId, 'timeoutMs': timeoutMs},
+                  ),
+                );
+              } else {
+                await _waitForTarget(target, gone: gone, timeoutMs: timeoutMs);
+              }
+            case TextWait(:final text, :final anyOf, :final target):
+              await executor.execute(
+                TestStep(
+                  type: 'waitForText',
+                  args: {
+                    if (text != null) 'text': text,
+                    if (anyOf != null) 'anyOf': anyOf,
+                    if (target?.normalizedLocator != null)
+                      'target': target!.normalizedLocator!.toJson(),
+                    if (target?.testId != null) 'id': target!.testId,
+                    'timeoutMs': timeoutMs,
+                  },
+                ),
+              );
+            case ScreenWait(:final screen):
+              await executor.execute(
+                TestStep(
+                  type: 'waitForNavigation',
+                  args: {'screen': screen, 'timeoutMs': timeoutMs},
+                ),
+              );
+            case ApiWait(:final name, :final args):
+              await executor.execute(
+                TestStep(
+                  type: 'waitForApi',
+                  args: {
+                    if (name != null) 'name': name,
+                    ...args,
+                    'timeoutMs': timeoutMs,
+                  },
+                ),
+              );
+            case GenericWait(:final name, :final args):
+              await executor.execute(
+                TestStep(
+                  type: name,
+                  args: {
+                    ...args,
+                    if (!args.containsKey('timeoutMs')) 'timeoutMs': timeoutMs,
+                  },
+                ),
+              );
+          }
+          return WaitResult(
+            waitId: waitId,
+            status: WaitStatus.satisfied,
+            duration: sw.elapsed,
+          );
+        } on TestExecutionError catch (error) {
+          return WaitResult(
+            waitId: waitId,
+            status: WaitStatus.failed,
+            duration: sw.elapsed,
+            error: error,
+          );
+        } on EnsembleTestFailure catch (error) {
+          final mapped = LocalTestExecutionSession.mapExecutorFailure(error);
+          return WaitResult(
+            waitId: waitId,
+            status: mapped.code == TestExecutionErrorCode.actionTimeout
+                ? WaitStatus.timedOut
+                : WaitStatus.failed,
+            duration: sw.elapsed,
+            error: mapped,
+          );
         }
-        return WaitResult(
-          waitId: waitId,
-          status: WaitStatus.satisfied,
-          duration: sw.elapsed,
-        );
-      } on TestExecutionError catch (error) {
-        return WaitResult(
-          waitId: waitId,
-          status: WaitStatus.failed,
-          duration: sw.elapsed,
-          error: error,
-        );
-      } on EnsembleTestFailure catch (error) {
-        final mapped = LocalTestExecutionSession.mapExecutorFailure(error);
-        return WaitResult(
-          waitId: waitId,
-          status: mapped.code == TestExecutionErrorCode.actionTimeout
-              ? WaitStatus.timedOut
-              : WaitStatus.failed,
-          duration: sw.elapsed,
-          error: mapped,
-        );
-      }
+      });
     });
   }
 
   @override
   Future<AssertionResult> assertCondition(TestAssertion assertion) {
-    _ensureOpen();
-    return queue.run(() async {
-      final assertionId = 'assert_${_actionSeq++}';
-      try {
-        _ensureAssertPermitted(assertion);
-        switch (assertion) {
-          case ElementVisibleAssertion(:final target, :final visible):
-            if (target.locator == null && !target.usesSnapshotElement) {
-              await executor.execute(TestStep(
-                type: visible ? 'expectVisible' : 'expectNotVisible',
-                args: {'id': target.testId},
-              ));
-            } else if (!visible) {
-              final matches = resolver.resolveMatches(
-                target,
-                requireInteractive: false,
-                allowEmpty: true,
-              );
-              final anyVisible = matches.any(
-                assertions.isElementVisuallyActionable,
-              );
-              if (anyVisible) {
-                throw EnsembleTestFailure(
-                  'Expected resolved element to be not visible.',
+    return RunnerBenchmark.future('session', 'assertCondition', () {
+      _ensureOpen();
+      return queue.run(() async {
+        final assertionId = 'assert_${_actionSeq++}';
+        try {
+          _ensureAssertPermitted(assertion);
+          switch (assertion) {
+            case ElementVisibleAssertion(:final target, :final visible):
+              if (target.locator == null && !target.usesSnapshotElement) {
+                await executor.execute(TestStep(
+                  type: visible ? 'expectVisible' : 'expectNotVisible',
+                  args: {'id': target.testId},
+                ));
+              } else if (!visible) {
+                final matches = resolver.resolveMatches(
+                  target,
+                  requireInteractive: false,
+                  allowEmpty: true,
+                );
+                final anyVisible = matches.any(
+                  assertions.isElementVisuallyActionable,
+                );
+                if (anyVisible) {
+                  throw EnsembleTestFailure(
+                    'Expected resolved element to be not visible.',
+                  );
+                }
+              } else {
+                assertions.expectVisibleFinder(
+                  resolver.resolveFinder(target),
+                  visible: true,
                 );
               }
-            } else {
-              assertions.expectVisibleFinder(
-                resolver.resolveFinder(target),
-                visible: true,
-              );
-            }
-          case ElementExistsAssertion(:final target, :final exists):
-            if (target.locator == null && !target.usesSnapshotElement) {
-              await executor.execute(TestStep(
-                type: exists ? 'expectExists' : 'expectNotExists',
-                args: {'id': target.testId},
-              ));
-            } else if (!exists) {
-              final matches = resolver.resolveMatches(
-                target,
-                requireInteractive: false,
-                allowEmpty: true,
-              );
-              if (matches.isNotEmpty) {
-                throw EnsembleTestFailure(
-                  'Expected resolved element to not exist.',
+            case ElementExistsAssertion(:final target, :final exists):
+              if (target.locator == null && !target.usesSnapshotElement) {
+                await executor.execute(TestStep(
+                  type: exists ? 'expectExists' : 'expectNotExists',
+                  args: {'id': target.testId},
+                ));
+              } else if (!exists) {
+                final matches = resolver.resolveMatches(
+                  target,
+                  requireInteractive: false,
+                  allowEmpty: true,
+                );
+                if (matches.isNotEmpty) {
+                  throw EnsembleTestFailure(
+                    'Expected resolved element to not exist.',
+                  );
+                }
+              } else {
+                assertions.expectExistsFinder(
+                  resolver.resolveFinder(target, requireInteractive: false),
+                  exists: true,
                 );
               }
-            } else {
-              assertions.expectExistsFinder(
-                resolver.resolveFinder(target, requireInteractive: false),
-                exists: true,
+            case ElementTextAssertion(
+                :final target,
+                :final text,
+                :final contains
+              ):
+              await executor.execute(
+                TestStep(
+                  type: contains ? 'expectTextContains' : 'expectText',
+                  args: {
+                    if (target.testId != null) 'id': target.testId,
+                    'text': text,
+                  },
+                ),
               );
-            }
-          case ElementTextAssertion(
-              :final target,
-              :final text,
-              :final contains
-            ):
-            await executor.execute(
-              TestStep(
-                type: contains ? 'expectTextContains' : 'expectText',
-                args: {
-                  if (target.testId != null) 'id': target.testId,
-                  'text': text,
-                },
-              ),
-            );
-          case ElementEnabledAssertion(:final target, :final enabled):
-            if (target.locator == null && !target.usesSnapshotElement) {
-              await executor.execute(TestStep(
-                type: enabled ? 'expectEnabled' : 'expectDisabled',
-                args: {'id': target.testId},
-              ));
-            } else {
-              assertions.expectEnabledFinder(
-                resolver.resolveFinder(target),
-                enabled: enabled,
+            case ElementEnabledAssertion(:final target, :final enabled):
+              if (target.locator == null && !target.usesSnapshotElement) {
+                await executor.execute(TestStep(
+                  type: enabled ? 'expectEnabled' : 'expectDisabled',
+                  args: {'id': target.testId},
+                ));
+              } else {
+                assertions.expectEnabledFinder(
+                  resolver.resolveFinder(target),
+                  enabled: enabled,
+                );
+              }
+            case ScreenAssertion(:final screen):
+              await executor.execute(
+                TestStep(type: 'expectScreen', args: {'screen': screen}),
               );
-            }
-          case ScreenAssertion(:final screen):
-            await executor.execute(
-              TestStep(type: 'expectScreen', args: {'screen': screen}),
-            );
-          case GenericAssertion(:final name, :final args):
-            await executor.execute(TestStep(type: name, args: args));
+            case GenericAssertion(:final name, :final args):
+              await executor.execute(TestStep(type: name, args: args));
+          }
+          return AssertionResult(
+            assertionId: assertionId,
+            status: AssertionStatus.passed,
+          );
+        } on TestExecutionError catch (error) {
+          return AssertionResult(
+            assertionId: assertionId,
+            status: AssertionStatus.error,
+            error: error,
+          );
+        } on EnsembleTestFailure catch (error) {
+          final mapped = LocalTestExecutionSession.mapExecutorFailure(error);
+          return AssertionResult(
+            assertionId: assertionId,
+            status: AssertionStatus.failed,
+            message: mapped.message,
+            error: mapped,
+          );
         }
-        return AssertionResult(
-          assertionId: assertionId,
-          status: AssertionStatus.passed,
-        );
-      } on TestExecutionError catch (error) {
-        return AssertionResult(
-          assertionId: assertionId,
-          status: AssertionStatus.error,
-          error: error,
-        );
-      } on EnsembleTestFailure catch (error) {
-        final mapped = LocalTestExecutionSession.mapExecutorFailure(error);
-        return AssertionResult(
-          assertionId: assertionId,
-          status: AssertionStatus.failed,
-          message: mapped.message,
-          error: mapped,
-        );
-      }
+      });
     });
   }
 
@@ -620,61 +629,65 @@ class LocalTestExecutionSession implements TestExecutionSession {
 
   @override
   Future<TestArtifact> captureArtifact(ArtifactRequest request) {
-    _ensureOpen();
-    return queue.run(() async {
-      if (!permissions.captureArtifacts || !capabilities.screenshots) {
-        throw const TestExecutionError(
-          code: TestExecutionErrorCode.permissionDenied,
-          message: 'Not permitted to capture artifacts.',
-        );
-      }
-      if (request.kind != 'screenshot') {
-        throw TestExecutionError(
-          code: TestExecutionErrorCode.unsupportedAction,
-          message: 'Unsupported artifact kind "${request.kind}".',
-        );
-      }
-      final image = ExtendedStepHandlers.captureScreenshotImage(
-        tester,
-        secureContent: context.config.screenshots.secureContent,
-      );
-      try {
-        final byteData = await tester.runAsync(
-          () => image.toByteData(format: ui.ImageByteFormat.png),
-        );
-        if (byteData == null) {
+    return RunnerBenchmark.future('session', 'captureArtifact', () {
+      _ensureOpen();
+      return queue.run(() async {
+        if (!permissions.captureArtifacts || !capabilities.screenshots) {
           throw const TestExecutionError(
-            code: TestExecutionErrorCode.internalError,
-            message: 'Failed to encode screenshot as PNG.',
+            code: TestExecutionErrorCode.permissionDenied,
+            message: 'Not permitted to capture artifacts.',
           );
         }
-        final bytes = byteData.buffer.asUint8List();
-        final id = 'art_${sessionId}_${_actionSeq++}';
-        _artifactStore[id] = bytes;
-        return TestArtifact(
-          artifactId: id,
-          kind: 'screenshot',
-          path: 'memory:$id',
-          mimeType: 'image/png',
-          byteLength: bytes.length,
+        if (request.kind != 'screenshot') {
+          throw TestExecutionError(
+            code: TestExecutionErrorCode.unsupportedAction,
+            message: 'Unsupported artifact kind "${request.kind}".',
+          );
+        }
+        final image = ExtendedStepHandlers.captureScreenshotImage(
+          tester,
+          secureContent: context.config.screenshots.secureContent,
         );
-      } finally {
-        image.dispose();
-      }
+        try {
+          final byteData = await tester.runAsync(
+            () => image.toByteData(format: ui.ImageByteFormat.png),
+          );
+          if (byteData == null) {
+            throw const TestExecutionError(
+              code: TestExecutionErrorCode.internalError,
+              message: 'Failed to encode screenshot as PNG.',
+            );
+          }
+          final bytes = byteData.buffer.asUint8List();
+          final id = 'art_${sessionId}_${_actionSeq++}';
+          _artifactStore[id] = bytes;
+          return TestArtifact(
+            artifactId: id,
+            kind: 'screenshot',
+            path: 'memory:$id',
+            mimeType: 'image/png',
+            byteLength: bytes.length,
+          );
+        } finally {
+          image.dispose();
+        }
+      });
     });
   }
 
   @override
   Future<void> close() async {
-    if (_closed) return;
-    _closed = true;
-    queue.close();
-    registry.clear();
-    _artifactStore.clear();
-    if (ownsBootstrap) {
-      context.apiOverlay.resetCalls();
-      context.runtime.clear();
-    }
-    // Suite-attached: do not dispose harness/tester.
+    return await RunnerBenchmark.async('session', 'close', () async {
+      if (_closed) return;
+      _closed = true;
+      queue.close();
+      registry.clear();
+      _artifactStore.clear();
+      if (ownsBootstrap) {
+        context.apiOverlay.resetCalls();
+        context.runtime.clear();
+      }
+      // Suite-attached: do not dispose harness/tester.
+    });
   }
 }

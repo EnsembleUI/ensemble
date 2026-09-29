@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -38,40 +39,43 @@ class MockComposition {
         resolveAssetPath,
     Set<String>? resolving,
   }) async {
-    final assetPath = resolveAssetPath(testAssetPath, mockFilePath);
-    final stack = resolving ?? <String>{};
-    if (!stack.add(assetPath)) {
-      throw EnsembleTestFailure(
-        'Mock file "$assetPath" has a cyclic ${extendsKey} chain: '
-        '${[...stack, assetPath].join(' -> ')}',
-      );
-    }
-
-    try {
-      if (!assetPath.endsWith('.mock.json')) {
+    return await RunnerBenchmark.async('mock', 'resolveFile', () async {
+      final assetPath = resolveAssetPath(testAssetPath, mockFilePath);
+      final stack = resolving ?? <String>{};
+      if (!stack.add(assetPath)) {
         throw EnsembleTestFailure(
-          'Mock file "$mockFilePath" must be a .mock.json file.',
+          'Mock file "$assetPath" has a cyclic ${extendsKey} chain: '
+          '${[...stack, assetPath].join(' -> ')}',
         );
       }
 
-      final content = await assetLoader(assetPath);
-      final dynamic doc = _parseJson(content, assetPath);
-      if (doc == null) return {};
-      if (doc is! Map) {
-        throw EnsembleTestFailure('Mock file "$assetPath" root must be a map');
-      }
+      try {
+        if (!assetPath.endsWith('.mock.json')) {
+          throw EnsembleTestFailure(
+            'Mock file "$mockFilePath" must be a .mock.json file.',
+          );
+        }
 
-      return await resolveDocument(
-        Map<dynamic, dynamic>.from(doc),
-        sourceLabel: assetPath,
-        testAssetPath: testAssetPath,
-        assetLoader: assetLoader,
-        resolveAssetPath: resolveAssetPath,
-        resolving: stack,
-      );
-    } finally {
-      stack.remove(assetPath);
-    }
+        final content = await assetLoader(assetPath);
+        final dynamic doc = _parseJson(content, assetPath);
+        if (doc == null) return {};
+        if (doc is! Map) {
+          throw EnsembleTestFailure(
+              'Mock file "$assetPath" root must be a map');
+        }
+
+        return await resolveDocument(
+          Map<dynamic, dynamic>.from(doc),
+          sourceLabel: assetPath,
+          testAssetPath: testAssetPath,
+          assetLoader: assetLoader,
+          resolveAssetPath: resolveAssetPath,
+          resolving: stack,
+        );
+      } finally {
+        stack.remove(assetPath);
+      }
+    });
   }
 
   /// Resolves a mock document map (file root or inline layer) into API maps.
@@ -84,44 +88,46 @@ class MockComposition {
         resolveAssetPath,
     Set<String>? resolving,
   }) async {
-    final raw = <String, Map<String, dynamic>>{};
-    final extendsRaw = doc[extendsKey];
-    if (extendsRaw != null) {
-      final parents = _extendsList(extendsRaw, sourceLabel);
-      for (final parent in parents) {
-        final parentApis = await resolveFile(
-          testAssetPath: testAssetPath,
-          mockFilePath: parent,
-          assetLoader: assetLoader,
-          resolveAssetPath: resolveAssetPath,
-          resolving: resolving,
-        );
+    return await RunnerBenchmark.async('mock', 'resolveDocument', () async {
+      final raw = <String, Map<String, dynamic>>{};
+      final extendsRaw = doc[extendsKey];
+      if (extendsRaw != null) {
+        final parents = _extendsList(extendsRaw, sourceLabel);
+        for (final parent in parents) {
+          final parentApis = await resolveFile(
+            testAssetPath: testAssetPath,
+            mockFilePath: parent,
+            assetLoader: assetLoader,
+            resolveAssetPath: resolveAssetPath,
+            resolving: resolving,
+          );
+          mergeApiMaps(
+            raw,
+            parentApis,
+            sourceLabel: sourceLabel,
+          );
+        }
+      }
+
+      for (final entry in doc.entries) {
+        final apiName = entry.key.toString();
+        if (apiName == extendsKey) continue;
+        if (entry.value is! Map) {
+          throw EnsembleTestFailure(
+            'Mock for API "$apiName" in "$sourceLabel" must be a map',
+          );
+        }
         mergeApiMaps(
           raw,
-          parentApis,
+          {
+            apiName:
+                _stringifyKeys(Map<dynamic, dynamic>.from(entry.value as Map)),
+          },
           sourceLabel: sourceLabel,
         );
       }
-    }
-
-    for (final entry in doc.entries) {
-      final apiName = entry.key.toString();
-      if (apiName == extendsKey) continue;
-      if (entry.value is! Map) {
-        throw EnsembleTestFailure(
-          'Mock for API "$apiName" in "$sourceLabel" must be a map',
-        );
-      }
-      mergeApiMaps(
-        raw,
-        {
-          apiName:
-              _stringifyKeys(Map<dynamic, dynamic>.from(entry.value as Map)),
-        },
-        sourceLabel: sourceLabel,
-      );
-    }
-    return raw;
+      return raw;
+    });
   }
 
   /// Merges [incoming] into [target]. Entries with `$merge` patch the existing
@@ -131,40 +137,42 @@ class MockComposition {
     Map<String, Map<String, dynamic>> incoming, {
     required String sourceLabel,
   }) {
-    for (final entry in incoming.entries) {
-      final apiName = entry.key;
-      final value = Map<String, dynamic>.from(entry.value);
-      final merge = value.remove(mergeKey);
-      if (merge == null) {
-        target[apiName] = value;
-        continue;
-      }
-      if (merge is! Map) {
-        throw EnsembleTestFailure(
-          'API mock "$apiName" in "$sourceLabel" $mergeKey must be a map of '
-          'path → value.',
+    return RunnerBenchmark.sync('mock', 'mergeApiMaps', () {
+      for (final entry in incoming.entries) {
+        final apiName = entry.key;
+        final value = Map<String, dynamic>.from(entry.value);
+        final merge = value.remove(mergeKey);
+        if (merge == null) {
+          target[apiName] = value;
+          continue;
+        }
+        if (merge is! Map) {
+          throw EnsembleTestFailure(
+            'API mock "$apiName" in "$sourceLabel" $mergeKey must be a map of '
+            'path → value.',
+          );
+        }
+        final base = target[apiName];
+        if (base == null) {
+          throw EnsembleTestFailure(
+            'API mock "$apiName" in "$sourceLabel" uses $mergeKey but there is '
+            'no existing mock to patch. Add $extendsKey or a prior mock for this API.',
+          );
+        }
+        final merged = deepCopy(base) as Map<String, dynamic>;
+        // Non-merge keys on the same object replace those top-level fields first.
+        for (final field in value.entries) {
+          merged[field.key] = deepCopy(field.value);
+        }
+        applyMergePaths(
+          merged,
+          Map<String, dynamic>.from(merge),
+          sourceLabel: sourceLabel,
+          apiName: apiName,
         );
+        target[apiName] = merged;
       }
-      final base = target[apiName];
-      if (base == null) {
-        throw EnsembleTestFailure(
-          'API mock "$apiName" in "$sourceLabel" uses $mergeKey but there is '
-          'no existing mock to patch. Add $extendsKey or a prior mock for this API.',
-        );
-      }
-      final merged = deepCopy(base) as Map<String, dynamic>;
-      // Non-merge keys on the same object replace those top-level fields first.
-      for (final field in value.entries) {
-        merged[field.key] = deepCopy(field.value);
-      }
-      applyMergePaths(
-        merged,
-        Map<String, dynamic>.from(merge),
-        sourceLabel: sourceLabel,
-        apiName: apiName,
-      );
-      target[apiName] = merged;
-    }
+    });
   }
 
   static void applyMergePaths(
@@ -173,16 +181,18 @@ class MockComposition {
     required String sourceLabel,
     required String apiName,
   }) {
-    for (final entry in paths.entries) {
-      try {
-        setPath(target, entry.key, deepCopy(entry.value));
-      } on FormatException catch (error) {
-        throw EnsembleTestFailure(
-          'API mock "$apiName" in "$sourceLabel" has invalid $mergeKey path '
-          '"${entry.key}": ${error.message}',
-        );
+    return RunnerBenchmark.sync('mock', 'applyMergePaths', () {
+      for (final entry in paths.entries) {
+        try {
+          setPath(target, entry.key, deepCopy(entry.value));
+        } on FormatException catch (error) {
+          throw EnsembleTestFailure(
+            'API mock "$apiName" in "$sourceLabel" has invalid $mergeKey path '
+            '"${entry.key}": ${error.message}',
+          );
+        }
       }
-    }
+    });
   }
 
   /// Sets [value] at a dotted/bracket path or JSON Pointer.

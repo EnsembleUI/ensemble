@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
@@ -31,49 +32,52 @@ Future<void> captureStepObserverBestEffort({
   required int stepIndex,
   bool allowWhileQueueBusy = false,
 }) async {
-  final ctx = executor.context;
-  if (!ctx.config.screenshots.enabled) return;
-  if (session.queue.isBusy && !allowWhileQueueBusy) return;
-  final frame = _latestScreenshotFrame(ctx, stepIndex);
-  if (frame == null) return;
-  try {
-    final snap = captureDiagnosticUiSnapshot(
-      tester: executor.tester,
-      assertions: session.assertions,
-      navigation: session.services.navigation,
-    );
-    final device = ctx.testCase.deviceTarget;
-    final elements = observationElementsTreeForReport(snap.observation);
-    final viewport = snap.observation.viewport?.toJson();
-    final observationJson = observerPayloadToJson(
-      stepIndex: stepIndex,
-      screen: snap.screenLabel,
-      viewport: viewport,
-      elements: elements,
-    );
-    final overlays = observerOverlaysForReport(
-      observation: snap.observation,
-      tester: executor.tester,
-      image: frame.image,
-      device: device,
-    );
-    ctx.runtime.upsertStepObserver(
-      StepObserverArtifact(
+  return await RunnerBenchmark.async(
+      'observer', 'captureStepObserverBestEffort', () async {
+    final ctx = executor.context;
+    if (!ctx.config.screenshots.enabled) return;
+    if (session.queue.isBusy && !allowWhileQueueBusy) return;
+    final frame = _latestScreenshotFrame(ctx, stepIndex);
+    if (frame == null) return;
+    try {
+      final snap = captureDiagnosticUiSnapshot(
+        tester: executor.tester,
+        assertions: session.assertions,
+        navigation: session.services.navigation,
+      );
+      final device = ctx.testCase.deviceTarget;
+      final elements = observationElementsTreeForReport(snap.observation);
+      final viewport = snap.observation.viewport?.toJson();
+      final observationJson = observerPayloadToJson(
         stepIndex: stepIndex,
         screen: snap.screenLabel,
-        elements: elements,
         viewport: viewport,
-        observationJson: observationJson,
-        overlays: overlays,
-        deviceId: device?.id,
-        deviceLabel: device?.displayLabel,
-        platform: device?.platform,
-        model: device?.model,
-      ),
-    );
-  } catch (_) {
-    // Observer capture must never replace the real test result.
-  }
+        elements: elements,
+      );
+      final overlays = observerOverlaysForReport(
+        observation: snap.observation,
+        tester: executor.tester,
+        image: frame.image,
+        device: device,
+      );
+      ctx.runtime.upsertStepObserver(
+        StepObserverArtifact(
+          stepIndex: stepIndex,
+          screen: snap.screenLabel,
+          elements: elements,
+          viewport: viewport,
+          observationJson: observationJson,
+          overlays: overlays,
+          deviceId: device?.id,
+          deviceLabel: device?.displayLabel,
+          platform: device?.platform,
+          model: device?.model,
+        ),
+      );
+    } catch (_) {
+      // Observer capture must never replace the real test result.
+    }
+  });
 }
 
 /// True when [stepIndex] already has Observer metadata (e.g. before-step shot).
@@ -146,50 +150,52 @@ List<Map<String, dynamic>> observerOverlaysForReport({
   required ui.Image image,
   TestDeviceTarget? device,
 }) {
-  final renderView = tester.binding.renderViews.first;
-  final logicalSize = renderView.size;
-  final imageSize = Size(image.width.toDouble(), image.height.toDouble());
-  final frameDevice = !framesScreenshotsWithDeviceBezel || device == null
-      ? null
-      : resolveScreenshotDevice({
-          'platform': device.platform,
-          'model': device.model,
-        });
+  return RunnerBenchmark.sync('observer', 'observerOverlaysForReport', () {
+    final renderView = tester.binding.renderViews.first;
+    final logicalSize = renderView.size;
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+    final frameDevice = !framesScreenshotsWithDeviceBezel || device == null
+        ? null
+        : resolveScreenshotDevice({
+            'platform': device.platform,
+            'model': device.model,
+          });
 
-  final overlays = <Map<String, dynamic>>[];
-  // Same pre-order indices as [observationElementsTreeForReport] so HTML can
-  // link tree rows ↔ screenshot highlights on hover.
-  var index = 1;
-  void walk(UiElement element) {
-    // Keep indices aligned with observationElementsTreeForReport, which
-    // retains offscreen nodes even when visible=false.
-    if (element.state.visible == false && element.state.offscreen != true) {
-      return;
-    }
-    final myIndex = index++;
-    if (element.state.visible != false && _shouldOverlay(element)) {
-      final overlay = _overlayPercent(
-        element: element,
-        logicalSize: logicalSize,
-        imageSize: imageSize,
-        frameDevice: frameDevice,
-      );
-      if (overlay != null) {
-        overlays.add({
-          ...overlay,
-          'index': myIndex,
-        });
+    final overlays = <Map<String, dynamic>>[];
+    // Same pre-order indices as [observationElementsTreeForReport] so HTML can
+    // link tree rows ↔ screenshot highlights on hover.
+    var index = 1;
+    void walk(UiElement element) {
+      // Keep indices aligned with observationElementsTreeForReport, which
+      // retains offscreen nodes even when visible=false.
+      if (element.state.visible == false && element.state.offscreen != true) {
+        return;
+      }
+      final myIndex = index++;
+      if (element.state.visible != false && _shouldOverlay(element)) {
+        final overlay = _overlayPercent(
+          element: element,
+          logicalSize: logicalSize,
+          imageSize: imageSize,
+          frameDevice: frameDevice,
+        );
+        if (overlay != null) {
+          overlays.add({
+            ...overlay,
+            'index': myIndex,
+          });
+        }
+      }
+      for (final child in element.children) {
+        walk(child);
       }
     }
-    for (final child in element.children) {
-      walk(child);
-    }
-  }
 
-  for (final root in observation.elements) {
-    walk(root);
-  }
-  return overlays;
+    for (final root in observation.elements) {
+      walk(root);
+    }
+    return overlays;
+  });
 }
 
 bool _shouldOverlay(UiElement element) {

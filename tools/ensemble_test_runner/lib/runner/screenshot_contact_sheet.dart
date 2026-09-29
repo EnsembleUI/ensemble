@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
@@ -40,109 +41,116 @@ Future<String?> writeScreenshotFrames({
   String? failedDeviceId,
   List<StepObserverArtifact> stepObservers = const [],
 }) async {
-  if (frames.isEmpty && stepObservers.isEmpty) return null;
+  return await RunnerBenchmark.async('screenshot', 'writeScreenshotFrames',
+      () async {
+    if (frames.isEmpty && stepObservers.isEmpty) return null;
 
-  final defaultDevice = resolveScreenshotDevice(const {});
-  final manifestDirectory = ensembleTestArtifactDirectory('frames');
-  final imageDirectory = ensembleTestArtifactDirectory(
-    p.join('report', 'screenshots'),
-  );
-  if (!usesDeviceArtifactTransport) {
-    manifestDirectory.createSync(recursive: true);
-    imageDirectory.createSync(recursive: true);
-  }
-  final safeTestId = _safeFileName(testId);
-  final frameEntries = <Map<String, dynamic>>[];
+    final defaultDevice = resolveScreenshotDevice(const {});
+    final manifestDirectory = ensembleTestArtifactDirectory('frames');
+    final imageDirectory = ensembleTestArtifactDirectory(
+      p.join('report', 'screenshots'),
+    );
+    if (!usesDeviceArtifactTransport) {
+      manifestDirectory.createSync(recursive: true);
+      imageDirectory.createSync(recursive: true);
+    }
+    final safeTestId = _safeFileName(testId);
+    final frameEntries = <Map<String, dynamic>>[];
 
-  try {
-    for (final frame in frames) {
-      final failedFrame = status == TestStatus.failed &&
-          frame.stepIndex == failedStepIndex &&
-          (failedDeviceId == null || frame.deviceId == failedDeviceId);
-      final frameDevice = _deviceForFrame(frame, defaultDevice);
-      final encoded = frame.encodedReportImage ??
-          await _encodeFrameImage(frame, frameDevice);
-      frame.encodedReportImage ??= encoded;
+    try {
+      for (final frame in frames) {
+        final failedFrame = status == TestStatus.failed &&
+            frame.stepIndex == failedStepIndex &&
+            (failedDeviceId == null || frame.deviceId == failedDeviceId);
+        final frameDevice = _deviceForFrame(frame, defaultDevice);
+        final encoded = frame.encodedReportImage ??
+            await _encodeFrameImage(frame, frameDevice);
+        frame.encodedReportImage ??= encoded;
+        RunnerBenchmark.count('framesEncoded', 1);
+        RunnerBenchmark.count('encodedBytes', encoded.bytes.length);
+        RunnerBenchmark.dimension('codec', encoded.extension);
 
-      // Byte-exact dedup only: any real pixel difference keeps its own file.
-      // Perceptual hashing previously collapsed small UI changes (day-button
-      // selection, success toasts) into stale frames and broke report highlights.
-      final frameFileName = _dedupedImageFileName(encoded);
-      final frameFile = File(p.join(imageDirectory.path, frameFileName));
-      if (usesDeviceArtifactTransport || !frameFile.existsSync()) {
-        await writeEnsembleTestArtifactBytes(
-          p.join('report', 'screenshots'),
-          frameFileName,
-          encoded.bytes,
-          mimeType: _mimeTypeForExtension(encoded.extension),
-        );
+        // Byte-exact dedup only: any real pixel difference keeps its own file.
+        // Perceptual hashing previously collapsed small UI changes (day-button
+        // selection, success toasts) into stale frames and broke report highlights.
+        final frameFileName = _dedupedImageFileName(encoded);
+        final frameFile = File(p.join(imageDirectory.path, frameFileName));
+        if (usesDeviceArtifactTransport || !frameFile.existsSync()) {
+          RunnerBenchmark.count('filesWritten', 1);
+          await writeEnsembleTestArtifactBytes(
+            p.join('report', 'screenshots'),
+            frameFileName,
+            encoded.bytes,
+            mimeType: _mimeTypeForExtension(encoded.extension),
+          );
+        }
+        frameEntries.add({
+          'stepIndex': frame.stepIndex,
+          'label': frame.label,
+          'file': frameFileName,
+          if (failedFrame) 'failed': true,
+          if (frame.deviceId != null) 'deviceId': frame.deviceId,
+          if (frame.deviceLabel != null) 'deviceLabel': frame.deviceLabel,
+          if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
+        });
       }
-      frameEntries.add({
-        'stepIndex': frame.stepIndex,
-        'label': frame.label,
-        'file': frameFileName,
-        if (failedFrame) 'failed': true,
-        if (frame.deviceId != null) 'deviceId': frame.deviceId,
-        if (frame.deviceLabel != null) 'deviceLabel': frame.deviceLabel,
-        if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
-      });
+
+      for (final observer in stepObservers) {
+        // Metadata only — no second PNG. HTML draws overlays on the step shot.
+        frameEntries.add({
+          'stepIndex': observer.stepIndex,
+          'role': 'observer',
+          'observationJson': observer.observationJson,
+          if (observer.overlays.isNotEmpty) 'overlays': observer.overlays,
+        });
+      }
+    } finally {
+      for (final frame in frames) {
+        try {
+          frame.image.dispose();
+        } catch (_) {}
+      }
+      for (final observer in stepObservers) {
+        observer.dispose();
+      }
     }
 
-    for (final observer in stepObservers) {
-      // Metadata only — no second PNG. HTML draws overlays on the step shot.
-      frameEntries.add({
-        'stepIndex': observer.stepIndex,
-        'role': 'observer',
-        'observationJson': observer.observationJson,
-        if (observer.overlays.isNotEmpty) 'overlays': observer.overlays,
-      });
-    }
-  } finally {
-    for (final frame in frames) {
-      try {
-        frame.image.dispose();
-      } catch (_) {}
-    }
-    for (final observer in stepObservers) {
-      observer.dispose();
-    }
-  }
+    if (frameEntries.isEmpty) return null;
 
-  if (frameEntries.isEmpty) return null;
-
-  // Drop legacy composite sheet artifacts from older runner versions.
-  if (!usesDeviceArtifactTransport) {
-    for (final legacyDir in [
-      manifestDirectory,
-      ensembleTestArtifactDirectory('screenshots'),
-    ]) {
-      for (final legacyName in [
-        '$safeTestId.png',
-        '${safeTestId}_sheet.png',
+    // Drop legacy composite sheet artifacts from older runner versions.
+    if (!usesDeviceArtifactTransport) {
+      for (final legacyDir in [
+        manifestDirectory,
+        ensembleTestArtifactDirectory('screenshots'),
       ]) {
-        final legacy = File(p.join(legacyDir.path, legacyName));
-        if (legacy.existsSync()) {
-          legacy.deleteSync();
+        for (final legacyName in [
+          '$safeTestId.png',
+          '${safeTestId}_sheet.png',
+        ]) {
+          final legacy = File(p.join(legacyDir.path, legacyName));
+          if (legacy.existsSync()) {
+            legacy.deleteSync();
+          }
         }
       }
     }
-  }
 
-  final framesFileName = '${safeTestId}_frames.json';
-  await writeEnsembleTestArtifactString(
-    'frames',
-    framesFileName,
-    const JsonEncoder.withIndent(' ').convert({
-      'status': status.name,
-      if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
-      if (failedStepLabel != null) 'failedStepLabel': failedStepLabel,
-      if (failureMessage != null) 'failureMessage': failureMessage,
-      'frames': frameEntries,
-    }),
-    mimeType: 'application/json',
-  );
+    final framesFileName = '${safeTestId}_frames.json';
+    await writeEnsembleTestArtifactString(
+      'frames',
+      framesFileName,
+      const JsonEncoder.withIndent(' ').convert({
+        'status': status.name,
+        if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
+        if (failedStepLabel != null) 'failedStepLabel': failedStepLabel,
+        if (failureMessage != null) 'failureMessage': failureMessage,
+        'frames': frameEntries,
+      }),
+      mimeType: 'application/json',
+    );
 
-  return ensembleTestArtifactDisplayPath('frames', framesFileName);
+    return ensembleTestArtifactDisplayPath('frames', framesFileName);
+  });
 }
 
 /// @Deprecated Use [writeScreenshotFrames]. Kept as a thin alias for call sites.
@@ -189,85 +197,91 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
   ScreenshotSheetFrame frame,
   DeviceInfo device,
 ) async {
-  if (!framesScreenshotsWithDeviceBezel) {
-    final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
-    if (data == null) {
-      throw EnsembleTestFailure('Failed to encode integration screenshot.');
+  return await RunnerBenchmark.async('screenshot', 'encodeFrameImage',
+      () async {
+    if (!framesScreenshotsWithDeviceBezel) {
+      final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) {
+        throw EnsembleTestFailure('Failed to encode integration screenshot.');
+      }
+      return EncodedScreenshotImage(
+        bytes: data.buffer.asUint8List(),
+        extension: 'png',
+      );
     }
-    return EncodedScreenshotImage(
-      bytes: data.buffer.asUint8List(),
-      extension: 'png',
+    final bytes = await LiveAsyncCallSupport.runUntracked(
+      () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
     );
-  }
-  final bytes = await LiveAsyncCallSupport.runUntracked(
-    () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
-  );
-  if (bytes == null) {
-    throw EnsembleTestFailure('Failed to encode screenshot.');
-  }
-  return _compressedReportImage(bytes);
+    if (bytes == null) {
+      throw EnsembleTestFailure('Failed to encode screenshot.');
+    }
+    return _compressedReportImage(bytes);
+  });
 }
 
 Future<EncodedScreenshotImage> _compressedReportImage(
     Uint8List pngBytes) async {
-  if (usesDeviceArtifactTransport) {
-    return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-  }
-  try {
-    final decoded = img.decodePng(pngBytes);
-    if (decoded == null) {
+  return await RunnerBenchmark.async('screenshot', 'compressedReportImage',
+      () async {
+    if (usesDeviceArtifactTransport) {
       return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
     }
+    try {
+      final decoded = img.decodePng(pngBytes);
+      if (decoded == null) {
+        return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
+      }
 
-    final resized = decoded.width > _maxReportScreenshotWidth
-        ? img.copyResize(
-            decoded,
-            width: _maxReportScreenshotWidth,
-            interpolation: img.Interpolation.average,
-          )
-        : decoded;
+      final resized = decoded.width > _maxReportScreenshotWidth
+          ? img.copyResize(
+              decoded,
+              width: _maxReportScreenshotWidth,
+              interpolation: img.Interpolation.average,
+            )
+          : decoded;
 
-    final background =
-        img.Image(width: resized.width, height: resized.height, numChannels: 3);
-    img.fill(background, color: img.ColorRgb8(10, 17, 31));
-    img.compositeImage(background, resized);
+      final background = img.Image(
+          width: resized.width, height: resized.height, numChannels: 3);
+      img.fill(background, color: img.ColorRgb8(10, 17, 31));
+      img.compositeImage(background, resized);
 
-    final webPInputBytes = Uint8List.fromList(
-      img.encodePng(background, level: 1),
-    );
-    final webPBytes = await _encodeWebP(webPInputBytes);
-    if (webPBytes != null) {
-      return EncodedScreenshotImage(
-        bytes: webPBytes,
-        extension: 'webp',
+      final webPInputBytes = Uint8List.fromList(
+        img.encodePng(background, level: 1),
       );
-    }
+      final webPBytes = await _encodeWebP(webPInputBytes);
+      if (webPBytes != null) {
+        return EncodedScreenshotImage(
+          bytes: webPBytes,
+          extension: 'webp',
+        );
+      }
 
-    final jpgBytes = Uint8List.fromList(
-      img.encodeJpg(
-        background,
-        quality: _reportScreenshotJpegQuality,
-        chroma: img.JpegChroma.yuv420,
-      ),
-    );
-    final optimizedPngBytes = Uint8List.fromList(
-      img.encodePng(background, level: 6),
-    );
-    final candidates = <EncodedScreenshotImage>[
-      EncodedScreenshotImage(
-        bytes: jpgBytes,
-        extension: 'jpg',
-      ),
-      EncodedScreenshotImage(
-        bytes: optimizedPngBytes,
-        extension: 'png',
-      ),
-    ];
-    candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
-    return candidates.first;
-  } catch (_) {
-    return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-  }
+      final jpgBytes = Uint8List.fromList(
+        img.encodeJpg(
+          background,
+          quality: _reportScreenshotJpegQuality,
+          chroma: img.JpegChroma.yuv420,
+        ),
+      );
+      final optimizedPngBytes = Uint8List.fromList(
+        img.encodePng(background, level: 6),
+      );
+      final candidates = <EncodedScreenshotImage>[
+        EncodedScreenshotImage(
+          bytes: jpgBytes,
+          extension: 'jpg',
+        ),
+        EncodedScreenshotImage(
+          bytes: optimizedPngBytes,
+          extension: 'png',
+        ),
+      ];
+      candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
+      return candidates.first;
+    } catch (_) {
+      return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
+    }
+  });
 }
 
 String _mimeTypeForExtension(String extension) => switch (extension) {
@@ -278,38 +292,45 @@ String _mimeTypeForExtension(String extension) => switch (extension) {
     };
 
 Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
-  final cwebpPath = await _resolveCwebpPath();
-  if (cwebpPath == null) return null;
-
-  final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
-  try {
-    final input = File(p.join(tempDir.path, 'input.png'));
-    final output = File(p.join(tempDir.path, 'output.webp'));
-    input.writeAsBytesSync(pngBytes);
-
-    final result = await Process.run(cwebpPath, [
-      '-quiet',
-      '-q',
-      '$_reportScreenshotWebPQuality',
-      '-m',
-      '4',
-      '-metadata',
-      'none',
-      input.path,
-      '-o',
-      output.path,
-    ]);
-    if (result.exitCode != 0 || !output.existsSync()) {
+  return await RunnerBenchmark.async('screenshot', 'encodeWebP', () async {
+    if (RunnerBenchmark.collector?.disabledExecutables.contains('cwebp') ==
+        true) {
+      RunnerBenchmark.dimension('codecFallback', 'controlled-unavailable-webp');
       return null;
     }
-    return output.readAsBytesSync();
-  } catch (_) {
-    return null;
-  } finally {
+    final cwebpPath = await _resolveCwebpPath();
+    if (cwebpPath == null) return null;
+
+    final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
     try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {}
-  }
+      final input = File(p.join(tempDir.path, 'input.png'));
+      final output = File(p.join(tempDir.path, 'output.webp'));
+      input.writeAsBytesSync(pngBytes);
+
+      final result = await Process.run(cwebpPath, [
+        '-quiet',
+        '-q',
+        '$_reportScreenshotWebPQuality',
+        '-m',
+        '4',
+        '-metadata',
+        'none',
+        input.path,
+        '-o',
+        output.path,
+      ]);
+      if (result.exitCode != 0 || !output.existsSync()) {
+        return null;
+      }
+      return output.readAsBytesSync();
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        tempDir.deleteSync(recursive: true);
+      } catch (_) {}
+    }
+  });
 }
 
 Future<String?> _resolveCwebpPath() async {
@@ -372,6 +393,8 @@ String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
 String _dedupedImageFileName(EncodedScreenshotImage image) {
-  final digest = sha256.convert(image.bytes).toString();
-  return 'shot_${image.bytes.length}_$digest.${image.extension}';
+  return RunnerBenchmark.sync('screenshot', 'dedupedImageFileName', () {
+    final digest = sha256.convert(image.bytes).toString();
+    return 'shot_${image.bytes.length}_$digest.${image.extension}';
+  });
 }

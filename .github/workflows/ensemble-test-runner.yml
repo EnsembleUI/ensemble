@@ -1,6 +1,9 @@
 name: Ensemble Test Runner
 
 on:
+  push:
+    paths:
+      - 'tools/ensemble_test_runner/**'
   pull_request:
     branches: [main]
     paths:
@@ -8,6 +11,19 @@ on:
       - '.github/workflows/ensemble-test-runner.yml'
       - '.github/actions/setup-flutter/**'
   workflow_dispatch:
+    inputs:
+      preset:
+        description: Benchmark preset
+        type: choice
+        options: [quick, full]
+        default: quick
+      service:
+        description: Optional comma separated service filter
+        type: string
+        default: ''
+
+permissions:
+  contents: read
 
 jobs:
   ensemble_test_runner:
@@ -54,3 +70,73 @@ jobs:
             --tests-dir=tests \
             --test-entry=test/application_yaml_tests.dart \
             --mode=widget
+
+  benchmark:
+    needs: ensemble_test_runner
+    name: Benchmark runner services
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    outputs:
+      artifact_url: ${{ steps.archive.outputs.artifact-url }}
+    concurrency:
+      group: runner-benchmark-history-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flutter SDK
+        uses: ./.github/actions/setup-flutter
+        with:
+          flutter-version: '3.47.2'
+      - name: Install Melos
+        run: dart pub global activate melos
+      - name: Bootstrap
+        run: melos bootstrap
+      - name: Benchmark runner services (report only)
+        working-directory: tools/ensemble_test_runner
+        env:
+          BENCHMARK_PRESET: ${{ inputs.preset || 'full' }}
+          BENCHMARK_SERVICE: ${{ inputs.service }}
+          ENSEMBLE_BENCHMARK_HOST: github-hosted-ubuntu-24.04-x64
+          ENSEMBLE_BENCHMARK_OS_VERSION: ubuntu-24.04
+        run: dart run tool/benchmark_runner.dart --preset="$BENCHMARK_PRESET" --service="$BENCHMARK_SERVICE"
+      - name: Archive run export and dashboard data
+        id: archive
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-benchmark-data-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tools/ensemble_test_runner/.ensemble_benchmarks/
+          include-hidden-files: true
+          retention-days: 30
+
+  comment_benchmark_artifact:
+    if: >-
+      always() &&
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.benchmark.outputs.artifact_url != ''
+    needs: benchmark
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Add or update benchmark artifact comment
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_URL: ${{ needs.benchmark.outputs.artifact_url }}
+        with:
+          script: |
+            const marker = '<!-- runner-benchmark-artifact -->';
+            const body = `${marker}\nRunner benchmark report and data (available for 30 days): [download artifact](${process.env.ARTIFACT_URL}). Extract the ZIP and open index.html inside its .ensemble_benchmarks folder.`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100
+            });
+            const existing = comments.find(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

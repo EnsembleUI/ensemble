@@ -1,0 +1,5 @@
+View:
+  body:
+    Text:
+      testId: other_title
+      text: Other

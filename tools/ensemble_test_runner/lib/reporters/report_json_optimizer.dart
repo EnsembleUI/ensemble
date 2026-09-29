@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 /// Shrinks the HTML report document before gzip:
@@ -13,380 +14,386 @@ class ReportJsonOptimizer {
 
   /// Returns an optimized copy of [document].
   static Map<String, dynamic> optimize(Map<String, dynamic> document) {
-    final blobs = <String, dynamic>{};
-    final indexByEncoded = <String, String>{};
-    var nextId = 0;
+    return RunnerBenchmark.sync('report', 'optimize', () {
+      final blobs = <String, dynamic>{};
+      final indexByEncoded = <String, String>{};
+      var nextId = 0;
 
-    String intern(dynamic value) {
-      final encoded = json.encode(value);
-      final existing = indexByEncoded[encoded];
-      if (existing != null) return existing;
-      final id = nextId.toRadixString(36);
-      nextId++;
-      indexByEncoded[encoded] = id;
-      blobs[id] = value;
-      return id;
-    }
-
-    dynamic maybeIntern(dynamic value) {
-      if (value == null) return null;
-      final encoded = json.encode(value);
-      if (encoded.length < internMinBytes) return value;
-      return {blobRefKey: intern(value)};
-    }
-
-    dynamic alwaysIntern(dynamic value) {
-      if (value == null) return null;
-      return {blobRefKey: intern(value)};
-    }
-
-    Map<String, dynamic>? optimizeApiCall(Map<String, dynamic> ev) {
-      final out = <String, dynamic>{};
-      for (final key in const [
-        'name',
-        'timestamp',
-        'stepIndex',
-        'index',
-        'mocked',
-        'statusCode',
-        'type',
-        'error',
-      ]) {
-        if (ev.containsKey(key) && ev[key] != null) {
-          out[key] = ev[key];
-        }
+      String intern(dynamic value) {
+        final encoded = json.encode(value);
+        final existing = indexByEncoded[encoded];
+        if (existing != null) return existing;
+        final id = nextId.toRadixString(36);
+        nextId++;
+        indexByEncoded[encoded] = id;
+        blobs[id] = value;
+        return id;
       }
-      final request = ev['request'];
-      if (request is Map) {
-        final req = <String, dynamic>{};
-        if (request['url'] != null) req['url'] = request['url'];
-        if (request['method'] != null) req['method'] = request['method'];
-        if (request['headers'] != null) {
-          req['headers'] = alwaysIntern(request['headers']);
-        }
-        if (request['body'] != null) {
-          req['body'] = alwaysIntern(request['body']);
-        }
-        if (request['parameters'] != null) {
-          req['parameters'] = maybeIntern(request['parameters']);
-        }
-        if (req.isNotEmpty) out['request'] = req;
-      }
-      if (ev.containsKey('responseBody') && ev['responseBody'] != null) {
-        out['responseBody'] = alwaysIntern(ev['responseBody']);
-      }
-      return out.isEmpty ? null : out;
-    }
 
-    Map<String, dynamic>? optimizeStorageChange(Map<String, dynamic> change) {
-      final out = <String, dynamic>{};
-      if (change['key'] != null) out['key'] = change['key'];
-      if (change['change'] != null) out['change'] = change['change'];
-      if (change.containsKey('before')) {
-        out['before'] = maybeIntern(change['before']);
+      dynamic maybeIntern(dynamic value) {
+        if (value == null) return null;
+        final encoded = json.encode(value);
+        if (encoded.length < internMinBytes) return value;
+        return {blobRefKey: intern(value)};
       }
-      if (change.containsKey('after')) {
-        out['after'] = maybeIntern(change['after']);
+
+      dynamic alwaysIntern(dynamic value) {
+        if (value == null) return null;
+        return {blobRefKey: intern(value)};
       }
-      return out.isEmpty ? null : out;
-    }
 
-    Map<String, dynamic> optimizeReport(Map<String, dynamic> report) {
-      final out = Map<String, dynamic>.from(report);
-      final screens = report['screens'];
-      if (screens is! Map || screens.isEmpty) return out;
-      final optimizedScreens = <String, dynamic>{};
-      screens.forEach((key, value) {
-        if (value is! Map) {
-          optimizedScreens[key.toString()] = value;
-          return;
+      Map<String, dynamic>? optimizeApiCall(Map<String, dynamic> ev) {
+        final out = <String, dynamic>{};
+        for (final key in const [
+          'name',
+          'timestamp',
+          'stepIndex',
+          'index',
+          'mocked',
+          'statusCode',
+          'type',
+          'error',
+        ]) {
+          if (ev.containsKey(key) && ev[key] != null) {
+            out[key] = ev[key];
+          }
         }
-        final screen = Map<String, dynamic>.from(value);
-        if (screen['debugTree'] != null) {
-          screen['debugTree'] = alwaysIntern(screen['debugTree']);
+        final request = ev['request'];
+        if (request is Map) {
+          final req = <String, dynamic>{};
+          if (request['url'] != null) req['url'] = request['url'];
+          if (request['method'] != null) req['method'] = request['method'];
+          if (request['headers'] != null) {
+            req['headers'] = alwaysIntern(request['headers']);
+          }
+          if (request['body'] != null) {
+            req['body'] = alwaysIntern(request['body']);
+          }
+          if (request['parameters'] != null) {
+            req['parameters'] = maybeIntern(request['parameters']);
+          }
+          if (req.isNotEmpty) out['request'] = req;
         }
-        if (screen['performance'] is Map) {
-          screen['performance'] = alwaysIntern(
-            Map<String, dynamic>.from(screen['performance'] as Map),
-          );
+        if (ev.containsKey('responseBody') && ev['responseBody'] != null) {
+          out['responseBody'] = alwaysIntern(ev['responseBody']);
         }
-        optimizedScreens[key.toString()] = screen;
-      });
-      out['screens'] = optimizedScreens;
-      return out;
-    }
+        return out.isEmpty ? null : out;
+      }
 
-    Map<String, dynamic> optimizeStep(Map<String, dynamic> step) {
-      final text = step['stepText']?.toString() ?? '';
-      final nested = text.startsWith('  ');
-      final out = <String, dynamic>{'stepText': text};
-      if (nested) {
-        // Payloads live only on the parent non-nested step.
+      Map<String, dynamic>? optimizeStorageChange(Map<String, dynamic> change) {
+        final out = <String, dynamic>{};
+        if (change['key'] != null) out['key'] = change['key'];
+        if (change['change'] != null) out['change'] = change['change'];
+        if (change.containsKey('before')) {
+          out['before'] = maybeIntern(change['before']);
+        }
+        if (change.containsKey('after')) {
+          out['after'] = maybeIntern(change['after']);
+        }
+        return out.isEmpty ? null : out;
+      }
+
+      Map<String, dynamic> optimizeReport(Map<String, dynamic> report) {
+        final out = Map<String, dynamic>.from(report);
+        final screens = report['screens'];
+        if (screens is! Map || screens.isEmpty) return out;
+        final optimizedScreens = <String, dynamic>{};
+        screens.forEach((key, value) {
+          if (value is! Map) {
+            optimizedScreens[key.toString()] = value;
+            return;
+          }
+          final screen = Map<String, dynamic>.from(value);
+          if (screen['debugTree'] != null) {
+            screen['debugTree'] = alwaysIntern(screen['debugTree']);
+          }
+          if (screen['performance'] is Map) {
+            screen['performance'] = alwaysIntern(
+              Map<String, dynamic>.from(screen['performance'] as Map),
+            );
+          }
+          optimizedScreens[key.toString()] = screen;
+        });
+        out['screens'] = optimizedScreens;
         return out;
       }
 
-      final apiCalls = step['apiCalls'];
-      if (apiCalls is List && apiCalls.isNotEmpty) {
-        final optimizedCalls = <Map<String, dynamic>>[];
-        for (final ev in apiCalls) {
-          if (ev is! Map) continue;
-          final optimized = optimizeApiCall(Map<String, dynamic>.from(ev));
-          if (optimized != null) optimizedCalls.add(optimized);
+      Map<String, dynamic> optimizeStep(Map<String, dynamic> step) {
+        final text = step['stepText']?.toString() ?? '';
+        final nested = text.startsWith('  ');
+        final out = <String, dynamic>{'stepText': text};
+        if (nested) {
+          // Payloads live only on the parent non-nested step.
+          return out;
         }
-        if (optimizedCalls.isNotEmpty) out['apiCalls'] = optimizedCalls;
-      }
 
-      final appLogs = step['appLogs'];
-      if (appLogs is List && appLogs.isNotEmpty) {
-        out['appLogs'] = [for (final line in appLogs) line.toString()];
-      }
+        final apiCalls = step['apiCalls'];
+        if (apiCalls is List && apiCalls.isNotEmpty) {
+          final optimizedCalls = <Map<String, dynamic>>[];
+          for (final ev in apiCalls) {
+            if (ev is! Map) continue;
+            final optimized = optimizeApiCall(Map<String, dynamic>.from(ev));
+            if (optimized != null) optimizedCalls.add(optimized);
+          }
+          if (optimizedCalls.isNotEmpty) out['apiCalls'] = optimizedCalls;
+        }
 
-      final changes = step['storageChanges'];
-      if (changes is List && changes.isNotEmpty) {
-        final optimizedChanges = <Map<String, dynamic>>[];
-        for (final c in changes) {
-          if (c is! Map) continue;
-          final optimized = optimizeStorageChange(Map<String, dynamic>.from(c));
-          if (optimized != null) optimizedChanges.add(optimized);
+        final appLogs = step['appLogs'];
+        if (appLogs is List && appLogs.isNotEmpty) {
+          out['appLogs'] = [for (final line in appLogs) line.toString()];
         }
-        if (optimizedChanges.isNotEmpty) {
-          out['storageChanges'] = optimizedChanges;
-        }
-      }
-      for (final field in const ['secureStorageChanges', 'keychainChanges']) {
-        final secureChanges = step[field];
-        if (secureChanges is List && secureChanges.isNotEmpty) {
+
+        final changes = step['storageChanges'];
+        if (changes is List && changes.isNotEmpty) {
           final optimizedChanges = <Map<String, dynamic>>[];
-          for (final c in secureChanges) {
+          for (final c in changes) {
             if (c is! Map) continue;
             final optimized =
                 optimizeStorageChange(Map<String, dynamic>.from(c));
             if (optimized != null) optimizedChanges.add(optimized);
           }
-          if (optimizedChanges.isNotEmpty) out[field] = optimizedChanges;
-        }
-      }
-
-      final shots = step['screenshots'];
-      if (shots is List && shots.isNotEmpty) {
-        out['screenshots'] = [
-          for (final s in shots)
-            if (s is Map) Map<String, dynamic>.from(s),
-        ];
-      }
-      final observer = step['observer'];
-      if (observer is Map && observer.isNotEmpty) {
-        out['observer'] = Map<String, dynamic>.from(observer);
-      }
-      return out;
-    }
-
-    Map<String, dynamic> optimizeTest(Map<String, dynamic> test) {
-      final out = <String, dynamic>{
-        'id': test['id'],
-        'status': test['status'],
-        'durationMs': test['durationMs'],
-      };
-      final baseId = test['baseId'];
-      if (baseId != null && baseId.toString().isNotEmpty) {
-        out['baseId'] = baseId;
-      }
-      final badge = test['deviceBadge'];
-      if (badge != null && badge.toString().isNotEmpty) {
-        out['deviceBadge'] = badge;
-      }
-      final device = test['device'];
-      if (device is Map && device.isNotEmpty) {
-        out['device'] = Map<String, dynamic>.from(device);
-      }
-      final filePath = test['filePath'];
-      if (filePath != null && filePath.toString().isNotEmpty) {
-        out['filePath'] = filePath;
-      }
-      final feature = test['feature'];
-      if (feature != null && feature.toString().isNotEmpty) {
-        out['feature'] = feature;
-      }
-      final profile = test['profile'];
-      if (profile != null && profile.toString().isNotEmpty) {
-        out['profile'] = profile;
-      }
-      final scenarioId = test['scenarioId'];
-      if (scenarioId != null && scenarioId.toString().isNotEmpty) {
-        out['scenarioId'] = scenarioId;
-      }
-      final scenarioDescription = test['scenarioDescription'];
-      if (scenarioDescription != null &&
-          scenarioDescription.toString().isNotEmpty) {
-        out['scenarioDescription'] = scenarioDescription;
-      }
-      final description = test['description'];
-      if (description != null && description.toString().isNotEmpty) {
-        out['description'] = description;
-      }
-      final attempts = test['attempts'];
-      if (attempts is int && attempts != 1) out['attempts'] = attempts;
-      final retry = test['retry'];
-      if (retry is int && retry != 0) out['retry'] = retry;
-      if (test['message'] != null) out['message'] = test['message'];
-      if (test['failedStepIndex'] != null) {
-        out['failedStepIndex'] = test['failedStepIndex'];
-      }
-      if (test['report'] is Map) {
-        out['report'] = optimizeReport(
-          Map<String, dynamic>.from(test['report'] as Map),
-        );
-      }
-
-      final storage = test['storage'];
-      if (storage is Map) {
-        final storageOut = <String, dynamic>{};
-        for (final entry in const [
-          ('keys', 'keys'),
-          ('secureStorageKeys', 'secureStorageKeys'),
-          ('keychainKeys', 'keychainKeys'),
-        ]) {
-          final keys = storage[entry.$1];
-          if (keys is Map && keys.isNotEmpty) {
-            storageOut[entry.$2] = {
-              for (final e in keys.entries)
-                e.key.toString(): maybeIntern(e.value),
-            };
+          if (optimizedChanges.isNotEmpty) {
+            out['storageChanges'] = optimizedChanges;
           }
         }
-        if (storageOut.isNotEmpty) out['storage'] = storageOut;
+        for (final field in const ['secureStorageChanges', 'keychainChanges']) {
+          final secureChanges = step[field];
+          if (secureChanges is List && secureChanges.isNotEmpty) {
+            final optimizedChanges = <Map<String, dynamic>>[];
+            for (final c in secureChanges) {
+              if (c is! Map) continue;
+              final optimized =
+                  optimizeStorageChange(Map<String, dynamic>.from(c));
+              if (optimized != null) optimizedChanges.add(optimized);
+            }
+            if (optimizedChanges.isNotEmpty) out[field] = optimizedChanges;
+          }
+        }
+
+        final shots = step['screenshots'];
+        if (shots is List && shots.isNotEmpty) {
+          out['screenshots'] = [
+            for (final s in shots)
+              if (s is Map) Map<String, dynamic>.from(s),
+          ];
+        }
+        final observer = step['observer'];
+        if (observer is Map && observer.isNotEmpty) {
+          out['observer'] = Map<String, dynamic>.from(observer);
+        }
+        return out;
       }
 
-      final steps = test['steps'];
-      if (steps is List && steps.isNotEmpty) {
-        out['steps'] = [
-          for (final s in steps)
-            if (s is Map) optimizeStep(Map<String, dynamic>.from(s)),
+      Map<String, dynamic> optimizeTest(Map<String, dynamic> test) {
+        final out = <String, dynamic>{
+          'id': test['id'],
+          'status': test['status'],
+          'durationMs': test['durationMs'],
+        };
+        final baseId = test['baseId'];
+        if (baseId != null && baseId.toString().isNotEmpty) {
+          out['baseId'] = baseId;
+        }
+        final badge = test['deviceBadge'];
+        if (badge != null && badge.toString().isNotEmpty) {
+          out['deviceBadge'] = badge;
+        }
+        final device = test['device'];
+        if (device is Map && device.isNotEmpty) {
+          out['device'] = Map<String, dynamic>.from(device);
+        }
+        final filePath = test['filePath'];
+        if (filePath != null && filePath.toString().isNotEmpty) {
+          out['filePath'] = filePath;
+        }
+        final feature = test['feature'];
+        if (feature != null && feature.toString().isNotEmpty) {
+          out['feature'] = feature;
+        }
+        final profile = test['profile'];
+        if (profile != null && profile.toString().isNotEmpty) {
+          out['profile'] = profile;
+        }
+        final scenarioId = test['scenarioId'];
+        if (scenarioId != null && scenarioId.toString().isNotEmpty) {
+          out['scenarioId'] = scenarioId;
+        }
+        final scenarioDescription = test['scenarioDescription'];
+        if (scenarioDescription != null &&
+            scenarioDescription.toString().isNotEmpty) {
+          out['scenarioDescription'] = scenarioDescription;
+        }
+        final description = test['description'];
+        if (description != null && description.toString().isNotEmpty) {
+          out['description'] = description;
+        }
+        final attempts = test['attempts'];
+        if (attempts is int && attempts != 1) out['attempts'] = attempts;
+        final retry = test['retry'];
+        if (retry is int && retry != 0) out['retry'] = retry;
+        if (test['message'] != null) out['message'] = test['message'];
+        if (test['failedStepIndex'] != null) {
+          out['failedStepIndex'] = test['failedStepIndex'];
+        }
+        if (test['report'] is Map) {
+          out['report'] = optimizeReport(
+            Map<String, dynamic>.from(test['report'] as Map),
+          );
+        }
+
+        final storage = test['storage'];
+        if (storage is Map) {
+          final storageOut = <String, dynamic>{};
+          for (final entry in const [
+            ('keys', 'keys'),
+            ('secureStorageKeys', 'secureStorageKeys'),
+            ('keychainKeys', 'keychainKeys'),
+          ]) {
+            final keys = storage[entry.$1];
+            if (keys is Map && keys.isNotEmpty) {
+              storageOut[entry.$2] = {
+                for (final e in keys.entries)
+                  e.key.toString(): maybeIntern(e.value),
+              };
+            }
+          }
+          if (storageOut.isNotEmpty) out['storage'] = storageOut;
+        }
+
+        final steps = test['steps'];
+        if (steps is List && steps.isNotEmpty) {
+          out['steps'] = [
+            for (final s in steps)
+              if (s is Map) optimizeStep(Map<String, dynamic>.from(s)),
+          ];
+        }
+        return out;
+      }
+
+      final out = <String, dynamic>{
+        'state': document['state'],
+        if (document['generatedAt'] != null)
+          'generatedAt': document['generatedAt'],
+        if (document['summary'] is Map)
+          'summary': Map<String, dynamic>.from(document['summary'] as Map),
+        if (document['metadata'] is Map)
+          'metadata': Map<String, dynamic>.from(document['metadata'] as Map),
+      };
+
+      final artifacts = document['suiteArtifacts'];
+      if (artifacts is List && artifacts.isNotEmpty) {
+        final optimizedArtifacts = <Map<String, dynamic>>[];
+        for (final artifact in artifacts) {
+          if (artifact is! Map) continue;
+          final entry = <String, dynamic>{
+            'label': artifact['label'],
+          };
+          if (artifact['path'] != null) entry['path'] = artifact['path'];
+          if (artifact['href'] != null) entry['href'] = artifact['href'];
+          optimizedArtifacts.add(entry);
+        }
+        if (optimizedArtifacts.isNotEmpty) {
+          out['suiteArtifacts'] = optimizedArtifacts;
+        }
+      }
+
+      final tests = document['tests'];
+      if (tests is List) {
+        out['tests'] = [
+          for (final t in tests)
+            if (t is Map) optimizeTest(Map<String, dynamic>.from(t)),
         ];
+      } else {
+        out['tests'] = <Map<String, dynamic>>[];
+      }
+
+      if (blobs.isNotEmpty) {
+        out['blobs'] = blobs;
       }
       return out;
-    }
-
-    final out = <String, dynamic>{
-      'state': document['state'],
-      if (document['generatedAt'] != null)
-        'generatedAt': document['generatedAt'],
-      if (document['summary'] is Map)
-        'summary': Map<String, dynamic>.from(document['summary'] as Map),
-      if (document['metadata'] is Map)
-        'metadata': Map<String, dynamic>.from(document['metadata'] as Map),
-    };
-
-    final artifacts = document['suiteArtifacts'];
-    if (artifacts is List && artifacts.isNotEmpty) {
-      final optimizedArtifacts = <Map<String, dynamic>>[];
-      for (final artifact in artifacts) {
-        if (artifact is! Map) continue;
-        final entry = <String, dynamic>{
-          'label': artifact['label'],
-        };
-        if (artifact['path'] != null) entry['path'] = artifact['path'];
-        if (artifact['href'] != null) entry['href'] = artifact['href'];
-        optimizedArtifacts.add(entry);
-      }
-      if (optimizedArtifacts.isNotEmpty) {
-        out['suiteArtifacts'] = optimizedArtifacts;
-      }
-    }
-
-    final tests = document['tests'];
-    if (tests is List) {
-      out['tests'] = [
-        for (final t in tests)
-          if (t is Map) optimizeTest(Map<String, dynamic>.from(t)),
-      ];
-    } else {
-      out['tests'] = <Map<String, dynamic>>[];
-    }
-
-    if (blobs.isNotEmpty) {
-      out['blobs'] = blobs;
-    }
-    return out;
+    });
   }
 
   /// Expands blob refs and restores nested step payloads for viewers/tests.
   static Map<String, dynamic> expand(Map<String, dynamic> document) {
-    final blobs = document['blobs'] is Map
-        ? Map<String, dynamic>.from(document['blobs'] as Map)
-        : <String, dynamic>{};
+    return RunnerBenchmark.sync('report', 'expand', () {
+      final blobs = document['blobs'] is Map
+          ? Map<String, dynamic>.from(document['blobs'] as Map)
+          : <String, dynamic>{};
 
-    dynamic resolve(dynamic value) {
-      if (value is Map) {
-        if (value.length == 1 && value.containsKey(blobRefKey)) {
-          final id = value[blobRefKey]?.toString();
-          if (id != null && blobs.containsKey(id)) {
-            return resolve(blobs[id]);
+      dynamic resolve(dynamic value) {
+        if (value is Map) {
+          if (value.length == 1 && value.containsKey(blobRefKey)) {
+            final id = value[blobRefKey]?.toString();
+            if (id != null && blobs.containsKey(id)) {
+              return resolve(blobs[id]);
+            }
+          }
+          return {
+            for (final e in value.entries) e.key.toString(): resolve(e.value),
+          };
+        }
+        if (value is List) {
+          return [for (final item in value) resolve(item)];
+        }
+        return value;
+      }
+
+      final resolved = Map<String, dynamic>.from(resolve(document) as Map);
+      resolved.remove('blobs');
+
+      final tests = resolved['tests'];
+      if (tests is List) {
+        for (final test in tests) {
+          if (test is! Map) continue;
+          final steps = test['steps'];
+          if (steps is! List) continue;
+          Map<String, dynamic>? parentPayload;
+          for (var i = 0; i < steps.length; i++) {
+            final step = steps[i];
+            if (step is! Map) continue;
+            final text = step['stepText']?.toString() ?? '';
+            final nested = text.startsWith('  ');
+            if (!nested) {
+              parentPayload = {
+                'apiCalls': step['apiCalls'] ?? const [],
+                'appLogs': step['appLogs'] ?? const [],
+                'storageChanges': step['storageChanges'] ?? const [],
+                'secureStorageChanges':
+                    step['secureStorageChanges'] ?? const [],
+                'keychainChanges': step['keychainChanges'] ?? const [],
+                'screenshots': step['screenshots'] ?? const [],
+                'observer': step['observer'],
+              };
+              step.putIfAbsent('apiCalls', () => const []);
+              step.putIfAbsent('appLogs', () => const []);
+              step.putIfAbsent('storageChanges', () => const []);
+              step.putIfAbsent('secureStorageChanges', () => const []);
+              step.putIfAbsent('keychainChanges', () => const []);
+              step.putIfAbsent('screenshots', () => const []);
+              step.putIfAbsent('observer', () => null);
+            } else if (parentPayload != null) {
+              step['apiCalls'] = parentPayload['apiCalls'];
+              step['appLogs'] = parentPayload['appLogs'];
+              step['storageChanges'] = parentPayload['storageChanges'];
+              step['secureStorageChanges'] =
+                  parentPayload['secureStorageChanges'];
+              step['keychainChanges'] = parentPayload['keychainChanges'];
+              step['screenshots'] = parentPayload['screenshots'];
+              step['observer'] = parentPayload['observer'];
+            } else {
+              step['apiCalls'] = const [];
+              step['appLogs'] = const [];
+              step['storageChanges'] = const [];
+              step['secureStorageChanges'] = const [];
+              step['keychainChanges'] = const [];
+              step['screenshots'] = const [];
+              step['observer'] = null;
+            }
           }
         }
-        return {
-          for (final e in value.entries) e.key.toString(): resolve(e.value),
-        };
       }
-      if (value is List) {
-        return [for (final item in value) resolve(item)];
-      }
-      return value;
-    }
-
-    final resolved = Map<String, dynamic>.from(resolve(document) as Map);
-    resolved.remove('blobs');
-
-    final tests = resolved['tests'];
-    if (tests is List) {
-      for (final test in tests) {
-        if (test is! Map) continue;
-        final steps = test['steps'];
-        if (steps is! List) continue;
-        Map<String, dynamic>? parentPayload;
-        for (var i = 0; i < steps.length; i++) {
-          final step = steps[i];
-          if (step is! Map) continue;
-          final text = step['stepText']?.toString() ?? '';
-          final nested = text.startsWith('  ');
-          if (!nested) {
-            parentPayload = {
-              'apiCalls': step['apiCalls'] ?? const [],
-              'appLogs': step['appLogs'] ?? const [],
-              'storageChanges': step['storageChanges'] ?? const [],
-              'secureStorageChanges': step['secureStorageChanges'] ?? const [],
-              'keychainChanges': step['keychainChanges'] ?? const [],
-              'screenshots': step['screenshots'] ?? const [],
-              'observer': step['observer'],
-            };
-            step.putIfAbsent('apiCalls', () => const []);
-            step.putIfAbsent('appLogs', () => const []);
-            step.putIfAbsent('storageChanges', () => const []);
-            step.putIfAbsent('secureStorageChanges', () => const []);
-            step.putIfAbsent('keychainChanges', () => const []);
-            step.putIfAbsent('screenshots', () => const []);
-            step.putIfAbsent('observer', () => null);
-          } else if (parentPayload != null) {
-            step['apiCalls'] = parentPayload['apiCalls'];
-            step['appLogs'] = parentPayload['appLogs'];
-            step['storageChanges'] = parentPayload['storageChanges'];
-            step['secureStorageChanges'] =
-                parentPayload['secureStorageChanges'];
-            step['keychainChanges'] = parentPayload['keychainChanges'];
-            step['screenshots'] = parentPayload['screenshots'];
-            step['observer'] = parentPayload['observer'];
-          } else {
-            step['apiCalls'] = const [];
-            step['appLogs'] = const [];
-            step['storageChanges'] = const [];
-            step['secureStorageChanges'] = const [];
-            step['keychainChanges'] = const [];
-            step['screenshots'] = const [];
-            step['observer'] = null;
-          }
-        }
-      }
-    }
-    return resolved;
+      return resolved;
+    });
   }
 }
