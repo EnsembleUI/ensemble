@@ -20,7 +20,7 @@ class CustomWidget extends EnsembleWidget<CustomWidgetController> {
           required ScopeManager scopeManager}) =>
       CustomWidget._(
           controller is CustomWidgetController
-              ? controller
+              ? (controller..updateConfiguration(model, scopeManager))
               : CustomWidgetController(
                   model: model, scopeManager: scopeManager),
           model: model,
@@ -33,8 +33,13 @@ class CustomWidget extends EnsembleWidget<CustomWidgetController> {
 class CustomWidgetController extends EnsembleWidgetController {
   CustomWidgetController({required this.model, required this.scopeManager});
 
-  final CustomWidgetModel model;
-  final ScopeManager scopeManager;
+  CustomWidgetModel model;
+  ScopeManager scopeManager;
+
+  void updateConfiguration(CustomWidgetModel model, ScopeManager scopeManager) {
+    this.model = model;
+    this.scopeManager = scopeManager;
+  }
 
   /// override to control setting input parameters
   /// as well as dispatching changes

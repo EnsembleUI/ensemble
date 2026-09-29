@@ -66,6 +66,34 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   /// call when the screen is being disposed
   /// TODO: consolidate listeners, location, eventBus, ...
   void dispose() {
+    if (_parent != null) {
+      // Child scopes share the page event bus and PageData timers/location
+      // resources, but own their binding registrations. Remove those without
+      // tearing down the shared page resources.
+      PageBindingManager.clearBindingOwnersForScope(this);
+      return;
+    }
+
+    PageBindingManager.clearBindingOwners(pageData);
+
+    // Cancel and release all page-owned bindings before destroying the event
+    // bus. Child scopes share these subscriptions through PageData.
+    for (final subscriptions in listenerMap.values) {
+      for (final subscription in subscriptions.values) {
+        subscription.cancel();
+      }
+    }
+    for (final value in dataContext.contextMap.values) {
+      if (value is Invokable) {
+        PageBindingManager.clearBindingRegistrations(value);
+      }
+    }
+    for (final destination in listenerMap.keys) {
+      PageBindingManager.clearBindingRegistrations(destination);
+    }
+    listenerMap.clear();
+    openedDialogs.clear();
+
     // clear out all event listeners
     eventBus.destroy();
 
@@ -73,13 +101,16 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     pageData._timerMap.forEach((_, timer) {
       timer.cancel();
     });
+    pageData._timerMap.clear();
     // cancel all standalone timers
     for (var timer in pageData._timers) {
       timer.cancel();
     }
+    pageData._timers.clear();
 
     // cancel the screen's location listener
     pageData.locationListener?.cancel();
+    pageData.locationListener = null;
 
     SocketService().dispose();
   }
@@ -534,32 +565,180 @@ mixin ViewBuilder on IsScopeManager {
 /// managing binding at the Page level.
 /// It does this by tapping into the page-level's PageData
 mixin PageBindingManager on IsScopeManager {
+  static final Expando<List<_BindingRegistration>> _bindingRegistrations =
+      Expando<List<_BindingRegistration>>('Ensemble binding registrations');
+  static final Map<PageData, Map<Invokable, Map<ScopeManager, int>>>
+      _bindingOwnerCounts = {};
+
+  static void retainBindingOwner(
+      ScopeManager ownerScope, Invokable destination) {
+    final destinations =
+        _bindingOwnerCounts.putIfAbsent(ownerScope.pageData, () => {});
+    final scopes = destinations.putIfAbsent(destination, () => {});
+    scopes[ownerScope] = (scopes[ownerScope] ?? 0) + 1;
+  }
+
+  @visibleForTesting
+  static int debugBindingOwnerCount(PageData pageData) {
+    final destinations = _bindingOwnerCounts[pageData];
+    if (destinations == null) return 0;
+    return destinations.values.fold<int>(
+        0, (count, scopes) => count + scopes.values.fold(0, (a, b) => a + b));
+  }
+
+  static void clearBindingOwners(PageData pageData) {
+    final destinations = _bindingOwnerCounts.remove(pageData);
+    if (destinations == null) return;
+    for (final destination in destinations.keys) {
+      clearBindingRegistrations(destination);
+    }
+  }
+
+  static void clearBindingOwnersForScope(ScopeManager ownerScope) {
+    final destinations = _bindingOwnerCounts[ownerScope.pageData];
+    if (destinations == null) return;
+    for (final destination in destinations.keys.toList()) {
+      ownerScope.removeBindingListenersForScope(destination, ownerScope);
+      final scopes = destinations[destination];
+      scopes?.remove(ownerScope);
+      if (scopes != null && scopes.isEmpty) {
+        destinations.remove(destination);
+      }
+    }
+    if (destinations.isEmpty) {
+      _bindingOwnerCounts.remove(ownerScope.pageData);
+    }
+  }
+
+  static void releaseBindingOwner(
+      ScopeManager? ownerScope, Invokable? destination,
+      {bool preserveRegistration = false}) {
+    if (ownerScope == null || destination == null) return;
+    final destinations = _bindingOwnerCounts[ownerScope.pageData];
+    final scopes = destinations?[destination];
+    final count = scopes?[ownerScope];
+    if (count == null) return;
+
+    if (count > 1) {
+      scopes![ownerScope] = count - 1;
+      return;
+    }
+
+    scopes!.remove(ownerScope);
+    ownerScope.removeBindingListenersForScope(destination, ownerScope,
+        preserveRegistration: preserveRegistration);
+    if (scopes.isEmpty) {
+      destinations!.remove(destination);
+    }
+    if (destinations!.isEmpty) {
+      _bindingOwnerCounts.remove(ownerScope.pageData);
+    }
+  }
+
+  static void clearBindingRegistrations(Invokable destinationWidget) {
+    _bindingRegistrations[destinationWidget]?.clear();
+    _bindingRegistrations[destinationWidget] = null;
+  }
+
   /// Evaluate a binding expression and listen for changes.
   /// Calling this multiple times is safe as we remove the matching listeners before adding.
   /// Upon changes, execute setProperty() on the destination's Invokable
   /// The expression can be a mix of variable and text e.g Hello $(first) $(last)
   void registerBindingListener(ScopeManager scopeManager,
       BindingDestination bindingDestination, DataExpression dataExpression) {
-    // we re-evaluate the entire raw binding upon any changes to any variables
-    for (var expression in dataExpression.expressions) {
-      listen(scopeManager, expression, destination: bindingDestination,
-          onDataChange: (ModelChangeEvent event) {
-        DataContext dataContext = scopeManager.dataContext;
-        /*
-        if (dataContext.getContextById(event.modelId) is InvokablePrimitive) {
-          updateInvokablePrimitive(
-              dataContext,
-              event.modelId,
-              dataContext.getContextById(bindingDestination.setterProperty),
-              event.payload);
+    final ownerScope = bindingDestination.widget is CustomWidgetController
+        ? (bindingDestination.widget as CustomWidgetController).scopeManager
+        : scopeManager;
+    final existingRegistrations =
+        _bindingRegistrations[bindingDestination.widget];
+    if (existingRegistrations != null) {
+      existingRegistrations
+          .removeWhere((registration) => registration.scopeManager == null);
+      for (final oldRegistration
+          in List<_BindingRegistration>.of(existingRegistrations)) {
+        final oldOwnerScope = oldRegistration.ownerScope;
+        if (oldRegistration.setterProperty ==
+                bindingDestination.setterProperty &&
+            oldRegistration.scopeManager != null &&
+            oldOwnerScope != null &&
+            !identical(oldOwnerScope, ownerScope)) {
+          removeBindingListenersForScope(
+              bindingDestination.widget, oldOwnerScope);
         }
-        */
-        // payload only have changes to a variable, but we have to evaluate the entire expression
-        // e.g Hello $(firstName.value) $(lastName.value)
-        dynamic updatedValue = dataContext.eval(dataExpression.rawExpression);
-        InvokableController.setProperty(bindingDestination.widget,
-            bindingDestination.setterProperty, updatedValue);
-      });
+      }
+    }
+    final registrations = _bindingRegistrations[bindingDestination.widget] ??=
+        <_BindingRegistration>[];
+    final existingIndex = registrations.indexWhere((registration) =>
+        identical(registration.ownerScope, ownerScope) &&
+        registration.setterProperty == bindingDestination.setterProperty);
+    final registration = _BindingRegistration(scopeManager, ownerScope,
+        bindingDestination.setterProperty, dataExpression);
+    if (existingIndex == -1) {
+      registrations.add(registration);
+    } else {
+      _removeRegistrationSubscriptions(
+          bindingDestination, registrations[existingIndex]);
+      registrations[existingIndex] = registration;
+    }
+
+    // We re-evaluate the entire raw binding upon any changes to any variables.
+    for (final expression in dataExpression.expressions) {
+      listen(scopeManager, expression,
+          destination: bindingDestination,
+          onDataChange: (_) => _updateBindingValue(
+              scopeManager, bindingDestination, dataExpression));
+    }
+  }
+
+  void _updateBindingValue(ScopeManager scopeManager,
+      BindingDestination destination, DataExpression expression) {
+    final updatedValue =
+        scopeManager.dataContext.eval(expression.rawExpression);
+    InvokableController.setProperty(
+        destination.widget, destination.setterProperty, updatedValue);
+  }
+
+  /// Restore binding subscriptions for a destination whose widget state was
+  /// disposed and later remounted from a cached widget instance.
+  void restoreBindingListeners(Invokable destinationWidget,
+      {ScopeManager? ownerScope}) {
+    final registrations = _bindingRegistrations[destinationWidget];
+    if (registrations == null) return;
+    for (final registration in List<_BindingRegistration>.of(registrations)) {
+      if (ownerScope != null &&
+          !identical(registration.ownerScope, ownerScope)) {
+        continue;
+      }
+      final scopeManager = registration.scopeManager;
+      if (scopeManager == null) {
+        registrations.remove(registration);
+        continue;
+      }
+      final destination =
+          BindingDestination(destinationWidget, registration.setterProperty);
+      for (final expression in registration.expression.expressions) {
+        var sources = BindingSource.getBindingSources(
+            expression, scopeManager.dataContext);
+        if (sources.isEmpty) {
+          final fallback =
+              BindingSource.from(expression, scopeManager.dataContext);
+          if (fallback != null) sources = [fallback];
+        }
+        for (final source in sources) {
+          final hash = getHash(
+              destinationSetter: destination.setterProperty,
+              source: source,
+              scopeManager: _bindingHashScope(source, scopeManager));
+          if (listenerMap[destinationWidget]?.containsKey(hash) ?? false) {
+            continue;
+          }
+          _listenToBindingSource(scopeManager, source,
+              destination: destination,
+              onDataChange: (_) => _updateBindingValue(
+                  scopeManager, destination, registration.expression));
+        }
+      }
     }
   }
 
@@ -584,7 +763,74 @@ mixin PageBindingManager on IsScopeManager {
     // if (count != null) {
     //   log("Removing ${count} binding listeners for (${destinationWidget.runtimeType} - ${destinationWidget.hashCode})");
     // }
-    listenerMap[destinationWidget]?.values.forEach((e) => e.cancel());
+    // Remove the entry as well, otherwise the page-scoped listenerMap keeps
+    // growing with keys for disposed widgets (and the cancelled subscriptions
+    // they hold) every time a dialog/overlay is opened and closed.
+    listenerMap.remove(destinationWidget)?.values.forEach((e) => e.cancel());
+  }
+
+  /// Remove only registrations created from [bindingScope], leaving other
+  /// nested scopes that share this page-level listener map intact.
+  void removeBindingListenersForScope(
+      Invokable destinationWidget, ScopeManager bindingScope,
+      {bool preserveRegistration = false}) {
+    final registrations = _bindingRegistrations[destinationWidget];
+    final subscriptions = listenerMap[destinationWidget];
+    if (registrations == null) {
+      // No managed registrations means this destination subscribed through a
+      // direct listen() call (e.g. Conditional/TabBar). Cancel its
+      // subscriptions so disposal does not leak them.
+      listenerMap.remove(destinationWidget)?.values.forEach((e) => e.cancel());
+      return;
+    }
+    if (subscriptions == null) {
+      if (!preserveRegistration) {
+        registrations.removeWhere(
+            (registration) => identical(registration.ownerScope, bindingScope));
+      }
+      if (registrations.isEmpty) clearBindingRegistrations(destinationWidget);
+      return;
+    }
+
+    for (final registration in List<_BindingRegistration>.of(registrations)) {
+      final registeredScope = registration.ownerScope;
+      if (!identical(registeredScope, bindingScope)) continue;
+      _removeRegistrationSubscriptions(
+          BindingDestination(destinationWidget, registration.setterProperty),
+          registration,
+          subscriptions: subscriptions);
+      if (!preserveRegistration) registrations.remove(registration);
+    }
+
+    if (subscriptions.isEmpty) listenerMap.remove(destinationWidget);
+    if (registrations.isEmpty) clearBindingRegistrations(destinationWidget);
+  }
+
+  void _removeRegistrationSubscriptions(
+      BindingDestination destination, _BindingRegistration registration,
+      {Map<int, StreamSubscription>? subscriptions}) {
+    final bindingScope = registration.scopeManager;
+    if (bindingScope == null) return;
+    final destinationSubscriptions =
+        subscriptions ?? listenerMap[destination.widget];
+    if (destinationSubscriptions == null) return;
+
+    for (final expression in registration.expression.expressions) {
+      var bindingSources =
+          BindingSource.getBindingSources(expression, bindingScope.dataContext);
+      if (bindingSources.isEmpty) {
+        final fallback =
+            BindingSource.from(expression, bindingScope.dataContext);
+        if (fallback != null) bindingSources = [fallback];
+      }
+      for (final source in bindingSources) {
+        final hash = getHash(
+            destinationSetter: registration.setterProperty,
+            source: source,
+            scopeManager: _bindingHashScope(source, bindingScope));
+        destinationSubscriptions.remove(hash)?.cancel();
+      }
+    }
   }
 
   /// listen for changes on the bindingExpression and invoke onDataChange() callback.
@@ -677,6 +923,14 @@ mixin PageBindingManager on IsScopeManager {
         source.runtimeType, scopeManager);
   }
 
+  /// The scope that participates in the listener hash for [source]. Simple and
+  /// deferred sources need the scope to be uniquely identified (e.g. custom
+  /// widget input variables); other sources are page-wide.
+  ScopeManager? _bindingHashScope(BindingSource source, ScopeManager scope) =>
+      (source is SimpleBindingSource || source is DeferredBindingSource)
+          ? scope
+          : null;
+
   /// print a map of the current listeners on this scope
   void debugListenerMap() {
     listenerMap.forEach((widget, map) {
@@ -685,6 +939,20 @@ mixin PageBindingManager on IsScopeManager {
       log('----- Event bus ${eventBus.hashCode} destroyed ------');
     });
   }
+}
+
+class _BindingRegistration {
+  _BindingRegistration(ScopeManager scopeManager, ScopeManager ownerScope,
+      this.setterProperty, this.expression)
+      : _scopeManager = WeakReference(scopeManager),
+        _ownerScope = WeakReference(ownerScope);
+
+  final WeakReference<ScopeManager> _scopeManager;
+  ScopeManager? get scopeManager => _scopeManager.target;
+  final WeakReference<ScopeManager> _ownerScope;
+  ScopeManager? get ownerScope => _ownerScope.target;
+  final String setterProperty;
+  final DataExpression expression;
 }
 
 /// data for the current Page.
