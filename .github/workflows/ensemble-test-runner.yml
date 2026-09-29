@@ -1,9 +1,6 @@
 name: Ensemble Test Runner
 
 on:
-  push:
-    paths:
-      - 'tools/ensemble_test_runner/**'
   pull_request:
     branches: [main]
     paths:
