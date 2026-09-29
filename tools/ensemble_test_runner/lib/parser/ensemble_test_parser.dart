@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -37,26 +38,28 @@ class EnsembleTestParser {
     Map<String, dynamic> scenario = const {},
     String? scenarioId,
   }) {
-    final dynamic doc = loadYaml(content);
-    if (doc is! YamlMap) {
-      throw EnsembleTestFailure(
-          'Invalid test file${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map');
-    }
+    return RunnerBenchmark.sync('parser', 'parseString', () {
+      final dynamic doc = loadYaml(content);
+      if (doc is! YamlMap) {
+        throw EnsembleTestFailure(
+            'Invalid test file${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map');
+      }
 
-    if (doc.containsKey('tests')) {
-      throw EnsembleTestFailure(
-        'Each *.test.yaml file defines one test at the root — remove the "tests" '
-        'wrapper and put id, startScreen, and steps at the top level.',
+      if (doc.containsKey('tests')) {
+        throw EnsembleTestFailure(
+          'Each *.test.yaml file defines one test at the root — remove the "tests" '
+          'wrapper and put id, startScreen, and steps at the top level.',
+        );
+      }
+
+      return _parseTestCase(
+        doc,
+        sourcePath: sourcePath,
+        inputs: inputs,
+        scenario: scenario,
+        scenarioId: scenarioId,
       );
-    }
-
-    return _parseTestCase(
-      doc,
-      sourcePath: sourcePath,
-      inputs: inputs,
-      scenario: scenario,
-      scenarioId: scenarioId,
-    );
+    });
   }
 
   static EnsembleTestCase _parseTestCase(
@@ -234,15 +237,17 @@ class EnsembleTestParser {
     String content, {
     String? sourcePath,
   }) {
-    if (content.trim().isEmpty) return const EnsembleTestConfig();
-    final dynamic doc = loadYaml(content);
-    if (doc == null) return const EnsembleTestConfig();
-    if (doc is! YamlMap) {
-      throw EnsembleTestFailure(
-        'Invalid test config${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map',
-      );
-    }
-    return _parseConfig(doc);
+    return RunnerBenchmark.sync('parser', 'parseConfigString', () {
+      if (content.trim().isEmpty) return const EnsembleTestConfig();
+      final dynamic doc = loadYaml(content);
+      if (doc == null) return const EnsembleTestConfig();
+      if (doc is! YamlMap) {
+        throw EnsembleTestFailure(
+          'Invalid test config${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map',
+        );
+      }
+      return _parseConfig(doc);
+    });
   }
 
   static EnsembleTestConfig _parseConfig(YamlMap node) {

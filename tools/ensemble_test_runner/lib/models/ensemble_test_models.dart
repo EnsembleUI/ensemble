@@ -1,6 +1,8 @@
 /// Declarative test document and run results.
 library;
 
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
+
 /// Request object describing an Ensemble YAML test run.
 class EnsembleTestRunRequest {
   final String? appPath;
@@ -567,15 +569,18 @@ class EnsembleTestRunResult {
   String get summary =>
       '$passedCount passed, $failedCount failed (${results.length} total)';
 
-  Map<String, dynamic> toJson() => {
-        'status': failedCount > 0 ? 'failed' : 'passed',
-        'total': results.length,
-        'passed': passedCount,
-        'failed': failedCount,
-        'results': results.map((r) => r.toJson()).toList(),
-        if (suiteLogs.isNotEmpty) 'suiteLogs': suiteLogs,
-        if (metadata.isNotEmpty) 'metadata': metadata,
-      };
+  Map<String, dynamic> toJson() => RunnerBenchmark.sync(
+      'report',
+      'serializeRunResult',
+      () => {
+            'status': failedCount > 0 ? 'failed' : 'passed',
+            'total': results.length,
+            'passed': passedCount,
+            'failed': failedCount,
+            'results': results.map((r) => r.toJson()).toList(),
+            if (suiteLogs.isNotEmpty) 'suiteLogs': suiteLogs,
+            if (metadata.isNotEmpty) 'metadata': metadata,
+          });
 }
 
 /// Status of a finished test case.

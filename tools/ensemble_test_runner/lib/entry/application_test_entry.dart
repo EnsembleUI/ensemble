@@ -1,5 +1,6 @@
 library;
 
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -181,128 +182,131 @@ Future<EnsembleTestRunResult> _runApplicationTestPlanIsolated({
   required WidgetTester tester,
   required ExecutionMode mode,
 }) async {
-  _validateHostPlan(plan, driver);
-  final runId = 'run_${DateTime.now().microsecondsSinceEpoch}';
-  final suiteContext = TestSuiteContext(
-    runId: runId,
-    config: plan.config,
-    launchKind: driver is ScreenLaunchApplicationTestDriver
-        ? TestApplicationLaunchKind.standaloneEnsemble
-        : TestApplicationLaunchKind.applicationProvided,
-  );
-  final services = TestServiceManager(
-    hostProcessServiceConfigs(plan.config.services),
-  );
-  final results = <EnsembleSingleTestResult>[];
-  final checkpoints = <String, Object>{};
-  final requestedSessions = plan.ordered
-      .map((definition) => definition.testCase.session)
-      .whereType<String>()
-      .toSet();
-  Object? suiteFailure;
-  StackTrace? suiteStack;
-  var servicesStarted = false;
-  var suiteSetupStarted = false;
-  try {
-    await tester.runAsync(services.startAll);
-    servicesStarted = true;
-    suiteSetupStarted = true;
-    await driver.setUpSuite(suiteContext);
-    for (final definition in plan.ordered) {
-      final test = definition.testCase;
-      final dependency = test.session;
-      if (dependency != null &&
-          results.any((result) =>
-              result.testId == dependency &&
-              result.status == TestStatus.failed)) {
-        results.add(EnsembleSingleTestResult.failed(
-          testId: test.id,
-          metadata: test.metadataJson,
-          durationMs: 0,
-          error: 'Session "$dependency" failed',
-        ));
-        continue;
+  return await RunnerBenchmark.async(
+      'workflow', 'runApplicationTestPlanIsolated', () async {
+    _validateHostPlan(plan, driver);
+    final runId = 'run_${DateTime.now().microsecondsSinceEpoch}';
+    final suiteContext = TestSuiteContext(
+      runId: runId,
+      config: plan.config,
+      launchKind: driver is ScreenLaunchApplicationTestDriver
+          ? TestApplicationLaunchKind.standaloneEnsemble
+          : TestApplicationLaunchKind.applicationProvided,
+    );
+    final services = TestServiceManager(
+      hostProcessServiceConfigs(plan.config.services),
+    );
+    final results = <EnsembleSingleTestResult>[];
+    final checkpoints = <String, Object>{};
+    final requestedSessions = plan.ordered
+        .map((definition) => definition.testCase.session)
+        .whereType<String>()
+        .toSet();
+    Object? suiteFailure;
+    StackTrace? suiteStack;
+    var servicesStarted = false;
+    var suiteSetupStarted = false;
+    try {
+      await tester.runAsync(services.startAll);
+      servicesStarted = true;
+      suiteSetupStarted = true;
+      await driver.setUpSuite(suiteContext);
+      for (final definition in plan.ordered) {
+        final test = definition.testCase;
+        final dependency = test.session;
+        if (dependency != null &&
+            results.any((result) =>
+                result.testId == dependency &&
+                result.status == TestStatus.failed)) {
+          results.add(EnsembleSingleTestResult.failed(
+            testId: test.id,
+            metadata: test.metadataJson,
+            durationMs: 0,
+            error: 'Session "$dependency" failed',
+          ));
+          continue;
+        }
+        final checkpoint = dependency == null ? null : checkpoints[dependency];
+        try {
+          results.add(await _runHostTestWithRetries(
+            tester: tester,
+            driver: driver,
+            test: test,
+            config: plan.config,
+            runId: runId,
+            mode: mode,
+            checkpoint: checkpoint,
+            captureCheckpoint: requestedSessions.contains(test.id),
+            onCheckpoint: (value) => checkpoints[test.id] = value,
+          ));
+        } catch (error, stackTrace) {
+          // A defect in one case's orchestration must not skip later cases.
+          results.add(EnsembleSingleTestResult.failed(
+            testId: test.id,
+            metadata: test.metadataJson,
+            durationMs: 0,
+            error: error.toString(),
+            stackTrace: stackTrace.toString(),
+            report: _hostReport(test, null),
+          ));
+        }
       }
-      final checkpoint = dependency == null ? null : checkpoints[dependency];
-      try {
-        results.add(await _runHostTestWithRetries(
-          tester: tester,
-          driver: driver,
-          test: test,
-          config: plan.config,
-          runId: runId,
-          mode: mode,
-          checkpoint: checkpoint,
-          captureCheckpoint: requestedSessions.contains(test.id),
-          onCheckpoint: (value) => checkpoints[test.id] = value,
-        ));
-      } catch (error, stackTrace) {
-        // A defect in one case's orchestration must not skip later cases.
+    } catch (error, stackTrace) {
+      suiteFailure = error;
+      suiteStack = stackTrace;
+    } finally {
+      if (suiteSetupStarted) {
+        try {
+          await driver.tearDownSuite();
+        } catch (error, stackTrace) {
+          suiteFailure ??= error;
+          suiteStack ??= stackTrace;
+        }
+      }
+      if (servicesStarted) {
+        try {
+          await services.stopAll();
+        } catch (error, stackTrace) {
+          suiteFailure ??= error;
+          suiteStack ??= stackTrace;
+        }
+      }
+    }
+
+    if (suiteFailure != null) {
+      final recordedIds = results.map((result) => result.testId).toSet();
+      for (final definition in plan.ordered) {
+        final test = definition.testCase;
+        if (recordedIds.contains(test.id)) continue;
         results.add(EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
           durationMs: 0,
-          error: error.toString(),
-          stackTrace: stackTrace.toString(),
+          error: 'Suite could not execute this case: $suiteFailure',
+          stackTrace: suiteStack?.toString(),
           report: _hostReport(test, null),
         ));
       }
-    }
-  } catch (error, stackTrace) {
-    suiteFailure = error;
-    suiteStack = stackTrace;
-  } finally {
-    if (suiteSetupStarted) {
-      try {
-        await driver.tearDownSuite();
-      } catch (error, stackTrace) {
-        suiteFailure ??= error;
-        suiteStack ??= stackTrace;
-      }
-    }
-    if (servicesStarted) {
-      try {
-        await services.stopAll();
-      } catch (error, stackTrace) {
-        suiteFailure ??= error;
-        suiteStack ??= stackTrace;
-      }
-    }
-  }
-
-  if (suiteFailure != null) {
-    final recordedIds = results.map((result) => result.testId).toSet();
-    for (final definition in plan.ordered) {
-      final test = definition.testCase;
-      if (recordedIds.contains(test.id)) continue;
       results.add(EnsembleSingleTestResult.failed(
-        testId: test.id,
-        metadata: test.metadataJson,
+        testId: 'test-process',
         durationMs: 0,
-        error: 'Suite could not execute this case: $suiteFailure',
+        error: suiteFailure.toString(),
         stackTrace: suiteStack?.toString(),
-        report: _hostReport(test, null),
+        failure: TestFailureDetails(
+          kind: TestFailureKind.cleanup,
+          message: suiteFailure.toString(),
+          phase: 'suiteCleanup',
+        ),
       ));
     }
-    results.add(EnsembleSingleTestResult.failed(
-      testId: 'test-process',
-      durationMs: 0,
-      error: suiteFailure.toString(),
-      stackTrace: suiteStack?.toString(),
-      failure: TestFailureDetails(
-        kind: TestFailureKind.cleanup,
-        message: suiteFailure.toString(),
-        phase: 'suiteCleanup',
-      ),
-    ));
-  }
-  return EnsembleTestRunResult(
-    results: results,
-    metadata: {
-      'mode': _resolvedExecutionMode(mode).name,
-      'launchKind': suiteContext.launchKind.name,
-    },
-  );
+    return EnsembleTestRunResult(
+      results: results,
+      metadata: {
+        'mode': _resolvedExecutionMode(mode).name,
+        'launchKind': suiteContext.launchKind.name,
+      },
+    );
+  });
 }
 
 Future<EnsembleSingleTestResult> _runHostTestWithRetries({
@@ -316,53 +320,56 @@ Future<EnsembleSingleTestResult> _runHostTestWithRetries({
   required bool captureCheckpoint,
   required void Function(Object checkpoint) onCheckpoint,
 }) async {
-  EnsembleSingleTestResult? last;
-  var totalDurationMs = 0;
-  final logsByAttempt = <List<String>>[];
-  for (var attempt = 0; attempt <= test.retry; attempt++) {
-    last = await _runHostAttempt(
-      tester: tester,
-      driver: driver,
-      test: test,
-      config: config,
-      runId: runId,
-      mode: mode,
-      attempt: attempt,
-      checkpoint: checkpoint,
-      captureCheckpoint: captureCheckpoint,
-      onCheckpoint: onCheckpoint,
-    );
-    totalDurationMs += last.durationMs;
-    logsByAttempt.add(last.logs);
-    if (last.status == TestStatus.passed) {
-      return EnsembleSingleTestResult.passed(
-        testId: last.testId,
-        metadata: last.metadata,
-        durationMs: totalDurationMs,
-        attempts: attempt + 1,
-        retry: test.retry,
-        logs: combineAttemptDiagnosticLogs(last.logs, logsByAttempt),
-        report: last.report,
-        capabilityStatus: last.capabilityStatus,
+  return await RunnerBenchmark.async('workflow', 'runHostTestWithRetries',
+      () async {
+    EnsembleSingleTestResult? last;
+    var totalDurationMs = 0;
+    final logsByAttempt = <List<String>>[];
+    for (var attempt = 0; attempt <= test.retry; attempt++) {
+      last = await _runHostAttempt(
+        tester: tester,
+        driver: driver,
+        test: test,
+        config: config,
+        runId: runId,
+        mode: mode,
+        attempt: attempt,
+        checkpoint: checkpoint,
+        captureCheckpoint: captureCheckpoint,
+        onCheckpoint: onCheckpoint,
       );
+      totalDurationMs += last.durationMs;
+      logsByAttempt.add(last.logs);
+      if (last.status == TestStatus.passed) {
+        return EnsembleSingleTestResult.passed(
+          testId: last.testId,
+          metadata: last.metadata,
+          durationMs: totalDurationMs,
+          attempts: attempt + 1,
+          retry: test.retry,
+          logs: combineAttemptDiagnosticLogs(last.logs, logsByAttempt),
+          report: last.report,
+          capabilityStatus: last.capabilityStatus,
+        );
+      }
     }
-  }
-  return EnsembleSingleTestResult.failed(
-    testId: last!.testId,
-    metadata: last.metadata,
-    durationMs: totalDurationMs,
-    attempts: test.retry + 1,
-    retry: test.retry,
-    failedStepIndex: last.failedStepIndex,
-    failedStep: last.failedStep,
-    error: last.message,
-    stackTrace: last.stackTrace,
-    logs: combineAttemptDiagnosticLogs(last.logs, logsByAttempt),
-    report: last.report,
-    failure: last.failure,
-    secondaryFailures: last.secondaryFailures,
-    capabilityStatus: last.capabilityStatus,
-  );
+    return EnsembleSingleTestResult.failed(
+      testId: last!.testId,
+      metadata: last.metadata,
+      durationMs: totalDurationMs,
+      attempts: test.retry + 1,
+      retry: test.retry,
+      failedStepIndex: last.failedStepIndex,
+      failedStep: last.failedStep,
+      error: last.message,
+      stackTrace: last.stackTrace,
+      logs: combineAttemptDiagnosticLogs(last.logs, logsByAttempt),
+      report: last.report,
+      failure: last.failure,
+      secondaryFailures: last.secondaryFailures,
+      capabilityStatus: last.capabilityStatus,
+    );
+  });
 }
 
 Future<EnsembleSingleTestResult> _runHostAttempt({
@@ -377,265 +384,269 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
   required bool captureCheckpoint,
   required void Function(Object checkpoint) onCheckpoint,
 }) async {
-  final stopwatch = Stopwatch()..start();
-  final launchContext = TestLaunchContext(
-    attemptId: '${runId}_${test.id}_$attempt',
-    attempt: attempt,
-    testCase: test,
-    config: config,
-    checkpoint: checkpoint,
-  );
-  final context = EnsembleTestContext.fromTestCase(test, config: config);
-  context.runtime.attemptNumber = attempt + 1;
-  context.runtime.attemptCount = test.retry + 1;
-  TestApplicationHandle? handle;
-  LocalTestExecutionSession? session;
-  Object? primaryError;
-  StackTrace? primaryStack;
-  Object? cleanupError;
-  StackTrace? cleanupStack;
-  final secondaryFailures = <TestFailureDetails>[];
-  var prepareAttempted = false;
-  var failedStepIndex = -1;
-  final stepDurationsMs = <int>[];
-  final stepStartTimes = <String>[];
-  final previousOnError = FlutterError.onError;
-  final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
-  final previousPlatformHttpRunner = LiveAsyncCallSupport.platformHttpRunner;
-  final restoreDebugPrint = context.runtime.captureDebugPrint();
-  FlutterError.onError = (details) {
-    final message = details.exceptionAsString();
-    context.runtime.flutterErrors.add(message);
-    FlutterError.presentError(details);
-  };
-  Future<T?> runAppAsync<T>(Future<T> Function() callback) =>
-      context.runtime.runAsyncWithConsoleCapture(tester, callback);
-  context.apiOverlay.liveAsyncRunner = runAppAsync;
-  LiveAsyncCallSupport.runner = runAppAsync;
-  LiveAsyncCallSupport.platformHttpRunner = tester.runAsync;
-  context.runtime.consoleLogs.add(
-    context.runtime.formatConsoleLine('Started ${test.id}'),
-  );
-  try {
-    await applyHostScreenshotViewport(tester, context, mode: mode);
-    await context.runtime.runAsyncWithConsoleCapture(
-        tester, EnsembleTestHarness.ensureAppFontsLoaded);
-    await runZoned(
-      () async {
-        try {
-          prepareAttempted = true;
-          await driver.prepareTest(launchContext);
-          if (checkpoint != null) {
-            await (driver as ApplicationCheckpointDriver).restoreCheckpoint(
-              launchContext,
-              checkpoint,
+  return await RunnerBenchmark.async('workflow', 'runHostAttempt', () async {
+    final stopwatch = Stopwatch()..start();
+    final launchContext = TestLaunchContext(
+      attemptId: '${runId}_${test.id}_$attempt',
+      attempt: attempt,
+      testCase: test,
+      config: config,
+      checkpoint: checkpoint,
+    );
+    final context = EnsembleTestContext.fromTestCase(test, config: config);
+    context.runtime.attemptNumber = attempt + 1;
+    context.runtime.attemptCount = test.retry + 1;
+    TestApplicationHandle? handle;
+    LocalTestExecutionSession? session;
+    Object? primaryError;
+    StackTrace? primaryStack;
+    Object? cleanupError;
+    StackTrace? cleanupStack;
+    final secondaryFailures = <TestFailureDetails>[];
+    var prepareAttempted = false;
+    var failedStepIndex = -1;
+    final stepDurationsMs = <int>[];
+    final stepStartTimes = <String>[];
+    final previousOnError = FlutterError.onError;
+    final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+    final previousPlatformHttpRunner = LiveAsyncCallSupport.platformHttpRunner;
+    final restoreDebugPrint = context.runtime.captureDebugPrint();
+    FlutterError.onError = (details) {
+      final message = details.exceptionAsString();
+      context.runtime.flutterErrors.add(message);
+      FlutterError.presentError(details);
+    };
+    Future<T?> runAppAsync<T>(Future<T> Function() callback) =>
+        context.runtime.runAsyncWithConsoleCapture(tester, callback);
+    context.apiOverlay.liveAsyncRunner = runAppAsync;
+    LiveAsyncCallSupport.runner = runAppAsync;
+    LiveAsyncCallSupport.platformHttpRunner = tester.runAsync;
+    context.runtime.consoleLogs.add(
+      context.runtime.formatConsoleLine('Started ${test.id}'),
+    );
+    try {
+      await applyHostScreenshotViewport(tester, context, mode: mode);
+      await context.runtime.runAsyncWithConsoleCapture(
+          tester, EnsembleTestHarness.ensureAppFontsLoaded);
+      await runZoned(
+        () async {
+          try {
+            prepareAttempted = true;
+            await driver.prepareTest(launchContext);
+            if (checkpoint != null) {
+              await (driver as ApplicationCheckpointDriver).restoreCheckpoint(
+                launchContext,
+                checkpoint,
+              );
+            }
+            await _executeHostSetup(test);
+            await context.runtime.runAsyncWithConsoleCapture(
+              tester,
+              () => EnsembleTestHarness.applyInPlaceSetup(context),
             );
-          }
-          await _executeHostSetup(test);
-          await context.runtime.runAsyncWithConsoleCapture(
-            tester,
-            () => EnsembleTestHarness.applyInPlaceSetup(context),
-          );
-          // Ensemble overlay path can be verified before launch. Pure Flutter
-          // ApiMockingTestService attachment is confirmed right after launch.
-          ensureHostFixturesSupported(context);
-          final launched = await driver.launch(tester, launchContext);
-          handle = launched;
-          await tester.pump();
-          ensureHostFixturesSupported(
-            context,
-            services: launched.services,
-            requireResolved: true,
-          );
+            // Ensemble overlay path can be verified before launch. Pure Flutter
+            // ApiMockingTestService attachment is confirmed right after launch.
+            ensureHostFixturesSupported(context);
+            final launched = await driver.launch(tester, launchContext);
+            handle = launched;
+            await tester.pump();
+            ensureHostFixturesSupported(
+              context,
+              services: launched.services,
+              requireResolved: true,
+            );
 
-          final assertions = AssertionEngine(
-            tester: tester,
-            context: context,
-            services: launched.services,
-          );
-          final executor = TestStepExecutor(
-            tester: tester,
-            context: context,
-            assertions: assertions,
-            services: launched.services,
-          );
-          final attached = LocalTestExecutionSession.attach(
-            tester: tester,
-            context: context,
-            services: launched.services,
-            sessionId: test.id,
-            permissions: SessionPermissions.yamlController,
-            assertions: assertions,
-            executor: executor,
-          );
-          session = attached;
-          final dispatcher = YamlStepDispatcher(session: attached);
-          for (var i = 0; i < test.steps.length; i++) {
-            failedStepIndex = i;
-            context.runtime.currentStepIndex = i;
-            final step = test.steps[i];
-            final startedAt = DateTime.now();
-            final stepWatch = Stopwatch()..start();
-            try {
-              await dispatcher.execute(step);
-              await _captureHostStepReportArtifactsSafely(
-                tester: tester,
-                context: context,
-                session: attached,
-                step: step,
-                stepIndex: i,
-                secondaryFailures: secondaryFailures,
+            final assertions = AssertionEngine(
+              tester: tester,
+              context: context,
+              services: launched.services,
+            );
+            final executor = TestStepExecutor(
+              tester: tester,
+              context: context,
+              assertions: assertions,
+              services: launched.services,
+            );
+            final attached = LocalTestExecutionSession.attach(
+              tester: tester,
+              context: context,
+              services: launched.services,
+              sessionId: test.id,
+              permissions: SessionPermissions.yamlController,
+              assertions: assertions,
+              executor: executor,
+            );
+            session = attached;
+            final dispatcher = YamlStepDispatcher(session: attached);
+            for (var i = 0; i < test.steps.length; i++) {
+              failedStepIndex = i;
+              context.runtime.currentStepIndex = i;
+              final step = test.steps[i];
+              final startedAt = DateTime.now();
+              final stepWatch = Stopwatch()..start();
+              try {
+                await dispatcher.execute(step);
+                await _captureHostStepReportArtifactsSafely(
+                  tester: tester,
+                  context: context,
+                  session: attached,
+                  step: step,
+                  stepIndex: i,
+                  secondaryFailures: secondaryFailures,
+                );
+              } catch (error, stackTrace) {
+                await _captureHostStepReportArtifactsSafely(
+                  tester: tester,
+                  context: context,
+                  session: attached,
+                  step: step,
+                  stepIndex: i,
+                  secondaryFailures: secondaryFailures,
+                );
+                // Preserve the step failure — screenshot diagnostics are secondary.
+                Error.throwWithStackTrace(error, stackTrace);
+              } finally {
+                stepDurationsMs.add(stepWatch.elapsedMilliseconds);
+                stepStartTimes.add(startedAt.toIso8601String());
+              }
+            }
+            failedStepIndex = -1;
+            context.runtime.currentStepIndex = null;
+            if (captureCheckpoint) {
+              final checkpointDriver = driver as ApplicationCheckpointDriver;
+              onCheckpoint(
+                await checkpointDriver.captureCheckpoint(
+                    launchContext, launched),
               );
-            } catch (error, stackTrace) {
-              await _captureHostStepReportArtifactsSafely(
-                tester: tester,
-                context: context,
-                session: attached,
-                step: step,
-                stepIndex: i,
-                secondaryFailures: secondaryFailures,
+            }
+          } catch (error, stackTrace) {
+            primaryError = error;
+            primaryStack = stackTrace;
+          }
+        },
+        zoneSpecification: context.runtime.consoleCaptureZone,
+      );
+    } finally {
+      try {
+        if (primaryError != null &&
+            handle != null &&
+            context.runtime.screenshotSheetFrames.isEmpty) {
+          try {
+            await captureHostEmergencyScreenshot(
+              tester: tester,
+              context: context,
+            );
+          } catch (error) {
+            if (!isHostScreenshotDiagnostic(error) &&
+                !isHostScreenshotCaptureFailure(error)) {
+              secondaryFailures.add(
+                TestFailureDetails(
+                  kind: TestFailureKind.assertion,
+                  message: 'Screenshot failed: $error',
+                  phase: 'screenshot',
+                ),
               );
-              // Preserve the step failure — screenshot diagnostics are secondary.
-              Error.throwWithStackTrace(error, stackTrace);
-            } finally {
-              stepDurationsMs.add(stepWatch.elapsedMilliseconds);
-              stepStartTimes.add(startedAt.toIso8601String());
             }
           }
-          failedStepIndex = -1;
-          context.runtime.currentStepIndex = null;
-          if (captureCheckpoint) {
-            final checkpointDriver = driver as ApplicationCheckpointDriver;
-            onCheckpoint(
-              await checkpointDriver.captureCheckpoint(launchContext, launched),
-            );
-          }
-        } catch (error, stackTrace) {
-          primaryError = error;
-          primaryStack = stackTrace;
         }
-      },
-      zoneSpecification: context.runtime.consoleCaptureZone,
-    );
-  } finally {
-    try {
-      if (primaryError != null &&
-          handle != null &&
-          context.runtime.screenshotSheetFrames.isEmpty) {
+        await attachHostDebugArtifacts(
+          tester: tester,
+          context: context,
+          status: primaryError == null ? TestStatus.passed : TestStatus.failed,
+          durationMs: stopwatch.elapsedMilliseconds,
+          failedStepIndex: failedStepIndex < 0 ? null : failedStepIndex,
+          failedStepLabel: failedStepIndex < 0
+              ? null
+              : formatStepBrief(test.steps[failedStepIndex]),
+          failureMessage: primaryError?.toString(),
+        );
+      } catch (_) {}
+      final openSession = session;
+      if (openSession != null) {
         try {
-          await captureHostEmergencyScreenshot(
-            tester: tester,
-            context: context,
-          );
-        } catch (error) {
-          if (!isHostScreenshotDiagnostic(error) &&
-              !isHostScreenshotCaptureFailure(error)) {
-            secondaryFailures.add(
-              TestFailureDetails(
-                kind: TestFailureKind.assertion,
-                message: 'Screenshot failed: $error',
-                phase: 'screenshot',
-              ),
-            );
-          }
+          await openSession.close();
+        } catch (error, stackTrace) {
+          cleanupError ??= error;
+          cleanupStack ??= stackTrace;
         }
       }
-      await attachHostDebugArtifacts(
-        tester: tester,
-        context: context,
-        status: primaryError == null ? TestStatus.passed : TestStatus.failed,
+      if (prepareAttempted) {
+        try {
+          await driver.tearDownTest(tester, launchContext, handle);
+        } catch (error, stackTrace) {
+          cleanupError ??= error;
+          cleanupStack ??= stackTrace;
+        }
+      }
+      FlutterError.onError = previousOnError;
+      restoreDebugPrint();
+      LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
+      LiveAsyncCallSupport.platformHttpRunner = previousPlatformHttpRunner;
+      context.apiOverlay.liveAsyncRunner = null;
+      if (mode != ExecutionMode.integration) {
+        await resetHostScreenshotViewport(tester);
+      }
+    }
+    stopwatch.stop();
+    final report = _hostReport(
+      test,
+      handle?.services,
+      stepDurationsMs: stepDurationsMs,
+      stepStartTimes: stepStartTimes,
+    );
+    if (primaryError == null && cleanupError == null) {
+      return EnsembleSingleTestResult.passed(
+        testId: test.id,
+        metadata: test.metadataJson,
         durationMs: stopwatch.elapsedMilliseconds,
-        failedStepIndex: failedStepIndex < 0 ? null : failedStepIndex,
-        failedStepLabel: failedStepIndex < 0
-            ? null
-            : formatStepBrief(test.steps[failedStepIndex]),
-        failureMessage: primaryError?.toString(),
+        capabilityStatus: _capabilityStatus(handle?.services),
+        logs: context.logger.logs,
+        report: report,
       );
-    } catch (_) {}
-    final openSession = session;
-    if (openSession != null) {
-      try {
-        await openSession.close();
-      } catch (error, stackTrace) {
-        cleanupError ??= error;
-        cleanupStack ??= stackTrace;
-      }
     }
-    if (prepareAttempted) {
-      try {
-        await driver.tearDownTest(tester, launchContext, handle);
-      } catch (error, stackTrace) {
-        cleanupError ??= error;
-        cleanupStack ??= stackTrace;
-      }
+    final message = [
+      if (primaryError != null) primaryError.toString(),
+      if (cleanupError != null) 'Cleanup failed: $cleanupError',
+    ].join('\n');
+    final caughtError = primaryError;
+    final executionError =
+        caughtError is TestExecutionError ? caughtError : null;
+    Map<String, dynamic> failureTarget = const {};
+    final locator = executionError?.details['locator'];
+    if (locator is Map) {
+      failureTarget = Map<String, dynamic>.from(locator);
     }
-    FlutterError.onError = previousOnError;
-    restoreDebugPrint();
-    LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
-    LiveAsyncCallSupport.platformHttpRunner = previousPlatformHttpRunner;
-    context.apiOverlay.liveAsyncRunner = null;
-    if (mode != ExecutionMode.integration) {
-      await resetHostScreenshotViewport(tester);
-    }
-  }
-  stopwatch.stop();
-  final report = _hostReport(
-    test,
-    handle?.services,
-    stepDurationsMs: stepDurationsMs,
-    stepStartTimes: stepStartTimes,
-  );
-  if (primaryError == null && cleanupError == null) {
-    return EnsembleSingleTestResult.passed(
+    final secondaries = <TestFailureDetails>[
+      ...secondaryFailures,
+      if (cleanupError != null && primaryError != null)
+        TestFailureDetails(
+          kind: TestFailureKind.cleanup,
+          message: cleanupError.toString(),
+          phase: 'cleanup',
+        ),
+    ];
+    return EnsembleSingleTestResult.failed(
       testId: test.id,
       metadata: test.metadataJson,
       durationMs: stopwatch.elapsedMilliseconds,
-      capabilityStatus: _capabilityStatus(handle?.services),
+      failedStepIndex: failedStepIndex < 0 ? null : failedStepIndex,
+      failedStep: failedStepIndex < 0 ? null : test.steps[failedStepIndex],
+      error: message,
+      stackTrace: primaryStack?.toString() ?? cleanupStack?.toString(),
       logs: context.logger.logs,
+      failure: TestFailureDetails(
+        kind: primaryError == null
+            ? TestFailureKind.cleanup
+            : _failureKind(primaryError, handle: handle),
+        message: primaryError?.toString() ?? cleanupError.toString(),
+        phase: primaryError == null ? 'cleanup' : 'execution',
+        target: failureTarget,
+      ),
+      secondaryFailures: secondaries,
+      capabilityStatus: _capabilityStatus(handle?.services),
       report: report,
     );
-  }
-  final message = [
-    if (primaryError != null) primaryError.toString(),
-    if (cleanupError != null) 'Cleanup failed: $cleanupError',
-  ].join('\n');
-  final caughtError = primaryError;
-  final executionError = caughtError is TestExecutionError ? caughtError : null;
-  Map<String, dynamic> failureTarget = const {};
-  final locator = executionError?.details['locator'];
-  if (locator is Map) {
-    failureTarget = Map<String, dynamic>.from(locator);
-  }
-  final secondaries = <TestFailureDetails>[
-    ...secondaryFailures,
-    if (cleanupError != null && primaryError != null)
-      TestFailureDetails(
-        kind: TestFailureKind.cleanup,
-        message: cleanupError.toString(),
-        phase: 'cleanup',
-      ),
-  ];
-  return EnsembleSingleTestResult.failed(
-    testId: test.id,
-    metadata: test.metadataJson,
-    durationMs: stopwatch.elapsedMilliseconds,
-    failedStepIndex: failedStepIndex < 0 ? null : failedStepIndex,
-    failedStep: failedStepIndex < 0 ? null : test.steps[failedStepIndex],
-    error: message,
-    stackTrace: primaryStack?.toString() ?? cleanupStack?.toString(),
-    logs: context.logger.logs,
-    failure: TestFailureDetails(
-      kind: primaryError == null
-          ? TestFailureKind.cleanup
-          : _failureKind(primaryError, handle: handle),
-      message: primaryError?.toString() ?? cleanupError.toString(),
-      phase: primaryError == null ? 'cleanup' : 'execution',
-      target: failureTarget,
-    ),
-    secondaryFailures: secondaries,
-    capabilityStatus: _capabilityStatus(handle?.services),
-    report: report,
-  );
+  });
 }
 
 EnsembleTestReportDetails _hostReport(
@@ -739,30 +750,33 @@ Future<void> _captureHostStepReportArtifactsSafely({
   required int stepIndex,
   required List<TestFailureDetails> secondaryFailures,
 }) async {
-  try {
-    await captureStepReportArtifacts(
-      captureScreenshot: () async {
-        final before = context.runtime.screenshotSheetFrames
-            .where((f) => f.stepIndex == stepIndex)
-            .length;
-        await _captureHostStepScreenshotSafely(
-          tester: tester,
-          context: context,
-          assertions: session.assertions,
-          navigation: session.services.navigation,
-          step: step,
-          stepIndex: stepIndex,
-          secondaryFailures: secondaryFailures,
-        );
-        final after = context.runtime.screenshotSheetFrames
-            .where((f) => f.stepIndex == stepIndex)
-            .length;
-        return after > before;
-      },
-    );
-  } catch (_) {
-    // Report capture must never replace the real test failure.
-  }
+  return await RunnerBenchmark.async(
+      'workflow', 'captureHostStepReportArtifactsSafely', () async {
+    try {
+      await captureStepReportArtifacts(
+        captureScreenshot: () async {
+          final before = context.runtime.screenshotSheetFrames
+              .where((f) => f.stepIndex == stepIndex)
+              .length;
+          await _captureHostStepScreenshotSafely(
+            tester: tester,
+            context: context,
+            assertions: session.assertions,
+            navigation: session.services.navigation,
+            step: step,
+            stepIndex: stepIndex,
+            secondaryFailures: secondaryFailures,
+          );
+          final after = context.runtime.screenshotSheetFrames
+              .where((f) => f.stepIndex == stepIndex)
+              .length;
+          return after > before;
+        },
+      );
+    } catch (_) {
+      // Report capture must never replace the real test failure.
+    }
+  });
 }
 
 Future<void> _captureHostStepScreenshotSafely({
@@ -774,28 +788,31 @@ Future<void> _captureHostStepScreenshotSafely({
   required int stepIndex,
   required List<TestFailureDetails> secondaryFailures,
 }) async {
-  try {
-    await captureHostStepScreenshot(
-      tester: tester,
-      context: context,
-      assertions: assertions,
-      navigation: navigation,
-      step: step,
-      stepIndex: stepIndex,
-    );
-  } catch (error) {
-    if (isHostScreenshotDiagnostic(error) ||
-        isHostScreenshotCaptureFailure(error)) {
-      return;
+  return await RunnerBenchmark.async(
+      'workflow', 'captureHostStepScreenshotSafely', () async {
+    try {
+      await captureHostStepScreenshot(
+        tester: tester,
+        context: context,
+        assertions: assertions,
+        navigation: navigation,
+        step: step,
+        stepIndex: stepIndex,
+      );
+    } catch (error) {
+      if (isHostScreenshotDiagnostic(error) ||
+          isHostScreenshotCaptureFailure(error)) {
+        return;
+      }
+      secondaryFailures.add(
+        TestFailureDetails(
+          kind: TestFailureKind.assertion,
+          message: 'Screenshot failed: $error',
+          phase: 'screenshot',
+        ),
+      );
     }
-    secondaryFailures.add(
-      TestFailureDetails(
-        kind: TestFailureKind.assertion,
-        message: 'Screenshot failed: $error',
-        phase: 'screenshot',
-      ),
-    );
-  }
+  });
 }
 
 /// Rejects YAML mocks/fixtures that cannot attach to the application under test.

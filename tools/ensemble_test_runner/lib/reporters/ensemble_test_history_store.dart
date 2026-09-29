@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -22,109 +23,112 @@ class EnsembleTestHistoryStore {
     required EnsembleTestRunResult result,
     int? wallTimeMs,
   }) async {
-    _ensureInitialized();
+    return await RunnerBenchmark.async('history', 'recordCompletedRun',
+        () async {
+      _ensureInitialized();
 
-    final reportDir = Directory(p.join(artifactRoot, 'report'));
-    reportDir.createSync(recursive: true);
-    final dbPath = p.join(reportDir.path, fileName);
-    final db = await databaseFactoryFfi.openDatabase(
-      dbPath,
-      options: OpenDatabaseOptions(
-        version: 1,
-        onCreate: (db, version) async => _createSchema(db),
-        onOpen: _createSchema,
-      ),
-    );
+      final reportDir = Directory(p.join(artifactRoot, 'report'));
+      reportDir.createSync(recursive: true);
+      final dbPath = p.join(reportDir.path, fileName);
+      final db = await databaseFactoryFfi.openDatabase(
+        dbPath,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onCreate: (db, version) async => _createSchema(db),
+          onOpen: _createSchema,
+        ),
+      );
 
-    try {
-      await db.transaction((txn) async {
-        final failedCount = result.failedCount;
-        final passedCount = result.passedCount;
-        final status = failedCount > 0 ? 'failed' : 'passed';
-        final durationMs = wallTimeMs ??
-            result.results.fold<int>(
-              0,
-              (sum, test) => sum + test.durationMs,
-            );
+      try {
+        await db.transaction((txn) async {
+          final failedCount = result.failedCount;
+          final passedCount = result.passedCount;
+          final status = failedCount > 0 ? 'failed' : 'passed';
+          final durationMs = wallTimeMs ??
+              result.results.fold<int>(
+                0,
+                (sum, test) => sum + test.durationMs,
+              );
 
-        final runId = await txn.insert('runs', {
-          'created_at': DateTime.now().toUtc().toIso8601String(),
-          'status': status,
-          'duration_ms': durationMs,
-          'passed_tests': passedCount,
-          'failed_tests': failedCount,
-          'total_tests': result.results.length,
-          'commit_hash': _envOrGit(
-            appDir,
-            envKeys: const ['BUILD_SOURCEVERSION'],
-            gitArgs: const ['rev-parse', '--short', 'HEAD'],
-            shorten: true,
-          ),
-          'branch': _envOrGit(
-            appDir,
-            envKeys: const [
-              'SYSTEM_PULLREQUEST_SOURCEBRANCH',
-              'BUILD_SOURCEBRANCHNAME',
-              'BUILD_SOURCEBRANCH',
-            ],
-            gitArgs: const ['rev-parse', '--abbrev-ref', 'HEAD'],
-          ),
-          'build_number': _firstEnv(const ['BUILD_BUILDNUMBER']),
-          'pr_number':
-              _firstEnv(const ['SYSTEM_PULLREQUEST_PULLREQUESTNUMBER']),
-          'mode': _stringValue(result.metadata['mode']),
-          'platform': _stringValue(result.metadata['platform']) ??
-              _singleMetadataValue(result.results, 'platform'),
-          'device_id': _stringValue(result.metadata['deviceId']) ??
-              _singleDeviceValue(result.results, id: true),
-          'device_name': _stringValue(result.metadata['deviceName']) ??
-              _singleDeviceValue(result.results),
-        });
-
-        for (final test in result.results) {
-          final testId = baseTestId(test.testId);
-          final fileName = p.basename(filePathOf(test.testId));
-          final device = _deviceLabel(test);
-          final scenario = _stringValue(test.metadata['scenarioId']);
-          final profile = _stringValue(test.metadata['profile']);
-          final feature = _stringValue(test.metadata['feature']);
-          final error = _errorSummary(test.message);
-          await txn.insert('test_results', {
-            'run_id': runId,
-            'test_id': testId,
-            'file_name': fileName,
-            'device': device,
-            'scenario': scenario,
-            'profile': profile,
-            'feature': feature,
-            'status': test.status.name,
-            'duration_ms': test.durationMs,
-            'attempts': test.attempts,
-            'failed_step_index': test.failedStepIndex,
-            'failed_step': _failedStepLabel(test),
-            'error_kind': test.failure?.kind.name,
-            'error_summary': error,
+          final runId = await txn.insert('runs', {
+            'created_at': DateTime.now().toUtc().toIso8601String(),
+            'status': status,
+            'duration_ms': durationMs,
+            'passed_tests': passedCount,
+            'failed_tests': failedCount,
+            'total_tests': result.results.length,
+            'commit_hash': _envOrGit(
+              appDir,
+              envKeys: const ['BUILD_SOURCEVERSION'],
+              gitArgs: const ['rev-parse', '--short', 'HEAD'],
+              shorten: true,
+            ),
+            'branch': _envOrGit(
+              appDir,
+              envKeys: const [
+                'SYSTEM_PULLREQUEST_SOURCEBRANCH',
+                'BUILD_SOURCEBRANCHNAME',
+                'BUILD_SOURCEBRANCH',
+              ],
+              gitArgs: const ['rev-parse', '--abbrev-ref', 'HEAD'],
+            ),
+            'build_number': _firstEnv(const ['BUILD_BUILDNUMBER']),
+            'pr_number':
+                _firstEnv(const ['SYSTEM_PULLREQUEST_PULLREQUESTNUMBER']),
+            'mode': _stringValue(result.metadata['mode']),
+            'platform': _stringValue(result.metadata['platform']) ??
+                _singleMetadataValue(result.results, 'platform'),
+            'device_id': _stringValue(result.metadata['deviceId']) ??
+                _singleDeviceValue(result.results, id: true),
+            'device_name': _stringValue(result.metadata['deviceName']) ??
+                _singleDeviceValue(result.results),
           });
-          if (test.status == TestStatus.failed) {
-            await txn.insert('failed_tests', {
+
+          for (final test in result.results) {
+            final testId = baseTestId(test.testId);
+            final fileName = p.basename(filePathOf(test.testId));
+            final device = _deviceLabel(test);
+            final scenario = _stringValue(test.metadata['scenarioId']);
+            final profile = _stringValue(test.metadata['profile']);
+            final feature = _stringValue(test.metadata['feature']);
+            final error = _errorSummary(test.message);
+            await txn.insert('test_results', {
               'run_id': runId,
               'test_id': testId,
-              'base_id': testId,
               'file_name': fileName,
               'device': device,
               'scenario': scenario,
+              'profile': profile,
+              'feature': feature,
+              'status': test.status.name,
+              'duration_ms': test.durationMs,
+              'attempts': test.attempts,
               'failed_step_index': test.failedStepIndex,
               'failed_step': _failedStepLabel(test),
+              'error_kind': test.failure?.kind.name,
               'error_summary': error,
             });
+            if (test.status == TestStatus.failed) {
+              await txn.insert('failed_tests', {
+                'run_id': runId,
+                'test_id': testId,
+                'base_id': testId,
+                'file_name': fileName,
+                'device': device,
+                'scenario': scenario,
+                'failed_step_index': test.failedStepIndex,
+                'failed_step': _failedStepLabel(test),
+                'error_summary': error,
+              });
+            }
           }
-        }
 
-        await _pruneOldRuns(txn);
-      });
-    } finally {
-      await db.close();
-    }
+          await _pruneOldRuns(txn);
+        });
+      } finally {
+        await db.close();
+      }
+    });
   }
 
   static void _ensureInitialized() {
@@ -340,8 +344,9 @@ WHERE base_id IS NOT NULL
   }
 
   static Future<void> _pruneOldRuns(Transaction txn) async {
-    final oldRuns = await txn.rawQuery(
-      '''
+    return await RunnerBenchmark.async('history', 'pruneOldRuns', () async {
+      final oldRuns = await txn.rawQuery(
+        '''
 SELECT id FROM runs
 WHERE id NOT IN (
   SELECT id FROM runs
@@ -349,24 +354,25 @@ WHERE id NOT IN (
   LIMIT ?
 )
 ''',
-      [maxRuns],
-    );
-    final oldIds = oldRuns.map((row) => row['id']).toList();
-    if (oldIds.isEmpty) return;
+        [maxRuns],
+      );
+      final oldIds = oldRuns.map((row) => row['id']).toList();
+      if (oldIds.isEmpty) return;
 
-    final placeholders = List.filled(oldIds.length, '?').join(',');
-    await txn.rawDelete(
-      'DELETE FROM failed_tests WHERE run_id IN ($placeholders)',
-      oldIds,
-    );
-    await txn.rawDelete(
-      'DELETE FROM test_results WHERE run_id IN ($placeholders)',
-      oldIds,
-    );
-    await txn.rawDelete(
-      'DELETE FROM runs WHERE id IN ($placeholders)',
-      oldIds,
-    );
+      final placeholders = List.filled(oldIds.length, '?').join(',');
+      await txn.rawDelete(
+        'DELETE FROM failed_tests WHERE run_id IN ($placeholders)',
+        oldIds,
+      );
+      await txn.rawDelete(
+        'DELETE FROM test_results WHERE run_id IN ($placeholders)',
+        oldIds,
+      );
+      await txn.rawDelete(
+        'DELETE FROM runs WHERE id IN ($placeholders)',
+        oldIds,
+      );
+    });
   }
 
   static String? _deviceLabel(EnsembleSingleTestResult test) {

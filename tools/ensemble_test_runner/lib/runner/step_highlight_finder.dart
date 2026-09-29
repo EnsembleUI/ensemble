@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:ui' show Rect;
 
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
@@ -21,54 +22,57 @@ Finder? stepHighlightFinder({
   required AssertionEngine assertions,
   required TestStep step,
 }) {
-  final id = step.args['id']?.toString();
-  if (id != null && id.isNotEmpty) {
-    return assertions.finderForId(id);
-  }
+  return RunnerBenchmark.sync('locator', 'stepHighlightFinder', () {
+    final id = step.args['id']?.toString();
+    if (id != null && id.isNotEmpty) {
+      return assertions.finderForId(id);
+    }
 
-  final targetRaw = step.args['target'];
-  if (targetRaw is Map) {
-    final locator = ElementLocator.fromJson(
-      Map<String, dynamic>.from(targetRaw),
-    );
-    if (!locator.isEmpty) {
-      try {
-        return FlutterTargetResolver(
-          tester: tester,
-          assertions: assertions,
-          registry: ObservationRegistry(),
-        ).resolveFinder(
-          ElementTarget(locator: locator),
-          requireInteractive: false,
-          allowEmpty: true,
-        );
-      } on TestExecutionError {
-        return null;
+    final targetRaw = step.args['target'];
+    if (targetRaw is Map) {
+      final locator = ElementLocator.fromJson(
+        Map<String, dynamic>.from(targetRaw),
+      );
+      if (!locator.isEmpty) {
+        try {
+          return FlutterTargetResolver(
+            tester: tester,
+            assertions: assertions,
+            registry: ObservationRegistry(),
+          ).resolveFinder(
+            ElementTarget(locator: locator),
+            requireInteractive: false,
+            allowEmpty: true,
+          );
+        } on TestExecutionError {
+          return null;
+        }
       }
     }
-  }
 
-  final texts = <String>[
-    if (step.args['text']?.toString().trim().isNotEmpty == true)
-      step.args['text'].toString(),
-    if (step.args['anyOf'] is List)
-      for (final item in step.args['anyOf'] as List)
-        if (item != null && item.toString().trim().isNotEmpty) item.toString(),
-  ];
-  for (final text in texts) {
-    if (step.type == 'expectTextContains') {
-      final containing = find.textContaining(text);
-      if (_hasHighlightRect(assertions, containing)) {
-        return containing;
-      }
-    } else {
-      final exact = find.text(text);
-      if (_hasHighlightRect(assertions, exact)) {
-        return exact;
+    final texts = <String>[
+      if (step.args['text']?.toString().trim().isNotEmpty == true)
+        step.args['text'].toString(),
+      if (step.args['anyOf'] is List)
+        for (final item in step.args['anyOf'] as List)
+          if (item != null && item.toString().trim().isNotEmpty)
+            item.toString(),
+    ];
+    for (final text in texts) {
+      if (step.type == 'expectTextContains') {
+        final containing = find.textContaining(text);
+        if (_hasHighlightRect(assertions, containing)) {
+          return containing;
+        }
+      } else {
+        final exact = find.text(text);
+        if (_hasHighlightRect(assertions, exact)) {
+          return exact;
+        }
       }
     }
-  }
-  return null;
+    return null;
+  });
 }
 
 /// Bounds fallback for a step target when its live finder cannot provide a

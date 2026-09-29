@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
@@ -88,12 +89,14 @@ class AssertionEngine {
       _isElementInViewport(element);
 
   void expectVisible(String id) {
-    if (!_hasVisiblePaintedElement(finderForId(id))) {
-      throw EnsembleTestFailure(
-        'Expected widget with id "$id" to be visible. '
-        '${widgetIdFailureHint(id)}',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectVisible', () {
+      if (!_hasVisiblePaintedElement(finderForId(id))) {
+        throw EnsembleTestFailure(
+          'Expected widget with id "$id" to be visible. '
+          '${widgetIdFailureHint(id)}',
+        );
+      }
+    });
   }
 
   bool hasVisibleElement(Finder finder) => _hasVisiblePaintedElement(finder);
@@ -136,19 +139,23 @@ class AssertionEngine {
   }
 
   void expectNotVisible(String id) {
-    if (_hasVisiblePaintedElement(finderForId(id))) {
-      throw EnsembleTestFailure(
-        'Expected widget with id "$id" to not be visible.',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectNotVisible', () {
+      if (_hasVisiblePaintedElement(finderForId(id))) {
+        throw EnsembleTestFailure(
+          'Expected widget with id "$id" to not be visible.',
+        );
+      }
+    });
   }
 
   void expectText(String text) {
-    if (!isTextVisible(text)) {
-      throw EnsembleTestFailure(
-        'Expected text "$text" to be visible. ${textFailureHint([text])}',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectText', () {
+      if (!isTextVisible(text)) {
+        throw EnsembleTestFailure(
+          'Expected text "$text" to be visible. ${textFailureHint([text])}',
+        );
+      }
+    });
   }
 
   void expectTextAny(List<String> texts) {
@@ -272,55 +279,59 @@ class AssertionEngine {
     dynamic expected, {
     String description = 'target',
   }) {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure(
-        'Expected $description to be visible for expectValue.',
+    return RunnerBenchmark.sync('assertion', 'expectValueFinder', () {
+      if (finder.evaluate().isEmpty) {
+        throw EnsembleTestFailure(
+          'Expected $description to be visible for expectValue.',
+        );
+      }
+
+      final editableFinder = find.descendant(
+        of: finder,
+        matching: find.byType(EditableText),
       );
-    }
-
-    final editableFinder = find.descendant(
-      of: finder,
-      matching: find.byType(EditableText),
-    );
-    if (editableFinder.evaluate().isNotEmpty) {
-      final editable = tester.widget<EditableText>(editableFinder);
-      final actual = editable.controller.text;
-      if (actual != expected?.toString()) {
-        throw EnsembleTestFailure(
-          'Expected input under $description to have value "$expected", but got "$actual".',
-        );
+      if (editableFinder.evaluate().isNotEmpty) {
+        final editable = tester.widget<EditableText>(editableFinder);
+        final actual = editable.controller.text;
+        if (actual != expected?.toString()) {
+          throw EnsembleTestFailure(
+            'Expected input under $description to have value "$expected", but got "$actual".',
+          );
+        }
+        return;
       }
-      return;
-    }
 
-    final textFieldFinder = find.descendant(
-      of: finder,
-      matching: find.byType(TextField),
-    );
-    if (textFieldFinder.evaluate().isNotEmpty) {
-      final field = tester.widget<TextField>(textFieldFinder);
-      final actual = field.controller?.text;
-      if (actual != expected?.toString()) {
-        throw EnsembleTestFailure(
-          'Expected input under $description to have value "$expected", but got "$actual".',
-        );
+      final textFieldFinder = find.descendant(
+        of: finder,
+        matching: find.byType(TextField),
+      );
+      if (textFieldFinder.evaluate().isNotEmpty) {
+        final field = tester.widget<TextField>(textFieldFinder);
+        final actual = field.controller?.text;
+        if (actual != expected?.toString()) {
+          throw EnsembleTestFailure(
+            'Expected input under $description to have value "$expected", but got "$actual".',
+          );
+        }
+        return;
       }
-      return;
-    }
 
-    throw EnsembleTestFailure(
-      'No EditableText or TextField found under $description.',
-    );
+      throw EnsembleTestFailure(
+        'No EditableText or TextField found under $description.',
+      );
+    });
   }
 
   void expectApiCalled(String apiName, int times) {
-    final actual = _ensembleContext.apiOverlay.callCount(apiName);
-    if (actual != times) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" to be called $times times, but it was called $actual times. '
-        '${apiCallSummary()}',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectApiCalled', () {
+      final actual = _ensembleContext.apiOverlay.callCount(apiName);
+      if (actual != times) {
+        throw EnsembleTestFailure(
+          'Expected API "$apiName" to be called $times times, but it was called $actual times. '
+          '${apiCallSummary()}',
+        );
+      }
+    });
   }
 
   void expectCount(String id, int expected) {
@@ -332,11 +343,13 @@ class AssertionEngine {
     int expected, {
     String description = 'target',
   }) {
-    final count = finder.evaluate().length;
-    if (count != expected) {
-      throw EnsembleTestFailure(
-          'Expected $expected match(es) for $description, but found $count.');
-    }
+    return RunnerBenchmark.sync('assertion', 'expectCountFinder', () {
+      final count = finder.evaluate().length;
+      if (count != expected) {
+        throw EnsembleTestFailure(
+            'Expected $expected match(es) for $description, but found $count.');
+      }
+    });
   }
 
   void expectExists(String id) {
@@ -424,19 +437,21 @@ class AssertionEngine {
     bool expected, {
     String description = 'target',
   }) {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectChecked: $description not found.');
-    }
-    final isChecked = _readSemantics(
-      () => _semanticsIsChecked(
-        tester.getSemantics(finder).getSemanticsData(),
-      ),
-    );
-    if (isChecked != expected) {
-      throw EnsembleTestFailure(
-        'Expected $description checked=$expected, got $isChecked.',
+    return RunnerBenchmark.sync('assertion', 'expectCheckedFinder', () {
+      if (finder.evaluate().isEmpty) {
+        throw EnsembleTestFailure('expectChecked: $description not found.');
+      }
+      final isChecked = _readSemantics(
+        () => _semanticsIsChecked(
+          tester.getSemantics(finder).getSemanticsData(),
+        ),
       );
-    }
+      if (isChecked != expected) {
+        throw EnsembleTestFailure(
+          'Expected $description checked=$expected, got $isChecked.',
+        );
+      }
+    });
   }
 
   // Flutter 3.47 exposes typed semantics flags through `flagsCollection`.
@@ -486,19 +501,21 @@ class AssertionEngine {
     dynamic expected, {
     String description = 'target',
   }) {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectProperty: $description not found.');
-    }
-    if (property == 'label') {
-      final label = _readSemantics(() => tester.getSemantics(finder).label);
-      if (label != expected?.toString()) {
-        throw EnsembleTestFailure(
-          'Expected label "$expected", got "$label".',
-        );
+    return RunnerBenchmark.sync('assertion', 'expectPropertyFinder', () {
+      if (finder.evaluate().isEmpty) {
+        throw EnsembleTestFailure('expectProperty: $description not found.');
       }
-      return;
-    }
-    throw EnsembleTestFailure('Unsupported property "$property".');
+      if (property == 'label') {
+        final label = _readSemantics(() => tester.getSemantics(finder).label);
+        if (label != expected?.toString()) {
+          throw EnsembleTestFailure(
+            'Expected label "$expected", got "$label".',
+          );
+        }
+        return;
+      }
+      throw EnsembleTestFailure('Unsupported property "$property".');
+    });
   }
 
   void expectListCount({
@@ -523,32 +540,34 @@ class AssertionEngine {
     bool atLeast = false,
     String description = 'target list',
   }) {
-    if (listFinder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectListCount: $description not found.');
-    }
-    final count = itemFinder != null
-        ? find
-            .descendant(of: listFinder, matching: itemFinder)
-            .evaluate()
-            .length
-        : find
-            .descendant(
-                of: listFinder, matching: find.byWidgetPredicate((_) => true))
-            .evaluate()
-            .length;
-    if (atLeast) {
-      if (count < expected) {
+    return RunnerBenchmark.sync('assertion', 'expectListCountFinder', () {
+      if (listFinder.evaluate().isEmpty) {
+        throw EnsembleTestFailure('expectListCount: $description not found.');
+      }
+      final count = itemFinder != null
+          ? find
+              .descendant(of: listFinder, matching: itemFinder)
+              .evaluate()
+              .length
+          : find
+              .descendant(
+                  of: listFinder, matching: find.byWidgetPredicate((_) => true))
+              .evaluate()
+              .length;
+      if (atLeast) {
+        if (count < expected) {
+          throw EnsembleTestFailure(
+            'Expected at least $expected items in $description, found $count.',
+          );
+        }
+        return;
+      }
+      if (count != expected) {
         throw EnsembleTestFailure(
-          'Expected at least $expected items in $description, found $count.',
+          'Expected $expected items in $description, found $count.',
         );
       }
-      return;
-    }
-    if (count != expected) {
-      throw EnsembleTestFailure(
-        'Expected $expected items in $description, found $count.',
-      );
-    }
+    });
   }
 
   void expectListContains({required String listId, required String text}) {
@@ -564,13 +583,15 @@ class AssertionEngine {
     String text, {
     String description = 'target list',
   }) {
-    final match =
-        find.descendant(of: listFinder, matching: find.textContaining(text));
-    if (match.evaluate().isEmpty) {
-      throw EnsembleTestFailure(
-        'Expected $description to contain text "$text".',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectListContainsFinder', () {
+      final match =
+          find.descendant(of: listFinder, matching: find.textContaining(text));
+      if (match.evaluate().isEmpty) {
+        throw EnsembleTestFailure(
+          'Expected $description to contain text "$text".',
+        );
+      }
+    });
   }
 
   void expectNotVisited(String screenName) {
@@ -613,30 +634,34 @@ class AssertionEngine {
   }
 
   void expectApiCallOrder(List<String> names) {
-    final actual =
-        _ensembleContext.apiOverlay.calls.map((c) => c.name).toList();
-    var index = 0;
-    for (final name in names) {
-      while (index < actual.length && actual[index] != name) {
+    return RunnerBenchmark.sync('assertion', 'expectApiCallOrder', () {
+      final actual =
+          _ensembleContext.apiOverlay.calls.map((c) => c.name).toList();
+      var index = 0;
+      for (final name in names) {
+        while (index < actual.length && actual[index] != name) {
+          index++;
+        }
+        if (index >= actual.length) {
+          throw EnsembleTestFailure(
+            'Expected API call order $names, but got $actual',
+          );
+        }
         index++;
       }
-      if (index >= actual.length) {
-        throw EnsembleTestFailure(
-          'Expected API call order $names, but got $actual',
-        );
-      }
-      index++;
-    }
+    });
   }
 
   void expectLastApiCall(String apiName) {
-    final calls = _ensembleContext.apiOverlay.calls;
-    if (calls.isEmpty || calls.last.name != apiName) {
-      throw EnsembleTestFailure(
-        'Expected last API call to be "$apiName", '
-        'but got ${calls.isEmpty ? "none" : calls.last.name}.',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectLastApiCall', () {
+      final calls = _ensembleContext.apiOverlay.calls;
+      if (calls.isEmpty || calls.last.name != apiName) {
+        throw EnsembleTestFailure(
+          'Expected last API call to be "$apiName", '
+          'but got ${calls.isEmpty ? "none" : calls.last.name}.',
+        );
+      }
+    });
   }
 
   void expectConsoleLog(String contains) {
@@ -656,18 +681,20 @@ class AssertionEngine {
     Finder finder, {
     String description = 'target',
   }) {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectAccessible: $description not found.');
-    }
-    final hasAccessibleText = _readSemantics(() {
-      final semantics = tester.getSemantics(finder);
-      return semantics.label.isNotEmpty || semantics.value.isNotEmpty;
+    return RunnerBenchmark.sync('assertion', 'expectAccessibleFinder', () {
+      if (finder.evaluate().isEmpty) {
+        throw EnsembleTestFailure('expectAccessible: $description not found.');
+      }
+      final hasAccessibleText = _readSemantics(() {
+        final semantics = tester.getSemantics(finder);
+        return semantics.label.isNotEmpty || semantics.value.isNotEmpty;
+      });
+      if (!hasAccessibleText) {
+        throw EnsembleTestFailure(
+          'Widget $description has no accessibility label or value.',
+        );
+      }
     });
-    if (!hasAccessibleText) {
-      throw EnsembleTestFailure(
-        'Widget $description has no accessibility label or value.',
-      );
-    }
   }
 
   void expectSemanticsLabel(String id, String label) {
@@ -683,12 +710,14 @@ class AssertionEngine {
     String label, {
     String description = 'target',
   }) {
-    final actual = _readSemantics(() => tester.getSemantics(finder).label);
-    if (actual != label) {
-      throw EnsembleTestFailure(
-        'Expected semantics label "$label" for $description, got "$actual".',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectSemanticsLabelFinder', () {
+      final actual = _readSemantics(() => tester.getSemantics(finder).label);
+      if (actual != label) {
+        throw EnsembleTestFailure(
+          'Expected semantics label "$label" for $description, got "$actual".',
+        );
+      }
+    });
   }
 
   T _readSemantics<T>(T Function() read) {
@@ -708,30 +737,36 @@ class AssertionEngine {
     Finder finder, {
     String description = 'target',
   }) {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('expectNoOverflow: $description not found.');
-    }
-    final renderObject = tester.renderObject(finder);
-    if (renderObject is RenderBox && renderObject.hasSize) {
-      // No direct overflow flag; presence without exception is sufficient.
-      return;
-    }
+    return RunnerBenchmark.sync('assertion', 'expectNoOverflowFinder', () {
+      if (finder.evaluate().isEmpty) {
+        throw EnsembleTestFailure('expectNoOverflow: $description not found.');
+      }
+      final renderObject = tester.renderObject(finder);
+      if (renderObject is RenderBox && renderObject.hasSize) {
+        // No direct overflow flag; presence without exception is sufficient.
+        return;
+      }
+    });
   }
 
   void expectNoConsoleErrors() {
-    if (_ensembleContext.runtime.consoleLogs.isNotEmpty) {
-      throw EnsembleTestFailure(
-        'Expected no console errors, got: ${_ensembleContext.runtime.consoleLogs}',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectNoConsoleErrors', () {
+      if (_ensembleContext.runtime.consoleLogs.isNotEmpty) {
+        throw EnsembleTestFailure(
+          'Expected no console errors, got: ${_ensembleContext.runtime.consoleLogs}',
+        );
+      }
+    });
   }
 
   void expectNoRenderErrors() {
-    if (_ensembleContext.runtime.flutterErrors.isNotEmpty) {
-      throw EnsembleTestFailure(
-        'Expected no render errors, got: ${_ensembleContext.runtime.flutterErrors}',
-      );
-    }
+    return RunnerBenchmark.sync('assertion', 'expectNoRenderErrors', () {
+      if (_ensembleContext.runtime.flutterErrors.isNotEmpty) {
+        throw EnsembleTestFailure(
+          'Expected no render errors, got: ${_ensembleContext.runtime.flutterErrors}',
+        );
+      }
+    });
   }
 
   void expectErrorRecorded(String? contains) {

@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 import 'package:ensemble/framework/ensemble_config_service.dart';
@@ -29,22 +30,26 @@ class EnsembleTestDiscovery {
   /// All `*.test.yaml` files bundled under [testsAssetPrefix].
   static Future<List<String>> findTestYamlAssets(
       String testsAssetPrefix) async {
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final shardPaths = _shardPathsFromEnvironment();
-    final files = manifest
-        .listAssets()
-        .where(
-          (path) =>
-              path.startsWith(testsAssetPrefix) && path.endsWith('.test.yaml'),
-        )
-        .where(
-          (path) =>
-              shardPaths.isEmpty ||
-              shardPaths.any((shardPath) => path.endsWith(shardPath)),
-        )
-        .toList()
-      ..sort();
-    return files;
+    return await RunnerBenchmark.async('discovery', 'findTestYamlAssets',
+        () async {
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final shardPaths = _shardPathsFromEnvironment();
+      final files = manifest
+          .listAssets()
+          .where(
+            (path) =>
+                path.startsWith(testsAssetPrefix) &&
+                path.endsWith('.test.yaml'),
+          )
+          .where(
+            (path) =>
+                shardPaths.isEmpty ||
+                shardPaths.any((shardPath) => path.endsWith(shardPath)),
+          )
+          .toList()
+        ..sort();
+      return files;
+    });
   }
 
   /// Optional suite-level config bundled as `tests/config.yaml`.
@@ -57,26 +62,28 @@ class EnsembleTestDiscovery {
   static Future<EnsembleTestConfig> loadTestConfig(
     String testsAssetPrefix,
   ) async {
-    final path = await findConfigYamlAsset(testsAssetPrefix);
-    if (path == null) return const EnsembleTestConfig();
-    final content = await rootBundle.loadString(path);
-    final config = EnsembleTestParser.parseConfigString(
-      content,
-      sourcePath: path,
-    );
-    final overridden = _withServiceOverrides(config);
-    final withIsolation = overridden ?? _withWorkerIsolation(config);
-    final selectedIds = _deviceIdsFromEnvironment();
-    if (_executionModeFromEnvironment() == ExecutionMode.integration) {
-      return matrix
-          .resolveIntegrationDeviceMatrix(
-            withIsolation,
-            platform: _physicalPlatformFromEnvironment(),
-            selectedIds: selectedIds,
-          )
-          .config;
-    }
-    return matrix.applyDeviceFilter(withIsolation, selectedIds);
+    return await RunnerBenchmark.async('discovery', 'loadTestConfig', () async {
+      final path = await findConfigYamlAsset(testsAssetPrefix);
+      if (path == null) return const EnsembleTestConfig();
+      final content = await rootBundle.loadString(path);
+      final config = EnsembleTestParser.parseConfigString(
+        content,
+        sourcePath: path,
+      );
+      final overridden = _withServiceOverrides(config);
+      final withIsolation = overridden ?? _withWorkerIsolation(config);
+      final selectedIds = _deviceIdsFromEnvironment();
+      if (_executionModeFromEnvironment() == ExecutionMode.integration) {
+        return matrix
+            .resolveIntegrationDeviceMatrix(
+              withIsolation,
+              platform: _physicalPlatformFromEnvironment(),
+              selectedIds: selectedIds,
+            )
+            .config;
+      }
+      return matrix.applyDeviceFilter(withIsolation, selectedIds);
+    });
   }
 
   /// Keeps only suite `devices` whose ids are in [selectedIds].

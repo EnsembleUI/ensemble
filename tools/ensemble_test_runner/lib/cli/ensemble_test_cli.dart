@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -844,247 +845,250 @@ Future<ProcessResult> _runParallelFlutterTests(
   required bool quiet,
   required bool machineReport,
 }) async {
-  final testFiles = await _testFilesForSharding(
-    appDir,
-    patcher,
-    arguments: arguments,
-  );
-  final allFiles = [
-    ...testFiles.parallel.map((file) => file.id),
-    ...testFiles.serial,
-  ];
-  if (allFiles.length < 2) {
-    return _runSingleFlutterTestProcess(
-      arguments,
-      appDir: appDir,
-      patcher: patcher,
-      reportMode: reportMode,
-      reportFile: reportFile,
-      timeoutSeconds: timeoutSeconds,
+  return await RunnerBenchmark.async('worker', 'runParallelFlutterTests',
+      () async {
+    final testFiles = await _testFilesForSharding(
+      appDir,
+      patcher,
+      arguments: arguments,
     );
-  }
+    final allFiles = [
+      ...testFiles.parallel.map((file) => file.id),
+      ...testFiles.serial,
+    ];
+    if (allFiles.length < 2) {
+      return _runSingleFlutterTestProcess(
+        arguments,
+        appDir: appDir,
+        patcher: patcher,
+        reportMode: reportMode,
+        reportFile: reportFile,
+        timeoutSeconds: timeoutSeconds,
+      );
+    }
 
-  final requestedJobs = jobs ?? _autoWorkerCount(allFiles.length);
-  final hasParallelFiles = testFiles.parallel.isNotEmpty;
-  final hasSerialFiles = testFiles.serial.isNotEmpty;
-  final totalJobCount = requestedJobs.clamp(1, allFiles.length);
-  final serialLaneCount = hasSerialFiles ? 1 : 0;
-  final parallelLaneBudget = totalJobCount - serialLaneCount;
-  final parallelWorkerCount = hasParallelFiles
-      ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
-      : 0;
-  if (parallelWorkerCount <= 1 && !hasSerialFiles) {
-    return _runSingleFlutterTestProcess(
-      arguments,
-      appDir: appDir,
-      patcher: patcher,
-      reportMode: reportMode,
-      reportFile: reportFile,
-      timeoutSeconds: timeoutSeconds,
+    final requestedJobs = jobs ?? _autoWorkerCount(allFiles.length);
+    final hasParallelFiles = testFiles.parallel.isNotEmpty;
+    final hasSerialFiles = testFiles.serial.isNotEmpty;
+    final totalJobCount = requestedJobs.clamp(1, allFiles.length);
+    final serialLaneCount = hasSerialFiles ? 1 : 0;
+    final parallelLaneBudget = totalJobCount - serialLaneCount;
+    final parallelWorkerCount = hasParallelFiles
+        ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
+        : 0;
+    if (parallelWorkerCount <= 1 && !hasSerialFiles) {
+      return _runSingleFlutterTestProcess(
+        arguments,
+        appDir: appDir,
+        patcher: patcher,
+        reportMode: reportMode,
+        reportFile: reportFile,
+        timeoutSeconds: timeoutSeconds,
+      );
+    }
+    final shards = _balancedShards(testFiles.parallel, parallelWorkerCount);
+
+    _writeStatus(
+      'Running ${allFiles.length} test runs with $totalJobCount workers...',
+      quiet: quiet,
+      machineReport: machineReport,
     );
-  }
-  final shards = _balancedShards(testFiles.parallel, parallelWorkerCount);
 
-  _writeStatus(
-    'Running ${allFiles.length} test runs with $totalJobCount workers...',
-    quiet: quiet,
-    machineReport: machineReport,
-  );
-
-  final elapsed = Stopwatch()..start();
-  final artifactRoot = _artifactRootPath(appDir);
-  final futures = <Future<ProcessResult>>[];
-  final workerReportFiles = <String>[];
-  final workerProgressFiles = <String>[];
-  final showProgress = !quiet && !machineReport;
-  final usedServicePorts = <int>{};
-  for (var i = 0; i < parallelWorkerCount; i++) {
-    final shard = shards[i];
-    if (shard.isEmpty) continue;
-    final shardPaths = shard.expand((file) => file.paths).toSet().toList();
-    final shardIds = shard.map((file) => file.id).toList();
-    final workerReportFile = _workerReportFile(appDir, i);
-    final workerProgressFile = _workerProgressFile(appDir, i);
-    _deleteIfExists(workerReportFile);
-    _deleteIfExists(workerProgressFile);
-    workerReportFiles.add(workerReportFile);
-    workerProgressFiles.add(workerProgressFile);
-    final workerDirectory = _prepareWorkerDirectory(appDir, i, patcher);
-    final serviceOverrides = await _resolveServiceOverrides(
-      patcher: patcher,
-      preferredOffset: i,
-      usedPorts: usedServicePorts,
-    );
-    futures.add(
-      _runFlutterTestProcess(
-        'flutter',
-        _buildFlutterTestArgs(
-          arguments,
-          reportMode: 'json',
-          reportFile: workerReportFile,
-          timeoutSeconds: timeoutSeconds,
+    final elapsed = Stopwatch()..start();
+    final artifactRoot = _artifactRootPath(appDir);
+    final futures = <Future<ProcessResult>>[];
+    final workerReportFiles = <String>[];
+    final workerProgressFiles = <String>[];
+    final showProgress = !quiet && !machineReport;
+    final usedServicePorts = <int>{};
+    for (var i = 0; i < parallelWorkerCount; i++) {
+      final shard = shards[i];
+      if (shard.isEmpty) continue;
+      final shardPaths = shard.expand((file) => file.paths).toSet().toList();
+      final shardIds = shard.map((file) => file.id).toList();
+      final workerReportFile = _workerReportFile(appDir, i);
+      final workerProgressFile = _workerProgressFile(appDir, i);
+      _deleteIfExists(workerReportFile);
+      _deleteIfExists(workerProgressFile);
+      workerReportFiles.add(workerReportFile);
+      workerProgressFiles.add(workerProgressFile);
+      final workerDirectory = _prepareWorkerDirectory(appDir, i, patcher);
+      final serviceOverrides = await _resolveServiceOverrides(
+        patcher: patcher,
+        preferredOffset: i,
+        usedPorts: usedServicePorts,
+      );
+      futures.add(
+        _runFlutterTestProcess(
+          'flutter',
+          _buildFlutterTestArgs(
+            arguments,
+            reportMode: 'json',
+            reportFile: workerReportFile,
+            timeoutSeconds: timeoutSeconds,
+            verbose: false,
+            shardPaths: shardPaths,
+            shardIds: shardIds,
+            workerIndex: i,
+            progressFile: showProgress ? workerProgressFile : null,
+            appLogPath: _appConsoleLogFile(appDir, workerIndex: i),
+            appLogDisplayPath: _appConsoleLogPath(workerIndex: i),
+            artifactRoot: artifactRoot,
+            serviceOverrides: serviceOverrides,
+            testEntryRelativePath: patcher.activeEntryRelativePath,
+            testsAssetPrefix: patcher.testsDirRelative,
+          ),
+          workingDirectory: workerDirectory,
+          streamOutput: false,
           verbose: false,
-          shardPaths: shardPaths,
-          shardIds: shardIds,
-          workerIndex: i,
-          progressFile: showProgress ? workerProgressFile : null,
-          appLogPath: _appConsoleLogFile(appDir, workerIndex: i),
-          appLogDisplayPath: _appConsoleLogPath(workerIndex: i),
-          artifactRoot: artifactRoot,
-          serviceOverrides: serviceOverrides,
-          testEntryRelativePath: patcher.activeEntryRelativePath,
-          testsAssetPrefix: patcher.testsDirRelative,
+          appLogFile: _appConsoleLogFile(workerDirectory, workerIndex: i),
         ),
-        workingDirectory: workerDirectory,
-        streamOutput: false,
-        verbose: false,
-        appLogFile: _appConsoleLogFile(workerDirectory, workerIndex: i),
-      ),
-    );
-  }
+      );
+    }
 
-  if (hasSerialFiles) {
-    final serialWorkerIndex = parallelWorkerCount;
-    final workerReportFile = _workerReportFile(appDir, serialWorkerIndex);
-    final workerProgressFile = _workerProgressFile(appDir, serialWorkerIndex);
-    _deleteIfExists(workerReportFile);
-    _deleteIfExists(workerProgressFile);
-    workerReportFiles.add(workerReportFile);
-    workerProgressFiles.add(workerProgressFile);
-    final workerDirectory =
-        _prepareWorkerDirectory(appDir, serialWorkerIndex, patcher);
-    final serviceOverrides = await _resolveServiceOverrides(
-      patcher: patcher,
-      preferredOffset: serialWorkerIndex,
-      usedPorts: usedServicePorts,
-    );
-    futures.add(
-      _runFlutterTestProcess(
-        'flutter',
-        _buildFlutterTestArgs(
-          arguments,
-          reportMode: 'json',
-          reportFile: workerReportFile,
-          timeoutSeconds: timeoutSeconds,
+    if (hasSerialFiles) {
+      final serialWorkerIndex = parallelWorkerCount;
+      final workerReportFile = _workerReportFile(appDir, serialWorkerIndex);
+      final workerProgressFile = _workerProgressFile(appDir, serialWorkerIndex);
+      _deleteIfExists(workerReportFile);
+      _deleteIfExists(workerProgressFile);
+      workerReportFiles.add(workerReportFile);
+      workerProgressFiles.add(workerProgressFile);
+      final workerDirectory =
+          _prepareWorkerDirectory(appDir, serialWorkerIndex, patcher);
+      final serviceOverrides = await _resolveServiceOverrides(
+        patcher: patcher,
+        preferredOffset: serialWorkerIndex,
+        usedPorts: usedServicePorts,
+      );
+      futures.add(
+        _runFlutterTestProcess(
+          'flutter',
+          _buildFlutterTestArgs(
+            arguments,
+            reportMode: 'json',
+            reportFile: workerReportFile,
+            timeoutSeconds: timeoutSeconds,
+            verbose: false,
+            shardPaths: testFiles.serial,
+            workerIndex: serialWorkerIndex,
+            progressFile: showProgress ? workerProgressFile : null,
+            appLogPath: _appConsoleLogFile(
+              appDir,
+              workerIndex: serialWorkerIndex,
+            ),
+            appLogDisplayPath: _appConsoleLogPath(
+              workerIndex: serialWorkerIndex,
+            ),
+            artifactRoot: artifactRoot,
+            serviceOverrides: serviceOverrides,
+            testEntryRelativePath: patcher.activeEntryRelativePath,
+            testsAssetPrefix: patcher.testsDirRelative,
+          ),
+          workingDirectory: workerDirectory,
+          streamOutput: false,
           verbose: false,
-          shardPaths: testFiles.serial,
-          workerIndex: serialWorkerIndex,
-          progressFile: showProgress ? workerProgressFile : null,
-          appLogPath: _appConsoleLogFile(
-            appDir,
+          appLogFile: _appConsoleLogFile(
+            workerDirectory,
             workerIndex: serialWorkerIndex,
           ),
-          appLogDisplayPath: _appConsoleLogPath(
-            workerIndex: serialWorkerIndex,
-          ),
-          artifactRoot: artifactRoot,
-          serviceOverrides: serviceOverrides,
-          testEntryRelativePath: patcher.activeEntryRelativePath,
-          testsAssetPrefix: patcher.testsDirRelative,
         ),
-        workingDirectory: workerDirectory,
-        streamOutput: false,
-        verbose: false,
-        appLogFile: _appConsoleLogFile(
-          workerDirectory,
-          workerIndex: serialWorkerIndex,
-        ),
-      ),
-    );
-  }
-
-  var runDone = false;
-  final progressPoller = showProgress
-      ? _pollWorkerProgress(
-          workerProgressFiles,
-          isDone: () => runDone,
-        )
-      : Future<void>.value();
-  final workerResults = await Future.wait(futures);
-  runDone = true;
-  await progressPoller;
-  // Live ✓/✗ streaming is done — progress files have finished their job.
-  _deleteArtifactSubdir(appDir, 'worker_progress');
-
-  try {
-    for (var i = 0; i < workerReportFiles.length; i++) {
-      _copyWorkerArtifacts(appDir, i);
+      );
     }
-  } finally {
-    // Worker sandboxes only exist to isolate Flutter build/ output and timer
-    // rewrites. Artifacts are copied above; drop the trees so they do not keep
-    // multi‑GB compile caches around after the run.
-    _cleanWorkerDirectories(appDir);
-  }
-  var merged = _mergeWorkerReports(
-    workerResults,
-    reportFiles: workerReportFiles,
-    appDir: appDir,
-  );
-  // Shard JSONs are merged into memory — drop per-worker report files.
-  _deleteArtifactSubdir(appDir, 'worker_reports');
-  merged = _mergeParallelSuiteArtifacts(merged);
-  merged = await _withHtmlReport(
-    appDir,
-    merged,
-    wallTimeMs: elapsed.elapsedMilliseconds,
-  );
-  _writeHistoricalDurations(
-    appDir,
-    merged,
-    testsDirRelative: patcher.testsDirRelative,
-    includeCurrentRun: !_hasSelection(arguments),
-  );
-  final output = StringBuffer();
-  if (reportMode == 'json') {
-    output.writeln(json.encode(merged.toJson()));
-  } else if (reportMode == 'junit') {
-    output.writeln(_junitReportForCli(merged));
-  } else {
-    output.write(
-      _formatCliSummary(
-        merged,
-        testFile: '${patcher.testsDirRelative}/*.test.yaml',
-        wallTimeMs: elapsed.elapsedMilliseconds,
-      ),
-    );
-  }
-  if (reportFile != null) {
-    AtomicFile.writeStringSync(
-      File(reportFile),
-      reportMode == 'junit'
-          ? _junitReportForCli(merged)
-          : json.encode(merged.toJson()),
-    );
-  }
 
-  final stderr = StringBuffer();
-  if (merged.failedCount > 0) {
-    for (var i = 0; i < workerResults.length; i++) {
-      final result = workerResults[i];
-      if (result.exitCode != 0) {
-        stderr.writeln(
-          'A test process failed with exit code ${result.exitCode}.',
-        );
-        final known = extractKnownFailure(
-          '${result.stdout ?? ''}\n${result.stderr ?? ''}',
-        );
-        if (known.isNotEmpty) stderr.writeln(known);
+    var runDone = false;
+    final progressPoller = showProgress
+        ? _pollWorkerProgress(
+            workerProgressFiles,
+            isDone: () => runDone,
+          )
+        : Future<void>.value();
+    final workerResults = await Future.wait(futures);
+    runDone = true;
+    await progressPoller;
+    // Live ✓/✗ streaming is done — progress files have finished their job.
+    _deleteArtifactSubdir(appDir, 'worker_progress');
+
+    try {
+      for (var i = 0; i < workerReportFiles.length; i++) {
+        _copyWorkerArtifacts(appDir, i);
       }
-      final err = result.stderr?.toString() ?? '';
-      if (err.isNotEmpty && !isBenignFlutterTestStderr(err)) {
-        stderr.writeln(err.trimRight());
+    } finally {
+      // Worker sandboxes only exist to isolate Flutter build/ output and timer
+      // rewrites. Artifacts are copied above; drop the trees so they do not keep
+      // multi‑GB compile caches around after the run.
+      _cleanWorkerDirectories(appDir);
+    }
+    var merged = _mergeWorkerReports(
+      workerResults,
+      reportFiles: workerReportFiles,
+      appDir: appDir,
+    );
+    // Shard JSONs are merged into memory — drop per-worker report files.
+    _deleteArtifactSubdir(appDir, 'worker_reports');
+    merged = _mergeParallelSuiteArtifacts(merged);
+    merged = await _withHtmlReport(
+      appDir,
+      merged,
+      wallTimeMs: elapsed.elapsedMilliseconds,
+    );
+    _writeHistoricalDurations(
+      appDir,
+      merged,
+      testsDirRelative: patcher.testsDirRelative,
+      includeCurrentRun: !_hasSelection(arguments),
+    );
+    final output = StringBuffer();
+    if (reportMode == 'json') {
+      output.writeln(json.encode(merged.toJson()));
+    } else if (reportMode == 'junit') {
+      output.writeln(_junitReportForCli(merged));
+    } else {
+      output.write(
+        _formatCliSummary(
+          merged,
+          testFile: '${patcher.testsDirRelative}/*.test.yaml',
+          wallTimeMs: elapsed.elapsedMilliseconds,
+        ),
+      );
+    }
+    if (reportFile != null) {
+      AtomicFile.writeStringSync(
+        File(reportFile),
+        reportMode == 'junit'
+            ? _junitReportForCli(merged)
+            : json.encode(merged.toJson()),
+      );
+    }
+
+    final stderr = StringBuffer();
+    if (merged.failedCount > 0) {
+      for (var i = 0; i < workerResults.length; i++) {
+        final result = workerResults[i];
+        if (result.exitCode != 0) {
+          stderr.writeln(
+            'A test process failed with exit code ${result.exitCode}.',
+          );
+          final known = extractKnownFailure(
+            '${result.stdout ?? ''}\n${result.stderr ?? ''}',
+          );
+          if (known.isNotEmpty) stderr.writeln(known);
+        }
+        final err = result.stderr?.toString() ?? '';
+        if (err.isNotEmpty && !isBenignFlutterTestStderr(err)) {
+          stderr.writeln(err.trimRight());
+        }
       }
     }
-  }
 
-  final exitCode = merged.failedCount > 0 ? 1 : 0;
-  return ProcessResult(
-    0,
-    exitCode,
-    output.toString(),
-    stderr.toString(),
-  );
+    final exitCode = merged.failedCount > 0 ? 1 : 0;
+    return ProcessResult(
+      0,
+      exitCode,
+      output.toString(),
+      stderr.toString(),
+    );
+  });
 }
 
 Future<ProcessResult> _runSingleFlutterTestProcess(
@@ -1134,37 +1138,40 @@ Future<List<List<String>>> planShardRunIdsForTest({
   List<String> arguments = const [],
   int? jobs,
 }) async {
-  final testFiles = await _testFilesForSharding(
-    appDir,
-    YamlTestAppPatcher(appDir),
-    arguments: arguments,
-  );
-  final allRuns = [
-    ...testFiles.parallel.map((file) => file.id),
-    ...testFiles.serial,
-  ];
-  if (allRuns.isEmpty) return const [];
-  if (allRuns.length < 2) return [allRuns];
+  return await RunnerBenchmark.async('worker', 'planShardRunIdsForTest',
+      () async {
+    final testFiles = await _testFilesForSharding(
+      appDir,
+      YamlTestAppPatcher(appDir),
+      arguments: arguments,
+    );
+    final allRuns = [
+      ...testFiles.parallel.map((file) => file.id),
+      ...testFiles.serial,
+    ];
+    if (allRuns.isEmpty) return const [];
+    if (allRuns.length < 2) return [allRuns];
 
-  final requestedJobs = jobs ?? _autoWorkerCount(allRuns.length);
-  final totalJobCount = requestedJobs.clamp(1, allRuns.length);
-  final serialLaneCount = testFiles.serial.isNotEmpty ? 1 : 0;
-  final parallelLaneBudget = totalJobCount - serialLaneCount;
-  final parallelWorkerCount = testFiles.parallel.isNotEmpty
-      ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
-      : 0;
+    final requestedJobs = jobs ?? _autoWorkerCount(allRuns.length);
+    final totalJobCount = requestedJobs.clamp(1, allRuns.length);
+    final serialLaneCount = testFiles.serial.isNotEmpty ? 1 : 0;
+    final parallelLaneBudget = totalJobCount - serialLaneCount;
+    final parallelWorkerCount = testFiles.parallel.isNotEmpty
+        ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
+        : 0;
 
-  final result = <List<String>>[
-    for (final shard in _balancedShards(
-      testFiles.parallel,
-      parallelWorkerCount,
-    ))
-      [for (final file in shard) file.id],
-  ];
-  if (testFiles.serial.isNotEmpty) {
-    result.add(testFiles.serial);
-  }
-  return result.where((shard) => shard.isNotEmpty).toList();
+    final result = <List<String>>[
+      for (final shard in _balancedShards(
+        testFiles.parallel,
+        parallelWorkerCount,
+      ))
+        [for (final file in shard) file.id],
+    ];
+    if (testFiles.serial.isNotEmpty) {
+      result.add(testFiles.serial);
+    }
+    return result.where((shard) => shard.isNotEmpty).toList();
+  });
 }
 
 String _workerReportFile(String appDir, int workerIndex) {
@@ -2131,25 +2138,28 @@ List<List<_ShardableTestFile>> _balancedShards(
   List<_ShardableTestFile> files,
   int workerCount,
 ) {
-  if (workerCount <= 0) return const [];
-  final shards = List.generate(workerCount, (_) => <_ShardableTestFile>[]);
-  final shardDurations = List.filled(workerCount, 0);
-  final sorted = [...files]..sort((a, b) {
-      final byDuration = b.estimatedDurationMs.compareTo(a.estimatedDurationMs);
-      if (byDuration != 0) return byDuration;
-      final byPath = a.path.compareTo(b.path);
-      return byPath != 0 ? byPath : a.id.compareTo(b.id);
-    });
+  return RunnerBenchmark.sync('worker', 'balancedShards', () {
+    if (workerCount <= 0) return const [];
+    final shards = List.generate(workerCount, (_) => <_ShardableTestFile>[]);
+    final shardDurations = List.filled(workerCount, 0);
+    final sorted = [...files]..sort((a, b) {
+        final byDuration =
+            b.estimatedDurationMs.compareTo(a.estimatedDurationMs);
+        if (byDuration != 0) return byDuration;
+        final byPath = a.path.compareTo(b.path);
+        return byPath != 0 ? byPath : a.id.compareTo(b.id);
+      });
 
-  for (final file in sorted) {
-    var target = 0;
-    for (var i = 1; i < shardDurations.length; i++) {
-      if (shardDurations[i] < shardDurations[target]) target = i;
+    for (final file in sorted) {
+      var target = 0;
+      for (var i = 1; i < shardDurations.length; i++) {
+        if (shardDurations[i] < shardDurations[target]) target = i;
+      }
+      shards[target].add(file);
+      shardDurations[target] += file.estimatedDurationMs;
     }
-    shards[target].add(file);
-    shardDurations[target] += file.estimatedDurationMs;
-  }
-  return shards;
+    return shards;
+  });
 }
 
 int _autoWorkerCount(int fileCount) {
@@ -2323,49 +2333,52 @@ EnsembleTestRunResult _mergeWorkerReports(
   required List<String> reportFiles,
   required String appDir,
 }) {
-  final mergedResults = <EnsembleSingleTestResult>[];
-  final suiteLogs = <String>[];
-  final metadata = <String, dynamic>{};
-  final seenPassedTestIds = <String>{};
+  return RunnerBenchmark.sync('worker', 'mergeWorkerReports', () {
+    final mergedResults = <EnsembleSingleTestResult>[];
+    final suiteLogs = <String>[];
+    final metadata = <String, dynamic>{};
+    final seenPassedTestIds = <String>{};
 
-  for (var i = 0; i < results.length; i++) {
-    final result = results[i];
-    final output = '${result.stdout ?? ''}\n${result.stderr ?? ''}';
-    final reportFile = i < reportFiles.length ? File(reportFiles[i]) : null;
-    final rawJson = reportFile != null && reportFile.existsSync()
-        ? reportFile.readAsStringSync()
-        : extractJsonReport(output);
-    if (rawJson.isEmpty) {
-      final workerOutputFile = _writeWorkerOutputLog(appDir, i, output);
-      mergedResults.add(
-        EnsembleSingleTestResult.failed(
-          testId: 'test-process-${result.pid}',
-          durationMs: 0,
-          error: 'A test process did not emit an Ensemble JSON report'
-              '${workerOutputFile == null ? '' : '. See $workerOutputFile'}',
-        ),
-      );
-      continue;
-    }
-
-    final decoded = json.decode(rawJson) as Map<String, dynamic>;
-    final workerRun = _runResultFromJson(decoded);
-    metadata.addAll(workerRun.metadata);
-    suiteLogs.addAll(workerRun.suiteLogs);
-    for (final test in workerRun.results) {
-      final baseId = _baseTestId(test.testId);
-      if (test.status == TestStatus.passed && !seenPassedTestIds.add(baseId)) {
+    for (var i = 0; i < results.length; i++) {
+      final result = results[i];
+      final output = '${result.stdout ?? ''}\n${result.stderr ?? ''}';
+      final reportFile = i < reportFiles.length ? File(reportFiles[i]) : null;
+      final rawJson = reportFile != null && reportFile.existsSync()
+          ? reportFile.readAsStringSync()
+          : extractJsonReport(output);
+      if (rawJson.isEmpty) {
+        final workerOutputFile = _writeWorkerOutputLog(appDir, i, output);
+        mergedResults.add(
+          EnsembleSingleTestResult.failed(
+            testId: 'test-process-${result.pid}',
+            durationMs: 0,
+            error: 'A test process did not emit an Ensemble JSON report'
+                '${workerOutputFile == null ? '' : '. See $workerOutputFile'}',
+          ),
+        );
         continue;
       }
-      mergedResults.add(test);
-    }
-  }
 
-  return EnsembleTestRunResult(
-    results: mergedResults,
-    suiteLogs: suiteLogs,
-    metadata: metadata,
-  );
+      final decoded = json.decode(rawJson) as Map<String, dynamic>;
+      final workerRun = _runResultFromJson(decoded);
+      metadata.addAll(workerRun.metadata);
+      suiteLogs.addAll(workerRun.suiteLogs);
+      for (final test in workerRun.results) {
+        final baseId = _baseTestId(test.testId);
+        if (test.status == TestStatus.passed &&
+            !seenPassedTestIds.add(baseId)) {
+          continue;
+        }
+        mergedResults.add(test);
+      }
+    }
+
+    return EnsembleTestRunResult(
+      results: mergedResults,
+      suiteLogs: suiteLogs,
+      metadata: metadata,
+    );
+  });
 }
 
 String? _writeWorkerOutputLog(String appDir, int workerIndex, String output) {
@@ -2723,76 +2736,92 @@ Future<ProcessResult> _runFlutterTestProcess(
   required bool verbose,
   String? appLogFile,
 }) async {
-  final process = await Process.start(
-    executable,
-    arguments,
-    workingDirectory: workingDirectory,
-    runInShell: false,
-  );
-  final stdoutBuffer = StringBuffer();
-  final stderrBuffer = StringBuffer();
-  final liveFilter = LiveFlutterTestOutputFilter();
-  final elapsed = Stopwatch()..start();
-  var lastLiveOutput = DateTime.now();
-  Timer? heartbeat;
-  final appLog = _openAppConsoleLog(appLogFile);
-
-  if (streamOutput && !verbose) {
-    heartbeat = Timer.periodic(const Duration(seconds: 10), (_) {
-      final idleFor = DateTime.now().difference(lastLiveOutput);
-      if (idleFor.inSeconds >= 10) {
-        stderr.writeln(
-          'Still running Flutter tests (${elapsed.elapsed.inSeconds}s)...',
-        );
-      }
-    });
-  }
-
-  try {
-    final stdoutDone = process.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
-      stdoutBuffer.writeln(line);
-      if (!_isArtifactProtocolLine(line)) {
-        _appendAppConsoleLogLine(appLog, 'stdout', line);
-      }
-      if (_isArtifactProtocolLine(line)) {
-        return;
-      }
-      if (verbose) {
-        stdout.writeln(line);
-      } else if (streamOutput && _isIntegrationProgressLine(line)) {
-        lastLiveOutput = DateTime.now();
-        stderr.writeln(_formatIntegrationProgressLine(line));
-      } else if (streamOutput && liveFilter.shouldEmit(line)) {
-        lastLiveOutput = DateTime.now();
-        stderr.writeln(line);
-      }
-    }).asFuture<void>();
-
-    final stderrDone = process.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
-      stderrBuffer.writeln(line);
-      _appendAppConsoleLogLine(appLog, 'stderr', line);
-      if (verbose) {
-        stderr.writeln(line);
-      }
-    }).asFuture<void>();
-
-    final exitCode = await process.exitCode;
-    await Future.wait([stdoutDone, stderrDone]);
-    return ProcessResult(
-      process.pid,
-      exitCode,
-      stdoutBuffer.toString(),
-      stderrBuffer.toString(),
+  return await RunnerBenchmark.async('worker', 'runFlutterTestProcess',
+      () async {
+    final process = await Process.start(
+      RunnerBenchmark.collector?.executables[executable] ?? executable,
+      arguments,
+      workingDirectory: workingDirectory,
+      runInShell: false,
     );
-  } finally {
-    heartbeat?.cancel();
-  }
+    final benchmarkBootstrap = RunnerBenchmark.pending(
+        'process_bootstrap', 'flutterUntilWorkloadReady');
+    RunnerBenchmark.dimension('childProcessId', process.pid);
+    RunnerBenchmark.dimension('workingDirectory', workingDirectory);
+    final stdoutBuffer = StringBuffer();
+    final stderrBuffer = StringBuffer();
+    final liveFilter = LiveFlutterTestOutputFilter();
+    final elapsed = Stopwatch()..start();
+    var lastLiveOutput = DateTime.now();
+    Timer? heartbeat;
+    final appLog = _openAppConsoleLog(appLogFile);
+
+    if (streamOutput && !verbose) {
+      heartbeat = Timer.periodic(const Duration(seconds: 10), (_) {
+        final idleFor = DateTime.now().difference(lastLiveOutput);
+        if (idleFor.inSeconds >= 10) {
+          stderr.writeln(
+            'Still running Flutter tests (${elapsed.elapsed.inSeconds}s)...',
+          );
+        }
+      });
+    }
+
+    try {
+      final stdoutDone = process.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
+        stdoutBuffer.writeln(line);
+        if (line.contains('ENSEMBLE_BENCHMARK_WORKLOAD_READY')) {
+          benchmarkBootstrap?.finish();
+          RunnerBenchmark.dimension(
+              'bootstrapToReadyUs', elapsed.elapsedMicroseconds);
+        }
+        if (!_isArtifactProtocolLine(line)) {
+          _appendAppConsoleLogLine(appLog, 'stdout', line);
+        }
+        if (_isArtifactProtocolLine(line)) {
+          return;
+        }
+        if (verbose) {
+          stdout.writeln(line);
+        } else if (streamOutput && _isIntegrationProgressLine(line)) {
+          lastLiveOutput = DateTime.now();
+          stderr.writeln(_formatIntegrationProgressLine(line));
+        } else if (streamOutput && liveFilter.shouldEmit(line)) {
+          lastLiveOutput = DateTime.now();
+          stderr.writeln(line);
+        }
+      }).asFuture<void>();
+
+      final stderrDone = process.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) {
+        stderrBuffer.writeln(line);
+        _appendAppConsoleLogLine(appLog, 'stderr', line);
+        if (verbose) {
+          stderr.writeln(line);
+        }
+      }).asFuture<void>();
+
+      final exitCode = await process.exitCode;
+      await Future.wait([stdoutDone, stderrDone]);
+      return ProcessResult(
+        process.pid,
+        exitCode,
+        stdoutBuffer.toString(),
+        stderrBuffer.toString(),
+      );
+    } finally {
+      if (benchmarkBootstrap?.span.endUs == null) {
+        benchmarkBootstrap?.span.outcome = 'workload-not-ready';
+        benchmarkBootstrap?.finish();
+      }
+      heartbeat?.cancel();
+    }
+  });
 }
 
 bool _isArtifactProtocolLine(String line) =>
@@ -3194,4 +3223,29 @@ String _withoutArtifactProtocolLines(String output) {
   final buffer = StringBuffer(kept.join('\n'));
   if (output.endsWith('\n')) buffer.writeln();
   return buffer.toString();
+}
+
+/// Internal benchmark adapter to the actual CLI worker launch/merge pipeline.
+/// It cannot be used without an active standalone benchmark collector.
+Future<ProcessResult> runRunnerWorkersForBenchmark({
+  required String appDir,
+  required int workers,
+  required String testsDir,
+  required String testEntry,
+}) {
+  if (RunnerBenchmark.collector == null) {
+    throw StateError('Worker benchmarks require the standalone benchmark tool');
+  }
+  return _runParallelFlutterTests(
+    const [],
+    appDir: appDir,
+    patcher: YamlTestAppPatcher(appDir,
+        testsDirRelative: testsDir, testEntryRelativePath: testEntry),
+    jobs: workers,
+    reportMode: 'json',
+    reportFile: p.join(appDir, 'merged.json'),
+    timeoutSeconds: 120,
+    quiet: true,
+    machineReport: true,
+  );
 }

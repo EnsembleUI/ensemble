@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/leaf_command_queue.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
@@ -42,35 +43,39 @@ class ObservationRegistry {
     required String observationId,
     required Map<String, SnapshotElementHandle> handles,
   }) {
-    _byObservation[observationId] = Map.unmodifiable(handles);
-    for (final dropped in _lru.remember(observationId)) {
-      _byObservation.remove(dropped);
-    }
+    return RunnerBenchmark.sync('locator', 'registerObservation', () {
+      _byObservation[observationId] = Map.unmodifiable(handles);
+      for (final dropped in _lru.remember(observationId)) {
+        _byObservation.remove(dropped);
+      }
+    });
   }
 
   SnapshotElementHandle resolve({
     required String observationId,
     required String elementId,
   }) {
-    final handles = _byObservation[observationId];
-    if (handles == null) {
-      throw TestExecutionError(
-        code: TestExecutionErrorCode.staleObservation,
-        message:
-            'Observation "$observationId" is no longer retained or never existed.',
-        details: {'observationId': observationId, 'elementId': elementId},
-      );
-    }
-    final handle = handles[elementId];
-    if (handle == null) {
-      throw TestExecutionError(
-        code: TestExecutionErrorCode.elementNotFound,
-        message:
-            'Element "$elementId" was not found in observation "$observationId".',
-        details: {'observationId': observationId, 'elementId': elementId},
-      );
-    }
-    return handle;
+    return RunnerBenchmark.sync('locator', 'resolve', () {
+      final handles = _byObservation[observationId];
+      if (handles == null) {
+        throw TestExecutionError(
+          code: TestExecutionErrorCode.staleObservation,
+          message:
+              'Observation "$observationId" is no longer retained or never existed.',
+          details: {'observationId': observationId, 'elementId': elementId},
+        );
+      }
+      final handle = handles[elementId];
+      if (handle == null) {
+        throw TestExecutionError(
+          code: TestExecutionErrorCode.elementNotFound,
+          message:
+              'Element "$elementId" was not found in observation "$observationId".',
+          details: {'observationId': observationId, 'elementId': elementId},
+        );
+      }
+      return handle;
+    });
   }
 
   /// For snapshot targets, mount-check only on the cached Element.
@@ -83,36 +88,38 @@ class ObservationRegistry {
     required String elementId,
     String Function(Element element, String? testId)? liveFingerprint,
   }) {
-    final handle = resolve(
-      observationId: observationId,
-      elementId: elementId,
-    );
-    if (!handle.isMounted) {
-      throw TestExecutionError(
-        code: TestExecutionErrorCode.staleObservation,
-        message:
-            'Element "$elementId" from observation "$observationId" is detached.',
-        details: {'observationId': observationId, 'elementId': elementId},
+    return RunnerBenchmark.sync('locator', 'revalidate', () {
+      final handle = resolve(
+        observationId: observationId,
+        elementId: elementId,
       );
-    }
-    if (liveFingerprint != null) {
-      final live = liveFingerprint(handle.element, handle.testId);
-      if (live != handle.observableFingerprint) {
+      if (!handle.isMounted) {
         throw TestExecutionError(
           code: TestExecutionErrorCode.staleObservation,
           message:
-              'Element "$elementId" observable state changed since observation '
-              '"$observationId".',
-          details: {
-            'observationId': observationId,
-            'elementId': elementId,
-            'expectedFingerprint': handle.observableFingerprint,
-            'liveFingerprint': live,
-          },
+              'Element "$elementId" from observation "$observationId" is detached.',
+          details: {'observationId': observationId, 'elementId': elementId},
         );
       }
-    }
-    return handle;
+      if (liveFingerprint != null) {
+        final live = liveFingerprint(handle.element, handle.testId);
+        if (live != handle.observableFingerprint) {
+          throw TestExecutionError(
+            code: TestExecutionErrorCode.staleObservation,
+            message:
+                'Element "$elementId" observable state changed since observation '
+                '"$observationId".',
+            details: {
+              'observationId': observationId,
+              'elementId': elementId,
+              'expectedFingerprint': handle.observableFingerprint,
+              'liveFingerprint': live,
+            },
+          );
+        }
+      }
+      return handle;
+    });
   }
 
   void clear() {

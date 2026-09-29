@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 
@@ -572,285 +573,287 @@ class EnsembleTestRunner {
     required EnsembleConfig config,
     required Stopwatch stopwatch,
   }) async {
-    final executorServices = StandaloneEnsembleApplicationHandle(
-      context: ctx,
-      configDescription: const {},
-    ).services;
-    final assertions = AssertionEngine(
-      tester: tester,
-      context: ctx,
-      services: executorServices,
-    );
-    final executor = TestStepExecutor(
-      tester: tester,
-      context: ctx,
-      assertions: assertions,
-      harness: harness,
-      services: executorServices,
-      config: config,
-    );
-    final session = LocalTestExecutionSession.attach(
-      tester: tester,
-      harness: harness,
-      context: ctx,
-      services: executorServices,
-      sessionId: test.id,
-      assertions: assertions,
-      executor: executor,
-    );
-    final dispatcher = YamlStepDispatcher(session: session);
-    final stepDurationsMs = <int>[];
-    final stepStartTimes = <String>[];
-    try {
-      for (var i = 0; i < test.steps.length; i++) {
-        final step = test.steps[i];
-        final startFrame = ctx.runtime.appFrameTimings.length + 1;
-        final startTime = DateTime.now();
-        ctx.runtime.currentStepIndex = i;
-        stepStartTimes.add(startTime.toIso8601String());
-        final storageBefore = capturePublicStorage();
-        final secureStorageBefore = captureSecureStorage();
-        final keychainBefore = await captureKeychainStorage();
-        var capturedStep = false;
-        try {
-          _drainFlutterExceptions(tester);
-          if (i == 0 && ctx.config.screenshots.enabled) {
-            await executor.settle();
-          }
-          final captureBeforeStep = _shouldCaptureBeforeStep(step);
-          if (captureBeforeStep) {
-            final didCapture = await _captureStepReportArtifacts(
-              executor: executor,
-              step: step,
-              stepIndex: i,
-              options: StepScreenshotOptions.beforeAction(),
-            );
-            if (didCapture) capturedStep = true;
-          }
-          if (step.type == 'waitForText') {
-            executor.onWaitForTextMatched = (matchedStep) async {
-              if (capturedStep) return;
-              await _waitForHighlightTargetToPaint(executor, matchedStep);
+    return await RunnerBenchmark.async('workflow', 'executeSteps', () async {
+      final executorServices = StandaloneEnsembleApplicationHandle(
+        context: ctx,
+        configDescription: const {},
+      ).services;
+      final assertions = AssertionEngine(
+        tester: tester,
+        context: ctx,
+        services: executorServices,
+      );
+      final executor = TestStepExecutor(
+        tester: tester,
+        context: ctx,
+        assertions: assertions,
+        harness: harness,
+        services: executorServices,
+        config: config,
+      );
+      final session = LocalTestExecutionSession.attach(
+        tester: tester,
+        harness: harness,
+        context: ctx,
+        services: executorServices,
+        sessionId: test.id,
+        assertions: assertions,
+        executor: executor,
+      );
+      final dispatcher = YamlStepDispatcher(session: session);
+      final stepDurationsMs = <int>[];
+      final stepStartTimes = <String>[];
+      try {
+        for (var i = 0; i < test.steps.length; i++) {
+          final step = test.steps[i];
+          final startFrame = ctx.runtime.appFrameTimings.length + 1;
+          final startTime = DateTime.now();
+          ctx.runtime.currentStepIndex = i;
+          stepStartTimes.add(startTime.toIso8601String());
+          final storageBefore = capturePublicStorage();
+          final secureStorageBefore = captureSecureStorage();
+          final keychainBefore = await captureKeychainStorage();
+          var capturedStep = false;
+          try {
+            _drainFlutterExceptions(tester);
+            if (i == 0 && ctx.config.screenshots.enabled) {
+              await executor.settle();
+            }
+            final captureBeforeStep = _shouldCaptureBeforeStep(step);
+            if (captureBeforeStep) {
               final didCapture = await _captureStepReportArtifacts(
                 executor: executor,
-                step: matchedStep,
+                step: step,
                 stepIndex: i,
-                options: StepScreenshotOptions.waitForTextMatched(),
+                options: StepScreenshotOptions.beforeAction(),
               );
               if (didCapture) capturedStep = true;
-            };
-          }
-          if (step.type == 'waitForNavigation') {
-            // Capture while the target screen is still the current route.
-            // Immediate pixels are wrong for durable screens (Home) whose tracker
-            // updates before paint; long waits are wrong for transient screens
-            // (AutoSignIn_Device → Home). Paint briefly, then choose.
-            executor.onWaitForNavigationMatched = (matchedStep) async {
-              if (capturedStep) return;
-              final didCapture = await _captureStepReportArtifacts(
-                executor: executor,
-                step: matchedStep,
-                stepIndex: i,
-                options: StepScreenshotOptions.waitForNavigationMatched(),
-                captureScreenshot: () => _captureWaitForNavigationScreenshot(
-                  session: session,
+            }
+            if (step.type == 'waitForText') {
+              executor.onWaitForTextMatched = (matchedStep) async {
+                if (capturedStep) return;
+                await _waitForHighlightTargetToPaint(executor, matchedStep);
+                final didCapture = await _captureStepReportArtifacts(
                   executor: executor,
                   step: matchedStep,
                   stepIndex: i,
-                ),
-              );
-              if (didCapture) capturedStep = true;
-            };
-          }
-          final optionalActionStep = _singleNestedOptionalAction(step);
-          if (optionalActionStep != null) {
-            Future<void> captureOptionalAction(TestStep matchedStep) async {
-              if (capturedStep) return;
+                  options: StepScreenshotOptions.waitForTextMatched(),
+                );
+                if (didCapture) capturedStep = true;
+              };
+            }
+            if (step.type == 'waitForNavigation') {
+              // Capture while the target screen is still the current route.
+              // Immediate pixels are wrong for durable screens (Home) whose tracker
+              // updates before paint; long waits are wrong for transient screens
+              // (AutoSignIn_Device → Home). Paint briefly, then choose.
+              executor.onWaitForNavigationMatched = (matchedStep) async {
+                if (capturedStep) return;
+                final didCapture = await _captureStepReportArtifacts(
+                  executor: executor,
+                  step: matchedStep,
+                  stepIndex: i,
+                  options: StepScreenshotOptions.waitForNavigationMatched(),
+                  captureScreenshot: () => _captureWaitForNavigationScreenshot(
+                    session: session,
+                    executor: executor,
+                    step: matchedStep,
+                    stepIndex: i,
+                  ),
+                );
+                if (didCapture) capturedStep = true;
+              };
+            }
+            final optionalActionStep = _singleNestedOptionalAction(step);
+            if (optionalActionStep != null) {
+              Future<void> captureOptionalAction(TestStep matchedStep) async {
+                if (capturedStep) return;
+                final didCapture = await _captureStepReportArtifacts(
+                  executor: executor,
+                  step: matchedStep,
+                  labelStep: step,
+                  stepIndex: i,
+                  // Optional taps often fire on empty loading frames — keep the
+                  // contrast gate so phantom rings never become report shots.
+                  options: StepScreenshotOptions.beforeAction(
+                    requireVisibleActionHighlight: true,
+                  ),
+                );
+                if (didCapture) capturedStep = true;
+              }
+
+              if (_shouldCaptureBeforeStep(optionalActionStep)) {
+                executor.onBeforeActionStep = captureOptionalAction;
+              } else {
+                executor.onAfterActionStep = captureOptionalAction;
+              }
+            }
+            try {
+              await dispatcher.execute(step);
+            } finally {
+              executor.onWaitForTextMatched = null;
+              executor.onWaitForNavigationMatched = null;
+              executor.onBeforeActionStep = null;
+              executor.onAfterActionStep = null;
+            }
+            if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
+              await _paintAfterUserAction(executor);
+            }
+            _drainFlutterExceptions(tester);
+            if (!captureBeforeStep &&
+                !capturedStep &&
+                optionalActionStep == null) {
               final didCapture = await _captureStepReportArtifacts(
                 executor: executor,
-                step: matchedStep,
-                labelStep: step,
+                step: step,
                 stepIndex: i,
-                // Optional taps often fire on empty loading frames — keep the
-                // contrast gate so phantom rings never become report shots.
-                options: StepScreenshotOptions.beforeAction(
-                  requireVisibleActionHighlight: true,
-                ),
+                options: StepScreenshotOptions.afterCondition(step),
               );
               if (didCapture) capturedStep = true;
             }
-
-            if (_shouldCaptureBeforeStep(optionalActionStep)) {
-              executor.onBeforeActionStep = captureOptionalAction;
-            } else {
-              executor.onAfterActionStep = captureOptionalAction;
+            await YamlTestSession.navigationFlow.flushPending();
+            await _recordStorageStepDiff(
+              ctx: ctx,
+              stepIndex: i,
+              before: storageBefore,
+              secureBefore: secureStorageBefore,
+              keychainBefore: keychainBefore,
+            );
+            stepDurationsMs.add(
+              DateTime.now().difference(startTime).inMilliseconds,
+            );
+            _recordPerformanceMarker(
+              ctx: ctx,
+              testId: test.id,
+              stepIndex: i + 1,
+              label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
+              phase: _phaseForStep(step),
+              startFrame: startFrame,
+              startTime: startTime,
+            );
+            _captureScreenArtifacts(ctx);
+          } catch (error, stackTrace) {
+            await _recordStorageStepDiff(
+              ctx: ctx,
+              stepIndex: i,
+              before: storageBefore,
+              secureBefore: secureStorageBefore,
+              keychainBefore: keychainBefore,
+            );
+            stepDurationsMs.add(
+              DateTime.now().difference(startTime).inMilliseconds,
+            );
+            _recordPerformanceMarker(
+              ctx: ctx,
+              testId: test.id,
+              stepIndex: i + 1,
+              label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
+              phase: _phaseForStep(step),
+              startFrame: startFrame,
+              startTime: startTime,
+            );
+            _captureScreenArtifacts(ctx);
+            final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
+            final idleStartTime = DateTime.now();
+            // Freeze failure evidence before settle/pumps advance the tree.
+            _drainFlutterExceptions(tester);
+            if (!capturedStep) {
+              await _captureStepReportArtifacts(
+                executor: executor,
+                step: step,
+                stepIndex: i,
+                options: StepScreenshotOptions.onFailure(),
+              );
             }
-          }
-          try {
-            await dispatcher.execute(step);
-          } finally {
-            executor.onWaitForTextMatched = null;
-            executor.onWaitForNavigationMatched = null;
-            executor.onBeforeActionStep = null;
-            executor.onAfterActionStep = null;
-          }
-          if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
-            await _paintAfterUserAction(executor);
-          }
-          _drainFlutterExceptions(tester);
-          if (!captureBeforeStep &&
-              !capturedStep &&
-              optionalActionStep == null) {
-            final didCapture = await _captureStepReportArtifacts(
-              executor: executor,
-              step: step,
-              stepIndex: i,
-              options: StepScreenshotOptions.afterCondition(step),
+            await _settleLiveApiWorkBestEffort(tester, ctx);
+            final failureMessage = error.toString();
+            await _flushPendingScreenshots(
+              ctx,
+              status: TestStatus.failed,
+              durationMs: stopwatch.elapsedMilliseconds,
+              failedStepIndex: i,
+              failedStepLabel: formatStepBrief(step),
+              failureMessage: failureMessage,
             );
-            if (didCapture) capturedStep = true;
-          }
-          await YamlTestSession.navigationFlow.flushPending();
-          await _recordStorageStepDiff(
-            ctx: ctx,
-            stepIndex: i,
-            before: storageBefore,
-            secureBefore: secureStorageBefore,
-            keychainBefore: keychainBefore,
-          );
-          stepDurationsMs.add(
-            DateTime.now().difference(startTime).inMilliseconds,
-          );
-          _recordPerformanceMarker(
-            ctx: ctx,
-            testId: test.id,
-            stepIndex: i + 1,
-            label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
-            phase: _phaseForStep(step),
-            startFrame: startFrame,
-            startTime: startTime,
-          );
-          _captureScreenArtifacts(ctx);
-        } catch (error, stackTrace) {
-          await _recordStorageStepDiff(
-            ctx: ctx,
-            stepIndex: i,
-            before: storageBefore,
-            secureBefore: secureStorageBefore,
-            keychainBefore: keychainBefore,
-          );
-          stepDurationsMs.add(
-            DateTime.now().difference(startTime).inMilliseconds,
-          );
-          _recordPerformanceMarker(
-            ctx: ctx,
-            testId: test.id,
-            stepIndex: i + 1,
-            label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
-            phase: _phaseForStep(step),
-            startFrame: startFrame,
-            startTime: startTime,
-          );
-          _captureScreenArtifacts(ctx);
-          final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
-          final idleStartTime = DateTime.now();
-          // Freeze failure evidence before settle/pumps advance the tree.
-          _drainFlutterExceptions(tester);
-          if (!capturedStep) {
-            await _captureStepReportArtifacts(
-              executor: executor,
-              step: step,
-              stepIndex: i,
-              options: StepScreenshotOptions.onFailure(),
+            await YamlTestSession.navigationFlow.flushPending();
+            _recordPerformanceMarker(
+              ctx: ctx,
+              testId: test.id,
+              stepIndex: null,
+              label: '${test.id} failure cleanup',
+              phase: 'idle',
+              startFrame: idleStartFrame,
+              startTime: idleStartTime,
+            );
+            await _attachPerTestDebugArtifacts(ctx);
+            return EnsembleSingleTestResult.failed(
+              testId: test.id,
+              metadata: test.metadataJson,
+              failedStepIndex: i,
+              failedStep: step,
+              error: failureMessage,
+              stackTrace: stackTrace.toString(),
+              durationMs: stopwatch.elapsedMilliseconds,
+              logs: ctx.logger.logs,
+              failure: TestFailureDetails.fromMessage(
+                failureMessage,
+                phase: 'execution',
+                target: {
+                  if (step.args['id'] != null) 'id': step.args['id'],
+                  if (step.args['target'] is Map)
+                    'target': Map<String, dynamic>.from(
+                      step.args['target'] as Map,
+                    ),
+                },
+              ),
+              report: buildTestReportDetails(
+                test,
+                stepDurationsMs: stepDurationsMs,
+                stepStartTimes: stepStartTimes,
+                screens: ctx.runtime.screenArtifacts,
+              ),
             );
           }
-          await _settleLiveApiWorkBestEffort(tester, ctx);
-          final failureMessage = error.toString();
-          await _flushPendingScreenshots(
-            ctx,
-            status: TestStatus.failed,
-            durationMs: stopwatch.elapsedMilliseconds,
-            failedStepIndex: i,
-            failedStepLabel: formatStepBrief(step),
-            failureMessage: failureMessage,
-          );
-          await YamlTestSession.navigationFlow.flushPending();
-          _recordPerformanceMarker(
-            ctx: ctx,
-            testId: test.id,
-            stepIndex: null,
-            label: '${test.id} failure cleanup',
-            phase: 'idle',
-            startFrame: idleStartFrame,
-            startTime: idleStartTime,
-          );
-          await _attachPerTestDebugArtifacts(ctx);
-          return EnsembleSingleTestResult.failed(
-            testId: test.id,
-            metadata: test.metadataJson,
-            failedStepIndex: i,
-            failedStep: step,
-            error: failureMessage,
-            stackTrace: stackTrace.toString(),
-            durationMs: stopwatch.elapsedMilliseconds,
-            logs: ctx.logger.logs,
-            failure: TestFailureDetails.fromMessage(
-              failureMessage,
-              phase: 'execution',
-              target: {
-                if (step.args['id'] != null) 'id': step.args['id'],
-                if (step.args['target'] is Map)
-                  'target': Map<String, dynamic>.from(
-                    step.args['target'] as Map,
-                  ),
-              },
-            ),
-            report: buildTestReportDetails(
-              test,
-              stepDurationsMs: stepDurationsMs,
-              stepStartTimes: stepStartTimes,
-              screens: ctx.runtime.screenArtifacts,
-            ),
-          );
         }
+        ctx.runtime.currentStepIndex = null;
+
+        await YamlTestSession.navigationFlow.flushPending();
+        final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
+        final idleStartTime = DateTime.now();
+        await _settleLiveApiWorkBestEffort(tester, ctx);
+        _drainFlutterExceptions(tester);
+        await _flushPendingScreenshots(
+          ctx,
+          status: TestStatus.passed,
+          durationMs: stopwatch.elapsedMilliseconds,
+        );
+        _recordPerformanceMarker(
+          ctx: ctx,
+          testId: test.id,
+          stepIndex: null,
+          label: '${test.id} idle',
+          phase: 'idle',
+          startFrame: idleStartFrame,
+          startTime: idleStartTime,
+        );
+        await _attachPerTestDebugArtifacts(ctx);
+
+        return EnsembleSingleTestResult.passed(
+          testId: test.id,
+          metadata: test.metadataJson,
+          durationMs: stopwatch.elapsedMilliseconds,
+          logs: ctx.logger.logs,
+          report: buildTestReportDetails(
+            test,
+            stepDurationsMs: stepDurationsMs,
+            stepStartTimes: stepStartTimes,
+            screens: ctx.runtime.screenArtifacts,
+          ),
+        );
+      } finally {
+        await session.close();
       }
-      ctx.runtime.currentStepIndex = null;
-
-      await YamlTestSession.navigationFlow.flushPending();
-      final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
-      final idleStartTime = DateTime.now();
-      await _settleLiveApiWorkBestEffort(tester, ctx);
-      _drainFlutterExceptions(tester);
-      await _flushPendingScreenshots(
-        ctx,
-        status: TestStatus.passed,
-        durationMs: stopwatch.elapsedMilliseconds,
-      );
-      _recordPerformanceMarker(
-        ctx: ctx,
-        testId: test.id,
-        stepIndex: null,
-        label: '${test.id} idle',
-        phase: 'idle',
-        startFrame: idleStartFrame,
-        startTime: idleStartTime,
-      );
-      await _attachPerTestDebugArtifacts(ctx);
-
-      return EnsembleSingleTestResult.passed(
-        testId: test.id,
-        metadata: test.metadataJson,
-        durationMs: stopwatch.elapsedMilliseconds,
-        logs: ctx.logger.logs,
-        report: buildTestReportDetails(
-          test,
-          stepDurationsMs: stepDurationsMs,
-          stepStartTimes: stepStartTimes,
-          screens: ctx.runtime.screenArtifacts,
-        ),
-      );
-    } finally {
-      await session.close();
-    }
+    });
   }
 
   /// Screenshots for [waitForNavigation]: durable screens need a paint pass;
@@ -859,104 +862,123 @@ class EnsembleTestRunner {
   /// Returns whether a frame was recorded. For transient (early-frame) paths,
   /// also writes Observer from a snapshot taken while the target was visible
   /// so overlays do not drift to the next route.
+  /// Internal benchmark bridge for the legacy navigation callback pipeline.
+  /// The current standalone driver's navigation adapter bypasses this callback.
+  Future<bool> captureWaitForNavigationScreenshotForBenchmark({
+    required LocalTestExecutionSession session,
+    required TestStepExecutor executor,
+    required TestStep step,
+    required int stepIndex,
+  }) {
+    if (RunnerBenchmark.collector == null) {
+      throw StateError('Navigation benchmark requires an active collector');
+    }
+    return _captureWaitForNavigationScreenshot(
+        session: session, executor: executor, step: step, stepIndex: stepIndex);
+  }
+
   Future<bool> _captureWaitForNavigationScreenshot({
     required LocalTestExecutionSession session,
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
   }) async {
-    final options = executor.context.config.screenshots;
-    if (!options.shouldCaptureStep(step.type)) return false;
+    return await RunnerBenchmark.async(
+        'screenshot', 'captureWaitForNavigationScreenshot', () async {
+      final options = executor.context.config.screenshots;
+      if (!options.shouldCaptureStep(step.type)) return false;
 
-    final screen = step.args['screen']?.toString();
-    if (screen == null || screen.isEmpty) return false;
+      final screen = step.args['screen']?.toString();
+      if (screen == null || screen.isEmpty) return false;
 
-    final tracker = ScreenTracker();
-    bool isTargetVisible() =>
-        tracker.isScreenVisible(screenName: screen) ||
-        tracker.isScreenVisible(screenId: screen);
+      final tracker = ScreenTracker();
+      bool isTargetVisible() =>
+          tracker.isScreenVisible(screenName: screen) ||
+          tracker.isScreenVisible(screenId: screen);
 
-    if (!isTargetVisible()) return false;
-    if (treeHasFlutterErrorWidget(executor.tester)) return false;
+      if (!isTargetVisible()) return false;
+      if (treeHasFlutterErrorWidget(executor.tester)) return false;
 
-    // Hold a frame + Observer tree from the moment the tracker reports the
-    // target. Transient screens (AutoSignIn_Device) often leave during the
-    // paint pumps below — re-observing then would label the next route.
-    ui.Image? earlyImage;
-    DiagnosticUiSnapshot? earlySnap;
-    try {
-      earlyImage = ExtendedStepHandlers.captureScreenshotImage(
-        executor.tester,
-        secureContent: executor.context.config.screenshots.secureContent,
-      );
-      earlySnap = captureDiagnosticUiSnapshot(
-        tester: executor.tester,
-        assertions: session.assertions,
-        navigation: session.services.navigation,
-      );
-    } catch (_) {
-      earlyImage = null;
-      earlySnap = null;
-    }
-
-    try {
-      // Tracker often updates before the new route paints. Give durable
-      // destinations a few frames; re-check visibility so transient screens
-      // that leave mid-wait keep the early frame instead.
-      for (var i = 0; i < 6; i++) {
-        await executor.tester.pump(const Duration(milliseconds: 50));
-        if (!isTargetVisible()) break;
+      // Hold a frame + Observer tree from the moment the tracker reports the
+      // target. Transient screens (AutoSignIn_Device) often leave during the
+      // paint pumps below — re-observing then would label the next route.
+      ui.Image? earlyImage;
+      DiagnosticUiSnapshot? earlySnap;
+      try {
+        earlyImage = ExtendedStepHandlers.captureScreenshotImage(
+          executor.tester,
+          secureContent: executor.context.config.screenshots.secureContent,
+        );
+        earlySnap = captureDiagnosticUiSnapshot(
+          tester: executor.tester,
+          assertions: session.assertions,
+          navigation: session.services.navigation,
+        );
+      } catch (_) {
+        earlyImage = null;
+        earlySnap = null;
       }
-      if (isTargetVisible() && areVisibleLottiesReady(executor.tester)) {
-        seekVisibleLottiesForScreenshot(executor.tester);
-        await executor.tester.pump();
+
+      try {
+        // Tracker often updates before the new route paints. Give durable
+        // destinations a few frames; re-check visibility so transient screens
+        // that leave mid-wait keep the early frame instead.
+        for (var i = 0; i < 6; i++) {
+          await executor.tester.pump(const Duration(milliseconds: 50));
+          if (!isTargetVisible()) break;
+        }
+        if (isTargetVisible() && areVisibleLottiesReady(executor.tester)) {
+          seekVisibleLottiesForScreenshot(executor.tester);
+          await executor.tester.pump();
+        }
+      } catch (_) {
+        // Best-effort paint only.
       }
-    } catch (_) {
-      // Best-effort paint only.
-    }
 
-    if (isTargetVisible()) {
-      // Still on target after paint — prefer the painted frame (Home, etc.).
-      earlyImage?.dispose();
-      earlyImage = null;
-      earlySnap = null;
-      await _captureAutomaticScreenshotForStepBestEffort(
-        executor: executor,
-        step: step,
-        stepIndex: stepIndex,
-        ensureTargetVisible: false,
-        waitForLottie: false,
-        stabilize: false,
+      if (isTargetVisible()) {
+        // Still on target after paint — prefer the painted frame (Home, etc.).
+        if (earlyImage != null) RunnerBenchmark.count('framesDropped', 1);
+        earlyImage?.dispose();
+        earlyImage = null;
+        earlySnap = null;
+        await _captureAutomaticScreenshotForStepBestEffort(
+          executor: executor,
+          step: step,
+          stepIndex: stepIndex,
+          ensureTargetVisible: false,
+          waitForLottie: false,
+          stabilize: false,
+        );
+        return executor.context.runtime.screenshotSheetFrames
+            .any((frame) => frame.stepIndex == stepIndex);
+      }
+
+      // Left during paint — commit the early frame so the step is not labeled
+      // with the next screen's pixels.
+      if (earlyImage == null) return false;
+
+      final device = _screenshotDeviceTarget(executor.context);
+      executor.context.runtime.addScreenshotSheetFrame(
+        ScreenshotSheetFrame(
+          stepIndex: stepIndex,
+          label: '${stepIndex + 1}. ${formatStepBrief(step)}',
+          image: earlyImage,
+          deviceId: device?.id,
+          deviceLabel: device?.displayLabel,
+          platform: device?.platform,
+          model: device?.model,
+        ),
       );
-      return executor.context.runtime.screenshotSheetFrames
-          .any((frame) => frame.stepIndex == stepIndex);
-    }
-
-    // Left during paint — commit the early frame so the step is not labeled
-    // with the next screen's pixels.
-    if (earlyImage == null) return false;
-
-    final device = _screenshotDeviceTarget(executor.context);
-    executor.context.runtime.addScreenshotSheetFrame(
-      ScreenshotSheetFrame(
-        stepIndex: stepIndex,
-        label: '${stepIndex + 1}. ${formatStepBrief(step)}',
-        image: earlyImage,
-        deviceId: device?.id,
-        deviceLabel: device?.displayLabel,
-        platform: device?.platform,
-        model: device?.model,
-      ),
-    );
-    if (earlySnap != null) {
-      upsertStepObserverFromSnapshot(
-        ctx: executor.context,
-        tester: executor.tester,
-        stepIndex: stepIndex,
-        snap: earlySnap,
-      );
-    }
-    return true;
+      if (earlySnap != null) {
+        upsertStepObserverFromSnapshot(
+          ctx: executor.context,
+          tester: executor.tester,
+          stepIndex: stepIndex,
+          snap: earlySnap,
+        );
+      }
+      return true;
+    });
   }
 
   /// Screenshot + Observer as one pair. Skipped shots never write Observer.
@@ -1003,101 +1025,106 @@ class EnsembleTestRunner {
     /// that are not a flat empty region (avoids phantom optional-tap rings).
     bool requireVisibleActionHighlight = false,
   }) async {
-    final options = executor.context.config.screenshots;
-    if (!options.shouldCaptureStep(step.type)) return false;
+    return await RunnerBenchmark.async(
+        'screenshot', 'captureAutomaticScreenshotForStep', () async {
+      final options = executor.context.config.screenshots;
+      if (!options.shouldCaptureStep(step.type)) return false;
 
-    if (pumpBeforeCapture) {
-      await executor.tester.pump();
-    }
-
-    if (waitForTarget) {
-      await _waitForScreenshotTarget(executor, step);
-    }
-
-    if (ensureTargetVisible) {
-      await _ensureHighlightTargetVisible(executor, step);
-    }
-
-    if (stabilize) {
-      // Finish route transitions so the captured pixels match the highlight target.
-      await _stabilizeScreenshotFrame(
-        executor,
-        waitForLottie: waitForLottie,
-      );
-    }
-
-    final image = ExtendedStepHandlers.captureScreenshotImage(
-      executor.tester,
-      secureContent: executor.context.config.screenshots.secureContent,
-    );
-    // Read the widget tree in the same synchronous turn as the pixels. A
-    // route/timer callback can advance the live tree as soon as this method
-    // yields, so collecting Observer after returning the image can label it
-    // with the next screen.
-    DiagnosticUiSnapshot? observerSnapshot;
-    try {
-      observerSnapshot = captureDiagnosticUiSnapshot(
-        tester: executor.tester,
-        assertions: executor.assertions,
-        navigation: executor.services.navigation,
-      );
-    } catch (_) {
-      // Keep screenshot capture best-effort if Observer collection fails.
-    }
-    final device = _screenshotDeviceTarget(executor.context);
-    final highlight = _highlightForStep(
-      executor: executor,
-      image: image,
-      step: step,
-      device: device,
-      observerSnapshot: observerSnapshot,
-      forFailure: forFailure,
-    );
-    if (requireVisibleActionHighlight) {
-      final logicalRect =
-          _highlightRectForStep(executor, step, forFailure: forFailure);
-      final renderView = executor.tester.binding.renderViews.first;
-      final region = logicalRect == null
-          ? null
-          : screenshotLogicalRectToImagePixels(
-              logicalRect: logicalRect,
-              logicalSize: renderView.size,
-              imageSize: Size(image.width.toDouble(), image.height.toDouble()),
-            );
-      final hasContrast = region != null &&
-          highlight != null &&
-          highlight.kind == 'action' &&
-          await screenshotImageRegionHasContrast(
-            image: image,
-            region: region,
-          );
-      if (!hasContrast) {
-        image.dispose();
-        return false;
+      if (pumpBeforeCapture) {
+        await executor.tester.pump();
       }
-    }
-    executor.context.runtime.addScreenshotSheetFrame(
-      ScreenshotSheetFrame(
-        stepIndex: stepIndex,
-        label: '${stepIndex + 1}. ${formatStepBrief(labelStep ?? step)}',
-        image: image,
-        deviceId: device?.id,
-        deviceLabel: device?.displayLabel,
-        platform: device?.platform,
-        model: device?.model,
-        highlight: highlight,
-      ),
-    );
-    final snap = observerSnapshot;
-    if (snap != null) {
-      upsertStepObserverFromSnapshot(
-        ctx: executor.context,
-        tester: executor.tester,
-        stepIndex: stepIndex,
-        snap: snap,
+
+      if (waitForTarget) {
+        await _waitForScreenshotTarget(executor, step);
+      }
+
+      if (ensureTargetVisible) {
+        await _ensureHighlightTargetVisible(executor, step);
+      }
+
+      if (stabilize) {
+        // Finish route transitions so the captured pixels match the highlight target.
+        await _stabilizeScreenshotFrame(
+          executor,
+          waitForLottie: waitForLottie,
+        );
+      }
+
+      final image = ExtendedStepHandlers.captureScreenshotImage(
+        executor.tester,
+        secureContent: executor.context.config.screenshots.secureContent,
       );
-    }
-    return true;
+      // Read the widget tree in the same synchronous turn as the pixels. A
+      // route/timer callback can advance the live tree as soon as this method
+      // yields, so collecting Observer after returning the image can label it
+      // with the next screen.
+      DiagnosticUiSnapshot? observerSnapshot;
+      try {
+        observerSnapshot = captureDiagnosticUiSnapshot(
+          tester: executor.tester,
+          assertions: executor.assertions,
+          navigation: executor.services.navigation,
+        );
+      } catch (_) {
+        // Keep screenshot capture best-effort if Observer collection fails.
+      }
+      final device = _screenshotDeviceTarget(executor.context);
+      final highlight = _highlightForStep(
+        executor: executor,
+        image: image,
+        step: step,
+        device: device,
+        observerSnapshot: observerSnapshot,
+        forFailure: forFailure,
+      );
+      if (requireVisibleActionHighlight) {
+        final logicalRect =
+            _highlightRectForStep(executor, step, forFailure: forFailure);
+        final renderView = executor.tester.binding.renderViews.first;
+        final region = logicalRect == null
+            ? null
+            : screenshotLogicalRectToImagePixels(
+                logicalRect: logicalRect,
+                logicalSize: renderView.size,
+                imageSize:
+                    Size(image.width.toDouble(), image.height.toDouble()),
+              );
+        final hasContrast = region != null &&
+            highlight != null &&
+            highlight.kind == 'action' &&
+            await screenshotImageRegionHasContrast(
+              image: image,
+              region: region,
+            );
+        if (!hasContrast) {
+          RunnerBenchmark.count('framesDropped', 1);
+          image.dispose();
+          return false;
+        }
+      }
+      executor.context.runtime.addScreenshotSheetFrame(
+        ScreenshotSheetFrame(
+          stepIndex: stepIndex,
+          label: '${stepIndex + 1}. ${formatStepBrief(labelStep ?? step)}',
+          image: image,
+          deviceId: device?.id,
+          deviceLabel: device?.displayLabel,
+          platform: device?.platform,
+          model: device?.model,
+          highlight: highlight,
+        ),
+      );
+      final snap = observerSnapshot;
+      if (snap != null) {
+        upsertStepObserverFromSnapshot(
+          ctx: executor.context,
+          tester: executor.tester,
+          stepIndex: stepIndex,
+          snap: snap,
+        );
+      }
+      return true;
+    });
   }
 
   TestDeviceTarget? _screenshotDeviceTarget(EnsembleTestContext ctx) {
@@ -1177,60 +1204,66 @@ class EnsembleTestRunner {
     TestStepExecutor executor, {
     bool waitForLottie = true,
   }) async {
-    try {
-      // Two short pumps cover typical push/fade transitions without a full
-      // pumpAndSettle (which can hang on repeating animations).
-      await executor.tester.pump(const Duration(milliseconds: 50));
-      await executor.tester.pump(const Duration(milliseconds: 50));
-      if (!waitForLottie) {
-        // Transient navigation screens leave during a long Lottie wait; if the
-        // composition is already ready, still seek past intro-only frames.
-        if (areVisibleLottiesReady(executor.tester)) {
-          seekVisibleLottiesForScreenshot(executor.tester);
-          await executor.tester.pump();
+    return await RunnerBenchmark.async('screenshot', 'stabilizeScreenshotFrame',
+        () async {
+      try {
+        // Two short pumps cover typical push/fade transitions without a full
+        // pumpAndSettle (which can hang on repeating animations).
+        await executor.tester.pump(const Duration(milliseconds: 50));
+        await executor.tester.pump(const Duration(milliseconds: 50));
+        if (!waitForLottie) {
+          // Transient navigation screens leave during a long Lottie wait; if the
+          // composition is already ready, still seek past intro-only frames.
+          if (areVisibleLottiesReady(executor.tester)) {
+            seekVisibleLottiesForScreenshot(executor.tester);
+            await executor.tester.pump();
+          }
+          return;
         }
-        return;
+        // Local Lottie.asset is still async; with an external AnimationController
+        // nothing paints until onLoaded. Wait so step screenshots are not blank.
+        await waitForVisibleLottiesReady(executor.tester);
+      } catch (_) {
+        // Stabilization is best-effort for screenshots only.
       }
-      // Local Lottie.asset is still async; with an external AnimationController
-      // nothing paints until onLoaded. Wait so step screenshots are not blank.
-      await waitForVisibleLottiesReady(executor.tester);
-    } catch (_) {
-      // Stabilization is best-effort for screenshots only.
-    }
+    });
   }
 
   Future<void> _waitForScreenshotTarget(
     TestStepExecutor executor,
     TestStep step,
   ) async {
-    if (!_shouldHighlightStep(step)) return;
+    return await RunnerBenchmark.async('screenshot', 'waitForScreenshotTarget',
+        () async {
+      if (!_shouldHighlightStep(step)) return;
 
-    final finder = _highlightFinder(executor, step);
-    if (finder == null) return;
+      final finder = _highlightFinder(executor, step);
+      if (finder == null) return;
 
-    final waitsForHitTestable = _isUserActionStep(step);
-    final timeoutMs = step.args['timeoutMs'] as int? ??
-        executor.config.defaultWaitTimeout.inMilliseconds;
-    final stopwatch = Stopwatch()..start();
-    var scrolled = false;
-    while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      if (_isScreenshotTargetReady(
-            executor,
-            finder,
-            waitsForHitTestable,
-          ) &&
-          _isHighlightTargetPainted(executor, finder, waitsForHitTestable)) {
-        return;
+      final waitsForHitTestable = _isUserActionStep(step);
+      final timeoutMs = step.args['timeoutMs'] as int? ??
+          executor.config.defaultWaitTimeout.inMilliseconds;
+      final stopwatch = Stopwatch()..start();
+      var scrolled = false;
+      while (stopwatch.elapsedMilliseconds < timeoutMs) {
+        if (_isScreenshotTargetReady(
+              executor,
+              finder,
+              waitsForHitTestable,
+            ) &&
+            _isHighlightTargetPainted(executor, finder, waitsForHitTestable)) {
+          return;
+        }
+        // Off-screen controls never become "ready" by pumping alone — scroll
+        // once so before-action shots match tap's ensureVisible path.
+        if (!scrolled && waitsForHitTestable) {
+          scrolled = true;
+          await _ensureHighlightTargetVisible(executor, step);
+          continue;
+        }
+        await executor.tester.pump(executor.config.waitPollInterval);
       }
-      // Off-screen controls never become "ready" by pumping alone — scroll
-      // once so before-action shots match tap's ensureVisible path.
-      if (!scrolled && waitsForHitTestable) {
-        scrolled = true;
-        await _ensureHighlightTargetVisible(executor, step);
-        continue;
-      }
-      await executor.tester.pump(executor.config.waitPollInterval);
-    }
+    });
   }
 
   bool _isScreenshotTargetReady(
@@ -1249,21 +1282,24 @@ class EnsembleTestRunner {
     TestStepExecutor executor,
     TestStep step,
   ) async {
-    if (step.type != 'waitForText') return;
+    return await RunnerBenchmark.async(
+        'screenshot', 'waitForHighlightTargetToPaint', () async {
+      if (step.type != 'waitForText') return;
 
-    for (var i = 0; i < 8; i++) {
-      final finder = _highlightFinder(executor, step);
-      final element = finder == null
-          ? null
-          : executor.assertions.firstVisuallyActionableElement(finder);
-      if (element == null) return;
-      if (_effectiveOpacity(element) >= 0.85) {
-        await executor.tester.pump();
-        return;
+      for (var i = 0; i < 8; i++) {
+        final finder = _highlightFinder(executor, step);
+        final element = finder == null
+            ? null
+            : executor.assertions.firstVisuallyActionableElement(finder);
+        if (element == null) return;
+        if (_effectiveOpacity(element) >= 0.85) {
+          await executor.tester.pump();
+          return;
+        }
+
+        await executor.tester.pump(const Duration(milliseconds: 50));
       }
-
-      await executor.tester.pump(const Duration(milliseconds: 50));
-    }
+    });
   }
 
   bool _isHighlightTargetPainted(
@@ -1336,60 +1372,63 @@ class EnsembleTestRunner {
     TestStepExecutor executor,
     TestStep step,
   ) async {
-    if (!_shouldHighlightStep(step)) return;
+    return await RunnerBenchmark.async(
+        'screenshot', 'ensureHighlightTargetVisible', () async {
+      if (!_shouldHighlightStep(step)) return;
 
-    final finder = _highlightFinder(executor, step);
-    if (finder == null) return;
+      final finder = _highlightFinder(executor, step);
+      if (finder == null) return;
 
-    final requireHitTestable = _isUserActionStep(step);
-    final visibleElement = executor.assertions.firstVisuallyActionableElement(
-      finder,
-      requireHitTestable: requireHitTestable,
-    );
-    if (visibleElement != null) {
-      // Text asserts and user actions: bring the control fully on-screen.
-      // A 1px intersection counts as "visible" for hit-testing, but the
-      // before-action screenshot would otherwise crop/miss the control.
-      if (_isTextVerificationStep(step) || requireHitTestable) {
-        await Scrollable.ensureVisible(
-          visibleElement,
-          alignment: 0.45,
-          duration: Duration.zero,
-        );
-        await executor.tester.pump();
-      }
-      return;
-    }
-
-    // Scroll a current-route match into view when it exists but is off-screen.
-    Element? currentRouteMatch;
-    for (final candidate in finder.evaluate()) {
-      if (!isUnderCurrentModalRoute(candidate)) continue;
-      currentRouteMatch = candidate;
-      break;
-    }
-    if (currentRouteMatch == null) return;
-
-    var visibilityTarget = find.byWidget(currentRouteMatch.widget);
-    if (step.type == 'toggle' ||
-        step.type == 'check' ||
-        step.type == 'uncheck') {
-      final control = find.descendant(
-        of: visibilityTarget,
-        matching: find.byWidgetPredicate(
-          (widget) =>
-              widget is Switch ||
-              widget is CupertinoSwitch ||
-              widget is Checkbox,
-        ),
+      final requireHitTestable = _isUserActionStep(step);
+      final visibleElement = executor.assertions.firstVisuallyActionableElement(
+        finder,
+        requireHitTestable: requireHitTestable,
       );
-      if (control.evaluate().isNotEmpty) {
-        visibilityTarget = control.first;
+      if (visibleElement != null) {
+        // Text asserts and user actions: bring the control fully on-screen.
+        // A 1px intersection counts as "visible" for hit-testing, but the
+        // before-action screenshot would otherwise crop/miss the control.
+        if (_isTextVerificationStep(step) || requireHitTestable) {
+          await Scrollable.ensureVisible(
+            visibleElement,
+            alignment: 0.45,
+            duration: Duration.zero,
+          );
+          await executor.tester.pump();
+        }
+        return;
       }
-    }
 
-    await executor.tester.ensureVisible(visibilityTarget);
-    await executor.tester.pump();
+      // Scroll a current-route match into view when it exists but is off-screen.
+      Element? currentRouteMatch;
+      for (final candidate in finder.evaluate()) {
+        if (!isUnderCurrentModalRoute(candidate)) continue;
+        currentRouteMatch = candidate;
+        break;
+      }
+      if (currentRouteMatch == null) return;
+
+      var visibilityTarget = find.byWidget(currentRouteMatch.widget);
+      if (step.type == 'toggle' ||
+          step.type == 'check' ||
+          step.type == 'uncheck') {
+        final control = find.descendant(
+          of: visibilityTarget,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Switch ||
+                widget is CupertinoSwitch ||
+                widget is Checkbox,
+          ),
+        );
+        if (control.evaluate().isNotEmpty) {
+          visibilityTarget = control.first;
+        }
+      }
+
+      await executor.tester.ensureVisible(visibilityTarget);
+      await executor.tester.pump();
+    });
   }
 
   Finder? _highlightFinder(TestStepExecutor executor, TestStep step) {
@@ -1519,33 +1558,35 @@ class EnsembleTestRunner {
   }
 
   void _captureScreenArtifacts(EnsembleTestContext ctx) {
-    final screenName = ScreenTracker().getCurrentScreenIdentifier();
-    if (screenName == null || screenName.isEmpty) return;
+    return RunnerBenchmark.sync('workflow', 'captureScreenArtifacts', () {
+      final screenName = ScreenTracker().getCurrentScreenIdentifier();
+      if (screenName == null || screenName.isEmpty) return;
 
-    String? debugTree;
-    if (ctx.config.dumpTree.enabled) {
-      try {
-        debugTree = captureDebugDumpApp();
-      } catch (_) {}
-    }
+      String? debugTree;
+      if (ctx.config.dumpTree.enabled) {
+        try {
+          debugTree = captureDebugDumpApp();
+        } catch (_) {}
+      }
 
-    Map<String, dynamic>? performance;
-    if (ctx.config.performance.enabled) {
-      try {
-        performance = buildScreenPerformanceJson(
-          screenName: screenName,
-          frames: ctx.runtime.appFrameTimings,
-          markers: ctx.runtime.performanceMarkers,
-        );
-      } catch (_) {}
-    }
+      Map<String, dynamic>? performance;
+      if (ctx.config.performance.enabled) {
+        try {
+          performance = buildScreenPerformanceJson(
+            screenName: screenName,
+            frames: ctx.runtime.appFrameTimings,
+            markers: ctx.runtime.performanceMarkers,
+          );
+        } catch (_) {}
+      }
 
-    if (debugTree != null || performance != null) {
-      ctx.runtime.screenArtifacts[screenName] = {
-        if (debugTree != null) 'debugTree': debugTree,
-        if (performance != null) 'performance': performance,
-      };
-    }
+      if (debugTree != null || performance != null) {
+        ctx.runtime.screenArtifacts[screenName] = {
+          if (debugTree != null) 'debugTree': debugTree,
+          if (performance != null) 'performance': performance,
+        };
+      }
+    });
   }
 
   void _recordPerformanceMarker({
@@ -1595,28 +1636,31 @@ class EnsembleTestRunner {
 
   /// Writes apiCalls / storage / appLogs for one test.
   Future<void> _attachPerTestDebugArtifacts(EnsembleTestContext ctx) async {
-    // Isolate each writer so one JSON encoding failure cannot drop the rest
-    // (failed tests are when these logs matter most).
-    try {
-      final apiPath = await writeApiCallsLog(ctx);
-      _replaceArtifactLog(ctx.logger, 'apiCalls', apiPath);
-    } catch (error) {
-      ctx.logger.log('apiCallsError: $error');
-    }
+    return await RunnerBenchmark.async(
+        'workflow', 'attachPerTestDebugArtifacts', () async {
+      // Isolate each writer so one JSON encoding failure cannot drop the rest
+      // (failed tests are when these logs matter most).
+      try {
+        final apiPath = await writeApiCallsLog(ctx);
+        _replaceArtifactLog(ctx.logger, 'apiCalls', apiPath);
+      } catch (error) {
+        ctx.logger.log('apiCallsError: $error');
+      }
 
-    try {
-      final storagePath = await writeStorageLog(ctx);
-      _replaceArtifactLog(ctx.logger, 'storage', storagePath);
-    } catch (error) {
-      ctx.logger.log('storageError: $error');
-    }
+      try {
+        final storagePath = await writeStorageLog(ctx);
+        _replaceArtifactLog(ctx.logger, 'storage', storagePath);
+      } catch (error) {
+        ctx.logger.log('storageError: $error');
+      }
 
-    try {
-      final appLogPath = await writeAppConsoleLog(ctx);
-      _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
-    } catch (error) {
-      ctx.logger.log('appLogsError: $error');
-    }
+      try {
+        final appLogPath = await writeAppConsoleLog(ctx);
+        _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
+      } catch (error) {
+        ctx.logger.log('appLogsError: $error');
+      }
+    });
   }
 
   Future<void> _recordStorageStepDiff({
@@ -1626,33 +1670,36 @@ class EnsembleTestRunner {
     required Map<String, dynamic> secureBefore,
     required Map<String, dynamic> keychainBefore,
   }) async {
-    final changes = diffStorage(before, capturePublicStorage());
-    final secureChanges = diffStorage(secureBefore, captureSecureStorage());
-    final keychainChanges = diffStorage(
-      keychainBefore,
-      await captureKeychainStorage(),
-    );
-    if (changes.isNotEmpty) {
-      ctx.runtime.storageStepDiffs.add(StorageStepDiff(
-        stepIndex: stepIndex,
-        timestamp: DateTime.now(),
-        changes: changes,
-      ));
-    }
-    if (secureChanges.isNotEmpty) {
-      ctx.runtime.secureStorageStepDiffs.add(StorageStepDiff(
-        stepIndex: stepIndex,
-        timestamp: DateTime.now(),
-        changes: secureChanges,
-      ));
-    }
-    if (keychainChanges.isNotEmpty) {
-      ctx.runtime.keychainStepDiffs.add(StorageStepDiff(
-        stepIndex: stepIndex,
-        timestamp: DateTime.now(),
-        changes: keychainChanges,
-      ));
-    }
+    return await RunnerBenchmark.async('workflow', 'recordStorageStepDiff',
+        () async {
+      final changes = diffStorage(before, capturePublicStorage());
+      final secureChanges = diffStorage(secureBefore, captureSecureStorage());
+      final keychainChanges = diffStorage(
+        keychainBefore,
+        await captureKeychainStorage(),
+      );
+      if (changes.isNotEmpty) {
+        ctx.runtime.storageStepDiffs.add(StorageStepDiff(
+          stepIndex: stepIndex,
+          timestamp: DateTime.now(),
+          changes: changes,
+        ));
+      }
+      if (secureChanges.isNotEmpty) {
+        ctx.runtime.secureStorageStepDiffs.add(StorageStepDiff(
+          stepIndex: stepIndex,
+          timestamp: DateTime.now(),
+          changes: secureChanges,
+        ));
+      }
+      if (keychainChanges.isNotEmpty) {
+        ctx.runtime.keychainStepDiffs.add(StorageStepDiff(
+          stepIndex: stepIndex,
+          timestamp: DateTime.now(),
+          changes: keychainChanges,
+        ));
+      }
+    });
   }
 
   void _replaceArtifactLog(TestLogger logger, String label, String path) {

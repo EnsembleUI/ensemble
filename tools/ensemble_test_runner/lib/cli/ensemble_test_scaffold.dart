@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
@@ -25,45 +26,48 @@ class EnsembleTestScaffold {
   });
 
   EnsembleTestScaffoldResult create(List<String> arguments) {
-    final id = _optionValue(arguments, '--scaffold-test') ?? 'new_test';
-    final normalizedId = id.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_');
-    final inspection =
-        applicationProvided ? null : EnsembleAppInspector(appDir).inspect();
-    final screen = _optionValue(arguments, '--screen') ?? inspection?.appHome;
-    final feature = _optionValue(arguments, '--feature');
-    final tags = arguments
-        .where((arg) => arg.startsWith('--tag='))
-        .map((arg) => arg.substring('--tag='.length))
-        .where((tag) => tag.isNotEmpty)
-        .toList();
+    return RunnerBenchmark.sync('tools', 'create', () {
+      final id = _optionValue(arguments, '--scaffold-test') ?? 'new_test';
+      final normalizedId = id.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_');
+      final inspection =
+          applicationProvided ? null : EnsembleAppInspector(appDir).inspect();
+      final screen = _optionValue(arguments, '--screen') ?? inspection?.appHome;
+      final feature = _optionValue(arguments, '--feature');
+      final tags = arguments
+          .where((arg) => arg.startsWith('--tag='))
+          .map((arg) => arg.substring('--tag='.length))
+          .where((tag) => tag.isNotEmpty)
+          .toList();
 
-    final testsDir = Directory(p.join(
-      appDir,
-      testsDirRelative ?? p.join(inspection!.appPath, 'tests'),
-    ));
-    testsDir.createSync(recursive: true);
-    Directory(p.join(testsDir.path, 'mocks')).createSync(recursive: true);
+      final testsDir = Directory(p.join(
+        appDir,
+        testsDirRelative ?? p.join(inspection!.appPath, 'tests'),
+      ));
+      testsDir.createSync(recursive: true);
+      Directory(p.join(testsDir.path, 'mocks')).createSync(recursive: true);
 
-    final file = File(p.join(testsDir.path, '$normalizedId.test.yaml'));
-    if (file.existsSync()) {
-      return EnsembleTestScaffoldResult(path: file.path, created: false);
-    }
+      final file = File(p.join(testsDir.path, '$normalizedId.test.yaml'));
+      if (file.existsSync()) {
+        return EnsembleTestScaffoldResult(path: file.path, created: false);
+      }
 
-    final buffer = StringBuffer()
-      ..writeln('# yaml-language-server: \$schema=$_schemaUrl')
-      ..writeln('id: $normalizedId');
-    if (feature != null && feature.isNotEmpty)
-      buffer.writeln('feature: $feature');
-    if (tags.isNotEmpty) buffer.writeln('tags: [${tags.join(', ')}]');
-    buffer..writeln('description: Describe the user behavior this test covers');
-    if (!applicationProvided) buffer.writeln('startScreen: $screen');
-    buffer
-      ..writeln('steps:')
-      ..writeln('  - expectVisible:')
-      ..writeln('      id: TODO_widget_test_id');
+      final buffer = StringBuffer()
+        ..writeln('# yaml-language-server: \$schema=$_schemaUrl')
+        ..writeln('id: $normalizedId');
+      if (feature != null && feature.isNotEmpty)
+        buffer.writeln('feature: $feature');
+      if (tags.isNotEmpty) buffer.writeln('tags: [${tags.join(', ')}]');
+      buffer
+        ..writeln('description: Describe the user behavior this test covers');
+      if (!applicationProvided) buffer.writeln('startScreen: $screen');
+      buffer
+        ..writeln('steps:')
+        ..writeln('  - expectVisible:')
+        ..writeln('      id: TODO_widget_test_id');
 
-    file.writeAsStringSync(buffer.toString());
-    return EnsembleTestScaffoldResult(path: file.path, created: true);
+      file.writeAsStringSync(buffer.toString());
+      return EnsembleTestScaffoldResult(path: file.path, created: true);
+    });
   }
 }
 

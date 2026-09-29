@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
@@ -39,68 +40,73 @@ class FlutterUiObserver implements UiObserver {
   Future<UiObservation> observe([
     ObservationOptions options = const ObservationOptions(),
   ]) async {
-    var partial = false;
-    switch (options.synchronization) {
-      case ObservationSynchronization.immediate:
-        break;
-      case ObservationSynchronization.nextFrame:
-        await tester.pump();
-        break;
-      case ObservationSynchronization.untilStable:
-        final timeout = options.stableTimeout ?? settleTimeout;
-        try {
-          await tester.pumpAndSettle(timeout);
-        } on FlutterError {
-          partial = true;
-        }
-        break;
-    }
+    return await RunnerBenchmark.async('observer', 'observe', () async {
+      RunnerBenchmark.dimension(
+          'synchronizationPolicy', options.synchronization.name);
+      RunnerBenchmark.dimension('keyedOnly', options.keyedOnly);
+      var partial = false;
+      switch (options.synchronization) {
+        case ObservationSynchronization.immediate:
+          break;
+        case ObservationSynchronization.nextFrame:
+          await tester.pump();
+          break;
+        case ObservationSynchronization.untilStable:
+          final timeout = options.stableTimeout ?? settleTimeout;
+          try {
+            await tester.pumpAndSettle(timeout);
+          } on FlutterError {
+            partial = true;
+          }
+          break;
+      }
 
-    // Identity/freshness always includes bounds so presentation options
-    // (includeBounds) cannot change stale-target validation.
-    final built = _buildElements(
-      includeBounds: true,
-      keyedOnly: options.keyedOnly,
-    );
-    final screen = _screenObservation();
-    final fingerprint = fingerprintForObservation(
-      screen: screen,
-      elements: built.elements,
-    );
+      // Identity/freshness always includes bounds so presentation options
+      // (includeBounds) cannot change stale-target validation.
+      final built = _buildElements(
+        includeBounds: true,
+        keyedOnly: options.keyedOnly,
+      );
+      final screen = _screenObservation();
+      final fingerprint = fingerprintForObservation(
+        screen: screen,
+        elements: built.elements,
+      );
 
-    final revision = _applyFingerprint(fingerprint);
+      final revision = _applyFingerprint(fingerprint);
 
-    final observationId = nextObservationId();
-    registry.registerObservation(
-      observationId: observationId,
-      handles: rebindHandles(observationId, built.handles),
-    );
+      final observationId = nextObservationId();
+      registry.registerObservation(
+        observationId: observationId,
+        handles: rebindHandles(observationId, built.handles),
+      );
 
-    final elements = options.includeBounds
-        ? built.elements
-        : built.elements.map(_withoutBounds).toList(growable: false);
+      final elements = options.includeBounds
+          ? built.elements
+          : built.elements.map(_withoutBounds).toList(growable: false);
 
-    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-    return UiObservation(
-      observationId: observationId,
-      revision: revision,
-      timestamp: DateTime.now().toUtc(),
-      screen: screen,
-      elements: elements,
-      viewport: UiViewport(
-        width: size.width,
-        height: size.height,
-        devicePixelRatio: tester.view.devicePixelRatio,
-      ),
-      observableFingerprint: fingerprint,
-      completeness: ObservationCompleteness(
-        semanticTree: true,
-        runtimeMetadata: true,
-        navigationState: !screen.unknown,
-        screenshot: false,
-        partial: partial,
-      ),
-    );
+      final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+      return UiObservation(
+        observationId: observationId,
+        revision: revision,
+        timestamp: DateTime.now().toUtc(),
+        screen: screen,
+        elements: elements,
+        viewport: UiViewport(
+          width: size.width,
+          height: size.height,
+          devicePixelRatio: tester.view.devicePixelRatio,
+        ),
+        observableFingerprint: fingerprint,
+        completeness: ObservationCompleteness(
+          semanticTree: true,
+          runtimeMetadata: true,
+          navigationState: !screen.unknown,
+          screenshot: false,
+          partial: partial,
+        ),
+      );
+    });
   }
 
   /// Recomputes the session revision after a mutation without semantics churn.
@@ -108,11 +114,14 @@ class FlutterUiObserver implements UiObserver {
   /// Uses a lightweight widget-field fingerprint (keyed ids + text) so every
   /// `act` does not toggle [SemanticsHandle] via a full observe walk.
   Future<void> syncRevisionAfterMutation() async {
-    final fingerprint = lightweightMutationFingerprint(
-      tester: tester,
-      routeName: navigation?.currentRoute,
-    );
-    _applyFingerprint(fingerprint);
+    return await RunnerBenchmark.async('observer', 'syncRevisionAfterMutation',
+        () async {
+      final fingerprint = lightweightMutationFingerprint(
+        tester: tester,
+        routeName: navigation?.currentRoute,
+      );
+      _applyFingerprint(fingerprint);
+    });
   }
 
   int _applyFingerprint(String fingerprint) {
@@ -191,15 +200,17 @@ class FlutterUiObserver implements UiObserver {
     String observationId,
     Map<String, SnapshotElementHandle> handles,
   ) {
-    return {
-      for (final e in handles.entries)
-        e.key: SnapshotElementHandle(
-          observationId: observationId,
-          elementId: e.value.elementId,
-          testId: e.value.testId,
-          element: e.value.element,
-          observableFingerprint: e.value.observableFingerprint,
-        ),
-    };
+    return RunnerBenchmark.sync('observer', 'rebindHandles', () {
+      return {
+        for (final e in handles.entries)
+          e.key: SnapshotElementHandle(
+            observationId: observationId,
+            elementId: e.value.elementId,
+            testId: e.value.testId,
+            element: e.value.element,
+            observableFingerprint: e.value.observableFingerprint,
+          ),
+      };
+    });
   }
 }

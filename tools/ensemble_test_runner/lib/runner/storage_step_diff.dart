@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 import 'package:ensemble/framework/storage_manager.dart';
@@ -46,14 +47,16 @@ class StorageStepDiff {
 
 /// Deep-copies current public [StorageManager] keys into a plain map.
 Map<String, dynamic> capturePublicStorage() {
-  final storage = StorageManager();
-  final result = <String, dynamic>{};
-  for (final key in storage.getKeys()) {
-    if (!key.startsWith('enc_')) {
-      result[key] = _copy(storage.read(key));
+  return RunnerBenchmark.sync('lifecycle', 'capturePublicStorage', () {
+    final storage = StorageManager();
+    final result = <String, dynamic>{};
+    for (final key in storage.getKeys()) {
+      if (!key.startsWith('enc_')) {
+        result[key] = _copy(storage.read(key));
+      }
     }
-  }
-  return result;
+    return result;
+  });
 }
 
 /// Captures Ensemble encrypted public-storage values using their logical keys.
@@ -61,28 +64,33 @@ Map<String, dynamic> capturePublicStorage() {
 /// The encrypted backend stores values under `enc_<key>` in public GetStorage.
 /// Reports expose the logical key and decoded value instead.
 Map<String, dynamic> captureSecureStorage() {
-  final storage = StorageManager();
-  final result = <String, dynamic>{};
-  for (final backendKey in storage.getKeys()) {
-    if (!backendKey.startsWith('enc_')) continue;
-    final key = backendKey.substring('enc_'.length);
-    final raw = storage.read(backendKey);
-    final decoded = EncryptedStorageManager.getSecureStorage(key);
-    result[key] = decoded ??
-        <String, dynamic>{
-          'value': _copy(raw),
-          'decodeError': true,
-        };
-  }
-  return result;
+  return RunnerBenchmark.sync('lifecycle', 'captureSecureStorage', () {
+    final storage = StorageManager();
+    final result = <String, dynamic>{};
+    for (final backendKey in storage.getKeys()) {
+      if (!backendKey.startsWith('enc_')) continue;
+      final key = backendKey.substring('enc_'.length);
+      final raw = storage.read(backendKey);
+      final decoded = EncryptedStorageManager.getSecureStorage(key);
+      result[key] = decoded ??
+          <String, dynamic>{
+            'value': _copy(raw),
+            'decodeError': true,
+          };
+    }
+    return result;
+  });
 }
 
 /// Captures platform keychain / FlutterSecureStorage values.
 Future<Map<String, dynamic>> captureKeychainStorage() async {
-  final values = await StorageManager().getAllFromKeychain();
-  return {
-    for (final entry in values.entries) entry.key: _copy(entry.value),
-  };
+  return await RunnerBenchmark.async('lifecycle', 'captureKeychainStorage',
+      () async {
+    final values = await StorageManager().getAllFromKeychain();
+    return {
+      for (final entry in values.entries) entry.key: _copy(entry.value),
+    };
+  });
 }
 
 /// Diff of public storage maps. Returns only keys that changed.
@@ -90,31 +98,33 @@ List<StorageKeyChange> diffStorage(
   Map<String, dynamic> before,
   Map<String, dynamic> after,
 ) {
-  final changes = <StorageKeyChange>[];
-  final allKeys = {...before.keys, ...after.keys};
-  for (final key in allKeys.toList()..sort()) {
-    final hadBefore = before.containsKey(key);
-    final hadAfter = after.containsKey(key);
-    if (!hadBefore && hadAfter) {
-      changes.add(
-        StorageKeyChange(key: key, change: 'added', after: after[key]),
-      );
-    } else if (hadBefore && !hadAfter) {
-      changes.add(
-        StorageKeyChange(key: key, change: 'removed', before: before[key]),
-      );
-    } else if (!_deepEquals(before[key], after[key])) {
-      changes.add(
-        StorageKeyChange(
-          key: key,
-          change: 'modified',
-          before: before[key],
-          after: after[key],
-        ),
-      );
+  return RunnerBenchmark.sync('lifecycle', 'diffStorage', () {
+    final changes = <StorageKeyChange>[];
+    final allKeys = {...before.keys, ...after.keys};
+    for (final key in allKeys.toList()..sort()) {
+      final hadBefore = before.containsKey(key);
+      final hadAfter = after.containsKey(key);
+      if (!hadBefore && hadAfter) {
+        changes.add(
+          StorageKeyChange(key: key, change: 'added', after: after[key]),
+        );
+      } else if (hadBefore && !hadAfter) {
+        changes.add(
+          StorageKeyChange(key: key, change: 'removed', before: before[key]),
+        );
+      } else if (!_deepEquals(before[key], after[key])) {
+        changes.add(
+          StorageKeyChange(
+            key: key,
+            change: 'modified',
+            before: before[key],
+            after: after[key],
+          ),
+        );
+      }
     }
-  }
-  return changes;
+    return changes;
+  });
 }
 
 dynamic _copy(dynamic value) {

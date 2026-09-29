@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 const _gibibyte = 1024 * 1024 * 1024;
@@ -14,18 +15,20 @@ int calculateAutomaticWorkerCount({
   required int logicalProcessorCount,
   int? totalMemoryBytes,
 }) {
-  if (testCount < 2) return 1;
+  return RunnerBenchmark.sync('worker', 'calculateAutomaticWorkerCount', () {
+    if (testCount < 2) return 1;
 
-  final processors = logicalProcessorCount.clamp(1, 1 << 20);
-  final cpuBudget = ((processors - 2) ~/ 2).clamp(1, testCount);
-  if (totalMemoryBytes == null || totalMemoryBytes <= 0) {
-    return cpuBudget;
-  }
+    final processors = logicalProcessorCount.clamp(1, 1 << 20);
+    final cpuBudget = ((processors - 2) ~/ 2).clamp(1, testCount);
+    if (totalMemoryBytes == null || totalMemoryBytes <= 0) {
+      return cpuBudget;
+    }
 
-  final memoryBudget =
-      ((totalMemoryBytes - _reservedMemoryBytes) ~/ _memoryPerWorkerBytes)
-          .clamp(1, testCount);
-  return cpuBudget < memoryBudget ? cpuBudget : memoryBudget;
+    final memoryBudget =
+        ((totalMemoryBytes - _reservedMemoryBytes) ~/ _memoryPerWorkerBytes)
+            .clamp(1, testCount);
+    return cpuBudget < memoryBudget ? cpuBudget : memoryBudget;
+  });
 }
 
 /// Returns total physical memory, constrained by a Linux container limit when

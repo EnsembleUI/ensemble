@@ -50,3 +50,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - tool/benchmarks/fixtures/ensemble/apps/demo/screens/

@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -35,53 +36,58 @@ class TestReportDocument {
     required String displayRoot,
     int? wallTimeMs,
   }) {
-    final ordered = [
-      ...result.results.where((r) => r.status == TestStatus.failed),
-      ...result.results.where((r) => r.status != TestStatus.failed),
-    ];
-    final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
+    return RunnerBenchmark.sync('report', 'buildComplete', () {
+      final ordered = [
+        ...result.results.where((r) => r.status == TestStatus.failed),
+        ...result.results.where((r) => r.status != TestStatus.failed),
+      ];
+      final totalMs =
+          result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
 
-    return {
-      'state': 'complete',
-      'generatedAt': DateTime.now().toIso8601String(),
-      'summary': {
-        'passed': result.passedCount,
-        'failed': result.failedCount,
-        'totalMs': totalMs,
-        'wallTimeMs': wallTimeMs ?? totalMs,
-      },
-      if (result.metadata.isNotEmpty) 'metadata': result.metadata,
-      'suiteArtifacts': _suiteArtifacts(
-        result.suiteLogs,
-        artifactRoot: artifactRoot,
-        displayRoot: displayRoot,
-      ),
-      'tests': [
-        for (final test in ordered)
-          _buildTestEntry(
-            test,
-            artifactRoot: artifactRoot,
-            displayRoot: displayRoot,
-          ),
-      ],
-    };
+      return {
+        'state': 'complete',
+        'generatedAt': DateTime.now().toIso8601String(),
+        'summary': {
+          'passed': result.passedCount,
+          'failed': result.failedCount,
+          'totalMs': totalMs,
+          'wallTimeMs': wallTimeMs ?? totalMs,
+        },
+        if (result.metadata.isNotEmpty) 'metadata': result.metadata,
+        'suiteArtifacts': _suiteArtifacts(
+          result.suiteLogs,
+          artifactRoot: artifactRoot,
+          displayRoot: displayRoot,
+        ),
+        'tests': [
+          for (final test in ordered)
+            _buildTestEntry(
+              test,
+              artifactRoot: artifactRoot,
+              displayRoot: displayRoot,
+            ),
+        ],
+      };
+    });
   }
 
   /// Writes optimized, gzip-compressed results under [reportDir].
   static void writeResults(Directory reportDir, Map<String, dynamic> document) {
-    reportDir.createSync(recursive: true);
-    final optimized = ReportJsonOptimizer.optimize(document);
-    final jsonText = json.encode(optimized);
-    final gzPath = p.join(reportDir.path, resultsFileName);
-    AtomicFile.writeBytesSync(
-      File(gzPath),
-      gzip.encode(utf8.encode(jsonText)),
-    );
-    // Drop legacy uncompressed / dual-file reports.
-    for (final name in const ['results.json', 'results.js']) {
-      final legacy = File(p.join(reportDir.path, name));
-      if (legacy.existsSync()) legacy.deleteSync();
-    }
+    return RunnerBenchmark.sync('report', 'writeResults', () {
+      reportDir.createSync(recursive: true);
+      final optimized = ReportJsonOptimizer.optimize(document);
+      final jsonText = json.encode(optimized);
+      final gzPath = p.join(reportDir.path, resultsFileName);
+      AtomicFile.writeBytesSync(
+        File(gzPath),
+        gzip.encode(utf8.encode(jsonText)),
+      );
+      // Drop legacy uncompressed / dual-file reports.
+      for (final name in const ['results.json', 'results.js']) {
+        final legacy = File(p.join(reportDir.path, name));
+        if (legacy.existsSync()) legacy.deleteSync();
+      }
+    });
   }
 
   /// Reads and expands [resultsFileName] for tests and tooling.
@@ -106,19 +112,21 @@ class TestReportDocument {
   /// `worker_progress` / `worker_reports` are normally deleted earlier by the
   /// CLI when each finishes its job; listed here as a safety net.
   static void cleanTransientArtifacts(String artifactRoot) {
-    for (final name in const [
-      'logs',
-      'worker_progress',
-      'worker_reports',
-      'frames',
-      // Legacy pre-rename location for `*_frames.json` manifests.
-      'screenshots',
-    ]) {
-      final directory = Directory(p.join(artifactRoot, name));
-      if (directory.existsSync()) {
-        directory.deleteSync(recursive: true);
+    return RunnerBenchmark.sync('report', 'cleanTransientArtifacts', () {
+      for (final name in const [
+        'logs',
+        'worker_progress',
+        'worker_reports',
+        'frames',
+        // Legacy pre-rename location for `*_frames.json` manifests.
+        'screenshots',
+      ]) {
+        final directory = Directory(p.join(artifactRoot, name));
+        if (directory.existsSync()) {
+          directory.deleteSync(recursive: true);
+        }
       }
-    }
+    });
   }
 
   static List<Map<String, dynamic>> _suiteArtifacts(

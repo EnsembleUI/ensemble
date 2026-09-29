@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
@@ -148,246 +149,248 @@ class EnsembleTestSchemaBuilder {
       };
 
   static Map<String, dynamic> build() {
-    final defs = <String, dynamic>{
-      'elementBounds': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'left': {'type': 'number'},
-          'top': {'type': 'number'},
-          'width': {'type': 'number', 'exclusiveMinimum': 0},
-          'height': {'type': 'number', 'exclusiveMinimum': 0},
+    return RunnerBenchmark.sync('tools', 'build', () {
+      final defs = <String, dynamic>{
+        'elementBounds': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'left': {'type': 'number'},
+            'top': {'type': 'number'},
+            'width': {'type': 'number', 'exclusiveMinimum': 0},
+            'height': {'type': 'number', 'exclusiveMinimum': 0},
+          },
+          'required': ['left', 'top', 'width', 'height'],
         },
-        'required': ['left', 'top', 'width', 'height'],
-      },
-      'elementLocator': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'id': {'type': 'string', 'minLength': 1},
-          'text': {'type': 'string'},
-          'label': {'type': 'string'},
-          'role': {
-            'type': 'string',
-            'enum': [
-              'button',
-              'card',
-              'toast',
-              'text',
-              'textField',
-              'checkbox',
-              'switch',
-              'slider',
-              'dropdown',
-              'icon',
-              'image',
-              'svg',
-              'gif',
-              'lottie',
-              'widget',
-            ],
+        'elementLocator': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'id': {'type': 'string', 'minLength': 1},
+            'text': {'type': 'string'},
+            'label': {'type': 'string'},
+            'role': {
+              'type': 'string',
+              'enum': [
+                'button',
+                'card',
+                'toast',
+                'text',
+                'textField',
+                'checkbox',
+                'switch',
+                'slider',
+                'dropdown',
+                'icon',
+                'image',
+                'svg',
+                'gif',
+                'lottie',
+                'widget',
+              ],
+            },
+            'within': {'\$ref': '#/\$defs/elementLocator'},
+            'occurrence': {'type': 'integer', 'minimum': 0},
+            'bounds': {'\$ref': '#/\$defs/elementBounds'},
           },
-          'within': {'\$ref': '#/\$defs/elementLocator'},
-          'occurrence': {'type': 'integer', 'minimum': 0},
-          'bounds': {'\$ref': '#/\$defs/elementBounds'},
+          'anyOf': [
+            {
+              'required': ['id']
+            },
+            {
+              'required': ['text']
+            },
+            {
+              'required': ['label']
+            },
+            {
+              'required': ['role']
+            },
+            {
+              'required': ['bounds']
+            },
+          ],
         },
-        'anyOf': [
-          {
-            'required': ['id']
+        'initialState': _initialStateDef(),
+        'scenario': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'id': {'type': 'string', 'minLength': 1},
+            'description': {'type': 'string'},
+            'vars': {'type': 'object', 'additionalProperties': true},
           },
-          {
-            'required': ['text']
-          },
-          {
-            'required': ['label']
-          },
-          {
-            'required': ['role']
-          },
-          {
-            'required': ['bounds']
-          },
-        ],
-      },
-      'initialState': _initialStateDef(),
-      'scenario': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'id': {'type': 'string', 'minLength': 1},
-          'description': {'type': 'string'},
-          'vars': {'type': 'object', 'additionalProperties': true},
+          'required': ['id'],
         },
-        'required': ['id'],
-      },
-      'mockResponse': _mockResponseDef(),
-      'inlineMocks': _inlineMocksDef(),
-      'testCase': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'id': {
-            'type': 'string',
-            'minLength': 1,
-            'description': 'Unique test identifier',
+        'mockResponse': _mockResponseDef(),
+        'inlineMocks': _inlineMocksDef(),
+        'testCase': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'id': {
+              'type': 'string',
+              'minLength': 1,
+              'description': 'Unique test identifier',
+            },
+            'type': {'type': 'string'},
+            'feature': {
+              'type': 'string',
+              'minLength': 1,
+              'description': 'Feature or flow name, e.g. login or wifi',
+            },
+            'tags': {
+              'type': 'array',
+              'items': {'type': 'string'},
+              'description': 'Free-form labels for filtering and organization',
+            },
+            'description': {'type': 'string'},
+            'owner': {'type': 'string'},
+            'priority': {
+              'type': 'string',
+              'enum': [
+                'p0',
+                'p1',
+                'p2',
+                'p3',
+                'critical',
+                'high',
+                'medium',
+                'low'
+              ],
+            },
+            'parallel': {
+              'type': 'boolean',
+              'description':
+                  'Set false for tests that mutate shared external state and must not run in a parallel worker shard.',
+            },
+            'retry': {
+              'type': 'integer',
+              'minimum': 0,
+              'description':
+                  'Number of additional attempts after the first failure.',
+            },
+            'startScreen': {
+              'type': 'string',
+              'minLength': 1,
+              'description': 'Ensemble screen name or id to load first',
+            },
+            'startScreenInputs': {
+              'type': 'object',
+              'additionalProperties': true,
+              'description': 'Inputs passed to startScreen',
+            },
+            'session': {
+              'type': 'string',
+              'minLength': 1,
+              'description':
+                  'ID of a successful test whose captured app state is restored before startScreen',
+            },
+            'profiles': {
+              'oneOf': [
+                {'type': 'string', 'minLength': 1},
+                {
+                  'type': 'array',
+                  'minItems': 1,
+                  'items': {'type': 'string', 'minLength': 1},
+                },
+              ],
+              'description':
+                  'Profile selector(s) from tests/config.yaml profiles. Each '
+                      'selector can be a concrete profile or a group.',
+            },
+            'initialState': {'\$ref': '#/\$defs/initialState'},
+            'setup': {
+              'type': 'array',
+              'minItems': 1,
+              'items': {'\$ref': '#/\$defs/setupStep'},
+              'description':
+                  'Headless httpRequest actions executed before startScreen mounts',
+            },
+            'mocks': _mocksPropertySchema(),
+            'scenarios': {
+              'type': 'array',
+              'items': {'\$ref': '#/\$defs/scenario'},
+              'minItems': 1,
+            },
+            'steps': {
+              'type': 'array',
+              'minItems': 1,
+              'items': {'\$ref': '#/\$defs/step'},
+            },
           },
-          'type': {'type': 'string'},
-          'feature': {
-            'type': 'string',
-            'minLength': 1,
-            'description': 'Feature or flow name, e.g. login or wifi',
-          },
-          'tags': {
-            'type': 'array',
-            'items': {'type': 'string'},
-            'description': 'Free-form labels for filtering and organization',
-          },
-          'description': {'type': 'string'},
-          'owner': {'type': 'string'},
-          'priority': {
-            'type': 'string',
-            'enum': [
-              'p0',
-              'p1',
-              'p2',
-              'p3',
-              'critical',
-              'high',
-              'medium',
-              'low'
-            ],
-          },
-          'parallel': {
-            'type': 'boolean',
-            'description':
-                'Set false for tests that mutate shared external state and must not run in a parallel worker shard.',
-          },
-          'retry': {
-            'type': 'integer',
-            'minimum': 0,
-            'description':
-                'Number of additional attempts after the first failure.',
-          },
-          'startScreen': {
-            'type': 'string',
-            'minLength': 1,
-            'description': 'Ensemble screen name or id to load first',
-          },
-          'startScreenInputs': {
-            'type': 'object',
-            'additionalProperties': true,
-            'description': 'Inputs passed to startScreen',
-          },
-          'session': {
-            'type': 'string',
-            'minLength': 1,
-            'description':
-                'ID of a successful test whose captured app state is restored before startScreen',
-          },
-          'profiles': {
-            'oneOf': [
-              {'type': 'string', 'minLength': 1},
-              {
-                'type': 'array',
-                'minItems': 1,
-                'items': {'type': 'string', 'minLength': 1},
-              },
-            ],
-            'description':
-                'Profile selector(s) from tests/config.yaml profiles. Each '
-                    'selector can be a concrete profile or a group.',
-          },
-          'initialState': {'\$ref': '#/\$defs/initialState'},
-          'setup': {
-            'type': 'array',
-            'minItems': 1,
-            'items': {'\$ref': '#/\$defs/setupStep'},
-            'description':
-                'Headless httpRequest actions executed before startScreen mounts',
-          },
-          'mocks': _mocksPropertySchema(),
-          'scenarios': {
-            'type': 'array',
-            'items': {'\$ref': '#/\$defs/scenario'},
-            'minItems': 1,
-          },
-          'steps': {
-            'type': 'array',
-            'minItems': 1,
-            'items': {'\$ref': '#/\$defs/step'},
-          },
+          'required': ['id', 'steps'],
         },
-        'required': ['id', 'steps'],
-      },
-    };
+      };
 
-    // Register per-step arg defs and step wrappers.
-    final stepOneOf = <Map<String, dynamic>>[];
-    final registeredArgDefs = <String>{};
-    final mocksSchema = Map<String, dynamic>.from(
-        (defs['testCase'] as Map)['properties']['mocks']);
+      // Register per-step arg defs and step wrappers.
+      final stepOneOf = <Map<String, dynamic>>[];
+      final registeredArgDefs = <String>{};
+      final mocksSchema = Map<String, dynamic>.from(
+          (defs['testCase'] as Map)['properties']['mocks']);
 
-    for (final yamlKey in TestStepVocabulary.yamlStepKeys) {
-      final entry = TestStepRegistry.entries[yamlKey]!;
-      final description = entry.description;
-      final argsSchema = yamlKey == 'mocks'
-          ? mocksSchema
-          : TestStepVocabulary.argJsonSchemaForYamlKey(yamlKey);
-      final argsDefName = 'args_$yamlKey';
+      for (final yamlKey in TestStepVocabulary.yamlStepKeys) {
+        final entry = TestStepRegistry.entries[yamlKey]!;
+        final description = entry.description;
+        final argsSchema = yamlKey == 'mocks'
+            ? mocksSchema
+            : TestStepVocabulary.argJsonSchemaForYamlKey(yamlKey);
+        final argsDefName = 'args_$yamlKey';
 
-      final exampleArgs = Map<String, dynamic>.from(entry.example);
-      final exampleStep = {yamlKey: exampleArgs};
+        final exampleArgs = Map<String, dynamic>.from(entry.example);
+        final exampleStep = {yamlKey: exampleArgs};
 
-      if (registeredArgDefs.add(argsDefName)) {
-        defs[argsDefName] = {
-          ...argsSchema,
-          'title': yamlKey,
-          'description': description,
-          'examples': [exampleArgs],
-        };
-      }
-
-      stepOneOf.add({
-        'type': 'object',
-        'title': yamlKey,
-        'description': description,
-        'examples': [exampleStep],
-        'additionalProperties': false,
-        'minProperties': 1,
-        'maxProperties': 1,
-        'properties': {
-          yamlKey: {
-            '\$ref': '#/\$defs/$argsDefName',
+        if (registeredArgDefs.add(argsDefName)) {
+          defs[argsDefName] = {
+            ...argsSchema,
+            'title': yamlKey,
             'description': description,
             'examples': [exampleArgs],
+          };
+        }
+
+        stepOneOf.add({
+          'type': 'object',
+          'title': yamlKey,
+          'description': description,
+          'examples': [exampleStep],
+          'additionalProperties': false,
+          'minProperties': 1,
+          'maxProperties': 1,
+          'properties': {
+            yamlKey: {
+              '\$ref': '#/\$defs/$argsDefName',
+              'description': description,
+              'examples': [exampleArgs],
+            },
           },
-        },
-        'required': [yamlKey],
-      });
-    }
+          'required': [yamlKey],
+        });
+      }
 
-    defs['step'] = {'oneOf': stepOneOf};
-    defs['setupStep'] = {
-      'oneOf': stepOneOf
-          .where((step) =>
-              step['title'] == 'httpRequest' ||
-              step['title'] == 'group' ||
-              step['title'] == 'optional')
-          .toList(),
-    };
+      defs['step'] = {'oneOf': stepOneOf};
+      defs['setupStep'] = {
+        'oneOf': stepOneOf
+            .where((step) =>
+                step['title'] == 'httpRequest' ||
+                step['title'] == 'group' ||
+                step['title'] == 'optional')
+            .toList(),
+      };
 
-    final testCase = defs.remove('testCase') as Map<String, dynamic>;
+      final testCase = defs.remove('testCase') as Map<String, dynamic>;
 
-    return {
-      '\$schema': schemaVersion,
-      '\$id': schemaId,
-      'title': 'Ensemble declarative test file',
-      'description':
-          'Schema for app-local tests/*.test.yaml — one test per file; '
-              'see tools/ensemble_test_runner/STEP_VOCABULARY.md',
-      ...testCase,
-      '\$defs': defs,
-    };
+      return {
+        '\$schema': schemaVersion,
+        '\$id': schemaId,
+        'title': 'Ensemble declarative test file',
+        'description':
+            'Schema for app-local tests/*.test.yaml — one test per file; '
+                'see tools/ensemble_test_runner/STEP_VOCABULARY.md',
+        ...testCase,
+        '\$defs': defs,
+      };
+    });
   }
 
   static String buildJson({bool pretty = true}) {
@@ -397,181 +400,183 @@ class EnsembleTestSchemaBuilder {
   }
 
   static Map<String, dynamic> buildConfig() {
-    return {
-      '\$schema': schemaVersion,
-      '\$id': configSchemaId,
-      'title': 'Ensemble declarative test config',
-      'description': 'Suite-wide config for app-local tests/config.yaml',
-      'type': 'object',
-      'additionalProperties': false,
-      'properties': {
-        'mode': {
-          'type': 'string',
-          'enum': ['widget', 'integration'],
-          'default': 'widget',
-          'description': 'Suite execution environment.',
-        },
-        'services': {
-          'type': 'array',
-          'items': {
+    return RunnerBenchmark.sync('tools', 'buildConfig', () {
+      return {
+        '\$schema': schemaVersion,
+        '\$id': configSchemaId,
+        'title': 'Ensemble declarative test config',
+        'description': 'Suite-wide config for app-local tests/config.yaml',
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'mode': {
+            'type': 'string',
+            'enum': ['widget', 'integration'],
+            'default': 'widget',
+            'description': 'Suite execution environment.',
+          },
+          'services': {
+            'type': 'array',
+            'items': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['name', 'command'],
+              'properties': {
+                'name': {'type': 'string'},
+                'command': {'type': 'string'},
+                'url': {'type': 'string', 'format': 'uri'},
+                'arguments': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                },
+                'workingDirectory': {'type': 'string'},
+                'environment': {
+                  'type': 'object',
+                  'additionalProperties': {'type': 'string'},
+                },
+                'readyUrl': {'type': 'string'},
+                'readyTimeoutMs': {'type': 'integer', 'minimum': 1},
+              },
+            },
+          },
+          'mocks': {
+            ..._mocksPropertySchema(),
+            'description':
+                'Suite-wide API mocks applied before each test file mocks',
+          },
+          'initialState': {
+            '\$ref': '#/\$defs/initialState',
+            'description':
+                'Suite-wide storage/secureStorage/keychain/env applied before each test '
+                    'initialState. Test values override suite values per key.',
+          },
+          'profiles': {
             'type': 'object',
             'additionalProperties': false,
-            'required': ['name', 'command'],
+            'description':
+                'Suite profile configuration. default selects a concrete '
+                    'profile or group for tests without a profiles selector.',
             'properties': {
-              'name': {'type': 'string'},
-              'command': {'type': 'string'},
-              'url': {'type': 'string', 'format': 'uri'},
-              'arguments': {
+              'default': {'type': 'string', 'minLength': 1},
+              'groups': {
+                'type': 'object',
+                'additionalProperties': {
+                  'type': 'array',
+                  'minItems': 1,
+                  'items': {'type': 'string', 'minLength': 1},
+                },
+              },
+              'definitions': {
+                'type': 'object',
+                'additionalProperties': {'\$ref': '#/\$defs/profile'},
+              },
+            },
+          },
+          'devices': {
+            'type': 'array',
+            'description':
+                'Suite device matrix. Widget mode expands each test once per '
+                    'entry with that platform/model viewport, optional locale '
+                    '(APP_LOCALE), and optional theme. Integration mode ignores '
+                    'viewport/model (real display) and keeps entries whose '
+                    'platform matches the connected emulator/simulator so locale '
+                    'and theme still apply; other platforms are skipped. '
+                    'Each device run writes its own screenshot frames (HTML gallery).',
+            'items': {'\$ref': '#/\$defs/testDevice'},
+          },
+          'screenshots': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'},
+              'includeSteps': {
                 'type': 'array',
                 'items': {'type': 'string'},
               },
-              'workingDirectory': {'type': 'string'},
-              'environment': {
-                'type': 'object',
-                'additionalProperties': {'type': 'string'},
-              },
-              'readyUrl': {'type': 'string'},
-              'readyTimeoutMs': {'type': 'integer', 'minimum': 1},
-            },
-          },
-        },
-        'mocks': {
-          ..._mocksPropertySchema(),
-          'description':
-              'Suite-wide API mocks applied before each test file mocks',
-        },
-        'initialState': {
-          '\$ref': '#/\$defs/initialState',
-          'description':
-              'Suite-wide storage/secureStorage/keychain/env applied before each test '
-                  'initialState. Test values override suite values per key.',
-        },
-        'profiles': {
-          'type': 'object',
-          'additionalProperties': false,
-          'description':
-              'Suite profile configuration. default selects a concrete '
-                  'profile or group for tests without a profiles selector.',
-          'properties': {
-            'default': {'type': 'string', 'minLength': 1},
-            'groups': {
-              'type': 'object',
-              'additionalProperties': {
+              'excludeSteps': {
                 'type': 'array',
-                'minItems': 1,
-                'items': {'type': 'string', 'minLength': 1},
+                'items': {'type': 'string'},
+              },
+              'secureContent': {
+                'type': 'string',
+                'enum': ['mask', 'skip', 'allow'],
+                'default': 'mask',
               },
             },
-            'definitions': {
-              'type': 'object',
-              'additionalProperties': {'\$ref': '#/\$defs/profile'},
+          },
+          'performance': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'},
             },
           },
-        },
-        'devices': {
-          'type': 'array',
-          'description':
-              'Suite device matrix. Widget mode expands each test once per '
-                  'entry with that platform/model viewport, optional locale '
-                  '(APP_LOCALE), and optional theme. Integration mode ignores '
-                  'viewport/model (real display) and keeps entries whose '
-                  'platform matches the connected emulator/simulator so locale '
-                  'and theme still apply; other platforms are skipped. '
-                  'Each device run writes its own screenshot frames (HTML gallery).',
-          'items': {'\$ref': '#/\$defs/testDevice'},
-        },
-        'screenshots': {
-          'type': 'object',
-          'additionalProperties': false,
-          'properties': {
-            'enabled': {'type': 'boolean'},
-            'includeSteps': {
-              'type': 'array',
-              'items': {'type': 'string'},
-            },
-            'excludeSteps': {
-              'type': 'array',
-              'items': {'type': 'string'},
-            },
-            'secureContent': {
-              'type': 'string',
-              'enum': ['mask', 'skip', 'allow'],
-              'default': 'mask',
-            },
-          },
-        },
-        'performance': {
-          'type': 'object',
-          'additionalProperties': false,
-          'properties': {
-            'enabled': {'type': 'boolean'},
-          },
-        },
-        'timers': {
-          'type': 'object',
-          'additionalProperties': false,
-          'properties': {
-            'enabled': {'type': 'boolean'},
-            'maxStartAfterSeconds': {'type': 'integer', 'minimum': 0},
-            'maxRepeatIntervalSeconds': {'type': 'integer', 'minimum': 0},
-            'maxNumberOfTimes': {
-              'type': 'integer',
-              'minimum': 0,
-              'description':
-                  'Cap on YAML timer maxNumberOfTimes. Must outlive mid-test mock waits that rely on later polls.',
-            },
-            'maxNumberOfTimesByScreen': {
-              'type': 'object',
-              'description':
-                  'Optional maxNumberOfTimes caps keyed by screen YAML filename without .yaml.',
-              'additionalProperties': {
+          'timers': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'},
+              'maxStartAfterSeconds': {'type': 'integer', 'minimum': 0},
+              'maxRepeatIntervalSeconds': {'type': 'integer', 'minimum': 0},
+              'maxNumberOfTimes': {
                 'type': 'integer',
                 'minimum': 0,
+                'description':
+                    'Cap on YAML timer maxNumberOfTimes. Must outlive mid-test mock waits that rely on later polls.',
+              },
+              'maxNumberOfTimesByScreen': {
+                'type': 'object',
+                'description':
+                    'Optional maxNumberOfTimes caps keyed by screen YAML filename without .yaml.',
+                'additionalProperties': {
+                  'type': 'integer',
+                  'minimum': 0,
+                },
               },
             },
           },
-        },
-        'dumpTree': {
-          'type': 'object',
-          'additionalProperties': false,
-          'properties': {
-            'enabled': {'type': 'boolean'},
+          'dumpTree': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'},
+            },
+          },
+          'logApiCalls': {
+            'type': 'object',
+            'additionalProperties': false,
+            'description':
+                'When enabled, write a per-test API call log attached to each result.',
+            'properties': {
+              'enabled': {'type': 'boolean'},
+            },
+          },
+          'logStorage': {
+            'type': 'object',
+            'additionalProperties': false,
+            'description':
+                'When enabled, write a per-test storage snapshot attached to each result.',
+            'properties': {
+              'enabled': {'type': 'boolean'},
+              'key': {'type': 'string'},
+            },
+          },
+          'wifi': {
+            '\$ref': '#/\$defs/wifi',
+            'description':
+                'Wi-Fi test double settings for connectToWifi / getNetworkInfo under flutter test.',
           },
         },
-        'logApiCalls': {
-          'type': 'object',
-          'additionalProperties': false,
-          'description':
-              'When enabled, write a per-test API call log attached to each result.',
-          'properties': {
-            'enabled': {'type': 'boolean'},
-          },
+        '\$defs': {
+          'initialState': _initialStateDef(),
+          'profile': _profileDef(),
+          'testDevice': _testDeviceDef(),
+          'wifi': _wifiDef(),
+          'mockResponse': _mockResponseDef(),
+          'inlineMocks': _inlineMocksDef(),
         },
-        'logStorage': {
-          'type': 'object',
-          'additionalProperties': false,
-          'description':
-              'When enabled, write a per-test storage snapshot attached to each result.',
-          'properties': {
-            'enabled': {'type': 'boolean'},
-            'key': {'type': 'string'},
-          },
-        },
-        'wifi': {
-          '\$ref': '#/\$defs/wifi',
-          'description':
-              'Wi-Fi test double settings for connectToWifi / getNetworkInfo under flutter test.',
-        },
-      },
-      '\$defs': {
-        'initialState': _initialStateDef(),
-        'profile': _profileDef(),
-        'testDevice': _testDeviceDef(),
-        'wifi': _wifiDef(),
-        'mockResponse': _mockResponseDef(),
-        'inlineMocks': _inlineMocksDef(),
-      },
-    };
+      };
+    });
   }
 
   static String buildConfigJson({bool pretty = true}) {

@@ -634,3 +634,14 @@ The runner uses small, optional hooks in the core module — not a package depen
 - Navigation flow for `expectVisited` is recorded in the test runner via `ScreenTracker.onScreenChange`
 
 `EnsembleTestHarness` runs storage init inside `tester.runAsync()` so `GetStorage` can finish under the widget test binding.
+
+## Internal runner benchmarks
+
+Use the standalone benchmark command to measure runner services with fixed fixtures:
+
+```sh
+dart run tool/benchmark_runner.dart --preset=quick
+dart run tool/benchmark_runner.dart --preset=full --service=screenshot,observer
+```
+
+Normal test runs do not collect benchmark records. Results, SQLite history and the offline HTML trend report live in `.ensemble_benchmarks/`. CI uploads a report artifact retained for 30 days and comments its link on same-repository pull requests. See [BENCHMARKING.md](../../doc/BENCHMARKING.md) for architecture, coverage, measurement semantics, integration prerequisites, comparison/import commands and CI.

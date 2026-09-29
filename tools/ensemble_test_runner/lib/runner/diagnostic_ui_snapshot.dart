@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/application/application_test_types.dart';
@@ -41,107 +42,114 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   required AssertionEngine assertions,
   NavigationTestService? navigation,
 }) {
-  final built = buildObservedElementTree(
-    tester: tester,
-    assertions: assertions,
-    navigation: navigation,
-    includeBounds: true,
-    enableSemantics: false,
-    useSemantics: false,
-    registerRouteDependency: false,
-  );
-  final withLocators = mapObservationLocatorTree(
-    elements: built.elements,
-    resolve: ({
-      required element,
-      parentScope,
-      iconOccurrenceAmongSiblings,
-      iconSiblingCount,
-      occurrenceAmongSiblings,
-    }) =>
-        (
-      locator: cheapSuggestedLocator(
-        element,
-        parentScope: parentScope,
-        iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
-        iconSiblingCount: iconSiblingCount,
-        occurrenceAmongSiblings: occurrenceAmongSiblings,
+  return RunnerBenchmark.sync('observer', 'captureDiagnosticUiSnapshot', () {
+    RunnerBenchmark.dimension('synchronizationPolicy', 'immediate');
+    RunnerBenchmark.dimension('semanticsEnabled', false);
+    final built = buildObservedElementTree(
+      tester: tester,
+      assertions: assertions,
+      navigation: navigation,
+      includeBounds: true,
+      enableSemantics: false,
+      useSemantics: false,
+      registerRouteDependency: false,
+    );
+    final withLocators = mapObservationLocatorTree(
+      elements: built.elements,
+      resolve: ({
+        required element,
+        parentScope,
+        iconOccurrenceAmongSiblings,
+        iconSiblingCount,
+        occurrenceAmongSiblings,
+      }) =>
+          (
+        locator: cheapSuggestedLocator(
+          element,
+          parentScope: parentScope,
+          iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
+          iconSiblingCount: iconSiblingCount,
+          occurrenceAmongSiblings: occurrenceAmongSiblings,
+        ),
+        warning: null,
       ),
-      warning: null,
-    ),
-  );
-  final locatorEntries = <String, List<(UiElement, List<String>)>>{};
-  void collectLocators(List<UiElement> elements, List<String> ancestors) {
-    for (final element in elements) {
-      // Match observationElementsTreeForReport: hidden subtrees do not appear
-      // in the report and therefore must not make a visible locator ambiguous.
-      if (!_includeInObserverReport(element)) continue;
-      final locator = element.suggestedLocator;
-      if (locator != null) {
-        locatorEntries
-            .putIfAbsent(jsonEncode(locator.toJson()), () => [])
-            .add((element, ancestors));
+    );
+    final locatorEntries = <String, List<(UiElement, List<String>)>>{};
+    void collectLocators(List<UiElement> elements, List<String> ancestors) {
+      for (final element in elements) {
+        // Match observationElementsTreeForReport: hidden subtrees do not appear
+        // in the report and therefore must not make a visible locator ambiguous.
+        if (!_includeInObserverReport(element)) continue;
+        final locator = element.suggestedLocator;
+        if (locator != null) {
+          locatorEntries
+              .putIfAbsent(jsonEncode(locator.toJson()), () => [])
+              .add((element, ancestors));
+        }
+        collectLocators(element.children, [...ancestors, element.elementId]);
       }
-      collectLocators(element.children, [...ancestors, element.elementId]);
     }
-  }
 
-  collectLocators(withLocators, const []);
-  final ambiguousElementIds = <String>{};
-  for (final entries in locatorEntries.values) {
-    for (var i = 0; i < entries.length; i++) {
-      for (var j = i + 1; j < entries.length; j++) {
-        final a = entries[i];
-        final b = entries[j];
-        // Parent and child can legitimately share a locator when Flutter
-        // merges semantics. Separate branches can resolve ambiguously.
-        if (!a.$2.contains(b.$1.elementId) && !b.$2.contains(a.$1.elementId)) {
-          ambiguousElementIds
-            ..add(a.$1.elementId)
-            ..add(b.$1.elementId);
+    collectLocators(withLocators, const []);
+    final ambiguousElementIds = <String>{};
+    for (final entries in locatorEntries.values) {
+      for (var i = 0; i < entries.length; i++) {
+        for (var j = i + 1; j < entries.length; j++) {
+          final a = entries[i];
+          final b = entries[j];
+          // Parent and child can legitimately share a locator when Flutter
+          // merges semantics. Separate branches can resolve ambiguously.
+          if (!a.$2.contains(b.$1.elementId) &&
+              !b.$2.contains(a.$1.elementId)) {
+            ambiguousElementIds
+              ..add(a.$1.elementId)
+              ..add(b.$1.elementId);
+          }
         }
       }
     }
-  }
-  UiElement markAmbiguities(UiElement element) {
-    final ambiguous = ambiguousElementIds.contains(element.elementId);
-    return element.copyWith(
-      children: [for (final child in element.children) markAmbiguities(child)],
-      suggestedLocator: ambiguous ? null : element.suggestedLocator,
-      clearSuggestedLocator: ambiguous,
-      locatorWarning: ambiguous
-          ? 'Suggested locator matches multiple observed elements'
-          : element.locatorWarning,
-      clearLocatorWarning: !ambiguous && element.locatorWarning == null,
-    );
-  }
+    UiElement markAmbiguities(UiElement element) {
+      final ambiguous = ambiguousElementIds.contains(element.elementId);
+      return element.copyWith(
+        children: [
+          for (final child in element.children) markAmbiguities(child)
+        ],
+        suggestedLocator: ambiguous ? null : element.suggestedLocator,
+        clearSuggestedLocator: ambiguous,
+        locatorWarning: ambiguous
+            ? 'Suggested locator matches multiple observed elements'
+            : element.locatorWarning,
+        clearLocatorWarning: !ambiguous && element.locatorWarning == null,
+      );
+    }
 
-  final verifiedTree = [
-    for (final element in withLocators) markAmbiguities(element)
-  ];
-  final screen = _screenObservation(navigation, tester);
-  final size = tester.view.physicalSize / tester.view.devicePixelRatio;
-  return DiagnosticUiSnapshot(
-    observation: UiObservation(
-      observationId: 'diagnostic',
-      revision: 0,
-      timestamp: DateTime.now().toUtc(),
-      screen: screen,
-      elements: verifiedTree,
-      viewport: UiViewport(
-        width: size.width,
-        height: size.height,
-        devicePixelRatio: tester.view.devicePixelRatio,
+    final verifiedTree = [
+      for (final element in withLocators) markAmbiguities(element)
+    ];
+    final screen = _screenObservation(navigation, tester);
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    return DiagnosticUiSnapshot(
+      observation: UiObservation(
+        observationId: 'diagnostic',
+        revision: 0,
+        timestamp: DateTime.now().toUtc(),
+        screen: screen,
+        elements: verifiedTree,
+        viewport: UiViewport(
+          width: size.width,
+          height: size.height,
+          devicePixelRatio: tester.view.devicePixelRatio,
+        ),
+        observableFingerprint: '',
+        completeness: ObservationCompleteness(
+          semanticTree: false,
+          runtimeMetadata: true,
+          navigationState: !screen.unknown,
+          screenshot: false,
+        ),
       ),
-      observableFingerprint: '',
-      completeness: ObservationCompleteness(
-        semanticTree: false,
-        runtimeMetadata: true,
-        navigationState: !screen.unknown,
-        screenshot: false,
-      ),
-    ),
-  );
+    );
+  });
 }
 
 ScreenObservation _screenObservation(

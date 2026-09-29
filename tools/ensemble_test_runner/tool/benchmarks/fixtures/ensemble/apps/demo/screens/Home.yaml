@@ -1,0 +1,12 @@
+View:
+  body:
+    Column:
+      children:
+        - Text:
+            testId: title
+            text: Welcome
+        - Button:
+            testId: target
+            label: Hello
+            onTap: |
+              1 + 1;

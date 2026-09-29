@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -119,15 +120,81 @@ class EnsembleTestExecutionPlanner {
     required Map<String, dynamic> inputs,
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
-    final paths = assetContents.keys.toList()..sort();
-    final selectionWithExpandedProfiles = _expandProfileGroupSelection(
-      selection,
-      config.profileGroups,
-    );
+    return await RunnerBenchmark.async('planner', 'buildFromResolvedAssets',
+        () async {
+      final paths = assetContents.keys.toList()..sort();
+      final selectionWithExpandedProfiles = _expandProfileGroupSelection(
+        selection,
+        config.profileGroups,
+      );
 
-    if (selectionWithExpandedProfiles.isEmpty) {
-      final byId = <String, EnsembleTestDefinition>{};
+      if (selectionWithExpandedProfiles.isEmpty) {
+        final byId = <String, EnsembleTestDefinition>{};
+        for (final path in paths) {
+          final content = assetContents[path]!;
+          final definitions = await _parseDefinitionsFromAsset(
+            path,
+            content,
+            inputs: inputs,
+            services: config.services,
+            suiteDefaultProfile: config.defaultProfile,
+            suiteMockFiles: config.mockFiles,
+            suiteInlineMocks: config.inlineMocks,
+            suiteInitialState: config.initialState,
+            suiteProfiles: config.profiles,
+            suiteProfileGroups: config.profileGroups,
+            suiteDevices: config.devices,
+            assetLoader: assetLoader,
+          );
+          for (final definition in definitions) {
+            final existing = byId[definition.testCase.id];
+            if (existing != null) {
+              throw EnsembleTestFailure(
+                'Duplicate test id "${definition.testCase.id}" in '
+                '${existing.assetPath} and $path',
+              );
+            }
+            byId[definition.testCase.id] = definition;
+          }
+        }
+
+        final ordered = _topologicalSort(byId);
+        return EnsembleTestExecutionPlan(ordered: ordered, config: config);
+      }
+
+      final previewById = <String, EnsembleTestDefinition>{};
       for (final path in paths) {
+        final content = assetContents[path]!;
+        final definitions = _previewDefinitionsFromAsset(path, content);
+        for (final definition in definitions) {
+          final existing = previewById[definition.testCase.id];
+          if (existing != null) {
+            throw EnsembleTestFailure(
+              'Duplicate test id "${definition.testCase.id}" in '
+              '${existing.assetPath} and $path',
+            );
+          }
+          previewById[definition.testCase.id] = definition;
+        }
+      }
+
+      final previewSelection = EnsembleTestSelection(
+        ids: selectionWithExpandedProfiles.ids,
+        features: selectionWithExpandedProfiles.features,
+        tags: selectionWithExpandedProfiles.tags,
+        paths: selectionWithExpandedProfiles.paths,
+      );
+      final selectedPreviewById = previewSelection.isEmpty
+          ? previewById
+          : _applySelection(previewById, previewSelection);
+
+      final selectedAssetPaths = selectedPreviewById.values
+          .map((definition) => definition.assetPath)
+          .toSet();
+      final selectedIds = selectedPreviewById.keys.toSet();
+      final parsedById = <String, EnsembleTestDefinition>{};
+      final selectedById = <String, EnsembleTestDefinition>{};
+      for (final path in selectedAssetPaths) {
         final content = assetContents[path]!;
         final definitions = await _parseDefinitionsFromAsset(
           path,
@@ -144,121 +211,58 @@ class EnsembleTestExecutionPlanner {
           assetLoader: assetLoader,
         );
         for (final definition in definitions) {
-          final existing = byId[definition.testCase.id];
+          if (selectionWithExpandedProfiles.exactIds.isEmpty &&
+              !_idBelongsToSelection(definition.testCase.id, selectedIds)) {
+            continue;
+          }
+          if (!_matchesProfileSelection(
+            definition.testCase,
+            selectionWithExpandedProfiles,
+          )) {
+            continue;
+          }
+          final existing = parsedById[definition.testCase.id];
           if (existing != null) {
             throw EnsembleTestFailure(
               'Duplicate test id "${definition.testCase.id}" in '
               '${existing.assetPath} and $path',
             );
           }
-          byId[definition.testCase.id] = definition;
+          parsedById[definition.testCase.id] = definition;
         }
       }
 
-      final ordered = _topologicalSort(byId);
-      return EnsembleTestExecutionPlan(ordered: ordered, config: config);
-    }
-
-    final previewById = <String, EnsembleTestDefinition>{};
-    for (final path in paths) {
-      final content = assetContents[path]!;
-      final definitions = _previewDefinitionsFromAsset(path, content);
-      for (final definition in definitions) {
-        final existing = previewById[definition.testCase.id];
-        if (existing != null) {
-          throw EnsembleTestFailure(
-            'Duplicate test id "${definition.testCase.id}" in '
-            '${existing.assetPath} and $path',
-          );
-        }
-        previewById[definition.testCase.id] = definition;
+      if (selectionWithExpandedProfiles.exactIds.isNotEmpty) {
+        selectedById.addAll(
+          _applyExactIdSelection(
+            parsedById,
+            selectionWithExpandedProfiles.exactIds,
+          ),
+        );
+      } else {
+        selectedById.addAll(parsedById);
       }
-    }
 
-    final previewSelection = EnsembleTestSelection(
-      ids: selectionWithExpandedProfiles.ids,
-      features: selectionWithExpandedProfiles.features,
-      tags: selectionWithExpandedProfiles.tags,
-      paths: selectionWithExpandedProfiles.paths,
-    );
-    final selectedPreviewById = previewSelection.isEmpty
-        ? previewById
-        : _applySelection(previewById, previewSelection);
-
-    final selectedAssetPaths = selectedPreviewById.values
-        .map((definition) => definition.assetPath)
-        .toSet();
-    final selectedIds = selectedPreviewById.keys.toSet();
-    final parsedById = <String, EnsembleTestDefinition>{};
-    final selectedById = <String, EnsembleTestDefinition>{};
-    for (final path in selectedAssetPaths) {
-      final content = assetContents[path]!;
-      final definitions = await _parseDefinitionsFromAsset(
-        path,
-        content,
-        inputs: inputs,
-        services: config.services,
-        suiteDefaultProfile: config.defaultProfile,
-        suiteMockFiles: config.mockFiles,
-        suiteInlineMocks: config.inlineMocks,
-        suiteInitialState: config.initialState,
-        suiteProfiles: config.profiles,
-        suiteProfileGroups: config.profileGroups,
-        suiteDevices: config.devices,
-        assetLoader: assetLoader,
-      );
-      for (final definition in definitions) {
-        if (selectionWithExpandedProfiles.exactIds.isEmpty &&
-            !_idBelongsToSelection(definition.testCase.id, selectedIds)) {
-          continue;
-        }
-        if (!_matchesProfileSelection(
-          definition.testCase,
-          selectionWithExpandedProfiles,
-        )) {
-          continue;
-        }
-        final existing = parsedById[definition.testCase.id];
-        if (existing != null) {
-          throw EnsembleTestFailure(
-            'Duplicate test id "${definition.testCase.id}" in '
-            '${existing.assetPath} and $path',
-          );
-        }
-        parsedById[definition.testCase.id] = definition;
-      }
-    }
-
-    if (selectionWithExpandedProfiles.exactIds.isNotEmpty) {
-      selectedById.addAll(
-        _applyExactIdSelection(
-          parsedById,
-          selectionWithExpandedProfiles.exactIds,
-        ),
-      );
-    } else {
-      selectedById.addAll(parsedById);
-    }
-
-    if (selectedById.isEmpty) {
-      throw EnsembleTestFailure(
-        'No tests remained after applying selection '
-        '(check device matrix vs --id/--path filters)',
-      );
-    }
-
-    for (final def in selectedById.values) {
-      final session = def.testCase.session;
-      if (session != null && !selectedById.containsKey(session)) {
+      if (selectedById.isEmpty) {
         throw EnsembleTestFailure(
-          'Test "${def.testCase.id}" in ${def.assetPath} references unknown '
-          'session "$session"',
+          'No tests remained after applying selection '
+          '(check device matrix vs --id/--path filters)',
         );
       }
-    }
 
-    final ordered = _topologicalSort(selectedById);
-    return EnsembleTestExecutionPlan(ordered: ordered, config: config);
+      for (final def in selectedById.values) {
+        final session = def.testCase.session;
+        if (session != null && !selectedById.containsKey(session)) {
+          throw EnsembleTestFailure(
+            'Test "${def.testCase.id}" in ${def.assetPath} references unknown '
+            'session "$session"',
+          );
+        }
+      }
+
+      final ordered = _topologicalSort(selectedById);
+      return EnsembleTestExecutionPlan(ordered: ordered, config: config);
+    });
   }
 
   /// Parses one test asset into fully expanded definitions.
@@ -371,80 +375,22 @@ class EnsembleTestExecutionPlanner {
     List<TestDeviceTarget> suiteDevices = const [],
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
-    final resolvedContent = _resolveServicePlaceholders(content, services);
-    if (loadYaml(resolvedContent) == null) {
-      return const [];
-    }
-
-    final base = EnsembleTestParser.parseString(
-      resolvedContent,
-      sourcePath: path,
-      inputs: inputs,
-    );
-    final definitions = <EnsembleTestDefinition>[];
-    if (base.scenarios.isEmpty) {
-      final profileSelections = _profileSelectionsFor(
-        base,
-        suiteDefaultProfile: suiteDefaultProfile,
-        profiles: suiteProfiles,
-        profileGroups: suiteProfileGroups,
-      );
-      final multiProfile = profileSelections.length > 1;
-      for (final selection in profileSelections) {
-        final profile = selection.profile;
-        final id = multiProfile ? '${base.id}[${selection.name}]' : base.id;
-        final mocks = await _mergedMocksFor(
-          assetPath: path,
-          suiteMockFiles: _mergedProfileMockFiles(suiteMockFiles, profile),
-          suiteInlineMocks: _mergedProfileInlineMocks(
-            suiteInlineMocks,
-            profile,
-          ),
-          mockFiles: base.mockFiles,
-          inlineMocks: base.inlineMocks,
-          assetLoader: assetLoader,
-        );
-        final steps = await _resolveStepMocks(
-          assetPath: path,
-          steps: base.steps,
-          assetLoader: assetLoader,
-        );
-        definitions.add(
-          EnsembleTestDefinition(
-            assetPath: path,
-            testCase: _withRuntimeFields(
-              base,
-              id: id,
-              startScreen: base.startScreen,
-              session: multiProfile && base.session != null
-                  ? '${base.session}[${selection.name}]'
-                  : base.session,
-              profile: selection.name,
-              mocks: mocks,
-              steps: steps,
-              initialState: mergedInitialState(
-                _mergedProfileInitialState(suiteInitialState, profile),
-                base.initialState,
-              ),
-            ),
-          ),
-        );
+    return await RunnerBenchmark.async('planner', 'parseDefinitionsFromAsset',
+        () async {
+      final resolvedContent = _resolveServicePlaceholders(content, services);
+      if (loadYaml(resolvedContent) == null) {
+        return const [];
       }
-    } else {
-      for (final scenario in base.scenarios) {
-        final parsed = EnsembleTestParser.parseString(
-          resolvedContent,
-          sourcePath: path,
-          inputs: inputs,
-          scenario: scenario.vars,
-          scenarioId: scenario.id,
-        );
-        final parsedScenario = parsed.scenarios.firstWhere(
-          (item) => item.id == scenario.id,
-          orElse: () => scenario,
-        );
+
+      final base = EnsembleTestParser.parseString(
+        resolvedContent,
+        sourcePath: path,
+        inputs: inputs,
+      );
+      final definitions = <EnsembleTestDefinition>[];
+      if (base.scenarios.isEmpty) {
         final profileSelections = _profileSelectionsFor(
-          parsed,
+          base,
           suiteDefaultProfile: suiteDefaultProfile,
           profiles: suiteProfiles,
           profileGroups: suiteProfileGroups,
@@ -452,9 +398,7 @@ class EnsembleTestExecutionPlanner {
         final multiProfile = profileSelections.length > 1;
         for (final selection in profileSelections) {
           final profile = selection.profile;
-          final scenarioId = '${base.id}[${scenario.id}]';
-          final id =
-              multiProfile ? '$scenarioId[${selection.name}]' : scenarioId;
+          final id = multiProfile ? '${base.id}[${selection.name}]' : base.id;
           final mocks = await _mergedMocksFor(
             assetPath: path,
             suiteMockFiles: _mergedProfileMockFiles(suiteMockFiles, profile),
@@ -462,44 +406,107 @@ class EnsembleTestExecutionPlanner {
               suiteInlineMocks,
               profile,
             ),
-            mockFiles: parsed.mockFiles,
-            inlineMocks: parsed.inlineMocks,
+            mockFiles: base.mockFiles,
+            inlineMocks: base.inlineMocks,
             assetLoader: assetLoader,
           );
           final steps = await _resolveStepMocks(
             assetPath: path,
-            steps: parsed.steps,
+            steps: base.steps,
             assetLoader: assetLoader,
           );
-
           definitions.add(
             EnsembleTestDefinition(
               assetPath: path,
               testCase: _withRuntimeFields(
-                parsed,
+                base,
                 id: id,
-                description: parsedScenario.description ?? parsed.description,
-                startScreen: parsed.startScreen,
-                session: multiProfile && parsed.session != null
-                    ? '${parsed.session}[${selection.name}]'
-                    : parsed.session,
+                startScreen: base.startScreen,
+                session: multiProfile && base.session != null
+                    ? '${base.session}[${selection.name}]'
+                    : base.session,
                 profile: selection.name,
-                scenarioId: scenario.id,
-                scenarioDescription: parsedScenario.description,
                 mocks: mocks,
                 steps: steps,
                 initialState: mergedInitialState(
                   _mergedProfileInitialState(suiteInitialState, profile),
-                  parsed.initialState,
+                  base.initialState,
                 ),
               ),
             ),
           );
         }
-      }
-    }
+      } else {
+        for (final scenario in base.scenarios) {
+          final parsed = EnsembleTestParser.parseString(
+            resolvedContent,
+            sourcePath: path,
+            inputs: inputs,
+            scenario: scenario.vars,
+            scenarioId: scenario.id,
+          );
+          final parsedScenario = parsed.scenarios.firstWhere(
+            (item) => item.id == scenario.id,
+            orElse: () => scenario,
+          );
+          final profileSelections = _profileSelectionsFor(
+            parsed,
+            suiteDefaultProfile: suiteDefaultProfile,
+            profiles: suiteProfiles,
+            profileGroups: suiteProfileGroups,
+          );
+          final multiProfile = profileSelections.length > 1;
+          for (final selection in profileSelections) {
+            final profile = selection.profile;
+            final scenarioId = '${base.id}[${scenario.id}]';
+            final id =
+                multiProfile ? '$scenarioId[${selection.name}]' : scenarioId;
+            final mocks = await _mergedMocksFor(
+              assetPath: path,
+              suiteMockFiles: _mergedProfileMockFiles(suiteMockFiles, profile),
+              suiteInlineMocks: _mergedProfileInlineMocks(
+                suiteInlineMocks,
+                profile,
+              ),
+              mockFiles: parsed.mockFiles,
+              inlineMocks: parsed.inlineMocks,
+              assetLoader: assetLoader,
+            );
+            final steps = await _resolveStepMocks(
+              assetPath: path,
+              steps: parsed.steps,
+              assetLoader: assetLoader,
+            );
 
-    return expandDeviceMatrix(definitions, suiteDevices);
+            definitions.add(
+              EnsembleTestDefinition(
+                assetPath: path,
+                testCase: _withRuntimeFields(
+                  parsed,
+                  id: id,
+                  description: parsedScenario.description ?? parsed.description,
+                  startScreen: parsed.startScreen,
+                  session: multiProfile && parsed.session != null
+                      ? '${parsed.session}[${selection.name}]'
+                      : parsed.session,
+                  profile: selection.name,
+                  scenarioId: scenario.id,
+                  scenarioDescription: parsedScenario.description,
+                  mocks: mocks,
+                  steps: steps,
+                  initialState: mergedInitialState(
+                    _mergedProfileInitialState(suiteInitialState, profile),
+                    parsed.initialState,
+                  ),
+                ),
+              ),
+            );
+          }
+        }
+      }
+
+      return expandDeviceMatrix(definitions, suiteDevices);
+    });
   }
 
   /// Expands each definition once per suite `devices` entry.
@@ -993,40 +1000,42 @@ class EnsembleTestExecutionPlanner {
     Map<String, EnsembleTestDefinition> byId,
     EnsembleTestSelection selection,
   ) {
-    if (selection.isEmpty) return byId;
+    return RunnerBenchmark.sync('planner', 'applySelection', () {
+      if (selection.isEmpty) return byId;
 
-    final selectedIds = byId.entries
-        .where((entry) => _matchesSelection(entry.value, selection))
-        .map((entry) => entry.key)
-        .toSet();
-    if (selectedIds.isEmpty) {
-      throw EnsembleTestFailure(
-          'No tests matched the provided selection flags');
-    }
-
-    void includeDependencies(String id) {
-      final test = byId[id]?.testCase;
-      final dependencies = <String>[
-        if (test?.session != null) test!.session!,
-      ];
-      for (final dependency in dependencies) {
-        if (!byId.containsKey(dependency)) {
-          throw EnsembleTestFailure(
-            'Selected test "$id" references unknown dependency "$dependency"',
-          );
-        }
-        if (selectedIds.add(dependency)) includeDependencies(dependency);
+      final selectedIds = byId.entries
+          .where((entry) => _matchesSelection(entry.value, selection))
+          .map((entry) => entry.key)
+          .toSet();
+      if (selectedIds.isEmpty) {
+        throw EnsembleTestFailure(
+            'No tests matched the provided selection flags');
       }
-    }
 
-    for (final id in selectedIds.toList()) {
-      includeDependencies(id);
-    }
+      void includeDependencies(String id) {
+        final test = byId[id]?.testCase;
+        final dependencies = <String>[
+          if (test?.session != null) test!.session!,
+        ];
+        for (final dependency in dependencies) {
+          if (!byId.containsKey(dependency)) {
+            throw EnsembleTestFailure(
+              'Selected test "$id" references unknown dependency "$dependency"',
+            );
+          }
+          if (selectedIds.add(dependency)) includeDependencies(dependency);
+        }
+      }
 
-    return {
-      for (final id in byId.keys)
-        if (selectedIds.contains(id)) id: byId[id]!,
-    };
+      for (final id in selectedIds.toList()) {
+        includeDependencies(id);
+      }
+
+      return {
+        for (final id in byId.keys)
+          if (selectedIds.contains(id)) id: byId[id]!,
+      };
+    });
   }
 
   static bool _idBelongsToSelection(String testId, Set<String> selectedIds) {
@@ -1127,52 +1136,54 @@ class EnsembleTestExecutionPlanner {
   static List<EnsembleTestDefinition> _topologicalSort(
     Map<String, EnsembleTestDefinition> byId,
   ) {
-    final inDegree = <String, int>{};
-    final dependents = <String, List<String>>{};
+    return RunnerBenchmark.sync('planner', 'topologicalSort', () {
+      final inDegree = <String, int>{};
+      final dependents = <String, List<String>>{};
 
-    for (final id in byId.keys) {
-      inDegree[id] = 0;
-      dependents[id] = [];
-    }
-
-    for (final entry in byId.entries) {
-      final test = entry.value.testCase;
-      final dependencies = <String>[
-        if (test.session != null) test.session!,
-      ];
-      for (final dependency in dependencies) {
-        inDegree[entry.key] = (inDegree[entry.key] ?? 0) + 1;
-        dependents[dependency]!.add(entry.key);
+      for (final id in byId.keys) {
+        inDegree[id] = 0;
+        dependents[id] = [];
       }
-    }
 
-    final ready = <String>[];
-    for (final id in byId.keys) {
-      if (inDegree[id] == 0) ready.add(id);
-    }
-    ready.sort((a, b) => byId[a]!.assetPath.compareTo(byId[b]!.assetPath));
-
-    final orderedIds = <String>[];
-    while (ready.isNotEmpty) {
-      ready.sort((a, b) => byId[a]!.assetPath.compareTo(byId[b]!.assetPath));
-      final id = ready.removeAt(0);
-      orderedIds.add(id);
-      for (final dependent in dependents[id]!) {
-        inDegree[dependent] = inDegree[dependent]! - 1;
-        if (inDegree[dependent] == 0) {
-          ready.add(dependent);
+      for (final entry in byId.entries) {
+        final test = entry.value.testCase;
+        final dependencies = <String>[
+          if (test.session != null) test.session!,
+        ];
+        for (final dependency in dependencies) {
+          inDegree[entry.key] = (inDegree[entry.key] ?? 0) + 1;
+          dependents[dependency]!.add(entry.key);
         }
       }
-    }
 
-    if (orderedIds.length != byId.length) {
-      throw EnsembleTestFailure(
-        'Circular test dependency among tests: '
-        '${byId.keys.where((id) => !orderedIds.contains(id)).join(", ")}',
-      );
-    }
+      final ready = <String>[];
+      for (final id in byId.keys) {
+        if (inDegree[id] == 0) ready.add(id);
+      }
+      ready.sort((a, b) => byId[a]!.assetPath.compareTo(byId[b]!.assetPath));
 
-    return orderedIds.map((id) => byId[id]!).toList();
+      final orderedIds = <String>[];
+      while (ready.isNotEmpty) {
+        ready.sort((a, b) => byId[a]!.assetPath.compareTo(byId[b]!.assetPath));
+        final id = ready.removeAt(0);
+        orderedIds.add(id);
+        for (final dependent in dependents[id]!) {
+          inDegree[dependent] = inDegree[dependent]! - 1;
+          if (inDegree[dependent] == 0) {
+            ready.add(dependent);
+          }
+        }
+      }
+
+      if (orderedIds.length != byId.length) {
+        throw EnsembleTestFailure(
+          'Circular test dependency among tests: '
+          '${byId.keys.where((id) => !orderedIds.contains(id)).join(", ")}',
+        );
+      }
+
+      return orderedIds.map((id) => byId[id]!).toList();
+    });
   }
 
   /// Exposed for unit tests only.
