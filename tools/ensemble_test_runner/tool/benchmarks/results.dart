@@ -215,16 +215,25 @@ Object? canonicalJson(Object? value) {
   return value;
 }
 
-String compatibilityKey(Map<String, dynamic> run) => jsonEncode(canonicalJson({
-      'schemaVersion': run['schemaVersion'],
-      'environment': run['environment'],
-      'catalogueHash': run['catalogueHash'],
-      'preset': run['preset'],
-      'mode': run['mode'],
-      'workers': run['workers'],
-      'protocol': run['protocol'],
-      'selection': run['selection'],
-    }));
+String compatibilityKey(Map<String, dynamic> run) {
+  final environment =
+      Map<String, dynamic>.from(run['environment'] as Map? ?? const {});
+  // This hash fingerprints benchmark source for provenance and detecting a
+  // source change during a run. It also includes report/history code, so it
+  // must not prevent comparison when only the HTML renderer changes. Per-case
+  // fixtureVersion and dimensions are checked by compareCases instead.
+  environment.remove('fixtureSourceHash');
+  return jsonEncode(canonicalJson({
+    'schemaVersion': run['schemaVersion'],
+    'environment': environment,
+    'catalogueHash': run['catalogueHash'],
+    'preset': run['preset'],
+    'mode': run['mode'],
+    'workers': run['workers'],
+    'protocol': run['protocol'],
+    'selection': run['selection'],
+  }));
+}
 
 List<Map<String, Object?>> compareCases(
     Map<String, dynamic> run, Map<String, dynamic> baseline) {

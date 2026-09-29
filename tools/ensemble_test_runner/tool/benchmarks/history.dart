@@ -100,25 +100,23 @@ class BenchmarkHistory {
       {String? id}) async {
     final db = await database;
     final rows = await db.query('runs',
-        where: id != null
-            ? 'id = ?'
-            : 'branch = ? AND compatibility = ? AND id <> ?',
-        whereArgs: id != null
-            ? [id]
-            : [run['branch'], compatibilityKey(run), run['runId']],
-        orderBy: 'created_at DESC, id DESC',
-        limit: 1);
+        where: id != null ? 'id = ?' : 'branch = ? AND id <> ?',
+        whereArgs: id != null ? [id] : [run['branch'], run['runId']],
+        orderBy: 'created_at DESC, id DESC');
     if (rows.isEmpty) {
       if (id != null) throw ArgumentError('Unknown baseline run: $id');
       return null;
     }
-    final prior = jsonDecode(rows.single['summary_json'] as String)
-        as Map<String, dynamic>;
-    if (compatibilityKey(prior) != compatibilityKey(run)) {
-      throw ArgumentError(
-          'Baseline $id has an incompatible environment or workload');
+    for (final row in rows) {
+      final prior =
+          jsonDecode(row['summary_json'] as String) as Map<String, dynamic>;
+      if (compatibilityKey(prior) == compatibilityKey(run)) return prior;
+      if (id != null) {
+        throw ArgumentError(
+            'Baseline $id has an incompatible environment or workload');
+      }
     }
-    return prior;
+    return null;
   }
 
   /// Compact summaries are retained; only this tool's expired per-run data goes.
