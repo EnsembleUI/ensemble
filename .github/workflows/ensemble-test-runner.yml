@@ -91,7 +91,7 @@ jobs:
       - name: Benchmark runner services (report only)
         working-directory: tools/ensemble_test_runner
         env:
-          BENCHMARK_PRESET: ${{ inputs.preset || 'full' }}
+          BENCHMARK_PRESET: ${{ inputs.preset || 'quick' }}
           BENCHMARK_SERVICE: ${{ inputs.service }}
           ENSEMBLE_BENCHMARK_HOST: github-hosted-ubuntu-24.04-x64
           ENSEMBLE_BENCHMARK_OS_VERSION: ubuntu-24.04
