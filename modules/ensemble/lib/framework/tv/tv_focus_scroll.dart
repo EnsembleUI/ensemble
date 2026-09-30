@@ -171,6 +171,122 @@ void scrollWidgetIntoView(
   );
 }
 
+/// Reveals [widgetContext] in every scrollable ancestor using each scrollable's
+/// own [ScrollPosition.ensureVisible] with keep-visible alignment policies.
+///
+/// Unlike [scrollVerticalOnly], this does NOT derive targets from global
+/// coordinates. It therefore respects slivers, pinned/overlay headers, content
+/// padding, and nested scrollables, and it moves only the minimum amount
+/// required. This is the TV-focus equivalent of Flutter's default traversal
+/// reveal ([Scrollable.ensureVisible] with `keepVisibleAtStart`/`End`).
+///
+/// Both policies are applied per scrollable: `keepVisibleAtEnd` reveals an item
+/// past the trailing edge, `keepVisibleAtStart` reveals an item before the
+/// leading edge. Each is a no-op when the item is already visible on that side,
+/// so at most one actually animates. Axis direction is handled internally by
+/// [ScrollPosition.ensureVisible].
+///
+/// [includeHorizontal]/[includeVertical] let callers skip an axis handled
+/// elsewhere (e.g. a host app that manages its own horizontal scrolling).
+/// Scrollables on a skipped axis are left untouched but the walk continues to
+/// their ancestors.
+Future<void> ensureWidgetVisible(
+  BuildContext widgetContext, {
+  Duration duration = Duration.zero,
+  Curve curve = Curves.ease,
+  bool includeHorizontal = true,
+  bool includeVertical = true,
+}) async {
+  final renderObject = widgetContext.findRenderObject();
+  if (renderObject == null || !renderObject.attached) return;
+
+  // Record the first (innermost) revealed render object so outer scrollables
+  // intersect against it, keeping the target's own box as visible as possible
+  // when multiple scrollables are nested. See flutter/flutter#65100.
+  RenderObject? targetRenderObject;
+  var scrollable = Scrollable.maybeOf(widgetContext);
+
+  while (scrollable != null) {
+    if (!scrollable.mounted) break;
+    final axisDirection = scrollable.axisDirection;
+    final isHorizontal = axisDirection == AxisDirection.left ||
+        axisDirection == AxisDirection.right;
+    final include = isHorizontal ? includeHorizontal : includeVertical;
+
+    if (include) {
+      final position = scrollable.position;
+      if (position.hasContentDimensions) {
+        // Single reveal per scrollable, with the alignment policy chosen from
+        // the item's current position (like Flutter's directional traversal).
+        // Calling ensureVisible twice in series starts a second 200ms animation
+        // after the first settles, which reads as a laggy two-phase scroll.
+        final policy =
+            _revealPolicyFor(renderObject, scrollable, targetRenderObject);
+        if (policy != null) {
+          await position.ensureVisible(
+            renderObject,
+            duration: duration,
+            curve: curve,
+            alignmentPolicy: policy,
+            targetRenderObject: targetRenderObject,
+          );
+          if (!scrollable.mounted) break;
+        }
+      }
+      targetRenderObject ??= renderObject;
+    }
+
+    final scrollableContext = scrollable.context;
+    scrollable = Scrollable.maybeOf(scrollableContext);
+  }
+}
+
+/// Chooses the single [ScrollPositionAlignmentPolicy] that reveals
+/// [target] with the least movement given its position in [scrollable].
+///
+/// Returns `keepVisibleAtEnd` when the item is past the trailing edge,
+/// `keepVisibleAtStart` when it is before the leading edge, and `null` when the
+/// item is already fully visible on the scrollable's main axis (no scroll
+/// needed). Falls back to `keepVisibleAtEnd` if geometry cannot be resolved.
+ScrollPositionAlignmentPolicy? _revealPolicyFor(
+  RenderObject target,
+  ScrollableState scrollable,
+  RenderObject? targetRenderObject,
+) {
+  final targetBox = target as RenderBox?;
+  final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
+  if (targetBox == null ||
+      scrollableBox == null ||
+      !targetBox.hasSize ||
+      !scrollableBox.hasSize) {
+    return ScrollPositionAlignmentPolicy.keepVisibleAtEnd;
+  }
+
+  final horizontal = scrollable.axisDirection == AxisDirection.left ||
+      scrollable.axisDirection == AxisDirection.right;
+
+  // Position of the item's leading/trailing edge in the scrollable's viewport
+  // coordinate space.
+  final Offset itemTopLeft = targetBox.localToGlobal(Offset.zero);
+  final Offset viewportTopLeft = scrollableBox.localToGlobal(Offset.zero);
+  final double itemStart = horizontal ? itemTopLeft.dx : itemTopLeft.dy;
+  final double itemEnd = itemStart +
+      (horizontal ? targetBox.size.width : targetBox.size.height);
+  final double viewportStart =
+      horizontal ? viewportTopLeft.dx : viewportTopLeft.dy;
+  final double viewportEnd =
+      viewportStart + (horizontal ? scrollableBox.size.width : scrollableBox.size.height);
+
+  if (itemEnd > viewportEnd) {
+    return ScrollPositionAlignmentPolicy.keepVisibleAtEnd;
+  }
+  if (itemStart < viewportStart) {
+    return ScrollPositionAlignmentPolicy.keepVisibleAtStart;
+  }
+  return null;
+}
+
+
 // =============================================================================
 // TV Focus - Active Vertical Scrollable Memory (route-scoped)
 // =============================================================================
@@ -190,4 +306,16 @@ ScrollableState? activeVerticalScrollable(Route<dynamic>? route) =>
 
 void clearActiveVerticalScrollableForRoute(Route<dynamic>? route) {
   _activeVerticalScrollables.remove(_activeScrollableRouteKey(route));
+}
+
+/// Resolves [context]'s scrollable ancestry and remembers the outermost
+/// vertical scrollable for the current route so `resetScrollOnFocus` can
+/// target it. No-op when there is no vertical scrollable ancestor.
+void rememberActiveVerticalScrollableForContext(BuildContext context) {
+  final nearest = findNearestVerticalScrollable(context);
+  if (nearest == null) return;
+  rememberActiveVerticalScrollable(
+    ModalRoute.of(context),
+    findOutermostVerticalScrollable(context) ?? nearest,
+  );
 }

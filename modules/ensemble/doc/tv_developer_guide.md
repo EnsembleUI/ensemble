@@ -161,12 +161,13 @@ tvOptions:
     margin: 8 # Margin when focused
 
     # Scroll Behavior (Optional - for horizontal lists)
-    fixedFocusScroll: true # Enable Netflix-style scrolling
-    fixedFocusOffset: 48 # Offset from left edge (pixels)
-    verticalScrollPadding: 100 # Extra padding when scrolling vertically
+    scrollMode: keepVisible # 'legacy' (default) or 'keepVisible' minimal reveal
+    fixedFocusScroll: true # Enable Netflix-style scrolling (legacy only)
+    fixedFocusOffset: 48 # Offset from left edge (pixels) (legacy only)
+    verticalScrollPadding: 100 # Extra padding when scrolling vertically (legacy only)
     scrollAnimationDuration: 200 # Scroll animation duration (ms)
     scrollAnimationCurve: easeOut # Animation curve
-    horizontalScrollPadding: 16 # Horizontal padding for visibility checks
+    horizontalScrollPadding: 16 # Horizontal padding for visibility checks (legacy only)
 
     # Horizontal Navigation Control (for carousels)
     delegateHorizontalNavigation: true # Delegate LEFT/RIGHT to parent FocusScope
@@ -239,6 +240,32 @@ These properties change the **widget's appearance** when focused (not the focus 
 | **horizontalScrollPadding** | `double` | `16.0`    | Horizontal padding for visibility checks during scrolling.                                |
 | **scrollAnimationDuration** | `int`    | `200`     | Duration of scroll animations in milliseconds.                                            |
 | **scrollAnimationCurve**    | `String` | `easeOut` | Animation curve: easeIn, easeOut, easeInOut, linear, decelerate, ease.                    |
+| **scrollMode**              | `String` | `legacy`  | Auto-scroll strategy: `legacy` or `keepVisible` (see below).                              |
+
+##### `scrollMode: keepVisible`
+
+`legacy` (default) keeps the existing behavior: manual, animated scrolling that centers
+horizontal items (or pins them to `fixedFocusOffset`) and applies `verticalScrollPadding`.
+
+`keepVisible` reveals the focused item with **minimal movement** using each scrollable's own
+`ScrollPosition.ensureVisible` with `keepVisibleAtStart`/`End`, like Flutter's default focus
+traversal. It is correct for slivers, pinned/overlay headers, content padding and nested
+scrollables, and it only scrolls when the item is actually offscreen.
+
+```yaml
+Row:
+    styles:
+        tvOptions:
+            row: 3
+            scrollMode: keepVisible # minimal, geometry-aware reveal
+```
+
+When `scrollMode: keepVisible` is set, `fixedFocusScroll`, `fixedFocusOffset`,
+`verticalScrollPadding` and `horizontalScrollPadding` are ignored — they only apply to
+`legacy`. `scrollAnimationDuration`, `scrollAnimationCurve` and `resetScrollOnFocus` still
+apply. Prefer `keepVisible` for new TV layouts; `legacy` remains the default for backward
+compatibility.
+
 
 #### Carousel-Specific Properties
 
