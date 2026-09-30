@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/model.dart';
@@ -662,12 +664,28 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final hostHandlesScroll =
         externalProvider?.handlesHorizontalScroll ?? false;
 
+    // Opt-in minimal reveal: delegate to each scrollable's own geometry so
+    // slivers, pinned headers and nested scrollables are handled correctly and
+    // only the minimum movement is applied. Legacy remains the default.
+    if (tvOptions?.scrollMode == TVScrollMode.keepVisible) {
+      final duration = Duration(milliseconds: scrollAnimationDuration);
+      final curve =
+          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeInOut);
+      rememberActiveVerticalScrollableForContext(context);
+      unawaited(ensureWidgetVisible(
+        context,
+        duration: duration,
+        curve: curve,
+        includeHorizontal: !hostHandlesScroll,
+      ));
+      _resetScrollOnFocus(tvOptions, duration, curve);
+      return;
+    }
+
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = findNearestVerticalScrollable(context);
     if (verticalScrollable != null) {
-      rememberActiveVerticalScrollable(
-          ModalRoute.of(context),
-          findOutermostVerticalScrollable(context) ?? verticalScrollable);
+      rememberActiveVerticalScrollableForContext(context);
       final verticalPadding =
           tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
       final verticalCurve =
@@ -678,23 +696,11 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
           curve: verticalCurve);
     }
 
-    if (tvOptions?.resetScrollOnFocus == true) {
-      final activeScrollable = activeVerticalScrollable(ModalRoute.of(context));
-      if (activeScrollable != null &&
-          activeScrollable.mounted &&
-          activeScrollable.position.hasContentDimensions) {
-        final position = activeScrollable.position;
-        if ((position.pixels - position.minScrollExtent).abs() >
-            kTVScrollThreshold) {
-          position.animateTo(
-            position.minScrollExtent,
-            duration: Duration(milliseconds: scrollAnimationDuration),
-            curve: _getCurveFromName(scrollCurveName,
-                defaultCurve: Curves.easeInOut),
-          );
-        }
-      }
-    }
+    _resetScrollOnFocus(
+      tvOptions,
+      Duration(milliseconds: scrollAnimationDuration),
+      _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeInOut),
+    );
 
     // Handle horizontal scrolling
     // Skip only if host app explicitly handles horizontal scroll
@@ -719,6 +725,30 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
             padding: horizontalScrollPadding,
             animationDuration: scrollAnimationDuration,
             curve: horizontalCurve);
+      }
+    }
+  }
+
+  /// Resets the remembered page scroll to the top when this widget opts in via
+  /// `resetScrollOnFocus`. Shared by the legacy and keepVisible scroll modes.
+  void _resetScrollOnFocus(
+    TVOptionsComposite? tvOptions,
+    Duration duration,
+    Curve curve,
+  ) {
+    if (tvOptions?.resetScrollOnFocus != true) return;
+    final activeScrollable = activeVerticalScrollable(ModalRoute.of(context));
+    if (activeScrollable != null &&
+        activeScrollable.mounted &&
+        activeScrollable.position.hasContentDimensions) {
+      final position = activeScrollable.position;
+      if ((position.pixels - position.minScrollExtent).abs() >
+          kTVScrollThreshold) {
+        position.animateTo(
+          position.minScrollExtent,
+          duration: duration,
+          curve: curve,
+        );
       }
     }
   }
@@ -1182,6 +1212,16 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     // Honor the configurable scrollAnimationCurve (previously hardcoded here).
     final curve = _curveFromName(tvOptions?.scrollAnimationCurve,
         defaultCurve: Curves.easeInOut);
+
+    // Opt-in minimal reveal (see _TapEnabledWrapper._handleFocusScroll).
+    if (tvOptions?.scrollMode == TVScrollMode.keepVisible) {
+      unawaited(ensureWidgetVisible(
+        childContext,
+        duration: Duration(milliseconds: scrollAnimationDuration),
+        curve: curve,
+      ));
+      return;
+    }
 
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = findNearestVerticalScrollable(context);

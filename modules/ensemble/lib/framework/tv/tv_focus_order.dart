@@ -490,11 +490,17 @@ class TVFocusOrderNode {
   //   tv_focus_order call sites). Non-null => restrict to that group (matches
   //   _moveFocus).
   // - [focusGroup] null => all focus groups.
+  // - [includeDescendantScan] when false, skips PASS 2 (the app-wide live
+  //   focus-tree walk). Callers that know every focusable in scope registers a
+  //   [TVFocusTarget] (e.g. the host's PageFocusWidget) can set this to false to
+  //   avoid an O(all focus nodes) scan on every D-pad press. Defaults to true so
+  //   existing behavior (Case-2 bracket/tab leaves) is unchanged.
   // ─────────────────────────────────────────────────────────────────────────
   static Map<TVFocusOrderNode, TVFocusOrderNode> collectInScope({
     required ModalRoute<dynamic>? route,
     FocusTraversalGroup? traversalGroup,
     String? focusGroup,
+    bool includeDescendantScan = true,
   }) {
     final result = <TVFocusOrderNode, TVFocusOrderNode>{};
 
@@ -509,6 +515,10 @@ class TVFocusOrderNode {
         result,
         TVFocusOrderNode(target.focusNode, order, isRegisteredTarget: true),
       );
+    }
+
+    if (!includeDescendantScan) {
+      return result;
     }
 
     // PASS 2 — live focus-tree scan for unregistered Case-2 leaves.

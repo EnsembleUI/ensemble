@@ -250,6 +250,26 @@ class TVFocusEdgesComposite extends WidgetCompositeProperty {
       };
 }
 
+/// Focus auto-scroll strategy for TV D-pad navigation.
+///
+/// Selected per widget via `styles.tvOptions.scrollMode`.
+enum TVScrollMode {
+  /// Existing behavior (default): manual, animated scrolling that centers
+  /// horizontal items (or pins them to `fixedFocusOffset`) and applies
+  /// `verticalScrollPadding`. Kept as the default so existing layouts are
+  /// unchanged.
+  legacy,
+
+  /// Reveal the focused item with minimal movement using each scrollable's own
+  /// [ScrollPosition.ensureVisible] with `keepVisibleAtStart`/`End` alignment,
+  /// like Flutter's default focus traversal. Correct for slivers, pinned or
+  /// overlay headers, content padding, and nested scrollables. Honors
+  /// `scrollAnimationDuration`/`scrollAnimationCurve`; ignores
+  /// `fixedFocusScroll`, `fixedFocusOffset`, `verticalScrollPadding`, and
+  /// `horizontalScrollPadding`.
+  keepVisible,
+}
+
 /// TV/Accessibility options for D-pad navigation.
 /// Groups all TV-related properties under styles.tvOptions.*
 /// All focus styling properties can override theme values per-widget.
@@ -268,6 +288,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     scrollAnimationDuration = inputs['scrollAnimationDuration'];
     scrollAnimationCurve = inputs['scrollAnimationCurve'];
     horizontalScrollPadding = inputs['horizontalScrollPadding'];
+    scrollMode = inputs['scrollMode'];
     lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
     delegateHorizontalNavigation = inputs['delegateHorizontalNavigation'];
     focusGroup = inputs['focusGroup'];
@@ -371,6 +392,19 @@ class TVOptionsComposite extends WidgetCompositeProperty {
   set horizontalScrollPadding(value) =>
       _horizontalScrollPadding = Utils.optionalDouble(value);
   double? get horizontalScrollPadding => _horizontalScrollPadding;
+
+  /// Focus auto-scroll strategy. Defaults to [TVScrollMode.legacy] so existing
+  /// layouts are unchanged. Set `keepVisible` to reveal focused items with
+  /// minimal movement using the scrollable's own geometry.
+  TVScrollMode _scrollMode = TVScrollMode.legacy;
+  set scrollMode(value) {
+    final name = Utils.optionalString(value)?.trim().toLowerCase();
+    _scrollMode = TVScrollMode.values.firstWhere(
+      (mode) => mode.name.toLowerCase() == name,
+      orElse: () => TVScrollMode.legacy,
+    );
+  }
+  TVScrollMode get scrollMode => _scrollMode;
 
   /// Prevents horizontal navigation from escaping this row at boundaries.
   /// When true, pressing LEFT at first item or RIGHT at last item won't move focus to another row.
@@ -486,6 +520,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'scrollAnimationDuration': () => _scrollAnimationDuration,
         'scrollAnimationCurve': () => _scrollAnimationCurve,
         'horizontalScrollPadding': () => _horizontalScrollPadding,
+        'scrollMode': () => _scrollMode.name,
         'lockHorizontalNavigation': () => _lockHorizontalNavigation,
         'delegateHorizontalNavigation': () => _delegateHorizontalNavigation,
         'focusGroup': () => _focusGroup,
@@ -521,6 +556,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'scrollAnimationDuration': (value) => scrollAnimationDuration = value,
         'scrollAnimationCurve': (value) => scrollAnimationCurve = value,
         'horizontalScrollPadding': (value) => horizontalScrollPadding = value,
+        'scrollMode': (value) => scrollMode = value,
         'lockHorizontalNavigation': (value) => lockHorizontalNavigation = value,
         'delegateHorizontalNavigation': (value) =>
             delegateHorizontalNavigation = value,
