@@ -45,7 +45,7 @@ enum AndroidSettingsTarget {
   sound,
   /// Opens Android Wi-Fi settings.
   wifi,
-  /// Opens this app's Android settings page.
+  /// Opens this app's Android settings/details page.
   appSettings,
   /// Opens Android memory card or storage settings when available.
   memoryCard,
@@ -197,7 +197,7 @@ class AppSettingAction extends EnsembleAction {
   /// Runs this action and performs the app setting operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
-    final settingTarget = getTarget(scopeManager.dataContext).toLowerCase();
+    final settingTarget = getTarget(scopeManager.dataContext);
     openAppSettings(settingTarget);
     return Future.value(null);
   }
@@ -260,7 +260,7 @@ class AppSettingAction extends EnsembleAction {
       case AndroidSettingsTarget.wifi:
         android.wifi();
       case AndroidSettingsTarget.appSettings:
-        android.appSettings();
+        android.applicationDetails();
       case AndroidSettingsTarget.memoryCard:
         android.memoryCard();
       case AndroidSettingsTarget.addAccount:
