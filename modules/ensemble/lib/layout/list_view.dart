@@ -3,6 +3,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
@@ -76,6 +77,8 @@ class ListView extends StatefulWidget
           EnsembleAction.from(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
+      'direction': (value) =>
+          _controller.scrollDirection = Axis.values.from(value),
       'controller': (value) {
         if (value is! ScrollController) return null;
         return _controller.scrollController = value;
@@ -133,6 +136,7 @@ class ListViewController extends BoxLayoutController {
   EnsembleAction? onScrollEnd;
   String? onItemTapHaptic;
   bool reverse = false;
+  Axis? scrollDirection;
   ScrollController? scrollController;
   dynamic loadingWidget;
   bool showLoading = false;
@@ -443,6 +447,7 @@ class ListViewState extends EWidgetState<ListView>
           (FooterScope.of(context) != null ? true : false),
       nestedScroll: widget._controller.nestedScroll?? false,
       cacheExtent: widget._controller.cacheExtent,
+      scrollDirection: widget._controller.scrollDirection ?? Axis.vertical,
       itemCount: itemCount,
       isLoading: showLoading,
       onFetchData: _fetchData,

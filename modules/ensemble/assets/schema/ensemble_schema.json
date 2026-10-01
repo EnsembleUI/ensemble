@@ -3270,6 +3270,14 @@
             "children": {
               "$ref": "#/$defs/Widgets"
             },
+            "direction": {
+              "type": "string",
+              "description": "The direction in which the list scrolls. Default is vertical.",
+              "enum": [
+                "vertical",
+                "horizontal"
+              ]
+            },
             "onItemTap": {
               "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
               "$ref": "#/$defs/Action-payload"
