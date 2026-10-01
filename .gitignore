@@ -52,3 +52,4 @@ generated_passed_sheet.png
 generated_multidevice_sheet.png
 # Standalone runner benchmark history and generated fixtures
 **/.ensemble_benchmarks/
+config.bat
