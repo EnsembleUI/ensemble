@@ -74,6 +74,7 @@ import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
+import 'wifi_heatmap.dart';
 
 class WidgetRegistry {
   static final WidgetRegistry _instance = WidgetRegistry._();
@@ -89,7 +90,7 @@ class WidgetRegistry {
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
     EnsembleSignature.type: EnsembleSignature.build,
-    ExternalWidget.type: ExternalWidget.build, 
+    ExternalWidget.type: ExternalWidget.build,
   };
 
   /// register or override a widget
@@ -192,6 +193,7 @@ class WidgetRegistry {
         EnsembleBarChart.type: () => EnsembleBarChart(),
         ChartJs.type: () => ChartJs(),
         TopologyChart.type: () => TopologyChart(),
+        WiFiHeatmap.type: () => WiFiHeatmap(),
 
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
