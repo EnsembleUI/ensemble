@@ -36,6 +36,7 @@ import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/action/getLocation.dart';
+import 'package:ensemble/action/getMotionData.dart';
 import 'package:ensemble/action/wakelock_action.dart';
 import 'package:ensemble/action/wifi_action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
@@ -1093,6 +1094,9 @@ enum ActionType {
   // Stripe actions
   initializeStripe,
   showPaymentSheet,
+  // Activity actions
+  getMotionData,
+  stopMotionData,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1357,6 +1361,11 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.showPaymentSheet) {
       return ShowPaymentSheetAction.fromYaml(
           initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getMotionData) {
+      return GetMotionDataAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.stopMotionData) {
+      return StopMotionDataAction.fromYaml(payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");
