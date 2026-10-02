@@ -37,7 +37,8 @@ class ChartJsState extends ChartJsStateBase {
       )
       ..loadHtmlString(ChartUtils.getBaseHtml(
         widget.controller.chartId,
-        widget.controller.config,
+        widget.controller.config.toString(),
+        configFromMap: widget.controller.configFromMap,
       ));
 
     return SizedBox(

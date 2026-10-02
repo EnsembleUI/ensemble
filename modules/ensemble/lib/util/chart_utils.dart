@@ -1,4 +1,38 @@
+import 'dart:convert';
+
+import 'package:meta/meta.dart';
+
 class ChartUtils {
+  static final RegExp _safeChartId = RegExp(r'^[a-zA-Z0-9_]+$');
+
+  /// Returns true when [chartId] is safe to embed in HTML attributes and JS.
+  @visibleForTesting
+  static bool isSafeChartId(String chartId) => _safeChartId.hasMatch(chartId);
+
+  /// Builds a JavaScript expression that evaluates to a Chart.js config object.
+  ///
+  /// Map-based configs may include author-defined JavaScript callbacks and are
+  /// emitted as trusted object literals. String configs are validated as JSON
+  /// and emitted via [jsonEncode] to prevent eval injection.
+  @visibleForTesting
+  static String buildSafeChartConfigExpression(
+    String config, {
+    required bool configFromMap,
+  }) {
+    if (configFromMap) {
+      return config;
+    }
+    if (config.isEmpty) {
+      return '{}';
+    }
+    try {
+      final parsed = jsonDecode(config);
+      return jsonEncode(parsed);
+    } catch (_) {
+      return '{}';
+    }
+  }
+
   static String getClickEventScript(String chartId, {bool isWeb = false}) {
     // For web, we use the chart variable name pattern
     final chartReference = isWeb ? 'myChart$chartId' : 'window.chart';
@@ -46,7 +80,10 @@ class ChartUtils {
     ''';
   }
 
-  static String getBaseHtml(String chartId, String config) {
+  static String getBaseHtml(String chartId, String config,
+      {bool configFromMap = false}) {
+    final configExpr =
+        buildSafeChartConfigExpression(config, configFromMap: configFromMap);
     return '''
       <!DOCTYPE html>
       <html>
@@ -63,7 +100,7 @@ class ChartUtils {
           <canvas id="$chartId"></canvas>
           <script>
             try {
-              window.chart = new Chart(document.getElementById("$chartId"), $config);
+              window.chart = new Chart(document.getElementById("$chartId"), $configExpr);
               document.getElementById("$chartId").onclick = function(event) {
                 ${getClickEventScript(chartId)}
               };
