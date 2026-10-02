@@ -317,7 +317,7 @@ class BracketsView extends StatefulWidget {
 class _BracketsViewState extends State<BracketsView> {
   late PageController _pageController;
   int _currentPageIndex = 0;
-  // Target page controls column expansion.
+  // Target page controls the column layout anchor.
   int _prevColumnIndex = 0;
   List<GlobalKey> _tabKeys = [];
   // Prevents child focus handling from scrolling horizontally.
@@ -365,19 +365,25 @@ class _BracketsViewState extends State<BracketsView> {
   }
 
   void _updatePageIndex() {
+    // The controller is recreated in didUpdateWidget when viewportFraction
+    // changes; ticks can arrive while the new one has no client yet.
+    if (!_pageController.hasClients) return;
     int newPage = _pageController.page!.round();
-    if (newPage != _currentPageIndex) {
-      setState(() {
-        _currentPageIndex = newPage;
-        // On mobile, a horizontal swipe changes the page but not the reference
-        // lane used for column spacing (_prevColumnIndex). Sync it here so tiles
-        // realign after a swipe exactly as they do after a tab tap. TV drives
-        // _prevColumnIndex via the keyboard-navigation callback instead.
-        if (!Device().isTV) {
-          _prevColumnIndex = newPage;
-        }
-      });
-    }
+    if (newPage == _currentPageIndex) return;
+    _currentPageIndex = newPage;
+    // On mobile, a horizontal swipe changes the page but not the reference
+    // lane used for column spacing (_prevColumnIndex). Sync it here so tiles
+    // realign after a swipe exactly as they do after a tab tap. On TV the
+    // selected tab follows _prevColumnIndex (driven by
+    // onPrevColumnIndexChanged) and _currentPageIndex is not read during
+    // build, so there is nothing to rebuild here mid-slide.
+    if (Device().isTV) return;
+    setState(() {
+      _prevColumnIndex = newPage;
+    });
+    // Nudge the tab strip only when the page actually changes. Running this on
+    // every PageController tick restarted a 300ms ensureVisible animation frame
+    // after frame for the whole slide.
     _scrollToSelectedTab(newPage);
   }
 
@@ -395,7 +401,16 @@ class _BracketsViewState extends State<BracketsView> {
   }
 
   void _animateToPage(int index) {
-    // Update _prevColumnIndex BEFORE animation to trigger column expansion
+    // Arrow navigation owns the PageController while a TV transition is in
+    // flight. Prevent a tab activation from starting a second page activity
+    // that bypasses BracketsPage's transition generation/lock.
+    if (Device().isTV &&
+        _pageController.hasClients &&
+        _pageController.position.isScrollingNotifier.value) {
+      return;
+    }
+    // Update _prevColumnIndex before animation to keep the layout anchor
+    // aligned with the requested page.
     setState(() {
       _prevColumnIndex = index;
     });
@@ -740,10 +755,24 @@ class _BracketsPageState extends State<BracketsPage>
   final Map<_BracketMatchKey, FocusScopeNode> _matchFocusScopes = {};
 
   bool _scrollSyncScheduled = false;
+  bool _scrollSyncAllScheduled = false;
   bool _isSynchronizingScrolls = false;
   int? _pendingScrollSyncColumn;
+  int? _pendingSyncAllExclude;
   bool _isHorizontalTransitioning = false;
   int _focusRequestGeneration = 0;
+  /// Identifies the current horizontal transition; a stale completion (e.g. a
+  /// reflow interrupted by a newer one) must not clear the lock or move focus.
+  int _transitionGeneration = 0;
+  /// Timestamp of the last horizontal transition start, used to detect input
+  /// floods (see [_startHorizontalTransition]).
+  int _lastHorizontalTransitionAtMs = -10000;
+  /// Timestamp of the last accepted vertical move. During a held key, repeats
+  /// inside [_verticalRepeatGateMs] are consumed without starting another
+  /// scroll/focus chain (bounds per-second allocation churn; see
+  /// [_moveVertically]).
+  int _lastVerticalMoveAtMs = -10000;
+  static const int _verticalRepeatGateMs = 150;
   double _logicalScrollOffset = 0;
   _BracketMatchKey? _focusedMatch;
   late int _activeColumnIndex;
@@ -768,13 +797,20 @@ class _BracketsPageState extends State<BracketsPage>
   @override
   void didUpdateWidget(covariant BracketsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isHorizontalTransitioning &&
-        oldWidget.prevColumnIndex != widget.prevColumnIndex) {
-      _activeColumnIndex = widget.prevColumnIndex;
-    }
-    if (oldWidget.prevColumnIndex != widget.prevColumnIndex &&
-        !_isHorizontalTransitioning) {
-      _animateLayoutTo(widget.prevColumnIndex);
+    if (oldWidget.prevColumnIndex != widget.prevColumnIndex) {
+      if (Device().isTV) {
+        // TV transitions commit one stationary geometry state instead of
+        // animating SliverFixedExtentList.itemExtent. Arrow navigation commits
+        // it before this rebuild; tab activation commits it here.
+        if (!_isHorizontalTransitioning) {
+          _activeColumnIndex = widget.prevColumnIndex;
+          _layoutStateNotifier.value =
+              _BracketLayoutState.stationary(widget.prevColumnIndex);
+        }
+      } else if (!_isHorizontalTransitioning) {
+        _activeColumnIndex = widget.prevColumnIndex;
+        _animateLayoutTo(widget.prevColumnIndex);
+      }
     }
     if (oldWidget.data.length != widget.data.length) {
       _resizeScrollControllers();
@@ -794,10 +830,30 @@ class _BracketsPageState extends State<BracketsPage>
       for (var i = retainedCount; i < widget.data.length; i++)
         ScrollController(),
     ];
-    for (var i = widget.data.length; i < oldControllers.length; i++) {
-      oldControllers[i].dispose();
-    }
     _scrollControllers = newControllers;
+    // Old CustomScrollViews still reference the surplus controllers until the
+    // PageView rebuilds with the new array (same frame). Disposing them here
+    // throws "used after being disposed" if a tick/animation lands in that
+    // window, so retire them only once they are actually detached.
+    for (var i = widget.data.length; i < oldControllers.length; i++) {
+      _disposeWhenDetached(oldControllers[i]);
+    }
+  }
+
+  /// Disposes [controller] post-frame, and only while it has no attached
+  /// positions. If a retained ghost (e.g. a bracket kept lower in the
+  /// navigator stack) still holds it, abandon disposal rather than risk a
+  /// use-after-dispose — the unreferenced controller is simply collected.
+  void _disposeWhenDetached(ScrollController controller, [int attempt = 0]) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.hasClients) {
+        if (attempt < 4) {
+          _disposeWhenDetached(controller, attempt + 1);
+        }
+        return;
+      }
+      controller.dispose();
+    });
   }
 
   void _onPageChanged(int columnIndex) {
@@ -806,12 +862,16 @@ class _BracketsPageState extends State<BracketsPage>
   }
 
   int _matchCount(int columnIndex) {
+    // The round list can be replaced by a data-binding refresh at any moment;
+    // stale key events may still reference an old column index.
+    if (columnIndex < 0 || columnIndex >= widget.data.length) return 0;
     final matches = widget.data[columnIndex].localScope.dataContext
         .eval(widget.data[columnIndex].matches.data);
     return (matches as List?)?.length ?? 0;
   }
 
   double _slotExtent(int columnIndex) {
+    if (columnIndex < 0 || columnIndex >= widget.data.length) return 0;
     return widget.data[columnIndex].matches.height *
         _layoutStateNotifier.value.multiplierFor(columnIndex);
   }
@@ -824,20 +884,31 @@ class _BracketsPageState extends State<BracketsPage>
     );
   }
 
-  void _animateLayoutTo(int targetColumn, {VoidCallback? onComplete}) {
+  Future<void> _animateLayoutTo(
+    int targetColumn, {
+    Duration duration = const Duration(milliseconds: 280),
+  }) {
     final current = _layoutStateNotifier.value;
     if (current.toColumnIndex == targetColumn && current.progress == 1) {
-      onComplete?.call();
-      return;
+      return Future<void>.value();
     }
     _layoutStateNotifier.value = _BracketLayoutState(
       fromColumnIndex: current.toColumnIndex,
       toColumnIndex: targetColumn,
       progress: 0,
     );
-    _layoutAnimationController.forward(from: 0).whenComplete(() {
-      if (mounted) onComplete?.call();
-    });
+    // TV drives this concurrently with the page slide and matches its 180ms so
+    // the reflow and the focus transfer settle together; mobile keeps the
+    // standalone 280ms reflow.
+    _layoutAnimationController.duration = duration;
+    // `TickerFuture.whenComplete` never fires when the animation is interrupted
+    // (only `orCancel` resolves on cancellation), which would hang any caller
+    // sequencing on this reflow. Swallow cancellation as a normal completion so
+    // callers always resume.
+    return _layoutAnimationController
+        .forward(from: 0)
+        .orCancel
+        .then<void>((_) {}, onError: (Object _) {});
   }
 
   void _registerMatchFocus(_BracketMatchKey key, FocusScopeNode node) {
@@ -891,14 +962,33 @@ class _BracketsPageState extends State<BracketsPage>
         notification is ScrollEndNotification) {
       _logicalScrollOffset = notification.metrics.pixels;
       if (notification is ScrollUpdateNotification) {
-        // Keep every other column's vertical position in sync live, while
-        // dragging - not just once a page change lands. Matches the
-        // partially-visible neighbor column(s) to the active column's
-        // scroll in real time so connector lines/match rows don't desync
-        // mid-drag.
-        _syncOtherColumns(excluding: columnIndex);
+        // Keep the other columns' vertical position in sync live while
+        // dragging (matching connector lines/match rows mid-drag), but batch
+        // the jumps into one post-frame pass. Calling jumpTo on every column
+        // synchronously per scroll notification performs N viewport layouts
+        // per frame and saturates the UI thread on TV.
+        _scheduleSyncOtherColumns(excluding: columnIndex);
       }
     }
+  }
+
+  void _scheduleSyncOtherColumns({required int excluding}) {
+    if (_pendingSyncAllExclude != null && _pendingSyncAllExclude != excluding) {
+      // Source column changed within the same frame; the source column is
+      // already at the right pixels so any column is safe to exclude.
+      return;
+    }
+    _pendingSyncAllExclude = excluding;
+    if (_scrollSyncAllScheduled) return;
+    _scrollSyncAllScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollSyncAllScheduled = false;
+      if (!mounted || _isSynchronizingScrolls) return;
+      final exclude = _pendingSyncAllExclude;
+      _pendingSyncAllExclude = null;
+      if (exclude == null) return;
+      _syncOtherColumns(excluding: exclude);
+    });
   }
 
   void _syncOtherColumns({required int excluding}) {
@@ -959,9 +1049,12 @@ class _BracketsPageState extends State<BracketsPage>
     final count = _matchCount(columnIndex);
     if (count == 0) return;
     final matchIndex = requestedMatch.clamp(0, count - 1);
-    final key = _BracketMatchKey(columnIndex, matchIndex);
-    _focusedMatch = key;
+    _focusedMatch = _BracketMatchKey(columnIndex, matchIndex);
 
+    // Capture the controller before awaiting anything so a concurrent data
+    // refresh (which rebuilds/resizes _scrollControllers) can't turn this
+    // stale request into an out-of-range or use-after-dispose crash.
+    if (columnIndex < 0 || columnIndex >= _scrollControllers.length) return;
     final controller = _scrollControllers[columnIndex];
     Future<void>? scrollAnimation;
     if (controller.hasClients) {
@@ -980,7 +1073,8 @@ class _BracketsPageState extends State<BracketsPage>
     }
 
     // Focus must react to the key event, not wait for the viewport animation.
-    _requestFocusWhenMounted(key, requestGeneration);
+    _requestFocusWhenMounted(_BracketMatchKey(columnIndex, matchIndex),
+        requestGeneration);
 
     // A card just outside the lazy cache may mount during this scroll. Retry
     // once the latest request's animation completes in that case.
@@ -988,20 +1082,75 @@ class _BracketsPageState extends State<BracketsPage>
       await scrollAnimation;
     }
     if (!mounted || requestGeneration != _focusRequestGeneration) return;
-    _requestFocusWhenMounted(key, requestGeneration);
+    if (columnIndex < 0 || columnIndex >= widget.data.length) return;
+    _requestFocusWhenMounted(
+        _BracketMatchKey(columnIndex, matchIndex), requestGeneration);
   }
 
   bool _moveVertically(int columnIndex, int matchIndex, int direction) {
+    // A horizontal transition is moving the page while its target layout state
+    // is being committed. A vertical move now would animate this column's
+    // ScrollController against changing geometry, so consume the event and
+    // keep focus anchored until the transition settles.
+    if (_isHorizontalTransitioning) return true;
+    final count = _matchCount(columnIndex);
+    if (count == 0) return false;
     final activeMatch = _focusedMatch?.columnIndex == columnIndex
         ? _focusedMatch!.matchIndex
         : matchIndex;
     final targetMatch = activeMatch + direction;
     // Let the outer focus grid handle the column edges.
-    if (targetMatch < 0 || targetMatch >= _matchCount(columnIndex)) {
+    if (targetMatch < 0 || targetMatch >= count) {
       return false;
     }
+
+    // Press-and-hold floods this handler with repeat events. Each one used to
+    // spin up a new scroll animation + focus-retry chain, pinning the isolate
+    // with allocation churn until the platform thread misses more than 5s of
+    // input and Android force-kills the app (ANR). Gate repeats: only one
+    // vertical move can be outstanding per animation window; intermediate
+    // repeats are consumed but do nothing.
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs - _lastVerticalMoveAtMs < _verticalRepeatGateMs) {
+      return true;
+    }
+    _lastVerticalMoveAtMs = nowMs;
+
+    // The column is a lazy list: only a window of cards is mounted. Moving
+    // focus onto a not-yet-mounted card scrolls the column and unmounts the
+    // currently focused card first, leaving no primary focus. The next repeat
+    // would then be picked up by the outer grid and escape the column. So only
+    // advance onto a registered card, and pre-scroll one slot to mount the next
+    // card for the following repeat.
+    if (!_matchFocusScopes
+        .containsKey(_BracketMatchKey(columnIndex, targetMatch))) {
+      _preScrollForVerticalMove(columnIndex, targetMatch);
+      return true;
+    }
+
     _focusMatch(columnIndex, targetMatch);
     return true;
+  }
+
+  /// Scrolls [columnIndex] toward [matchIndex] without moving focus, so the
+  /// lazy list mounts that card for the next vertical move.
+  void _preScrollForVerticalMove(int columnIndex, int matchIndex) {
+    if (columnIndex < 0 || columnIndex >= _scrollControllers.length) return;
+    final controller = _scrollControllers[columnIndex];
+    if (!controller.hasClients) return;
+    final position = controller.position;
+    final slot = _slotExtent(columnIndex);
+    if (slot <= 0) return;
+    final desiredOffset = (matchIndex * slot - position.viewportDimension * 0.35)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    _logicalScrollOffset = desiredOffset;
+    if ((position.pixels - desiredOffset).abs() > 0.5) {
+      controller.animateTo(
+        desiredOffset,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
@@ -1036,34 +1185,114 @@ class _BracketsPageState extends State<BracketsPage>
         _startHorizontalTransition(_activeColumnIndex - 1);
         return KeyEventResult.handled;
       }
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      // A DOWN reaching the page scope means no match card consumed it (focus
+      // fell out of the lazy list while it was scrolling). Re-anchor inside the
+      // active column and consume the event so the outer focus grid cannot move
+      // focus into another bracket section.
+      final focused = _focusedMatch;
+      if (focused != null && focused.columnIndex == _activeColumnIndex) {
+        _moveVertically(focused.columnIndex, focused.matchIndex, 1);
+      }
+      return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
   }
 
-  /// Changes page and reflows the layout.
+  /// If focus comes to rest on the page scope itself (because the focused card
+  /// unmounted during a scroll), immediately re-anchor it to the intended card
+  /// so the next D-pad event is handled by a match tile again.
+  void _onPageScopeFocusChange(bool hasFocus) {
+    if (!hasFocus || !_pageScopeNode.hasPrimaryFocus) return;
+    final focused = _focusedMatch;
+    if (focused == null || focused.columnIndex != _activeColumnIndex) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pageScopeNode.hasPrimaryFocus) return;
+      _requestFocusWhenMounted(focused, _focusRequestGeneration);
+    });
+  }
+
+  /// Changes page and commits the target layout state.
   void _startHorizontalTransition(int targetPage) {
     final targetMatch = _focusedMatch?.columnIndex == _activeColumnIndex
         ? _focusedMatch!.matchIndex
         : 0;
 
+    // Rapid section changes (e.g. holding D-pad arrows for tens of seconds)
+    // restart the layout and page transitions back to back, saturating the UI
+    // thread frame after frame until Android reports an ANR ("Input
+    // dispatching timed out") and force-kills the app. When transitions arrive
+    // faster than the previous transition could settle, snap instantly instead of
+    // animating; single transitions after an idle period still animate.
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final isFlooded = nowMs - _lastHorizontalTransitionAtMs < 650;
+    _lastHorizontalTransitionAtMs = nowMs;
+    _beginTransition(targetPage, targetMatch, snap: isFlooded);
+  }
+
+  void _beginTransition(int targetPage, int targetMatch,
+      {required bool snap}) {
+    final transition = ++_transitionGeneration;
     _isHorizontalTransitioning = true;
     _activeColumnIndex = targetPage;
-    widget.pageController
+    if (snap || !widget.pageController.hasClients) {
+      // A snap supersedes any in-flight reflow; stop it so its ticks cannot
+      // overwrite the committed stationary geometry.
+      _layoutAnimationController.stop();
+      if (widget.pageController.hasClients) {
+        widget.pageController.jumpToPage(targetPage);
+      }
+      widget.onPrevColumnIndexChanged?.call(targetPage);
+      _layoutStateNotifier.value = _BracketLayoutState.stationary(targetPage);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || transition != _transitionGeneration) return;
+        _isHorizontalTransitioning = false;
+        _focusMatch(targetPage, targetMatch);
+      });
+      return;
+    }
+    // Slide the page and reflow the column geometry at the same time. The two
+    // animations are orthogonal (horizontal page offset vs. vertical column
+    // spacing), so running them together reads as one motion. Committing the
+    // spacing only after the slide makes the incoming column visibly rearrange
+    // once it has already arrived (the "rapid expansion" jerk). Input floods
+    // still take the snap path above, which bounds the per-frame relayout
+    // churn that previously caused ANRs.
+    final pageSlide = widget.pageController
         .animateToPage(targetPage,
             duration: const Duration(milliseconds: 180), curve: Curves.easeOut)
-        .whenComplete(() {
-      if (!mounted) return;
+        .then<void>((_) {
+      // A superseded transition must not move the selected tab/prevColumnIndex
+      // back to its own target once a newer one has started. A failed slide
+      // (caught by Future.wait below) must not advance the tab either.
+      if (!mounted || transition != _transitionGeneration) return;
+      // Update the selected tab after the slide so its rebuild stays out of
+      // the transition's critical frames.
       widget.onPrevColumnIndexChanged?.call(targetPage);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _animateLayoutTo(targetPage, onComplete: () {
-          if (!mounted) return;
-          _isHorizontalTransitioning = false;
-          _focusMatch(targetPage, targetMatch);
-        });
-      });
     });
+
+    // Release the transition lock and move focus only once BOTH the slide and
+    // the reflow have settled, so input stays anchored until the transition is
+    // fully finished. The reflow is given the same 180ms as the slide so focus
+    // is not held back by a longer standalone reflow. The generation guard
+    // keeps a superseded transition from clearing a newer one's lock.
+    Future.wait<void>([
+      pageSlide,
+      _animateLayoutTo(targetPage, duration: const Duration(milliseconds: 180)),
+    ]).then<void>(
+      (_) {
+        if (!mounted || transition != _transitionGeneration) return;
+        _isHorizontalTransitioning = false;
+        _focusMatch(targetPage, targetMatch);
+      },
+      onError: (Object _) {
+        // A failed slide/reflow must still release the transition lock so the
+        // bracket cannot be left permanently unresponsive.
+        if (!mounted || transition != _transitionGeneration) return;
+        _isHorizontalTransitioning = false;
+      },
+    );
   }
 
   @override
@@ -1077,6 +1306,11 @@ class _BracketsPageState extends State<BracketsPage>
       itemCount: widget.data.length,
       onPageChanged: _onPageChanged,
       itemBuilder: (context, columnIndex) {
+        // _scrollControllers are resized in didUpdateWidget, which runs in the
+        // same frame; guard anyway so a momentarily stale count can't throw.
+        if (columnIndex < 0 || columnIndex >= _scrollControllers.length) {
+          return const SizedBox.shrink();
+        }
         return BracketsColumnPage(
           controller: widget.controller,
           roundData: widget.data[columnIndex],
@@ -1103,6 +1337,7 @@ class _BracketsPageState extends State<BracketsPage>
       return FocusScope(
         node: _pageScopeNode,
         onKeyEvent: _handleKeyEvent,
+        onFocusChange: _onPageScopeFocusChange,
         child: pageView,
       );
     }
@@ -1325,7 +1560,7 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
   }
 }
 
-/// Interpolates bracket-tree geometry during reflow.
+/// Interpolates bracket-tree geometry during mobile layout transitions.
 class _BracketLayoutState {
   const _BracketLayoutState({
     required this.fromColumnIndex,
