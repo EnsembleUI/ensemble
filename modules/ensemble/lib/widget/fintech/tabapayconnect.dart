@@ -10,6 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../framework/action.dart';
 import '../../screen_controller.dart';
 import '../../util/utils.dart';
+import 'tabapay_post_message.dart';
 
 class TabaPayConnectController extends WidgetController {
   String uri =
@@ -86,8 +87,11 @@ class TabaPayConnectState extends EWidgetState<TabaPayConnect> {
             onMessageReceived: _handleTabaPayMessage)
         ..setNavigationDelegate(
             NavigationDelegate(onPageFinished: (String url) {
-          _webViewController?.runJavaScript(
-              'window.addEventListener("message", (event) => messageHandler.postMessage(event.data))');
+          final listenerScript =
+              buildTabaPayPostMessageListenerScript(widget.controller.uri);
+          if (listenerScript != null) {
+            _webViewController?.runJavaScript(listenerScript);
+          }
         }));
       _webViewController?.loadRequest(Uri.parse(widget.controller.uri));
     }
