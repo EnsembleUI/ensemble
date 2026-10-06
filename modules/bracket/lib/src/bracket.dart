@@ -14,7 +14,8 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, ValueNotifier, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -1240,9 +1241,7 @@ class _BracketsPageState extends State<BracketsPage>
       // A snap supersedes any in-flight reflow; stop it so its ticks cannot
       // overwrite the committed stationary geometry.
       _layoutAnimationController.stop();
-      if (widget.pageController.hasClients) {
-        widget.pageController.jumpToPage(targetPage);
-      }
+      _snapPageTo(targetPage);
       widget.onPrevColumnIndexChanged?.call(targetPage);
       _layoutStateNotifier.value = _BracketLayoutState.stationary(targetPage);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1293,6 +1292,32 @@ class _BracketsPageState extends State<BracketsPage>
         _isHorizontalTransitioning = false;
       },
     );
+  }
+
+  /// Snaps the page view to [targetPage] while staying inside the reachable
+  /// scroll range.
+  ///
+  /// [PageController.jumpToPage] force-sets pixels to
+  /// `page * viewportDimension * viewportFraction`. With `padEnds: false` and
+  /// `viewportFraction < 1` (the bracket's 0.4) those trailing pages map past
+  /// `maxScrollExtent` — the same clamp documented on `PageController.page` —
+  /// so the position is left out of range and the scroll physics springs it
+  /// back. That reads as a jerk/rapid throw exactly when the far rounds are
+  /// reached. Clamp the target instead so the snap is one stationary update.
+  void _snapPageTo(int targetPage) {
+    final controller = widget.pageController;
+    if (!controller.hasClients) return;
+    final position = controller.position;
+    final target = bracketSnapPageOffset(
+      page: targetPage,
+      viewportDimension: position.viewportDimension,
+      viewportFraction: controller.viewportFraction,
+      minScrollExtent: position.minScrollExtent,
+      maxScrollExtent: position.maxScrollExtent,
+    );
+    if ((position.pixels - target).abs() > 0.5) {
+      position.jumpTo(target);
+    }
   }
 
   @override
@@ -1601,6 +1626,29 @@ class _BracketLayoutState {
     final to = toColumnIndex < columnIndex ? 1.0 : 0.0;
     return from + (to - from) * progress;
   }
+}
+
+/// Scroll offset that positions [page] in a [PageController] viewport while
+/// staying inside the reachable `[minScrollExtent, maxScrollExtent]` range.
+///
+/// Mirrors `_PagePosition.getPixelsFromPage` (`page * viewportDimension *
+/// viewportFraction` plus the viewportFraction > 1 centering offset), then
+/// clamps. This is what keeps a `padEnds: false` / fractional `PageView` from
+/// being force-scrolled past its last page and sprung back.
+@visibleForTesting
+double bracketSnapPageOffset({
+  required int page,
+  required double viewportDimension,
+  required double viewportFraction,
+  required double minScrollExtent,
+  required double maxScrollExtent,
+}) {
+  final initialOffset = viewportFraction > 1
+      ? viewportDimension * (viewportFraction - 1) / 2
+      : 0.0;
+  return (page * viewportDimension * viewportFraction + initialOffset)
+      .clamp(minScrollExtent, maxScrollExtent)
+      .toDouble();
 }
 
 class _BracketMatchKey {
