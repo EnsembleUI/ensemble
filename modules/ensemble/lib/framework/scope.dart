@@ -92,6 +92,19 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
       PageBindingManager.clearBindingRegistrations(destination);
     }
     listenerMap.clear();
+    pageData._modelChangeDispatch?.cancel();
+    pageData._modelChangeDispatch = null;
+    // Closing a synchronous broadcast controller while it is firing throws
+    // StateError. dispose() can run from within a binding callback, so defer
+    // the close to a microtask to keep teardown safe.
+    final modelChangeStreams =
+        pageData._modelChangeStreams.values.toList();
+    pageData._modelChangeStreams.clear();
+    scheduleMicrotask(() {
+      for (final stream in modelChangeStreams) {
+        stream.close();
+      }
+    });
     openedDialogs.clear();
 
     // clear out all event listeners
@@ -886,7 +899,7 @@ mixin PageBindingManager on IsScopeManager {
       listenerMap[destination.widget]![hash]!.cancel();
     }
     StreamSubscription subscription =
-        eventBus.on<ModelChangeEvent>().listen((event) {
+        me.pageData._changesFor(bindingSource.modelId).listen((event) {
       //log("EventBus ${eventBus.hashCode} listening: $event");
       if ((bindingSource is DeferredBindingSource ||
               event.source.runtimeType == bindingSource.runtimeType) &&
@@ -968,6 +981,21 @@ class PageData {
   // we'll have 1 EventBus and listenerMap for each Page
   final EventBus eventBus = EventBus();
   final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
+  final Map<String, StreamController<ModelChangeEvent>> _modelChangeStreams = {};
+  StreamSubscription<ModelChangeEvent>? _modelChangeDispatch;
+
+  Stream<ModelChangeEvent> _changesFor(String modelId) {
+    _modelChangeDispatch ??= eventBus.on<ModelChangeEvent>().listen((event) {
+      _modelChangeStreams[event.source.modelId]?.add(event);
+    });
+    return _modelChangeStreams.putIfAbsent(
+      modelId,
+      () => StreamController<ModelChangeEvent>.broadcast(
+        sync: true,
+        onCancel: () => _modelChangeStreams.remove(modelId),
+      ),
+    ).stream;
+  }
 
   // When repeating timers are created at the page level, we need to manage
   // duplicates as well as the ability to pause (navigate to new page) or

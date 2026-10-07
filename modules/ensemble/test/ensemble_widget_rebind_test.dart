@@ -21,6 +21,66 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
 void main() {
+  testWidgets('storage updates reach only matching bindings and direct listeners',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Placeholder()));
+    final context = tester.element(find.byType(Placeholder));
+    final scope = ScopeManager(DataContext(buildContext: context), PageData());
+    final child = scope.createChildScope();
+    final target = EnsembleBoxController();
+    final other = EnsembleBoxController();
+    var targetUpdates = 0;
+    var otherUpdates = 0;
+    var directUpdates = 0;
+    final deliveryOrder = <String>[];
+
+    child.listen(child, r'${ensemble.storage.target}',
+        destination: BindingDestination(target, 'testId'),
+        onDataChange: (_) {
+          targetUpdates++;
+          deliveryOrder.add('binding');
+        });
+    scope.listen(scope, r'${ensemble.storage.other}',
+        destination: BindingDestination(other, 'testId'),
+        onDataChange: (_) => otherUpdates++);
+    final direct = scope.eventBus.on<ModelChangeEvent>().listen((event) {
+      if (event.source is StorageBindingSource) {
+        directUpdates++;
+        deliveryOrder.add('direct');
+      }
+    });
+
+    scope.eventBus.fire(ModelChangeEvent(StorageBindingSource('target'), 'first'));
+    await tester.pump();
+    expect(targetUpdates, 1);
+    expect(otherUpdates, 0);
+    expect(directUpdates, 1);
+    expect(deliveryOrder, ['binding', 'direct']);
+
+    scope.dispatch(ModelChangeEvent(SimpleBindingSource('target'), 'ignored'));
+    scope.dispatch(ModelChangeEvent(StorageBindingSource('target'), 'scoped',
+        bindingScope: scope));
+    await tester.pump();
+    expect(targetUpdates, 1);
+    expect(directUpdates, 2);
+
+    child.removeBindingListeners(target);
+    child.listen(child, r'${ensemble.storage.other}',
+        destination: BindingDestination(target, 'testId'),
+        onDataChange: (_) => targetUpdates++);
+    scope.dispatch(ModelChangeEvent(StorageBindingSource('target'), 'second'));
+    scope.dispatch(ModelChangeEvent(StorageBindingSource('other'), 'third'));
+    await tester.pump();
+    expect(targetUpdates, 2);
+    expect(otherUpdates, 1);
+    expect(directUpdates, 4);
+
+    child.removeBindingListeners(target);
+    scope.removeBindingListeners(other);
+    direct.cancel();
+    scope.dispose();
+  });
+
   testWidgets('closing a dialog cancels its binding subscriptions',
       (tester) async {
     final customWidgets = {
