@@ -218,6 +218,10 @@ class InvokeAPIController {
       Response response,
       Map<String, YamlMap>? apiMap,
       ScopeManager scopeManager) {
+    // The page may have been disposed while this API was in flight. Running
+    // onResponse against a deactivated context throws and blocks the main
+    // isolate, so drop the result instead.
+    if (scopeManager.pageData.isDisposed) return;
     // Preserve idle state if already set (e.g., for SSE disconnection)
     final bool isIdle = response.apiState == APIState.idle;
 
@@ -303,6 +307,9 @@ class InvokeAPIController {
       dynamic errorResponse,
       Map<String, YamlMap>? apiMap,
       ScopeManager apiScopeManager) {
+    // Skip onError callbacks once the owning page is disposed (see
+    // _onAPIComplete).
+    if (apiScopeManager.pageData.isDisposed) return;
     /// Create child scope applicable for onError only
     ScopeManager scopeManager =
         apiScopeManager.createChildScope(ephemeral: true);

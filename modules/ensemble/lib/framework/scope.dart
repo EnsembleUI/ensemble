@@ -74,6 +74,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
       return;
     }
 
+    pageData._disposed = true;
     PageBindingManager.clearBindingOwners(pageData);
 
     // Cancel and release all page-owned bindings before destroying the event
@@ -983,6 +984,11 @@ class PageData {
   final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
   final Map<String, StreamController<ModelChangeEvent>> _modelChangeStreams = {};
   StreamSubscription<ModelChangeEvent>? _modelChangeDispatch;
+  bool _disposed = false;
+
+  /// True once the owning page's root scope has been disposed. Used to
+  /// skip async work (e.g. API callbacks) that outlives the page.
+  bool get isDisposed => _disposed;
 
   Stream<ModelChangeEvent> _changesFor(String modelId) {
     _modelChangeDispatch ??= eventBus.on<ModelChangeEvent>().listen((event) {
