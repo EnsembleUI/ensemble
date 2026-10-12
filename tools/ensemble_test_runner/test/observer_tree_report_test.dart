@@ -1,12 +1,41 @@
-import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
-import 'package:ensemble_test_runner/session/local/element_semantics.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
+import 'package:ensemble_test_runner/session/local/observed_element_actions.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/observer_action_examples.dart';
+import 'package:ensemble_test_runner/session/observation/observer_json.dart'
+    show buildObserverReportTree, observerElementsToJson;
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('snapshot identity remains separate from the developer locator', () {
+    final element = UiElement.fromJson({
+      'testId': 'login_button',
+      'suggestedLocator': {'id': 'login_button'},
+    });
+    expect(element.elementId, isEmpty,
+        reason: 'missing snapshot identity must not be filled from testId');
+    expect(element.testId, 'login_button');
+
+    final tree = observerElementsToJson(UiObservation(
+      observationId: 'obs',
+      revision: 1,
+      timestamp: DateTime.utc(2026, 1, 1),
+      screen: ScreenObservation.unknown(),
+      elements: [
+        const UiElement(
+          elementId: 'el_0',
+          testId: 'login_button',
+          type: 'button',
+          state: UiElementState(visible: true),
+        ),
+      ],
+    ));
+    expect(tree.single['elementId'], 'el_0');
+    expect(tree.single['id'], 'login_button');
+    expect(tree.single['elementId'], isNot(tree.single['id']));
+  });
+
   test('structural widgets do not borrow descendant text as their title', () {
     expect(
       observerElementTitleForFields(
@@ -214,8 +243,7 @@ void main() {
     });
   });
 
-  test('observationElementsTreeForReport nests children with pre-order indices',
-      () {
+  test('observerElementsToJson nests children with pre-order indices', () {
     final observation = UiObservation(
       observationId: 'obs',
       revision: 0,
@@ -268,7 +296,7 @@ void main() {
       ),
     );
 
-    final tree = observationElementsTreeForReport(observation);
+    final tree = observerElementsToJson(observation);
     expect(tree, hasLength(2));
 
     final card = tree.first;
@@ -306,6 +334,45 @@ void main() {
     expect(heading.containsKey('supportedActions'), isFalse);
     expect(heading['interactable'], isFalse);
     expect(heading.containsKey('locatorStatus'), isFalse);
+  });
+
+  test('indexed report tree reuses the filtered snapshot for overlays', () {
+    final observation = UiObservation(
+      observationId: 'obs',
+      revision: 1,
+      timestamp: DateTime.utc(2026),
+      screen: ScreenObservation.unknown(),
+      elements: [
+        UiElement(
+          elementId: 'card',
+          type: 'card',
+          testId: 'device_card',
+          state: UiElementState(visible: true),
+          children: [
+            UiElement(
+              elementId: 'label',
+              type: 'text',
+              text: 'Device',
+              state: UiElementState(visible: true),
+            ),
+          ],
+        ),
+        UiElement(
+          elementId: 'hidden',
+          type: 'text',
+          text: 'retained',
+          state: UiElementState(visible: false, offscreen: false),
+        ),
+      ],
+    );
+
+    final report = buildObserverReportTree(observation);
+    expect(report.elements, hasLength(1));
+    expect(report.entries.map((entry) => entry.index), [1, 2]);
+    expect(report.entries.map((entry) => entry.element.elementId),
+        ['card', 'label']);
+    expect(report.entries.first.subtreeHasKeyedCardOrToast, isTrue);
+    expect(observerElementsToJson(observation), report.elements);
   });
 
   test('keyed card report node uses id, not borrowed child text as title', () {
@@ -347,7 +414,8 @@ void main() {
       ),
     );
 
-    final card = observationElementsTreeForReport(observation).single;
+    final card = observerElementsToJson(observation).single;
+    expect(card['elementId'], 'card1');
     expect(card['locator'], {'id': 'device_card'});
     expect(
       card.containsKey('title'),
@@ -355,6 +423,8 @@ void main() {
       reason: 'card must not promote nested Text as its own title',
     );
     final textChild = (card['children'] as List).single as Map;
+    expect(textChild['elementId'], 't1');
+    expect(textChild.containsKey('id'), isFalse);
     expect(textChild['title'], 'Sample Device 12');
   });
 
@@ -389,7 +459,7 @@ void main() {
       ),
     );
 
-    final input = observationElementsTreeForReport(observation).single;
+    final input = observerElementsToJson(observation).single;
     expect(input['locator'], {'id': 'device_admin_password_input'});
     expect(input['hint'], 'It is on the sticker under your device');
     expect(input['title'], 'Enter the admin password');
@@ -427,7 +497,7 @@ void main() {
       ),
     );
 
-    final toast = observationElementsTreeForReport(observation).single;
+    final toast = observerElementsToJson(observation).single;
     expect(toast['type'], 'toast');
     expect(
       toast.containsKey('title'),
@@ -464,7 +534,7 @@ void main() {
       completeness: const ObservationCompleteness(),
     );
 
-    final node = observationElementsTreeForReport(observation).single;
+    final node = observerElementsToJson(observation).single;
     expect(node['visible'], false);
     expect(node['offscreen'], true);
     expect(node['selected'], true);

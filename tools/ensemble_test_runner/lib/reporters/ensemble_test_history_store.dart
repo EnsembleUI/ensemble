@@ -1,19 +1,50 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
+import 'package:ensemble_test_runner/reporters/screenshot_archive.dart';
+import 'package:ensemble_test_runner/reporters/result_projection.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+final class HistoricalTestDurations {
+  final Map<String, int> files;
+  final Map<String, int> tests;
+
+  const HistoricalTestDurations({
+    this.files = const {},
+    this.tests = const {},
+  });
+
+  int? fileDuration(String path) => files[path];
+
+  int? testDuration(String id) => tests[id];
+}
 
 /// Appends compact historical suite results for quick trend/debug lookup.
 ///
 /// Stores compact run and per-test summaries. Full logs and screenshots stay
 /// in the latest report artifacts.
 class EnsembleTestHistoryStore {
-  static const fileName = 'ensemble_test_history.db';
-  static const maxRuns = 500;
+  static const fileName = 'ensemble_test.db';
+  // History is for recent trends and comparisons, not an execution archive.
+  // Full run evidence lives in the report artifacts; keep only the latest 50
+  // compact summaries in SQLite.
+  static const maxRuns = 50;
+  static const _schemaVersion = 8;
+  static const _maxFailureSummaryLength = 240;
+  // The live history database is deliberately small (50 suite runs), so 64
+  // pages is too high a floor: it can leave a third of the file unused. Only
+  // vacuum after pruning, and only when both fragmentation signals
+  // are meaningful, to reclaim that space without adding a per-run cost.
+  static const _vacuumFreePageThreshold = 16;
 
   static bool _initialized = false;
 
@@ -22,6 +53,7 @@ class EnsembleTestHistoryStore {
     required String artifactRoot,
     required EnsembleTestRunResult result,
     int? wallTimeMs,
+    Map<String, dynamic>? reportDocument,
   }) async {
     return await RunnerBenchmark.async('history', 'recordCompletedRun',
         () async {
@@ -29,102 +61,135 @@ class EnsembleTestHistoryStore {
 
       final reportDir = Directory(p.join(artifactRoot, 'report'));
       reportDir.createSync(recursive: true);
-      final dbPath = p.join(reportDir.path, fileName);
-      final db = await databaseFactoryFfi.openDatabase(
-        dbPath,
-        options: OpenDatabaseOptions(
-          version: 1,
-          onCreate: (db, version) async => _createSchema(db),
-          onOpen: _createSchema,
-        ),
-      );
-
+      ScreenshotArchive.create(artifactRoot);
+      final db = await _openDatabase(reportDir);
       try {
-        await db.transaction((txn) async {
-          final failedCount = result.failedCount;
-          final passedCount = result.passedCount;
-          final status = failedCount > 0 ? 'failed' : 'passed';
-          final durationMs = wallTimeMs ??
-              result.results.fold<int>(
-                0,
-                (sum, test) => sum + test.durationMs,
-              );
+        final currentReport = reportDocument ??
+            TestReportDocument.buildComplete(
+              result,
+              artifactRoot: artifactRoot,
+              displayRoot: p.join('build', 'ensemble_test_runner'),
+              wallTimeMs: wallTimeMs,
+            );
+        final compressedReport =
+            TestReportDocument.encodeCompressed(currentReport);
+        final prunedHistory = await db.transaction((txn) async {
+          await txn.rawUpdate(
+            "UPDATE test_results SET report_data = NULL WHERE record_type = 'run' AND report_data IS NOT NULL",
+          );
+          final suite = SuiteResultProjection(result);
+          final failedCount = suite.failed;
+          final passedCount = suite.passed;
+          final status = suite.status;
+          final durationMs = wallTimeMs ?? suite.totalDurationMs;
 
-          final runId = await txn.insert('runs', {
-            'created_at': DateTime.now().toUtc().toIso8601String(),
+          final catalog = await _loadTestCatalog(txn);
+          final createdAt = DateTime.now().toUtc().toIso8601String();
+          final runId = await txn.insert('test_results', {
+            'record_type': 'run',
             'status': status,
             'duration_ms': durationMs,
-            'passed_tests': passedCount,
-            'failed_tests': failedCount,
-            'total_tests': result.results.length,
-            'commit_hash': _envOrGit(
-              appDir,
-              envKeys: const ['BUILD_SOURCEVERSION'],
-              gitArgs: const ['rev-parse', '--short', 'HEAD'],
-              shorten: true,
-            ),
-            'branch': _envOrGit(
-              appDir,
-              envKeys: const [
-                'SYSTEM_PULLREQUEST_SOURCEBRANCH',
-                'BUILD_SOURCEBRANCHNAME',
-                'BUILD_SOURCEBRANCH',
-              ],
-              gitArgs: const ['rev-parse', '--abbrev-ref', 'HEAD'],
-            ),
-            'build_number': _firstEnv(const ['BUILD_BUILDNUMBER']),
-            'pr_number':
-                _firstEnv(const ['SYSTEM_PULLREQUEST_PULLREQUESTNUMBER']),
-            'mode': _stringValue(result.metadata['mode']),
-            'platform': _stringValue(result.metadata['platform']) ??
-                _singleMetadataValue(result.results, 'platform'),
-            'device_id': _stringValue(result.metadata['deviceId']) ??
-                _singleDeviceValue(result.results, id: true),
-            'device_name': _stringValue(result.metadata['deviceName']) ??
-                _singleDeviceValue(result.results),
+            'report_data': compressedReport,
+            'summary_data': jsonEncode({
+              'created_at': createdAt,
+              'passed_tests': passedCount,
+              'failed_tests': failedCount,
+              'total_tests': result.results.length,
+              'commit_hash': _envOrGit(
+                appDir,
+                envKeys: const ['BUILD_SOURCEVERSION'],
+                gitArgs: const ['rev-parse', '--short', 'HEAD'],
+                shorten: true,
+              ),
+              'branch': _envOrGit(
+                appDir,
+                envKeys: const [
+                  'SYSTEM_PULLREQUEST_SOURCEBRANCH',
+                  'BUILD_SOURCEBRANCHNAME',
+                  'BUILD_SOURCEBRANCH',
+                ],
+                gitArgs: const ['rev-parse', '--abbrev-ref', 'HEAD'],
+              ),
+              'build_number': _firstEnv(const ['BUILD_BUILDNUMBER']),
+              'pr_number':
+                  _firstEnv(const ['SYSTEM_PULLREQUEST_PULLREQUESTNUMBER']),
+              'mode': _stringValue(result.metadata['mode']),
+              'platform': _stringValue(result.metadata['platform']) ??
+                  _singleMetadataValue(result.results, 'platform'),
+              'device_id': _stringValue(result.metadata['deviceId']) ??
+                  _singleDeviceValue(result.results, id: true),
+              'device_name': _stringValue(result.metadata['deviceName']) ??
+                  _singleDeviceValue(result.results),
+            }),
           });
 
           for (final test in result.results) {
+            final projection = TestResultProjection(test);
             final testId = baseTestId(test.testId);
+            final executionId = _executionId(test.testId);
             final fileName = p.basename(filePathOf(test.testId));
+            final assetPath = filePathOf(test.testId).replaceAll('\\', '/');
             final device = _deviceLabel(test);
             final scenario = _stringValue(test.metadata['scenarioId']);
             final profile = _stringValue(test.metadata['profile']);
-            final feature = _stringValue(test.metadata['feature']);
-            final error = _errorSummary(test.message);
+            final failedStep = _failedStepLabel(test);
+            final error = _errorSummary(projection.failureMessage);
+            final testRef = await _internTest(
+              txn,
+              catalog,
+              testId: testId,
+              executionId: executionId,
+              durationMs: projection.durationMs,
+              runId: runId,
+              fileName: fileName,
+              assetPath: assetPath,
+              device: device,
+              scenario: scenario,
+              profile: profile,
+            );
             await txn.insert('test_results', {
+              'record_type': 'test',
               'run_id': runId,
-              'test_id': testId,
-              'file_name': fileName,
-              'device': device,
-              'scenario': scenario,
-              'profile': profile,
-              'feature': feature,
-              'status': test.status.name,
-              'duration_ms': test.durationMs,
-              'attempts': test.attempts,
+              'test_ref': testRef,
+              'status': projection.status,
+              'duration_ms': projection.durationMs,
+              'attempts': projection.attempts,
               'failed_step_index': test.failedStepIndex,
-              'failed_step': _failedStepLabel(test),
-              'error_kind': test.failure?.kind.name,
+              'failed_step': failedStep,
+              // Match the canonical JSON/HTML failure projection. Legacy
+              // paths may only provide a free-form message, so use the same
+              // inferred kind rather than leaving history inconsistent.
+              'error_kind': projection.failureKind,
               'error_summary': error,
             });
-            if (test.status == TestStatus.failed) {
-              await txn.insert('failed_tests', {
-                'run_id': runId,
-                'test_id': testId,
-                'base_id': testId,
-                'file_name': fileName,
-                'device': device,
-                'scenario': scenario,
-                'failed_step_index': test.failedStepIndex,
-                'failed_step': _failedStepLabel(test),
-                'error_summary': error,
-              });
-            }
           }
 
-          await _pruneOldRuns(txn);
+          final stateRows = await txn.query(
+            'report_state',
+            columns: ['started_at'],
+            where: 'id = 1',
+            limit: 1,
+          );
+          await txn.insert(
+            'report_state',
+            {
+              'id': 1,
+              'state': 'complete',
+              'started_at': stateRows.isEmpty
+                  ? createdAt
+                  : stateRows.single['started_at'],
+              'updated_at': createdAt,
+              'run_id': runId,
+              'total_tests': result.results.length,
+              'passed_tests': passedCount,
+              'failed_tests': failedCount,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+
+          return await _pruneOldRuns(txn);
         });
+        if (prunedHistory) await _compactIfNeeded(db);
       } finally {
         await db.close();
       }
@@ -137,53 +202,76 @@ class EnsembleTestHistoryStore {
     _initialized = true;
   }
 
-  static Future<void> _createSchema(Database db, [int? _]) async {
+  /// Prepares the screenshot workspace for a new run while retaining the last
+  /// completed report and archive until the replacement report is committed.
+  static Future<void> markReportLoading({required String artifactRoot}) async {
+    _ensureInitialized();
+    ScreenshotArchive.clearPendingImages(artifactRoot);
+    final reportDir = Directory(p.join(artifactRoot, 'report'))
+      ..createSync(recursive: true);
+    final db = await _openDatabase(reportDir);
+    try {
+      final now = DateTime.now().toUtc().toIso8601String();
+      await db.insert(
+        'report_state',
+        {
+          'id': 1,
+          'state': 'running',
+          'started_at': now,
+          'updated_at': now,
+          'total_tests': 0,
+          'passed_tests': 0,
+          'failed_tests': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } finally {
+      await db.close();
+    }
+    final oldDurationCache = File(p.join(
+      artifactRoot,
+      'test_durations.json',
+    ));
+    if (oldDurationCache.existsSync()) oldDurationCache.deleteSync();
+  }
+
+  static Future<Database> _openDatabase(Directory reportDir) {
+    final dbPath = p.join(reportDir.path, fileName);
+    return databaseFactoryFfi.openDatabase(
+      dbPath,
+      options: OpenDatabaseOptions(
+        version: _schemaVersion,
+        onCreate: (db, version) => _createSchema(db),
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 7) await _upgradeToVersion7(db);
+          if (oldVersion < 8) await _upgradeToVersion8(db);
+        },
+      ),
+    );
+  }
+
+  static Future<void> _createSchema(DatabaseExecutor db) async {
     await db.execute('''
-CREATE TABLE IF NOT EXISTS runs (
+CREATE TABLE IF NOT EXISTS test_catalog (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT NOT NULL,
-  status TEXT NOT NULL,
-  duration_ms INTEGER NOT NULL,
-  passed_tests INTEGER NOT NULL,
-  failed_tests INTEGER NOT NULL,
-  total_tests INTEGER NOT NULL,
-  commit_hash TEXT,
-  branch TEXT,
-  build_number TEXT,
-  pr_number TEXT,
-  mode TEXT,
-  platform TEXT,
-  device_id TEXT,
-  device_name TEXT
-)
-''');
-    await _migrateRunsSchema(db);
-    await _ensureRunContextColumns(db);
-    await db.execute('''
-CREATE TABLE IF NOT EXISTS failed_tests (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id INTEGER NOT NULL,
-  test_id TEXT NOT NULL,
-  base_id TEXT,
-  file_name TEXT,
-  device TEXT,
-  scenario TEXT,
-  failed_step_index INTEGER,
-  failed_step TEXT,
-  error_summary TEXT,
-  FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
-)
-''');
-    await db.execute('''
-CREATE TABLE IF NOT EXISTS test_results (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id INTEGER NOT NULL,
+  identity_key TEXT NOT NULL UNIQUE,
   test_id TEXT NOT NULL,
   file_name TEXT,
   device TEXT,
   scenario TEXT,
   profile TEXT,
-  feature TEXT,
+  asset_path TEXT,
+  execution_id TEXT NOT NULL DEFAULT '',
+  duration_ms INTEGER NOT NULL DEFAULT 0,
+  last_run_id INTEGER
+)
+''');
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS test_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  record_type TEXT NOT NULL CHECK(record_type IN ('run', 'test')),
+  run_id INTEGER,
+  test_ref INTEGER,
   status TEXT NOT NULL,
   duration_ms INTEGER NOT NULL,
   attempts INTEGER NOT NULL DEFAULT 1,
@@ -191,35 +279,215 @@ CREATE TABLE IF NOT EXISTS test_results (
   failed_step TEXT,
   error_kind TEXT,
   error_summary TEXT,
-  FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
+  summary_data TEXT,
+  report_data BLOB,
+  FOREIGN KEY(run_id) REFERENCES test_results(id) ON DELETE CASCADE,
+  FOREIGN KEY(test_ref) REFERENCES test_catalog(id),
+  CHECK((record_type = 'run' AND run_id IS NULL AND test_ref IS NULL) OR
+        (record_type = 'test' AND run_id IS NOT NULL AND test_ref IS NOT NULL))
 )
 ''');
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_test_results_run ON test_results(run_id)',
-    );
-    await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_test_results_test ON test_results(test_id, run_id)',
-    );
-    await _migrateFailedTestsSchema(db);
-    await _normalizeFailedTestIds(db);
+        'CREATE INDEX IF NOT EXISTS idx_test_results_run ON test_results(run_id)');
+    await _createReportStateTable(db);
   }
 
-  static Future<void> _migrateFailedTestsSchema(Database db) async {
-    final tableInfo = await db.rawQuery('PRAGMA table_info(failed_tests)');
-    final columns = tableInfo
-        .map((row) => row['name']?.toString())
-        .whereType<String>()
-        .toSet();
-
-    if (!columns.contains('failed_step_index')) {
-      await db.execute(
-        'ALTER TABLE failed_tests ADD COLUMN failed_step_index INTEGER',
-      );
+  static Future<void> _upgradeToVersion7(DatabaseExecutor db) async {
+    await db.execute(
+      "ALTER TABLE test_catalog ADD COLUMN execution_id TEXT NOT NULL DEFAULT ''",
+    );
+    await db.execute(
+      'ALTER TABLE test_catalog ADD COLUMN duration_ms INTEGER NOT NULL DEFAULT 0',
+    );
+    await db.execute(
+      'ALTER TABLE test_catalog ADD COLUMN last_run_id INTEGER',
+    );
+    await db.execute('''
+UPDATE test_catalog
+SET duration_ms = COALESCE((
+  SELECT duration_ms FROM test_results
+  WHERE record_type = 'test' AND test_ref = test_catalog.id
+  ORDER BY run_id DESC LIMIT 1
+), 0),
+last_run_id = (
+  SELECT run_id FROM test_results
+  WHERE record_type = 'test' AND test_ref = test_catalog.id
+  ORDER BY run_id DESC LIMIT 1
+),
+execution_id = test_id
+''');
+    await _createReportStateTable(db);
+    final latestRuns = await db.query(
+      'test_results',
+      columns: ['id', 'summary_data'],
+      where: "record_type = 'run'",
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+    if (latestRuns.isNotEmpty) {
+      final latest = latestRuns.single;
+      final summary = jsonDecode(latest['summary_data'] as String? ?? '{}');
+      final createdAt =
+          summary is Map ? summary['created_at']?.toString() : null;
+      if (createdAt != null && createdAt.isNotEmpty) {
+        await db.insert(
+          'report_state',
+          {
+            'id': 1,
+            'state': 'complete',
+            'started_at': createdAt,
+            'updated_at': createdAt,
+            'run_id': latest['id'],
+            'total_tests': _summaryCount(summary, 'total_tests'),
+            'passed_tests': _summaryCount(summary, 'passed_tests'),
+            'failed_tests': _summaryCount(summary, 'failed_tests'),
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
     }
-    if (!columns.contains('failed_step')) {
-      await db.execute(
-        'ALTER TABLE failed_tests ADD COLUMN failed_step TEXT',
+  }
+
+  static int _summaryCount(dynamic summary, String key) {
+    final value = summary is Map ? summary[key] : null;
+    return value is num && value >= 0 ? value.toInt() : 0;
+  }
+
+  static Future<void> _upgradeToVersion8(DatabaseExecutor db) async {
+    await db.execute('ALTER TABLE test_catalog ADD COLUMN asset_path TEXT');
+  }
+
+  static Future<void> _createReportStateTable(DatabaseExecutor db) async {
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS report_state (
+  id INTEGER PRIMARY KEY CHECK(id = 1),
+  state TEXT NOT NULL CHECK(state IN ('running', 'complete')),
+  started_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  run_id INTEGER,
+  total_tests INTEGER NOT NULL DEFAULT 0,
+  passed_tests INTEGER NOT NULL DEFAULT 0,
+  failed_tests INTEGER NOT NULL DEFAULT 0
+)
+''');
+  }
+
+  static Future<Map<String, int>> _loadTestCatalog(DatabaseExecutor db) async {
+    final rows =
+        await db.query('test_catalog', columns: ['id', 'identity_key']);
+    return {
+      for (final row in rows)
+        row['identity_key']! as String: (row['id']! as num).toInt(),
+    };
+  }
+
+  static Future<int> _internTest(
+    DatabaseExecutor db,
+    Map<String, int> catalog, {
+    required String testId,
+    required String executionId,
+    required int durationMs,
+    required int runId,
+    required String? fileName,
+    required String? assetPath,
+    required String? device,
+    required String? scenario,
+    required String? profile,
+  }) async {
+    final identity = jsonEncode([testId, fileName, device, scenario, profile]);
+    final known = catalog[identity];
+    if (known != null) {
+      await db.update(
+        'test_catalog',
+        {
+          'execution_id': executionId,
+          'asset_path': assetPath,
+          'duration_ms': durationMs,
+          'last_run_id': runId,
+        },
+        where: 'id = ?',
+        whereArgs: [known],
       );
+      return known;
+    }
+
+    // The catalog was loaded at transaction start, so a missing in-memory key
+    // is guaranteed to be a new row. The insert returns its ID directly and
+    // avoids an extra SELECT for every distinct test variant.
+    final id = await db.insert('test_catalog', {
+      'identity_key': identity,
+      'test_id': testId,
+      'file_name': fileName,
+      'asset_path': assetPath,
+      'device': device,
+      'scenario': scenario,
+      'profile': profile,
+      'execution_id': executionId,
+      'duration_ms': durationMs,
+      'last_run_id': runId,
+    });
+    catalog[identity] = id;
+    return id;
+  }
+
+  static String _executionId(String testId) {
+    final assetMarker = RegExp(r'\s+\(').firstMatch(testId)?.start;
+    return (assetMarker == null ? testId : testId.substring(0, assetMarker))
+        .trim();
+  }
+
+  /// Reads scheduler estimates from the same retained history database used by
+  /// the report. Each test uses its latest recorded duration; file estimates
+  /// sum the newest retained run that contains that file.
+  static Future<HistoricalTestDurations> loadPlannerDurations(
+    String appDir,
+  ) async {
+    final dbFile = File(p.join(
+      appDir,
+      'build',
+      'ensemble_test_runner',
+      'report',
+      fileName,
+    ));
+    if (!dbFile.existsSync()) return const HistoricalTestDurations();
+    _ensureInitialized();
+    final db = await databaseFactoryFfi.openDatabase(dbFile.path);
+    try {
+      final catalogRows = await db.rawQuery('''
+SELECT execution_id, duration_ms FROM test_catalog
+WHERE execution_id != '' AND duration_ms > 0
+ORDER BY last_run_id DESC
+''');
+      final tests = <String, int>{};
+      for (final row in catalogRows) {
+        tests.putIfAbsent(
+          row['execution_id']! as String,
+          () => (row['duration_ms'] as num).toInt(),
+        );
+      }
+
+      final resultRows = await db.rawQuery('''
+SELECT r.run_id, r.duration_ms, c.asset_path
+FROM test_results r JOIN test_catalog c ON c.id = r.test_ref
+WHERE r.record_type = 'test' AND r.duration_ms > 0
+AND c.asset_path IS NOT NULL AND c.asset_path != ''
+ORDER BY r.run_id DESC, c.asset_path ASC
+''');
+      final latestFileRuns = <String, int>{};
+      final files = <String, int>{};
+      for (final row in resultRows) {
+        final assetPath = row['asset_path'] as String?;
+        if (assetPath == null || assetPath.isEmpty) continue;
+        final runId = (row['run_id'] as num).toInt();
+        final latestRunId = latestFileRuns.putIfAbsent(assetPath, () => runId);
+        if (latestRunId == runId) {
+          files[assetPath] =
+              (files[assetPath] ?? 0) + (row['duration_ms'] as num).toInt();
+        }
+      }
+      return HistoricalTestDurations(files: files, tests: tests);
+    } finally {
+      await db.close();
     }
   }
 
@@ -235,121 +503,14 @@ CREATE TABLE IF NOT EXISTS test_results (
     return null;
   }
 
-  static Future<void> _migrateRunsSchema(Database db) async {
-    final tableInfo = await db.rawQuery('PRAGMA table_info(runs)');
-    final columns = tableInfo
-        .map((row) => row['name']?.toString())
-        .whereType<String>()
-        .toSet();
-
-    if (!columns.contains('pending_tests')) {
-      await db.rawUpdate(
-        "UPDATE runs SET status = 'failed' "
-        "WHERE status NOT IN ('passed', 'failed')",
-      );
-      return;
-    }
-
-    await db.execute('PRAGMA foreign_keys=OFF');
-    try {
-      await db.execute('DROP TABLE IF EXISTS runs_migrated');
-      await db.execute('''
-CREATE TABLE runs_migrated (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT NOT NULL,
-  status TEXT NOT NULL,
-  duration_ms INTEGER NOT NULL,
-  passed_tests INTEGER NOT NULL,
-  failed_tests INTEGER NOT NULL,
-  total_tests INTEGER NOT NULL,
-  commit_hash TEXT,
-  branch TEXT,
-  build_number TEXT,
-  pr_number TEXT,
-  mode TEXT,
-  platform TEXT,
-  device_id TEXT,
-  device_name TEXT
-)
-''');
-      await db.execute('''
-INSERT INTO runs_migrated (
-  id,
-  created_at,
-  status,
-  duration_ms,
-  passed_tests,
-  failed_tests,
-  total_tests,
-  commit_hash,
-  branch,
-  build_number,
-  pr_number,
-  mode,
-  platform,
-  device_id,
-  device_name
-)
-SELECT
-  id,
-  created_at,
-  CASE WHEN status = 'passed' THEN 'passed' ELSE 'failed' END,
-  duration_ms,
-  passed_tests,
-  failed_tests,
-  total_tests,
-  commit_hash,
-  branch,
-  build_number,
-  pr_number,
-  NULL,
-  NULL,
-  NULL,
-  NULL
-FROM runs
-''');
-      await db.execute('DROP TABLE runs');
-      await db.execute('ALTER TABLE runs_migrated RENAME TO runs');
-    } finally {
-      await db.execute('PRAGMA foreign_keys=ON');
-    }
-  }
-
-  static Future<void> _ensureRunContextColumns(Database db) async {
-    final tableInfo = await db.rawQuery('PRAGMA table_info(runs)');
-    final columns = tableInfo
-        .map((row) => row['name']?.toString())
-        .whereType<String>()
-        .toSet();
-    for (final column in const [
-      'mode',
-      'platform',
-      'device_id',
-      'device_name',
-    ]) {
-      if (!columns.contains(column)) {
-        await db.execute('ALTER TABLE runs ADD COLUMN $column TEXT');
-      }
-    }
-  }
-
-  static Future<void> _normalizeFailedTestIds(Database db) async {
-    await db.rawUpdate('''
-UPDATE failed_tests
-SET test_id = base_id
-WHERE base_id IS NOT NULL
-  AND base_id != ''
-  AND test_id != base_id
-''');
-  }
-
-  static Future<void> _pruneOldRuns(Transaction txn) async {
+  static Future<bool> _pruneOldRuns(Transaction txn) async {
     return await RunnerBenchmark.async('history', 'pruneOldRuns', () async {
       final oldRuns = await txn.rawQuery(
         '''
-SELECT id FROM runs
-WHERE id NOT IN (
-  SELECT id FROM runs
+SELECT id FROM test_results
+WHERE record_type = 'run' AND id NOT IN (
+  SELECT id FROM test_results
+  WHERE record_type = 'run'
   ORDER BY id DESC
   LIMIT ?
 )
@@ -357,22 +518,35 @@ WHERE id NOT IN (
         [maxRuns],
       );
       final oldIds = oldRuns.map((row) => row['id']).toList();
-      if (oldIds.isEmpty) return;
+      if (oldIds.isEmpty) return false;
 
       final placeholders = List.filled(oldIds.length, '?').join(',');
       await txn.rawDelete(
-        'DELETE FROM failed_tests WHERE run_id IN ($placeholders)',
-        oldIds,
+        'DELETE FROM test_results WHERE id IN ($placeholders) OR run_id IN ($placeholders)',
+        [...oldIds, ...oldIds],
       );
-      await txn.rawDelete(
-        'DELETE FROM test_results WHERE run_id IN ($placeholders)',
-        oldIds,
-      );
-      await txn.rawDelete(
-        'DELETE FROM runs WHERE id IN ($placeholders)',
-        oldIds,
-      );
+      await txn.rawDelete('''
+DELETE FROM test_catalog
+WHERE NOT EXISTS (
+  SELECT 1 FROM test_results
+  WHERE record_type = 'test' AND test_ref = test_catalog.id
+)
+''');
+      return true;
     });
+  }
+
+  static Future<void> _compactIfNeeded(Database db) async {
+    final rows = await db.rawQuery('PRAGMA freelist_count');
+    final freePages = (rows.first['freelist_count'] as num?)?.toInt() ?? 0;
+    if (freePages < _vacuumFreePageThreshold) return;
+
+    final pageRows = await db.rawQuery('PRAGMA page_count');
+    final pageCount = (pageRows.first['page_count'] as num?)?.toInt() ?? 0;
+    if (pageCount == 0 || freePages * 4 < pageCount) return;
+
+    // VACUUM must run outside the write transaction and only after pruning.
+    await db.execute('VACUUM');
   }
 
   static String? _deviceLabel(EnsembleSingleTestResult test) {
@@ -426,11 +600,13 @@ WHERE id NOT IN (
   static String? _errorSummary(String? message) {
     final text = message?.trim();
     if (text == null || text.isEmpty) return null;
-    return text
+    final summary = text
         .split(RegExp(r'\r?\n'))
         .first
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+    if (summary.length <= _maxFailureSummaryLength) return summary;
+    return '${summary.substring(0, _maxFailureSummaryLength - 1)}…';
   }
 
   static String? _firstEnv(List<String> keys) {

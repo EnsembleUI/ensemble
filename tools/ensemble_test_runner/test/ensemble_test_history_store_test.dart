@@ -1,7 +1,11 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
+import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
+import 'package:ensemble_test_runner/src/core/operation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -49,7 +53,14 @@ void main() {
               type: 'tap',
               args: {'id': 'save_button'},
             ),
-            error: 'Timed out waiting for id "save_button".\nextra details',
+            failureOperation: 'interaction.tap',
+            failureSource: const SourceLocation(
+              'ensemble/apps/app/tests/settings.test.yaml',
+              'steps[2]',
+            ),
+            message: 'Timed out waiting for id "save_button".\nextra details',
+            attempts: 3,
+            retry: 2,
             metadata: const {
               'scenarioId': 'retry_case',
               'device': {'id': 'iphone'},
@@ -68,126 +79,126 @@ void main() {
     final db = await databaseFactoryFfi.openDatabase(dbPath);
     addTearDown(db.close);
 
-    final runs = await db.query('runs');
+    final runs = await db.query('test_results', where: "record_type = 'run'");
     expect(runs, hasLength(1));
     expect(runs.single['status'], 'failed');
     expect(runs.single['duration_ms'], 1234);
-    expect(runs.single['passed_tests'], 1);
-    expect(runs.single['failed_tests'], 1);
-    expect(runs.single['total_tests'], 2);
-    expect(runs.single['mode'], 'integration');
-    expect(runs.single['platform'], 'ios');
-    expect(runs.single['device_name'], 'iPhone 15 Pro');
+    final summary = jsonDecode(runs.single['summary_data'] as String);
+    expect(summary['passed_tests'], 1);
+    expect(summary['failed_tests'], 1);
+    expect(summary['total_tests'], 2);
+    expect(summary['mode'], 'integration');
+    expect(summary['platform'], 'ios');
+    expect(summary['device_name'], 'iPhone 15 Pro');
+    final currentReport = ReportJsonOptimizer.expand(
+      jsonDecode(
+              utf8.decode(gzip.decode(runs.single['report_data'] as Uint8List)))
+          as Map<String, dynamic>,
+    );
+    expect(currentReport['state'], 'complete');
+    expect(currentReport['tests'], hasLength(2));
 
-    final testResults = await db.query('test_results', orderBy: 'id ASC');
+    final testResults = await db.rawQuery('''
+SELECT r.*, c.test_id, c.file_name, c.device, c.scenario, c.profile
+FROM test_results r JOIN test_catalog c ON c.id = r.test_ref
+WHERE r.record_type = 'test' ORDER BY r.id ASC
+''');
     expect(testResults, hasLength(2));
     expect(testResults.first['status'], 'passed');
     expect(testResults.first['duration_ms'], 300);
+    expect(testResults.first['device'], 'android');
     expect(testResults.last['status'], 'failed');
+    expect(testResults.last['device'], 'iphone');
     expect(testResults.last['scenario'], 'retry_case');
     expect(testResults.last['failed_step'], 'tap(save_button)');
-    expect(testResults.last['error_kind'], isNull);
-
-    final failed = await db.query('failed_tests');
-    expect(failed, hasLength(1));
-    expect(failed.single['test_id'], 'settings_flow');
-    expect(failed.single['base_id'], 'settings_flow');
-    expect(failed.single['file_name'], 'settings.test.yaml');
-    expect(failed.single['device'], 'iphone');
-    expect(failed.single['scenario'], 'retry_case');
-    expect(failed.single['failed_step_index'], 2);
-    expect(failed.single['failed_step'], 'tap(save_button)');
+    expect(testResults.last['attempts'], 3);
+    expect(testResults.last['error_kind'], 'assertion');
     expect(
-      failed.single['error_summary'],
+      testResults.last['error_summary'],
       'Timed out waiting for id "save_button".',
+    );
+    expect(testResults.last.keys, isNot(contains('feature')));
+    expect(testResults.last.keys, isNot(contains('retry')));
+    expect(testResults.last.keys, isNot(contains('failure_source_path')));
+    expect(testResults.first['test_ref'], isNot(testResults.last['test_ref']));
+    expect(
+        (await db.rawQuery('SELECT COUNT(*) AS count FROM test_catalog'))
+            .single['count'],
+        2);
+    expect(
+      await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='failed_tests'",
+      ),
+      isEmpty,
+    );
+    expect(
+      await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='runs'",
+      ),
+      isEmpty,
     );
   });
 
-  test('migrates failed step columns into an existing history database',
+  test('starts a new database without importing the retired filename',
       () async {
     final reportDir = Directory(p.join(tempDir.path, 'report'))
       ..createSync(recursive: true);
-    final dbPath = p.join(reportDir.path, EnsembleTestHistoryStore.fileName);
-    final oldDb = await databaseFactoryFfi.openDatabase(dbPath);
-    await oldDb.execute('''
-CREATE TABLE runs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT NOT NULL,
-  status TEXT NOT NULL,
-  duration_ms INTEGER NOT NULL,
-  passed_tests INTEGER NOT NULL,
-  failed_tests INTEGER NOT NULL,
-  total_tests INTEGER NOT NULL,
-  commit_hash TEXT,
-  branch TEXT,
-  build_number TEXT,
-  pr_number TEXT
-)
-''');
-    await oldDb.execute('''
-CREATE TABLE failed_tests (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id INTEGER NOT NULL,
-  test_id TEXT NOT NULL,
-  base_id TEXT,
-  file_name TEXT,
-  device TEXT,
-  scenario TEXT,
-  error_summary TEXT,
-  FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
-)
-''');
-    await oldDb.close();
+    final retiredPath = p.join(reportDir.path, 'ensemble_test_history.db');
+    final retiredDb = await databaseFactoryFfi.openDatabase(retiredPath);
+    await retiredDb.execute('CREATE TABLE runs (id INTEGER PRIMARY KEY)');
+    await retiredDb.close();
 
     await EnsembleTestHistoryStore.recordCompletedRun(
       appDir: tempDir.path,
       artifactRoot: tempDir.path,
-      result: EnsembleTestRunResult(
-        results: [
-          EnsembleSingleTestResult.failed(
-            testId: 'new_test (ensemble/apps/app/tests/new.test.yaml)',
-            durationMs: 100,
-            failedStepIndex: 0,
-            failedStep: const TestStep(
-              type: 'expectVisible',
-              args: {'id': 'welcome_text'},
-            ),
-            error: 'not visible',
-          ),
-        ],
-      ),
+      result: EnsembleTestRunResult(results: [
+        EnsembleSingleTestResult.passed(testId: 'current', durationMs: 25),
+      ]),
     );
 
-    final db = await databaseFactoryFfi.openDatabase(dbPath);
+    final currentPath = p.join(reportDir.path, 'ensemble_test.db');
+    expect(File(currentPath).existsSync(), isTrue);
+    expect(File(retiredPath).existsSync(), isTrue);
+    final db = await databaseFactoryFfi.openDatabase(currentPath);
     addTearDown(db.close);
-    final columns = await db.rawQuery('PRAGMA table_info(failed_tests)');
     expect(
-      columns.map((row) => row['name']),
-      containsAll(['failed_step_index', 'failed_step']),
+      await db.query('test_results', where: "record_type = 'run'"),
+      hasLength(1),
     );
-    final failed = await db.query('failed_tests');
-    expect(failed.single['failed_step_index'], 0);
-    expect(failed.single['failed_step'], 'expectVisible(welcome_text)');
-    expect(await db.query('test_results'), hasLength(1));
-    final runColumns = await db.rawQuery('PRAGMA table_info(runs)');
     expect(
-        runColumns.map((row) => row['name']),
-        containsAll([
-          'mode',
-          'platform',
-          'device_id',
-          'device_name',
-        ]));
+      await db.query('test_results', where: "record_type = 'test'"),
+      hasLength(1),
+    );
   });
 
-  test('keeps only the latest 500 history runs', () async {
+  test('caps persisted failure summaries', () async {
+    await EnsembleTestHistoryStore.recordCompletedRun(
+      appDir: tempDir.path,
+      artifactRoot: tempDir.path,
+      result: EnsembleTestRunResult(results: [
+        EnsembleSingleTestResult.failed(
+          testId: 'large_error',
+          durationMs: 1,
+          message: List.filled(10000, 'x').join(),
+        ),
+      ]),
+    );
+
+    final db = await databaseFactoryFfi.openDatabase(
+      p.join(tempDir.path, 'report', EnsembleTestHistoryStore.fileName),
+    );
+    addTearDown(db.close);
+    final rows = await db.query('test_results', where: "record_type = 'test'");
+    expect((rows.single['error_summary'] as String).length, 240);
+  });
+
+  test('keeps the latest 50 runs with all their case results', () async {
     EnsembleTestRunResult failedRun(int index) => EnsembleTestRunResult(
           results: [
             EnsembleSingleTestResult.failed(
-              testId:
-                  'run_$index (ensemble/apps/app/tests/run_$index.test.yaml)',
+              testId: 'repeat_case (ensemble/apps/app/tests/repeat.test.yaml)',
               durationMs: index,
-              error: 'failure $index',
+              message: 'failure $index',
             ),
           ],
         );
@@ -208,28 +219,34 @@ CREATE TABLE failed_tests (
     );
     final db = await databaseFactoryFfi.openDatabase(dbPath);
     await db.transaction((txn) async {
-      for (var i = 0; i < 504; i++) {
-        final runId = await txn.insert('runs', {
-          'created_at': DateTime.utc(2026, 1, 1)
-              .add(Duration(seconds: i))
-              .toIso8601String(),
+      for (var i = 0; i < 104; i++) {
+        final runId = await txn.insert('test_results', {
+          'record_type': 'run',
           'status': 'failed',
           'duration_ms': i,
-          'passed_tests': 0,
-          'failed_tests': 1,
-          'total_tests': 1,
+          'summary_data': jsonEncode({
+            'created_at': DateTime.utc(2026, 1, 1)
+                .add(Duration(seconds: i))
+                .toIso8601String(),
+            'passed_tests': 0,
+            'failed_tests': 1,
+            'total_tests': 1,
+          }),
         });
-        await txn.insert('failed_tests', {
-          'run_id': runId,
-          'test_id': 'run_$i',
-          'base_id': 'run_$i',
-          'file_name': 'run_$i.test.yaml',
-          'error_summary': 'failure $i',
-        });
+        const identity = '["repeat_case","repeat.test.yaml",null,null,null]';
+        await txn.rawInsert(
+          'INSERT OR IGNORE INTO test_catalog (identity_key, test_id, file_name) VALUES (?, ?, ?)',
+          [identity, 'repeat_case', 'repeat.test.yaml'],
+        );
+        final testRef = (await txn.query('test_catalog',
+                columns: ['id'],
+                where: 'identity_key = ?',
+                whereArgs: [identity]))
+            .single['id'];
         await txn.insert('test_results', {
+          'record_type': 'test',
           'run_id': runId,
-          'test_id': 'run_$i',
-          'file_name': 'run_$i.test.yaml',
+          'test_ref': testRef,
           'status': 'failed',
           'duration_ms': i,
         });
@@ -240,113 +257,24 @@ CREATE TABLE failed_tests (
     await EnsembleTestHistoryStore.recordCompletedRun(
       appDir: tempDir.path,
       artifactRoot: tempDir.path,
-      wallTimeMs: 504,
-      result: failedRun(504),
+      wallTimeMs: 104,
+      result: failedRun(104),
     );
 
     final retainedDb = await databaseFactoryFfi.openDatabase(dbPath);
     addTearDown(retainedDb.close);
 
-    final runs = await retainedDb.query('runs', orderBy: 'id ASC');
+    final runs = await retainedDb.query('test_results',
+        where: "record_type = 'run'", orderBy: 'id ASC');
     expect(runs, hasLength(EnsembleTestHistoryStore.maxRuns));
-    expect(runs.first['duration_ms'], 5);
-    expect(runs.last['duration_ms'], 504);
+    expect(runs.first['duration_ms'], 55);
+    expect(runs.last['duration_ms'], 104);
 
-    final failed =
-        await retainedDb.query('failed_tests', orderBy: 'run_id ASC');
-    expect(failed, hasLength(EnsembleTestHistoryStore.maxRuns));
-    expect(failed.first['file_name'], 'run_5.test.yaml');
-    expect(failed.last['file_name'], 'run_504.test.yaml');
-    final testResults = await retainedDb.query('test_results');
+    final testResults =
+        await retainedDb.query('test_results', where: "record_type = 'test'");
     expect(testResults, hasLength(EnsembleTestHistoryStore.maxRuns));
-  });
-
-  test('migrates old history database with pending_tests column', () async {
-    final reportDir = Directory(p.join(tempDir.path, 'report'))
-      ..createSync(recursive: true);
-    final dbPath = p.join(reportDir.path, EnsembleTestHistoryStore.fileName);
-    final oldDb = await databaseFactoryFfi.openDatabase(dbPath);
-    await oldDb.execute('''
-CREATE TABLE runs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT NOT NULL,
-  status TEXT NOT NULL,
-  duration_ms INTEGER NOT NULL,
-  passed_tests INTEGER NOT NULL,
-  failed_tests INTEGER NOT NULL,
-  pending_tests INTEGER NOT NULL,
-  total_tests INTEGER NOT NULL,
-  commit_hash TEXT,
-  branch TEXT,
-  build_number TEXT,
-  pr_number TEXT
-)
-''');
-    await oldDb.execute('''
-CREATE TABLE failed_tests (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id INTEGER NOT NULL,
-  test_id TEXT NOT NULL,
-  base_id TEXT,
-  file_name TEXT,
-  device TEXT,
-  scenario TEXT,
-  error_summary TEXT,
-  FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
-)
-''');
-    final oldRunId = await oldDb.insert('runs', {
-      'created_at': '2026-08-03T00:00:00.000Z',
-      'status': 'pending',
-      'duration_ms': 500,
-      'passed_tests': 0,
-      'failed_tests': 0,
-      'pending_tests': 1,
-      'total_tests': 1,
-    });
-    await oldDb.insert('failed_tests', {
-      'run_id': oldRunId,
-      'test_id': 'old_test (ensemble/apps/app/tests/old.test.yaml)',
-      'base_id': 'old_test',
-      'file_name': 'old.test.yaml',
-      'device': 'iphone',
-      'scenario': null,
-      'error_summary': 'old failure',
-    });
-    await oldDb.close();
-
-    await EnsembleTestHistoryStore.recordCompletedRun(
-      appDir: tempDir.path,
-      artifactRoot: tempDir.path,
-      wallTimeMs: 1234,
-      result: EnsembleTestRunResult(
-        results: [
-          EnsembleSingleTestResult.passed(
-            testId: 'new_test (ensemble/apps/app/tests/new.test.yaml)',
-            durationMs: 1234,
-          ),
-        ],
-      ),
-    );
-
-    final db = await databaseFactoryFfi.openDatabase(dbPath);
-    addTearDown(db.close);
-
-    final columns = await db.rawQuery('PRAGMA table_info(runs)');
-    expect(
-      columns.map((row) => row['name']),
-      isNot(contains('pending_tests')),
-    );
-
-    final runs = await db.query('runs', orderBy: 'id ASC');
-    expect(runs, hasLength(2));
-    expect(runs.first['status'], 'failed');
-    expect(runs.last['status'], 'passed');
-
-    final failed = await db.query('failed_tests');
-    expect(failed, hasLength(1));
-    expect(failed.single['test_id'], 'old_test');
-    expect(failed.single['base_id'], 'old_test');
-    expect(failed.single['file_name'], 'old.test.yaml');
+    final catalog =
+        await retainedDb.rawQuery('SELECT COUNT(*) AS count FROM test_catalog');
+    expect(catalog.single['count'], 1);
   });
 }

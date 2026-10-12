@@ -143,32 +143,32 @@ String _formatExample(
   }.contains(action);
 
   if (isTextAction) {
-    extra.forEach((key, value) => lines.add('  $key: ${_yamlScalar(value)}'));
+    extra.forEach((key, value) => lines.add('  $key: ${_scalar(value)}'));
     final sameTextTarget = action == 'waitForText' &&
         target != null &&
         target.length == 1 &&
         target['text'] == extra['text'];
     if (action == 'waitForText' && target != null && !sameTextTarget) {
       lines.add('  target:');
-      lines.addAll(_yamlObjectLines(target, 2));
+      lines.addAll(_objectLines(target, 2));
     }
     return lines.join('\n');
   }
 
   if (_isIdOnly(target!)) {
-    lines.add('  id: ${_yamlScalar(target['id'])}');
+    lines.add('  id: ${_scalar(target['id'])}');
   } else {
     lines.add('  target:');
-    lines.addAll(_yamlObjectLines(target, 2));
+    lines.addAll(_objectLines(target, 2));
   }
-  extra.forEach((key, value) => lines.add('  $key: ${_yamlScalar(value)}'));
+  extra.forEach((key, value) => lines.add('  $key: ${_scalar(value)}'));
   return lines.join('\n');
 }
 
 bool _isIdOnly(Map<String, dynamic> locator) =>
     locator.length == 1 && locator['id'] != null;
 
-List<String> _yamlObjectLines(Map<String, dynamic> object, int indent) {
+List<String> _objectLines(Map<String, dynamic> object, int indent) {
   final pad = '  ' * indent;
   final lines = <String>[];
   for (final entry in object.entries) {
@@ -177,13 +177,13 @@ List<String> _yamlObjectLines(Map<String, dynamic> object, int indent) {
     if (value is Map) {
       lines.add('$pad${entry.key}:');
       lines.addAll(
-        _yamlObjectLines(Map<String, dynamic>.from(value), indent + 1),
+        _objectLines(Map<String, dynamic>.from(value), indent + 1),
       );
     } else {
-      lines.add('$pad${entry.key}: ${_yamlScalar(value)}');
+      lines.add('$pad${entry.key}: ${_scalar(value)}');
     }
   }
   return lines;
 }
 
-String _yamlScalar(Object? value) => jsonEncode(value ?? '');
+String _scalar(Object? value) => jsonEncode(value ?? '');

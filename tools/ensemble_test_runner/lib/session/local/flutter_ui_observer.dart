@@ -6,9 +6,11 @@ import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
+import 'package:ensemble_test_runner/session/observation/diagnostic_locators.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observer.dart';
+import 'package:ensemble_test_runner/runner/event_driven_settler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,6 +45,7 @@ class FlutterUiObserver implements UiObserver {
     return await RunnerBenchmark.async('observer', 'observe', () async {
       RunnerBenchmark.dimension(
           'synchronizationPolicy', options.synchronization.name);
+      RunnerBenchmark.dimension('observationDetail', options.detail.name);
       RunnerBenchmark.dimension('keyedOnly', options.keyedOnly);
       var partial = false;
       switch (options.synchronization) {
@@ -54,18 +57,27 @@ class FlutterUiObserver implements UiObserver {
         case ObservationSynchronization.untilStable:
           final timeout = options.stableTimeout ?? settleTimeout;
           try {
-            await tester.pumpAndSettle(timeout);
+            await _settleUntilStable(timeout);
           } on FlutterError {
             partial = true;
           }
           break;
       }
 
+      // Minimal observations are deliberately locator-oriented. They avoid
+      // enabling semantics and describe only keyed controls, which keeps
+      // branch/control-flow checks from paying for the report tree. Standard
+      // observations retain the report tree contract. Diagnostic observations
+      // add cheap, ambiguity-checked locator hints after the same full walk.
+      final minimal = options.detail == ObservationDetailLevel.minimal;
+
       // Identity/freshness always includes bounds so presentation options
       // (includeBounds) cannot change stale-target validation.
       final built = _buildElements(
         includeBounds: true,
-        keyedOnly: options.keyedOnly,
+        keyedOnly: options.keyedOnly || minimal,
+        enableSemantics: !minimal,
+        useSemantics: !minimal,
       );
       final screen = _screenObservation();
       final fingerprint = fingerprintForObservation(
@@ -81,9 +93,13 @@ class FlutterUiObserver implements UiObserver {
         handles: rebindHandles(observationId, built.handles),
       );
 
-      final elements = options.includeBounds
-          ? built.elements
-          : built.elements.map(_withoutBounds).toList(growable: false);
+      final detailedElements =
+          options.detail == ObservationDetailLevel.diagnostic
+              ? annotateDiagnosticLocators(built.elements)
+              : built.elements;
+      final elements = options.includeBounds && !minimal
+          ? detailedElements
+          : detailedElements.map(_withoutBounds).toList(growable: false);
 
       final size = tester.view.physicalSize / tester.view.devicePixelRatio;
       return UiObservation(
@@ -99,7 +115,7 @@ class FlutterUiObserver implements UiObserver {
         ),
         observableFingerprint: fingerprint,
         completeness: ObservationCompleteness(
-          semanticTree: true,
+          semanticTree: !minimal,
           runtimeMetadata: true,
           navigationState: !screen.unknown,
           screenshot: false,
@@ -107,6 +123,21 @@ class FlutterUiObserver implements UiObserver {
         ),
       );
     });
+  }
+
+  Future<void> _settleUntilStable(Duration timeout) async {
+    try {
+      await EventDrivenSettler(tester: tester).settle(timeout: timeout);
+    } on FlutterError catch (error) {
+      if (!error.toString().contains('settle until idle timed out') &&
+          !error.toString().contains('timeout')) {
+        rethrow;
+      }
+      // Observation is evidence collection. A continuously animated or
+      // stream-backed screen may never become fully idle; retain the latest
+      // stable tree instead of converting that diagnostic timeout into a test
+      // failure. Explicit condition waits remain strict.
+    }
   }
 
   /// Recomputes the session revision after a mutation without semantics churn.
@@ -183,7 +214,12 @@ class FlutterUiObserver implements UiObserver {
   }
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
-      _buildElements({required bool includeBounds, bool keyedOnly = false}) {
+      _buildElements({
+    required bool includeBounds,
+    bool keyedOnly = false,
+    bool enableSemantics = true,
+    bool useSemantics = true,
+  }) {
     // Brief enable only for this snapshot — keeping semantics on for the whole
     // session changes hit-testing / focus and flakes YAML waits.
     return buildObservedElementTree(
@@ -192,7 +228,8 @@ class FlutterUiObserver implements UiObserver {
       navigation: navigation,
       includeBounds: includeBounds,
       keyedOnly: keyedOnly,
-      enableSemantics: true,
+      enableSemantics: enableSemantics,
+      useSemantics: useSemantics,
     );
   }
 

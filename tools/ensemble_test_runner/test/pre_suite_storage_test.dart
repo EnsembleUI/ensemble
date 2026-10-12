@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -51,6 +52,46 @@ void main() {
     expect(storage.read('leftover'), isNull);
   });
 
+  test('concurrent suite baseline requests share one capture', () async {
+    final storage = StorageManager();
+    await storage.write('production_pref', 'keep-me');
+    final collector = BenchmarkCollector(
+      caseId: 'pre_suite_storage',
+      sample: 0,
+      processId: 'test',
+    );
+
+    await RunnerBenchmark.collect(
+      collector,
+      () => Future.wait([
+        EnsembleTestHarness.ensurePreSuiteStorageSnapshot(),
+        EnsembleTestHarness.ensurePreSuiteStorageSnapshot(),
+      ]),
+    );
+
+    expect(
+      collector.spans.where(
+          (span) => span.service == 'lifecycle' && span.operation == 'capture'),
+      hasLength(1),
+    );
+    await storage.write('production_pref', 'mutated');
+    await EnsembleTestHarness.restorePreSuiteStorageForTest();
+    expect(storage.read('production_pref'), 'keep-me');
+  });
+
+  test('suite end waits for an in-flight baseline capture', () async {
+    final storage = StorageManager();
+    await storage.write('production_pref', 'keep-me');
+    final capture = EnsembleTestHarness.ensurePreSuiteStorageSnapshot();
+
+    await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
+    await capture;
+
+    await storage.write('production_pref', 'mutated');
+    await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
+    expect(storage.read('production_pref'), 'mutated');
+  });
+
   test('suite-end restore clears the baseline so a second call is a no-op',
       () async {
     final storage = StorageManager();
@@ -65,6 +106,19 @@ void main() {
     // Baseline already consumed — second call must not rewrite storage.
     await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
     expect(storage.read('production_pref'), 'mutated-again');
+  });
+
+  test('shared persistent-state clear removes all storage tiers', () async {
+    final storage = StorageManager();
+    await storage.write('public_value', 'remove');
+    await storage.write('enc_private_value', 'remove');
+    await storage.writeSecurely(key: 'keychain_value', value: 'remove');
+
+    await AppSessionSnapshot.clearPersistentStorage(storage);
+
+    expect(storage.read('public_value'), isNull);
+    expect(storage.read('enc_private_value'), isNull);
+    expect(await storage.readSecurely('keychain_value'), isNull);
   });
 
   test('restore phases name clear failures', () async {

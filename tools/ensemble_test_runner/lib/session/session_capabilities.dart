@@ -1,4 +1,20 @@
-import 'package:ensemble_test_runner/session/yaml/session_step_routing.dart';
+import 'package:ensemble_test_runner/src/core/operation.dart';
+import 'package:ensemble_test_runner/src/runtime/operation_registry.dart';
+
+// Capability names come directly from operation descriptors so permissions
+// cannot drift from the runtime registry.
+const _assertionDomains = {
+  'ui',
+  'navigation',
+  'api',
+  'storage',
+  'script',
+  'quality'
+};
+final _waitKinds = operationRegistry.waitKinds;
+Set<String> get _uiActionNames =>
+    operationRegistry.namesForKind(OperationKind.interaction);
+Set<String> get _restrictedUiActionNames => operationRegistry.restrictedUiNames;
 
 /// What a session **adapter** can honestly provide.
 ///
@@ -35,11 +51,11 @@ class SessionCapabilities {
     this.snapshotElementTargets = false,
   });
 
-  /// Local adapter capabilities derived from [TestStepRegistry] UI actions.
+  /// Local adapter capabilities derived from the runtime operation registry.
   static final SessionCapabilities local = SessionCapabilities(
-    actions: SessionStepRouting.uiActionNames(),
-    assertionDomains: SessionStepRouting.assertionDomains,
-    waits: SessionStepRouting.waitKinds,
+    actions: _uiActionNames,
+    assertionDomains: _assertionDomains,
+    waits: _waitKinds,
     semanticTree: true,
     runtimeMetadata: true,
     navigationState: true,
@@ -114,13 +130,13 @@ class SessionPermissions {
     this.captureArtifacts = false,
   });
 
-  /// Full grant matching today's YAML runner power.
+  /// Full grant matching the runner's controller power.
   ///
-  /// Action names are derived from [TestStepRegistry] via [SessionStepRouting].
-  static final SessionPermissions yamlController = SessionPermissions(
-    actions: SessionStepRouting.uiActionNames(),
-    assertionDomains: SessionStepRouting.assertionDomains,
-    waits: SessionStepRouting.waitKinds,
+  /// Action names are derived from the operation registry.
+  static final SessionPermissions testController = SessionPermissions(
+    actions: _uiActionNames,
+    assertionDomains: _assertionDomains,
+    waits: _waitKinds,
     privilegedOperations: true,
     lifecycleOperations: true,
     captureArtifacts: true,
@@ -128,7 +144,7 @@ class SessionPermissions {
 
   /// Restricted grant: UI actions/waits/asserts only (no privileged ops).
   static final SessionPermissions restrictedUi = SessionPermissions(
-    actions: SessionStepRouting.restrictedUiActionNames(),
+    actions: _restrictedUiActionNames,
     assertionDomains: const {'ui', 'navigation'},
     waits: const {'pump', 'settle', 'uiElement', 'text', 'navigation'},
     privilegedOperations: false,

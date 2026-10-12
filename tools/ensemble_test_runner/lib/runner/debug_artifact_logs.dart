@@ -6,6 +6,7 @@ import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/diagnostic_redaction.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:flutter/material.dart';
 
@@ -51,7 +52,7 @@ Future<String> writeApiCallsLogFile({
           .add(call.timestamp);
     }
     final content = const JsonEncoder.withIndent('  ').convert(
-      _toSerializable({
+      redactDiagnosticValue(_toSerializable({
         'total': calls.length,
         'calls': callsByName.entries
             .map(
@@ -149,7 +150,7 @@ Future<String> writeApiCallsLogFile({
               },
             },
         ],
-      }),
+      })),
     );
 
     return logger.writeLogFile(
@@ -185,7 +186,7 @@ Future<String> writeAppConsoleLog(EnsembleTestContext context) {
       );
     }
     for (final line in context.runtime.consoleLogs) {
-      buffer.writeln(line);
+      buffer.writeln(redactDiagnosticText(line));
     }
     if (context.runtime.flutterErrors.isNotEmpty) {
       if (buffer.isNotEmpty) {
@@ -193,7 +194,7 @@ Future<String> writeAppConsoleLog(EnsembleTestContext context) {
       }
       buffer.writeln('--- flutter errors ---');
       for (final error in context.runtime.flutterErrors) {
-        buffer.writeln(error);
+        buffer.writeln(redactDiagnosticText(error));
       }
     }
     return context.logger.writeLogFile(
@@ -213,6 +214,7 @@ Future<String> writeStorageLogFile({
   List<StorageStepDiff> secureStepDiffs = const [],
   List<StorageStepDiff> keychainStepDiffs = const [],
   Map<String, dynamic>? keys,
+  Map<String, dynamic>? keychainKeys,
 }) async {
   return await RunnerBenchmark.async('diagnostic', 'writeStorageLogFile',
       () async {
@@ -227,22 +229,26 @@ Future<String> writeStorageLogFile({
 
     final snapshot = keys ?? capturePublicStorage();
     final contentMap = <String, dynamic>{
-      // Keep the legacy top-level fields for consumers that only understand
-      // public storage artifacts.
-      'keys': snapshot,
-      'steps': [for (final diff in stepDiffs) diff.toJson()],
       'storage': {
         'keys': snapshot,
         'steps': [for (final diff in stepDiffs) diff.toJson()],
       },
       'secureStorage': {
-        'keys': keys == null ? captureSecureStorage() : <String, dynamic>{},
-        'steps': [for (final diff in secureStepDiffs) diff.toJson()],
+        'keys': keys == null
+            ? redactSecureStorageValues(captureSecureStorage())
+            : <String, dynamic>{},
+        'steps': [
+          for (final diff in secureStepDiffs) diff.toJson(redactValues: true),
+        ],
       },
       'keychain': {
-        'keys':
-            keys == null ? await captureKeychainStorage() : <String, dynamic>{},
-        'steps': [for (final diff in keychainStepDiffs) diff.toJson()],
+        'keys': keychainKeys ??
+            (keys == null
+                ? await captureKeychainStorage()
+                : <String, dynamic>{}),
+        'steps': [
+          for (final diff in keychainStepDiffs) diff.toJson(),
+        ],
       },
     };
     final content = _prettyJson(contentMap);

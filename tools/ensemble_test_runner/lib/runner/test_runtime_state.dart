@@ -19,7 +19,6 @@ class TestRuntimeState {
 
   /// Live UI dumps for Step Details → Observer (one per step that was shot).
   final List<StepObserverArtifact> stepObservers = [];
-  Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
   Locale? locale;
@@ -44,8 +43,31 @@ class TestRuntimeState {
   final List<StorageStepDiff> secureStorageStepDiffs = [];
   final List<StorageStepDiff> keychainStepDiffs = [];
 
+  /// The final diagnostic sidecars are written once per attempt. Keeping the
+  /// in-flight operation here lets success and failure cleanup converge on a
+  /// single write when both paths observe the same attempt outcome.
+  Future<void>? debugArtifactsWrite;
+
+  /// In-flight API and application-console sidecar publication for this
+  /// attempt. The kernel terminal subscriber and outer cleanup share it.
+  Future<void>? debugLogArtifactsWrite;
+
   /// Map from screen name to its captured artifacts (debugTree, performance markers, etc.)
   final Map<String, Map<String, dynamic>> screenArtifacts = {};
+
+  /// Detaches the visual report buffers for completion without disposing them.
+  /// Hosted and standalone adapters share this transfer so they cannot drift
+  /// on copy/clear behavior before handing frames to the report writer.
+  ({
+    List<ScreenshotSheetFrame> frames,
+    List<StepObserverArtifact> stepObservers,
+  }) takeScreenshotArtifacts() {
+    final frames = List<ScreenshotSheetFrame>.from(screenshotSheetFrames);
+    screenshotSheetFrames.clear();
+    final observers = List<StepObserverArtifact>.from(stepObservers);
+    stepObservers.clear();
+    return (frames: frames, stepObservers: observers);
+  }
 
   void clear() {
     networkOffline = false;
@@ -58,7 +80,6 @@ class TestRuntimeState {
       observer.dispose();
     }
     stepObservers.clear();
-    authUser = null;
     permissions.clear();
     deviceSize = null;
     locale = null;
@@ -69,6 +90,8 @@ class TestRuntimeState {
     storageStepDiffs.clear();
     secureStorageStepDiffs.clear();
     keychainStepDiffs.clear();
+    debugArtifactsWrite = null;
+    debugLogArtifactsWrite = null;
     screenArtifacts.clear();
   }
 

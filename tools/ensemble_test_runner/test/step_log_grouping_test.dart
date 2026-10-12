@@ -363,11 +363,74 @@ void main() {
       final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
       final decoded =
           json.decode(file.readAsStringSync()) as Map<String, dynamic>;
-      expect(decoded.containsKey('keys'), isTrue);
-      final steps = decoded['steps'] as List<dynamic>;
+      expect(decoded.containsKey('keys'), isFalse);
+      expect(decoded.containsKey('steps'), isFalse);
+      final storage = decoded['storage'] as Map<String, dynamic>;
+      expect(storage['keys'], {'existing': true});
+      final steps = storage['steps'] as List<dynamic>;
       expect(steps, hasLength(1));
       expect(steps.single['stepIndex'], 2);
       expect((steps.single['changes'] as List).single['change'], 'added');
+    });
+
+    test('redacts secure storage and includes keychain values', () async {
+      final logger = TestLogger();
+      final displayPath = await writeStorageLogFile(
+        logger: logger,
+        filePrefix: 'secure_values',
+        keys: const {'public': 'visible'},
+        keychainKeys: const {'adminPassword': 'test-keychain-password'},
+        secureStepDiffs: [
+          StorageStepDiff(
+            stepIndex: 1,
+            timestamp: DateTime.parse('2026-07-22T12:00:00.000'),
+            changes: const [
+              StorageKeyChange(
+                key: 'authToken',
+                change: 'modified',
+                before: 'old-secret',
+                after: {'token': 'new-secret'},
+              ),
+            ],
+          ),
+        ],
+        keychainStepDiffs: [
+          StorageStepDiff(
+            stepIndex: 2,
+            timestamp: DateTime.parse('2026-07-22T12:00:01.000'),
+            changes: const [
+              StorageKeyChange(
+                key: 'refreshToken',
+                change: 'added',
+                after: 'keychain-secret',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+      final content = file.readAsStringSync();
+      expect(content, contains(redactedSecureStorageValue));
+      expect(content, isNot(contains('old-secret')));
+      expect(content, isNot(contains('new-secret')));
+      expect(content, contains('keychain-secret'));
+      expect(content, contains('test-keychain-password'));
+
+      final decoded = json.decode(content) as Map<String, dynamic>;
+      final secureChange = ((decoded['secureStorage'] as Map)['steps'] as List)
+          .single['changes']
+          .single as Map;
+      expect(secureChange['before'], redactedSecureStorageValue);
+      expect(secureChange['after'], redactedSecureStorageValue);
+      final keychainChange = ((decoded['keychain'] as Map)['steps'] as List)
+          .single['changes']
+          .single as Map;
+      expect(keychainChange['after'], 'keychain-secret');
+      expect(
+        (decoded['keychain'] as Map)['keys'],
+        {'adminPassword': 'test-keychain-password'},
+      );
     });
   });
 

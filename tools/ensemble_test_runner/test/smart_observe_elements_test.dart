@@ -1,3 +1,4 @@
+import 'support/session_operation.dart';
 import 'dart:typed_data';
 
 import 'package:ensemble/framework/data_context.dart';
@@ -10,7 +11,7 @@ import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/observer_json.dart';
@@ -20,6 +21,7 @@ import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'test_event_loop.dart';
 
 void main() {
   testWidgets('observer prefers the active route over stale tracker state',
@@ -35,7 +37,7 @@ void main() {
         builder: (_) => const Scaffold(body: Text('Current screen')),
       ),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilIdle(tester);
 
     final session = LocalTestExecutionSession.attach(
       tester: tester,
@@ -71,7 +73,7 @@ void main() {
         builder: (_) => const Scaffold(body: Text('Current screen')),
       ),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilIdle(tester);
 
     final session = LocalTestExecutionSession.attach(
       tester: tester,
@@ -117,13 +119,13 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilIdle(tester);
     rootNavigator.currentState!.push<void>(
       MaterialPageRoute<void>(
         builder: (_) => const Scaffold(body: Text('Top current screen')),
       ),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilIdle(tester);
 
     final session = LocalTestExecutionSession.attach(
       tester: tester,
@@ -1155,13 +1157,10 @@ void main() {
       expect(button.state.interactable, isTrue);
       expect(button.actions, contains('tap'));
 
-      final result = await session.act(
-        const TapAction(
-          ElementTarget(
+      final result = await session.act(actionOperation('tap',
+          target: ElementTarget(
             locator: ElementLocator(label: 'Netwerk', role: 'button'),
-          ),
-        ),
-      );
+          )));
       expect(result.succeeded, isTrue, reason: result.error?.toString());
       expect(tapped, isTrue);
     },

@@ -234,6 +234,11 @@
           "required": [
             "bounds"
           ]
+        },
+        {
+          "required": [
+            "within"
+          ]
         }
       ]
     },
@@ -564,6 +569,9 @@
         "value": true,
         "submit": {
           "type": "boolean"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1223,7 +1231,7 @@
       },
       "additionalProperties": false,
       "title": "settle",
-      "description": "Run pumpAndSettle until idle or timeout",
+      "description": "Wait for the UI to become idle or until timeout",
       "examples": [
         {
           "timeoutMs": 5000
@@ -1393,7 +1401,7 @@
       ],
       "additionalProperties": false,
       "title": "waitForApi",
-      "description": "Poll until a mocked API is called N times",
+      "description": "Wait until N calls to the named API complete",
       "examples": [
         {
           "name": "login",
@@ -1549,9 +1557,6 @@
         },
         "target": {
           "$ref": "#/$defs/elementLocator"
-        },
-        "timeoutMs": {
-          "type": "integer"
         }
       },
       "anyOf": [
@@ -1583,9 +1588,6 @@
         },
         "target": {
           "$ref": "#/$defs/elementLocator"
-        },
-        "timeoutMs": {
-          "type": "integer"
         }
       },
       "anyOf": [
@@ -1617,9 +1619,6 @@
         },
         "target": {
           "$ref": "#/$defs/elementLocator"
-        },
-        "timeoutMs": {
-          "type": "integer"
         }
       },
       "anyOf": [
@@ -1656,6 +1655,9 @@
             "type": "string"
           },
           "minItems": 1
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "anyOf": [
@@ -1760,9 +1762,6 @@
         },
         "target": {
           "$ref": "#/$defs/elementLocator"
-        },
-        "timeoutMs": {
-          "type": "integer"
         }
       },
       "anyOf": [
@@ -1794,9 +1793,6 @@
         },
         "target": {
           "$ref": "#/$defs/elementLocator"
-        },
-        "timeoutMs": {
-          "type": "integer"
         }
       },
       "anyOf": [
@@ -2565,38 +2561,6 @@
         }
       ]
     },
-    "args_setAuth": {
-      "type": "object",
-      "properties": {
-        "user": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "user"
-      ],
-      "additionalProperties": false,
-      "title": "setAuth",
-      "description": "Simulate a signed-in user",
-      "examples": [
-        {
-          "user": {
-            "id": "1",
-            "email": "user@test.com"
-          }
-        }
-      ]
-    },
-    "args_clearAuth": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "clearAuth",
-      "description": "Clear the signed-in user",
-      "examples": [
-        {}
-      ]
-    },
     "args_setPermission": {
       "type": "object",
       "properties": {
@@ -2672,48 +2636,6 @@
       "examples": [
         {
           "mode": "dark"
-        }
-      ]
-    },
-    "args_runScript": {
-      "type": "object",
-      "properties": {
-        "script": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "equals": true
-      },
-      "additionalProperties": false,
-      "title": "runScript",
-      "description": "Evaluate a script expression in the data context",
-      "examples": [
-        {
-          "script": "1 + 1",
-          "equals": 2
-        }
-      ]
-    },
-    "args_expectScriptResult": {
-      "type": "object",
-      "properties": {
-        "script": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "equals": true
-      },
-      "additionalProperties": false,
-      "title": "expectScriptResult",
-      "description": "Evaluate script and assert result equals expected",
-      "examples": [
-        {
-          "script": "1 + 1",
-          "equals": 2
         }
       ]
     },
@@ -2878,15 +2800,6 @@
             }
           ]
         }
-      ]
-    },
-    "args_logApiCalls": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "logApiCalls",
-      "description": "Log all recorded API calls to the test log",
-      "examples": [
-        {}
       ]
     },
     "args_expectNoConsoleErrors": {
@@ -3917,7 +3830,7 @@
         {
           "type": "object",
           "title": "settle",
-          "description": "Run pumpAndSettle until idle or timeout",
+          "description": "Wait for the UI to become idle or until timeout",
           "examples": [
             {
               "settle": {
@@ -3931,7 +3844,7 @@
           "properties": {
             "settle": {
               "$ref": "#/$defs/args_settle",
-              "description": "Run pumpAndSettle until idle or timeout",
+              "description": "Wait for the UI to become idle or until timeout",
               "examples": [
                 {
                   "timeoutMs": 5000
@@ -4039,7 +3952,7 @@
         {
           "type": "object",
           "title": "waitForApi",
-          "description": "Poll until a mocked API is called N times",
+          "description": "Wait until N calls to the named API complete",
           "examples": [
             {
               "waitForApi": {
@@ -4055,7 +3968,7 @@
           "properties": {
             "waitForApi": {
               "$ref": "#/$defs/args_waitForApi",
-              "description": "Poll until a mocked API is called N times",
+              "description": "Wait until N calls to the named API complete",
               "examples": [
                 {
                   "name": "login",
@@ -5287,66 +5200,6 @@
         },
         {
           "type": "object",
-          "title": "setAuth",
-          "description": "Simulate a signed-in user",
-          "examples": [
-            {
-              "setAuth": {
-                "user": {
-                  "id": "1",
-                  "email": "user@test.com"
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "setAuth": {
-              "$ref": "#/$defs/args_setAuth",
-              "description": "Simulate a signed-in user",
-              "examples": [
-                {
-                  "user": {
-                    "id": "1",
-                    "email": "user@test.com"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "setAuth"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "clearAuth",
-          "description": "Clear the signed-in user",
-          "examples": [
-            {
-              "clearAuth": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "clearAuth": {
-              "$ref": "#/$defs/args_clearAuth",
-              "description": "Clear the signed-in user",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "clearAuth"
-          ]
-        },
-        {
-          "type": "object",
           "title": "setPermission",
           "description": "Set a permission flag for the test runtime",
           "examples": [
@@ -5463,68 +5316,6 @@
           },
           "required": [
             "setTheme"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "runScript",
-          "description": "Evaluate a script expression in the data context",
-          "examples": [
-            {
-              "runScript": {
-                "script": "1 + 1",
-                "equals": 2
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "runScript": {
-              "$ref": "#/$defs/args_runScript",
-              "description": "Evaluate a script expression in the data context",
-              "examples": [
-                {
-                  "script": "1 + 1",
-                  "equals": 2
-                }
-              ]
-            }
-          },
-          "required": [
-            "runScript"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectScriptResult",
-          "description": "Evaluate script and assert result equals expected",
-          "examples": [
-            {
-              "expectScriptResult": {
-                "script": "1 + 1",
-                "equals": 2
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectScriptResult": {
-              "$ref": "#/$defs/args_expectScriptResult",
-              "description": "Evaluate script and assert result equals expected",
-              "examples": [
-                {
-                  "script": "1 + 1",
-                  "equals": 2
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectScriptResult"
           ]
         },
         {
@@ -5724,31 +5515,6 @@
           },
           "required": [
             "ifVisible"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "logApiCalls",
-          "description": "Log all recorded API calls to the test log",
-          "examples": [
-            {
-              "logApiCalls": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "logApiCalls": {
-              "$ref": "#/$defs/args_logApiCalls",
-              "description": "Log all recorded API calls to the test log",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "logApiCalls"
           ]
         },
         {

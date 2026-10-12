@@ -4,20 +4,24 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/reporters/atomic_file.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:path/path.dart' as p;
 
 export 'package:ensemble_test_runner/execution/artifact_transport.dart'
     show ensembleTestArtifactProtocolPrefix;
 
-const _artifactRoot = String.fromEnvironment('ensembleTestArtifactRoot');
-const _artifactDisplayRoot = String.fromEnvironment(
-  'ensembleTestArtifactDisplayRoot',
-  defaultValue: 'build/ensemble_test_runner',
-);
-const _executionMode = String.fromEnvironment(
-  'ensembleTestExecutionMode',
-  defaultValue: 'widget',
-);
+String get _artifactRoot =>
+    RunnerRuntimeConfiguration.current.string('ensembleTestArtifactRoot');
+String get _artifactDisplayRoot => RunnerRuntimeConfiguration.current.string(
+      'ensembleTestArtifactDisplayRoot',
+      defaultValue: 'build/ensemble_test_runner',
+    );
+String get _executionMode => RunnerRuntimeConfiguration.current.string(
+      'ensembleTestExecutionMode',
+      defaultValue: 'widget',
+    );
+bool? _configuredDeviceArtifactTransport;
 const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
 const ensembleTestJsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 const ensembleTestJunitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
@@ -35,7 +39,14 @@ bool isEnsembleTestProtocolLine(String line) {
 /// Host path for the machine JSON report transported from an integration device.
 const ensembleTestMachineResultRelativePath = 'diagnostics/machine_result.json';
 
-bool get usesDeviceArtifactTransport => _executionMode == 'integration';
+/// Selects artifact transport from the execution mode chosen by the entry
+/// point. The compile-time value remains a fallback for standalone helpers.
+void configureArtifactTransport(ExecutionMode mode) {
+  _configuredDeviceArtifactTransport = mode == ExecutionMode.integration;
+}
+
+bool get usesDeviceArtifactTransport =>
+    _configuredDeviceArtifactTransport ?? _executionMode == 'integration';
 
 /// Widget tests dress screenshots in a matching device bezel. Integration
 /// captures already are the real simulator/emulator display, so a stock
@@ -167,25 +178,7 @@ String ensembleTestArtifactDisplayPath(String directoryName, String fileName) {
       .replaceAll('\\', '/');
 }
 
-/// Sidecar / primary manifest path for per-step screenshot PNGs.
-///
-/// Accepts either a legacy sheet PNG path (`…/foo.png` → `…/foo_frames.json`)
-/// or an existing frames manifest path (returned unchanged).
-String screenshotFramesManifestDisplayPath(String sheetOrFramesDisplayPath) {
-  final normalized = sheetOrFramesDisplayPath.replaceAll('\\', '/');
-  if (normalized.toLowerCase().endsWith('_frames.json')) {
-    return normalized;
-  }
-  if (normalized.toLowerCase().endsWith('.png')) {
-    return '${normalized.substring(0, normalized.length - 4)}_frames.json';
-  }
-  if (normalized.toLowerCase().endsWith('.json')) {
-    return normalized;
-  }
-  return '${normalized}_frames.json';
-}
-
-/// Labels for sidecars folded into `results.json.gz` then deleted from disk.
+/// Labels for sidecars folded into the SQLite report payload then deleted.
 ///
 /// CLI summaries should not print these — the paths no longer exist after
 /// [TestReportDocument.cleanTransientArtifacts].
@@ -199,7 +192,6 @@ bool isTransientArtifactLog(String log) {
     case 'apiCalls':
     case 'storage':
     case 'appLogs':
-    case 'screenshots':
     case 'screenshotFrames':
     case 'dumpTree':
     case 'appPerformance':

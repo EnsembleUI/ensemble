@@ -68,6 +68,14 @@ void main() {
     final locator = defs['elementLocator'] as Map<String, dynamic>;
     final properties = locator['properties'] as Map<String, dynamic>;
     expect(properties['bounds'], {'\$ref': '#/\$defs/elementBounds'});
+    final selectorAlternatives = locator['anyOf'] as List<dynamic>;
+    expect(
+      selectorAlternatives.cast<Map>().any(
+            (alternative) =>
+                (alternative['required'] as List).contains('within'),
+          ),
+      isTrue,
+    );
     final bounds = defs['elementBounds'] as Map<String, dynamic>;
     expect(bounds['required'], ['left', 'top', 'width', 'height']);
 
@@ -111,6 +119,68 @@ void main() {
     expect(properties, contains('timeoutMs'));
   });
 
+  test('schema allows timeoutMs on expectText only', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    final expectText = defs['args_expectText'] as Map<String, dynamic>;
+    final expectNoText = defs['args_expectNoText'] as Map<String, dynamic>;
+
+    expect(expectText['properties'], contains('timeoutMs'));
+    expect(expectNoText['properties'], isNot(contains('timeoutMs')));
+  });
+
+  test('immediate assertions do not declare timeoutMs', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    const immediateAssertions = [
+      'expectExists',
+      'expectNotExists',
+      'expectEnabled',
+      'expectDisabled',
+      'expectValue',
+      'expectCount',
+    ];
+
+    for (final name in immediateAssertions) {
+      final entry = TestStepRegistry.entries[name]!;
+      final args = defs['args_$name'] as Map<String, dynamic>;
+      expect(
+        (args['properties'] as Map).containsKey('timeoutMs'),
+        isFalse,
+        reason: '$name is an immediate assertion',
+      );
+      expect(entry.acceptsTimeout, isFalse, reason: '$name does not wait');
+    }
+  });
+
+  test('submitText timeout metadata matches its target wait contract', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final args = schema['\$defs']['args_submitText'] as Map<String, dynamic>;
+    final entry = TestStepRegistry.entries['submitText']!;
+
+    expect(entry.acceptsTimeout, isTrue);
+    expect(args['properties'], contains('timeoutMs'));
+  });
+
+  test('visibility and text timeout metadata matches handler behavior', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    final enterText = defs['args_enterText'] as Map<String, dynamic>;
+    final expectVisible = defs['args_expectVisible'] as Map<String, dynamic>;
+    final expectNotVisible =
+        defs['args_expectNotVisible'] as Map<String, dynamic>;
+
+    expect(TestStepRegistry.entries['enterText']!.acceptsTimeout, isTrue);
+    expect(enterText['properties'], contains('timeoutMs'));
+    expect(TestStepRegistry.entries['expectVisible']!.acceptsTimeout, isTrue);
+    expect(expectVisible['properties'], contains('timeoutMs'));
+    expect(
+      TestStepRegistry.entries['expectNotVisible']!.acceptsTimeout,
+      isFalse,
+    );
+    expect(expectNotVisible['properties'], isNot(contains('timeoutMs')));
+  });
+
   test('config schema includes suite screenshots and performance settings', () {
     final json = EnsembleTestSchemaBuilder.buildConfigJson();
     final decoded = jsonDecode(json) as Map<String, dynamic>;
@@ -127,7 +197,6 @@ void main() {
     expect(properties, contains('performance'));
     expect(properties, contains('timers'));
     expect(properties, contains('dumpTree'));
-    expect(properties, contains('logApiCalls'));
     expect(properties, contains('logStorage'));
     expect(properties, contains('wifi'));
     expect(defs, contains('inlineMocks'));

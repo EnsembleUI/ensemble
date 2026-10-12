@@ -124,8 +124,6 @@ as `${services.testService.url}`.
 
 screenshots:
   enabled: true
-  # mask (default), skip, or allow. `allow` explicitly permits raw secure UI.
-  secureContent: mask
   includeSteps: []
   excludeSteps: []
 
@@ -176,8 +174,9 @@ When `devices` is set, each test expands to one run per device (ids look like
 start screen). Each device run writes its own frames manifest under
 `build/ensemble_test_runner/frames/` (for example
 `home[android_nl]_frames.json` and `home[iphone_en]_frames.json`); the HTML
-report builds the contact-sheet gallery from the per-step PNGs in
-`report/screenshots/`. In
+report builds the contact-sheet gallery from per-step images packed into
+`report/screenshots.zip`; the viewer reads archive entries in memory without
+extracting them. In
 integration mode the same matrix is filtered to the connected target's
 platform: locale/theme still apply, viewport/model do not, and other platforms
 are skipped with a warning.
@@ -208,20 +207,19 @@ See `lib/runner/step_report_capture.dart` for the policy flags
 
 ## Public Dart API
 
-The package is primarily YAML-first, but it also exposes a small Dart API for
+The package is primarily test-document-first, but it also exposes a small Dart API for
 integrations and custom tooling through `package:ensemble_test_runner/ensemble_test_runner.dart`.
 
-- `runEnsembleYamlTests` runs a suite from a Flutter test environment.
-- `runApplicationYamlTests` runs pure Flutter or mixed suites through an
+- `runEnsembleTests` runs a suite from a Flutter test environment.
+- `runApplicationTests` runs pure Flutter or mixed suites through an
   `ApplicationTestDriver`. It selects widget vs integration from the CLI
-  `ensembleTestExecutionMode` dart-define. `runApplicationIntegrationYamlTests`
-  remains as an explicit alias.
+  `ensembleTestExecutionMode` dart-define.
 - `ApplicationTestServices` exposes optional navigation, API, storage, and
   runtime metadata capabilities. `ApplicationCheckpointDriver` is required
   when host YAML uses `session:`.
 - `EnsembleTestParser` parses test files and suite configuration.
 - `EnsembleTestCase`, `EnsembleTestConfig`, and related model types represent
-  the supported YAML format.
+  the supported test-document format.
 - `EnsembleTestRunner` and `EnsembleTestHarness` are available when an
   integration needs direct control of execution.
 
@@ -231,7 +229,7 @@ available on the package API tab on pub.dev.
 ## Runnable examples
 
 [`example/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example)
-is a standalone Ensemble app (`runApp(EnsembleApp())`) with local YAML screens.
+is a standalone Ensemble app (`runApp(EnsembleApp())`) with local screen definitions.
 
 [`example_host/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example_host)
 is a Flutter host with Ensemble as a child: Flutter login, then a 3-tab Flutter
@@ -251,7 +249,7 @@ cd example_host
 flutter pub get
 dart run ensemble_test_runner:ensemble_test \
   --tests-dir=tests \
-  --test-entry=test/application_yaml_tests.dart \
+  --test-entry=test/application_tests.dart \
   --mode=widget
 ```
 
@@ -284,7 +282,7 @@ and provide an application-owned entry file:
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'test_driver.dart';
 
-Future<void> main() => runApplicationYamlTests(driver: MyAppTestDriver());
+Future<void> main() => runApplicationTests(driver: MyAppTestDriver());
 ```
 
 Run it with paths relative to the application root:
@@ -292,7 +290,7 @@ Run it with paths relative to the application root:
 ```bash
 dart run ensemble_test_runner:ensemble_test \
   --tests-dir=tests \
-  --test-entry=test/application_yaml_tests.dart
+  --test-entry=test/application_tests.dart
 ```
 
 The entry is validated but never generated, overwritten, or deleted. Both
@@ -303,15 +301,16 @@ Flutter app must provide `--test-entry`.
 `--mode=integration` uses that same host entry. The CLI writes a temporary
 `integration_test/<entry>.dart` wrapper so Flutter detects the native plugin,
 then deletes it when the run finishes. Relative imports stay on the original
-entry; `runApplicationYamlTests` picks the integration binding from
+entry; `runApplicationTests` picks the integration binding from
 `--dart-define=ensembleTestExecutionMode=integration`.
 
 See [`example_host/`](example_host/) for a complete Flutter-host + Ensemble-child
 app: login, bottom nav, and a host card that opens the same Ensemble screen.
 
-The driver lifecycle is suite setup, per-attempt preparation, headless YAML
-setup, application launch, **one shared execution session**, step execution via
-`YamlStepDispatcher`, session close, per-attempt cleanup, then suite teardown.
+The driver lifecycle is suite setup, per-attempt preparation, headless test
+setup, application launch, **one shared execution session**, compiled operation
+execution through `FlutterTestRuntime`, session close, per-attempt cleanup,
+then suite teardown. Operations dispatch through the registry-backed runtime.
 Cleanup receives a nullable handle and still runs after a launch failure. Every
 retry repeats the complete per-attempt lifecycle.
 
@@ -346,6 +345,12 @@ entries whose `platform` matches the connected target, skips the rest with a
 warning, and uses that target's real display (no stock device bezel).
 `--device` filters those matching rows; `--device-id` selects the real Flutter
 target. Widget-mode screenshots still get a device frame for the HTML report.
+
+Contact-sheet WebP encoding is optional. The runner uses the platform `cwebp`
+binary when a `webp` package is present in the consuming app's package config;
+otherwise it writes device-framed report images as JPEG or PNG (integration
+captures remain PNG). Add `webp` to the consuming app's development
+dependencies to enable the bundled encoder binaries.
 Native UI such as permission dialogs is not supported in this release.
 
 Physical Android devices use `adb reverse` for host services (same as emulators).
@@ -484,14 +489,19 @@ Session producer tests are included automatically for selected session tests.
 On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**.
 
 Per-test sidecars under `logs/` and parallel `worker_*` folders are written
-during the run, folded into `report/results.json.gz`, then deleted. What remains:
+during the run, folded into the latest run's compressed `report_data` value in
+SQLite, then deleted. What remains:
 
-- `report/index.html` + `report/results.json.gz`
-- `screenshots/*.png` (when screenshots are enabled)
-- `test_durations.json` (used to order the next run)
+- `report/index.html` + `report/ensemble_test.db`
+- `report/screenshots.zip` (when screenshots are enabled)
+
+The database also stores recent per-test durations used to balance the next
+run's worker shards. The report reads suite history and live run state from
+that same database.
 
 When `performance` / `dumpTree` are enabled, those payloads are embedded **per
-screen** in `results.json.gz` under `tests[].report.screens`.
+screen** in the current report stored in `ensemble_test.db` under
+`test_results.report_data` / `tests[].report.screens`.
 
 ## Examples
 
@@ -583,14 +593,14 @@ independently. Session snapshots are not written to disk.
 
 ```
 lib/
-  entry/          Flutter test entry (`runEnsembleYamlTests`)
+  entry/          Flutter test entry (`runEnsembleTests`)
   cli/            `dart run ensemble_test_runner:ensemble_test` subprocess runner
   runner/         Runtime boot, orchestration, session state
   session/        TestExecutionSession (observe/act/wait/assert)
   actions/        Step execution
   assertions/     expect* handlers
-  discovery/      Find and plan `*.test.yaml` files
-  parser/         YAML → models
+  discovery/      Find and plan test definition files
+  parser/         Documents → models
   reporters/      Console report formatting
   vocabulary/     Step registry + JSON Schema shapes
   models/         Shared data types
@@ -601,7 +611,7 @@ tool/                    Schema/registry generators
 
 ### TestExecutionSession (programmatic API)
 
-YAML remains the primary authoring format. The same local adapter can also be
+Test documents remain the primary authoring format. The same local adapter can also be
 driven without constructing `TestStep` objects:
 
 ```dart
@@ -622,7 +632,7 @@ try {
 
 `SessionCapabilities` describes what the adapter can provide;
 `SessionPermissions` describes what the caller may invoke. Standalone
-(YAML-independent) creation uses `StandaloneTestSessionFactory` inside a
+(format-independent) creation uses `StandaloneTestSessionFactory` inside a
 Flutter test binding and reuses `EnsembleTestHarness`.
 
 ## Runtime hooks (in `ensemble` core)
@@ -645,3 +655,17 @@ dart run tool/benchmark_runner.dart --preset=full --service=screenshot,observer
 ```
 
 Normal test runs do not collect benchmark records. Results, SQLite history and the offline HTML trend report live in `.ensemble_benchmarks/`. CI uploads a report artifact retained for 30 days and comments its link on same-repository pull requests. See [BENCHMARKING.md](../../doc/BENCHMARKING.md) for architecture, coverage, measurement semantics, integration prerequisites, comparison/import commands and CI.
+
+### Source and executable size audit
+
+The redesign budgets can be measured without loading the runner package:
+
+```sh
+dart run tool/audit_size_budgets.dart \
+  --aot=build/runner-redesign/current-runner --json
+```
+
+The report separates generated code, lists handwritten files over the
+700-line limit, and records the optional AOT executable size. Keep its output
+with benchmark evidence when evaluating a size change; source-line counts and
+AOT bytes are separate measurements.

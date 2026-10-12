@@ -1,3 +1,4 @@
+import 'support/session_operation.dart';
 import 'dart:async';
 
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -5,7 +6,7 @@ import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
@@ -86,6 +87,131 @@ void main() {
     expect(() => session.observe(), throwsA(isA<TestExecutionError>()));
   });
 
+  testWidgets('minimal observation avoids the report tree shape',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Column(
+          children: [
+            Text('unkeyed content'),
+            Text('keyed content', key: ValueKey('keyed_content')),
+          ],
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: _harness(),
+      context: _ctx('minimal-observe'),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final observation = await session.observe(
+      options: const ObservationOptions(
+        detail: ObservationDetailLevel.minimal,
+        synchronization: ObservationSynchronization.immediate,
+        includeBounds: true,
+      ),
+    );
+
+    final elements = _flattenElements(observation.elements);
+    expect(elements, isNotEmpty);
+    expect(
+        elements.map((element) => element.testId), contains('keyed_content'));
+    expect(elements.map((element) => element.testId), isNot(contains(isNull)));
+    expect(elements.every((element) => element.bounds == null), isTrue);
+    expect(observation.completeness.semanticTree, isFalse);
+  });
+
+  testWidgets(
+      'diagnostic observation adds locator hints without changing standard',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Column(
+          children: [
+            Text('Continue', key: ValueKey('continue_button')),
+            Text('Status'),
+          ],
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: _harness(),
+      context: _ctx('diagnostic-observe'),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    const immediate = ObservationSynchronization.immediate;
+    final standard = await session.observe(
+      options: const ObservationOptions(
+        synchronization: immediate,
+      ),
+    );
+    final diagnostic = await session.observe(
+      options: const ObservationOptions(
+        detail: ObservationDetailLevel.diagnostic,
+        synchronization: immediate,
+      ),
+    );
+
+    final standardButton = _flattenElements(standard.elements)
+        .singleWhere((element) => element.testId == 'continue_button');
+    final diagnosticButton = _flattenElements(diagnostic.elements)
+        .singleWhere((element) => element.testId == 'continue_button');
+    expect(standardButton.suggestedLocator, isNull);
+    expect(diagnosticButton.suggestedLocator?.id, 'continue_button');
+    expect(diagnostic.completeness.semanticTree, isTrue);
+    expect(diagnostic.elements.length, standard.elements.length);
+  });
+
+  testWidgets('diagnostic observation omits colliding locator hints',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Column(
+          children: [
+            Column(children: [Text('First', key: ValueKey('duplicate'))]),
+            Column(children: [Text('Second', key: ValueKey('duplicate'))]),
+          ],
+        ),
+      ),
+    );
+
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: _harness(),
+      context: _ctx('diagnostic-duplicate-locator'),
+      permissions: SessionPermissions.restrictedUi,
+    );
+    addTearDown(session.close);
+
+    final diagnostic = await session.observe(
+      options: const ObservationOptions(
+        detail: ObservationDetailLevel.diagnostic,
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    final duplicates = _flattenElements(diagnostic.elements)
+        .where((element) => element.testId == 'duplicate')
+        .toList();
+
+    expect(duplicates, hasLength(2));
+    expect(duplicates.every((element) => element.suggestedLocator == null),
+        isTrue);
+    expect(
+      duplicates.every((element) =>
+          element.locatorWarning ==
+          'Suggested locator matches multiple observed elements'),
+      isTrue,
+    );
+  });
+
   testWidgets('ambiguous duplicate testIds', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -113,9 +239,8 @@ void main() {
     final dups = obs.elements.where((e) => e.testId == 'dup').toList();
     expect(dups.length, greaterThanOrEqualTo(2));
 
-    final ambiguous = await session.act(
-      const TapAction(ElementTarget(testId: 'dup')),
-    );
+    final ambiguous = await session
+        .act(actionOperation('tap', target: ElementTarget(testId: 'dup')));
     expect(ambiguous.error?.code.name, 'ambiguousTarget');
     await session.close();
   });
@@ -164,26 +289,20 @@ void main() {
     expect(dups.length, greaterThanOrEqualTo(2));
     final second = dups.last;
 
-    final result = await session.act(
-      TapAction(
-        ElementTarget(
+    final result = await session.act(actionOperation('tap',
+        target: ElementTarget(
           elementId: second.elementId,
           observationId: obs.observationId,
-        ),
-      ),
-    );
+        )));
     expect(result.succeeded, isTrue, reason: '${result.error?.message}');
     expect(taps, ['second']);
 
     // Stale observation id must fail without falling back to testId.
-    final stale = await session.act(
-      TapAction(
-        ElementTarget(
+    final stale = await session.act(actionOperation('tap',
+        target: ElementTarget(
           elementId: second.elementId,
           observationId: 'obs_missing',
-        ),
-      ),
-    );
+        )));
     expect(stale.error?.code, TestExecutionErrorCode.staleObservation);
     expect(taps, ['second']);
 
@@ -240,9 +359,8 @@ void main() {
         waits: {'pump'},
       ),
     );
-    final result = await session.act(
-      const TapAction(ElementTarget(testId: 'btn')),
-    );
+    final result = await session
+        .act(actionOperation('tap', target: ElementTarget(testId: 'btn')));
     expect(result.error?.code.name, 'permissionDenied');
     await session.close();
   });

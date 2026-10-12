@@ -1,10 +1,10 @@
 import 'package:ensemble_test_runner/session/actions/action_result.dart';
 import 'package:ensemble_test_runner/session/actions/artifact_request.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
-import 'package:ensemble_test_runner/session/assertions/test_assertion.dart';
+import 'package:ensemble_test_runner/session/operation_result.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
+import 'package:ensemble_test_runner/src/core/operation.dart';
 
 /// Interface for one isolated app test execution (observe / act / wait / assert).
 ///
@@ -14,7 +14,7 @@ import 'package:ensemble_test_runner/session/session_capabilities.dart';
 ///   cleanup. [close] releases only session-local state (command queue,
 ///   revisions, observation registry) — never the harness, tester, mocks, or
 ///   suite-end storage restore.
-/// - **Standalone:** Independent of YAML, still inside a Flutter test binding.
+/// - **Standalone:** Independent of the input document format, still inside a Flutter test binding.
 ///   A factory reuses [EnsembleTestHarness] bootstrap; callers never touch
 ///   [WidgetTester] directly.
 ///
@@ -27,8 +27,12 @@ import 'package:ensemble_test_runner/session/session_capabilities.dart';
 /// ## Leaf locking
 ///
 /// Only leaf operations (`observe`, `act`, `waitFor`, `assertCondition`,
-/// `captureArtifact`) acquire the session command lock. YAML control-flow
+/// `captureArtifact`) acquire the session command lock. Declarative control-flow
 /// (`group` / `repeat` / `optional` / `ifVisible`) must not hold it.
+///
+/// Every execution request uses [TestOperation]. The registry validates its
+/// name and operation kind at the session boundary; operation-specific input
+/// remains in the immutable request map.
 ///
 /// ## Element identity
 ///
@@ -51,16 +55,15 @@ abstract interface class TestExecutionSession {
   });
 
   Future<ActionResult> act(
-    TestAction action, {
-    String? expectedObservationId,
-  });
+    TestOperation operation,
+  );
 
   Future<WaitResult> waitFor(
-    WaitCondition condition, {
+    TestOperation operation, {
     Duration? timeout,
   });
 
-  Future<AssertionResult> assertCondition(TestAssertion assertion);
+  Future<AssertionResult> assertCondition(TestOperation operation);
 
   Future<TestArtifact> captureArtifact(ArtifactRequest request);
 

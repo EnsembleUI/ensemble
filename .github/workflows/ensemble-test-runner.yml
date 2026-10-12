@@ -64,7 +64,7 @@ jobs:
           flutter pub get
           dart run ensemble_test_runner:ensemble_test \
             --tests-dir=tests \
-            --test-entry=test/application_yaml_tests.dart \
+            --test-entry=test/application_tests.dart \
             --mode=widget
 
   benchmark:

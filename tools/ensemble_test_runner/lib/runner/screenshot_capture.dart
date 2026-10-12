@@ -3,8 +3,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:flutter/painting.dart';
+import 'package:ensemble_test_runner/src/integrations/device_preview/device_preview_adapter.dart';
 
 /// Layer-local rectangle to pass to [OffsetLayer.toImageSync] for a RenderView.
 ///

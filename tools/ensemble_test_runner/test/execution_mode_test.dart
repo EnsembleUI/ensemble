@@ -3,14 +3,49 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli.dart';
+import 'package:ensemble_test_runner/cli/flutter_test_command.dart'
+    as flutter_test_command;
 import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
+import 'package:ensemble_test_runner/execution/device_discovery.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/schema/ensemble_test_schema_builder.dart';
+import 'package:ensemble_test_runner/src/integrations/test_integration_registration.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('runtime adapters preserve mode-specific bootstrap behavior',
+      (tester) async {
+    final events = <String>[];
+    EnsembleTestHarness.configureTestIntegrations([
+      TestIntegrationRegistration(
+        name: 'mode-parity',
+        install: () => events.add('install'),
+        afterBootstrap: () => events.add('after-bootstrap'),
+      ),
+    ]);
+    addTearDown(() async {
+      EnsembleTestHarness.configureTestIntegrations(const []);
+    });
+
+    final widget = EnsembleTestHarness.runtimeAdapterFor(ExecutionMode.widget);
+    expect(widget.usesPhysicalDisplay, isFalse);
+    expect(widget.clearsPersistentStateBetweenIndependentTests, isFalse);
+    widget.initialize();
+    widget.afterBootstrap();
+    expect(events, ['install', 'after-bootstrap']);
+
+    final integration =
+        EnsembleTestHarness.runtimeAdapterFor(ExecutionMode.integration);
+    expect(integration.usesPhysicalDisplay, isTrue);
+    expect(integration.clearsPersistentStateBetweenIndependentTests, isTrue);
+    integration.initialize();
+    integration.afterBootstrap();
+    expect(events, ['install', 'after-bootstrap']);
+  });
+
   test('suite mode defaults to widget and parses integration', () {
     expect(
       EnsembleTestParser.parseConfigString('').mode,
@@ -195,10 +230,21 @@ void main() {
   });
 
   test('integration backend builds a device launch command', () {
-    final args = buildIntegrationFlutterTestArgsForTest(
-      deviceId: 'emulator-5554',
-      deviceName: 'Pixel',
-      targetPlatform: 'android-arm64',
+    final args = flutter_test_command.buildFlutterTestArgs(
+      const [],
+      suiteEncryptionKey: 'test-key',
+      reportMode: null,
+      reportFile: null,
+      timeoutSeconds: null,
+      verbose: false,
+      testEntryRelativePath: 'integration_test/ensemble_tests.dart',
+      physicalDevice: const FlutterDevice(
+        id: 'emulator-5554',
+        name: 'Pixel',
+        targetPlatform: 'android-arm64',
+        emulator: true,
+      ),
+      hostOwnsServices: true,
     );
     expect(args, contains('integration_test/ensemble_tests.dart'));
     expect(args, containsAllInOrder(['-d', 'emulator-5554']));
@@ -233,7 +279,7 @@ void main() {
       record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
       record({'event': 'end', 'id': id}),
       record({
-        'event': 'complete',
+        'event': 'manifest',
         'runId': 'run-1',
         'artifacts': [
           {
@@ -244,6 +290,19 @@ void main() {
           },
         ],
       }),
+      record({
+        'event': 'complete',
+        'runId': 'run-1',
+        'count': 1,
+        'sha256': ensembleTestArtifactManifestSha256([
+          {
+            'id': id,
+            'path': 'logs/sample.log',
+            'size': bytes.length,
+            'sha256': digest,
+          },
+        ]),
+      }),
     ].join('\n');
 
     await materializeTransportedArtifactsForTest(appDir.path, output);
@@ -252,6 +311,34 @@ void main() {
       '${appDir.path}/build/ensemble_test_runner/logs/sample.log',
     );
     expect(file.readAsStringSync(), 'hello integration');
+  });
+
+  test('artifact protocol rejects complete records with embedded manifests',
+      () async {
+    final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+    addTearDown(() => appDir.deleteSync(recursive: true));
+    String record(Map<String, dynamic> value) =>
+        '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+
+    final output = [
+      record({'event': 'begin', 'runId': 'run-1'}),
+      record({
+        'event': 'complete',
+        'runId': 'run-1',
+        'artifacts': const [],
+      }),
+    ].join('\n');
+
+    await expectLater(
+      () => materializeTransportedArtifactsForTest(appDir.path, output),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('Invalid integration artifact complete'),
+        ),
+      ),
+    );
   });
 
   test('artifact protocol rejects traversal', () async {
@@ -273,7 +360,12 @@ void main() {
       }),
       record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
       record({'event': 'end', 'id': id}),
-      record({'event': 'complete', 'runId': 'run-1', 'artifacts': []}),
+      record({
+        'event': 'complete',
+        'runId': 'run-1',
+        'count': 0,
+        'sha256': ensembleTestArtifactManifestSha256(const []),
+      }),
     ].join('\n');
     await expectLater(
       () => materializeTransportedArtifactsForTest(appDir.path, output),
@@ -284,6 +376,15 @@ void main() {
   test('artifact protocol rejects an incomplete stream', () async {
     final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
     addTearDown(() => appDir.deleteSync(recursive: true));
+    final tempPrefix = 'ensemble_artifacts_${pid}_';
+    Set<String> stagedDirs() => Directory.systemTemp
+        .listSync()
+        .whereType<Directory>()
+        .map((directory) => directory.path)
+        .where((path) =>
+            path.split(Platform.pathSeparator).last.startsWith(tempPrefix))
+        .toSet();
+    final before = stagedDirs();
     final output = '$ensembleTestArtifactProtocolPrefix${json.encode({
           'event': 'start',
           'id': 'missing-end',
@@ -291,15 +392,98 @@ void main() {
           'size': 1,
           'sha256': sha256.convert([1]).toString(),
         })}';
-    await expectLater(
-      () => materializeTransportedArtifactsForTest(appDir.path, output),
-      throwsStateError,
+    final result = await materializeTransportedArtifacts(
+      artifactRoot: '${appDir.path}/build/ensemble_test_runner',
+      output: output,
+    );
+    expect(result.complete, isFalse);
+    expect(stagedDirs().difference(before), isEmpty);
+  });
+
+  test('artifact checksum is validated before streamed materialization',
+      () async {
+    final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+    addTearDown(() => appDir.deleteSync(recursive: true));
+    final bytes = utf8.encode('payload');
+    final wrongDigest = sha256.convert(utf8.encode('different')).toString();
+    String record(Map<String, dynamic> value) =>
+        '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+    final output = [
+      record({'event': 'begin', 'runId': 'run-hash'}),
+      record({
+        'event': 'start',
+        'id': 'run-hash-0',
+        'path': 'logs/checksum.log',
+        'size': bytes.length,
+        'sha256': wrongDigest,
+      }),
+      record({
+        'event': 'chunk',
+        'id': 'run-hash-0',
+        'data': base64Encode(bytes),
+      }),
+      record({'event': 'end', 'id': 'run-hash-0'}),
+      record({
+        'event': 'manifest',
+        'runId': 'run-hash',
+        'artifacts': [
+          {
+            'id': 'run-hash-0',
+            'path': 'logs/checksum.log',
+            'size': bytes.length,
+            'sha256': wrongDigest,
+          },
+        ],
+      }),
+      record({
+        'event': 'complete',
+        'runId': 'run-hash',
+        'count': 1,
+        'sha256': ensembleTestArtifactManifestSha256([
+          {
+            'id': 'run-hash-0',
+            'path': 'logs/checksum.log',
+            'size': bytes.length,
+            'sha256': wrongDigest,
+          },
+        ]),
+      }),
+    ].join('\n');
+
+    final result = await materializeTransportedArtifacts(
+      artifactRoot: '${appDir.path}/build/ensemble_test_runner',
+      output: output,
+    );
+
+    expect(result.complete, isFalse);
+    expect(result.error, contains('checksum failed'));
+    expect(
+      File('${appDir.path}/build/ensemble_test_runner/logs/checksum.log')
+          .existsSync(),
+      isFalse,
     );
   });
 
   test('artifact protocol rejects empty output without complete', () async {
     final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
     addTearDown(() => appDir.deleteSync(recursive: true));
+    final tempPrefix = 'ensemble_artifacts_${pid}_';
+    Set<String> stagedDirs() => Directory.systemTemp
+        .listSync()
+        .whereType<Directory>()
+        .map((directory) => directory.path)
+        .where((path) =>
+            path.split(Platform.pathSeparator).last.startsWith(tempPrefix))
+        .toSet();
+    final before = stagedDirs();
+
+    final result = await materializeTransportedArtifacts(
+      artifactRoot: '${appDir.path}/build/ensemble_test_runner',
+      output: '',
+    );
+
+    expect(result.complete, isFalse);
+    expect(stagedDirs().difference(before), isEmpty);
     await expectLater(
       () => materializeTransportedArtifactsForTest(appDir.path, ''),
       throwsStateError,
@@ -373,24 +557,33 @@ void main() {
       ];
       appendArtifact(lines, idA, 'screenshots/a.png');
       appendArtifact(lines, idB, 'screenshots/b.png');
+      final manifest = [
+        {
+          'id': idA,
+          'path': 'screenshots/a.png',
+          'size': bytes.length,
+          'sha256': digest,
+        },
+        {
+          'id': idB,
+          'path': 'screenshots/b.png',
+          'size': bytes.length,
+          'sha256': digest,
+        },
+      ];
+      lines.add(
+        record({
+          'event': 'manifest',
+          'runId': 'run-dup',
+          'artifacts': manifest,
+        }),
+      );
       lines.add(
         record({
           'event': 'complete',
           'runId': 'run-dup',
-          'artifacts': [
-            {
-              'id': idA,
-              'path': 'screenshots/a.png',
-              'size': bytes.length,
-              'sha256': digest,
-            },
-            {
-              'id': idB,
-              'path': 'screenshots/b.png',
-              'size': bytes.length,
-              'sha256': digest,
-            },
-          ],
+          'count': manifest.length,
+          'sha256': ensembleTestArtifactManifestSha256(manifest),
         }),
       );
 
@@ -452,7 +645,21 @@ void main() {
       final digest = sha256.convert(bytes).toString();
       String record(Map<String, dynamic> value) =>
           '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
-      // Only materialize the first id; complete lists both.
+      // Only materialize the first id; the manifest lists both.
+      final manifest = [
+        {
+          'id': 'run-miss-0',
+          'path': 'screenshots/a.png',
+          'size': bytes.length,
+          'sha256': digest,
+        },
+        {
+          'id': 'run-miss-1',
+          'path': 'screenshots/b.png',
+          'size': bytes.length,
+          'sha256': digest,
+        },
+      ];
       final output = [
         record({'event': 'begin', 'runId': 'run-miss'}),
         record({
@@ -470,22 +677,15 @@ void main() {
         }),
         record({'event': 'end', 'id': 'run-miss-0'}),
         record({
+          'event': 'manifest',
+          'runId': 'run-miss',
+          'artifacts': manifest,
+        }),
+        record({
           'event': 'complete',
           'runId': 'run-miss',
-          'artifacts': [
-            {
-              'id': 'run-miss-0',
-              'path': 'screenshots/a.png',
-              'size': bytes.length,
-              'sha256': digest,
-            },
-            {
-              'id': 'run-miss-1',
-              'path': 'screenshots/b.png',
-              'size': bytes.length,
-              'sha256': digest,
-            },
-          ],
+          'count': manifest.length,
+          'sha256': ensembleTestArtifactManifestSha256(manifest),
         }),
       ].join('\n');
 
@@ -648,7 +848,7 @@ void main() {
 
   test('suite entry restores pre-suite storage on finally and tearDown', () {
     final source =
-        File('lib/entry/ensemble_test_entry.dart').readAsStringSync();
+        File('lib/entry/ensemble_test_entry_common.dart').readAsStringSync();
     expect(source, contains('restorePreSuiteStorageAtSuiteEnd()'));
     expect(source, contains('} finally {'));
     expect(source, contains('tearDown(() async {'));

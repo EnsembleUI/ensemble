@@ -12,6 +12,33 @@ class ReportJsonOptimizer {
   /// Values shorter than this (JSON-encoded) stay inline.
   static const internMinBytes = 48;
 
+  // Nested steps inherit the evidence attached to their parent. Keeping the
+  // field list in one place prevents the compact and expanded report paths
+  // from drifting when a new evidence channel is added.
+  static const _stepPayloadFields = [
+    'apiCalls',
+    'appLogs',
+    'storageChanges',
+    'secureStorageChanges',
+    'keychainChanges',
+    'screenshots',
+    'observer',
+  ];
+
+  static dynamic _emptyStepPayload(String field) =>
+      field == 'observer' ? null : const [];
+
+  static Map<String, dynamic> _stepPayload(Map step) => {
+        for (final field in _stepPayloadFields)
+          field: step[field] ?? _emptyStepPayload(field),
+      };
+
+  static void _applyStepPayload(Map target, Map<String, dynamic> payload) {
+    for (final field in _stepPayloadFields) {
+      target[field] = payload[field];
+    }
+  }
+
   /// Returns an optimized copy of [document].
   static Map<String, dynamic> optimize(Map<String, dynamic> document) {
     return RunnerBenchmark.sync('report', 'optimize', () {
@@ -19,13 +46,16 @@ class ReportJsonOptimizer {
       final indexByEncoded = <String, String>{};
       var nextId = 0;
 
-      String intern(dynamic value) {
-        final encoded = json.encode(value);
-        final existing = indexByEncoded[encoded];
+      String intern(dynamic value, {String? encoded}) {
+        // Callers that already encoded a value pass it through so large
+        // payloads are serialized only once while deciding whether to intern
+        // them. This is especially relevant for API bodies and debug trees.
+        final stableEncoding = encoded ?? json.encode(value);
+        final existing = indexByEncoded[stableEncoding];
         if (existing != null) return existing;
         final id = nextId.toRadixString(36);
         nextId++;
-        indexByEncoded[encoded] = id;
+        indexByEncoded[stableEncoding] = id;
         blobs[id] = value;
         return id;
       }
@@ -34,15 +64,16 @@ class ReportJsonOptimizer {
         if (value == null) return null;
         final encoded = json.encode(value);
         if (encoded.length < internMinBytes) return value;
-        return {blobRefKey: intern(value)};
+        return {blobRefKey: intern(value, encoded: encoded)};
       }
 
       dynamic alwaysIntern(dynamic value) {
         if (value == null) return null;
-        return {blobRefKey: intern(value)};
+        final encoded = json.encode(value);
+        return {blobRefKey: intern(value, encoded: encoded)};
       }
 
-      Map<String, dynamic>? optimizeApiCall(Map<String, dynamic> ev) {
+      Map<String, dynamic>? optimizeApiCall(Map ev) {
         final out = <String, dynamic>{};
         for (final key in const [
           'name',
@@ -80,7 +111,7 @@ class ReportJsonOptimizer {
         return out.isEmpty ? null : out;
       }
 
-      Map<String, dynamic>? optimizeStorageChange(Map<String, dynamic> change) {
+      Map<String, dynamic>? optimizeStorageChange(Map change) {
         final out = <String, dynamic>{};
         if (change['key'] != null) out['key'] = change['key'];
         if (change['change'] != null) out['change'] = change['change'];
@@ -93,7 +124,7 @@ class ReportJsonOptimizer {
         return out.isEmpty ? null : out;
       }
 
-      Map<String, dynamic> optimizeReport(Map<String, dynamic> report) {
+      Map<String, dynamic> optimizeReport(Map report) {
         final out = Map<String, dynamic>.from(report);
         final screens = report['screens'];
         if (screens is! Map || screens.isEmpty) return out;
@@ -118,7 +149,7 @@ class ReportJsonOptimizer {
         return out;
       }
 
-      Map<String, dynamic> optimizeStep(Map<String, dynamic> step) {
+      Map<String, dynamic> optimizeStep(Map step) {
         final text = step['stepText']?.toString() ?? '';
         final nested = text.startsWith('  ');
         final out = <String, dynamic>{'stepText': text};
@@ -132,7 +163,7 @@ class ReportJsonOptimizer {
           final optimizedCalls = <Map<String, dynamic>>[];
           for (final ev in apiCalls) {
             if (ev is! Map) continue;
-            final optimized = optimizeApiCall(Map<String, dynamic>.from(ev));
+            final optimized = optimizeApiCall(ev);
             if (optimized != null) optimizedCalls.add(optimized);
           }
           if (optimizedCalls.isNotEmpty) out['apiCalls'] = optimizedCalls;
@@ -148,8 +179,7 @@ class ReportJsonOptimizer {
           final optimizedChanges = <Map<String, dynamic>>[];
           for (final c in changes) {
             if (c is! Map) continue;
-            final optimized =
-                optimizeStorageChange(Map<String, dynamic>.from(c));
+            final optimized = optimizeStorageChange(c);
             if (optimized != null) optimizedChanges.add(optimized);
           }
           if (optimizedChanges.isNotEmpty) {
@@ -162,8 +192,7 @@ class ReportJsonOptimizer {
             final optimizedChanges = <Map<String, dynamic>>[];
             for (final c in secureChanges) {
               if (c is! Map) continue;
-              final optimized =
-                  optimizeStorageChange(Map<String, dynamic>.from(c));
+              final optimized = optimizeStorageChange(c);
               if (optimized != null) optimizedChanges.add(optimized);
             }
             if (optimizedChanges.isNotEmpty) out[field] = optimizedChanges;
@@ -184,7 +213,7 @@ class ReportJsonOptimizer {
         return out;
       }
 
-      Map<String, dynamic> optimizeTest(Map<String, dynamic> test) {
+      Map<String, dynamic> optimizeTest(Map test) {
         final out = <String, dynamic>{
           'id': test['id'],
           'status': test['status'],
@@ -205,6 +234,10 @@ class ReportJsonOptimizer {
         final filePath = test['filePath'];
         if (filePath != null && filePath.toString().isNotEmpty) {
           out['filePath'] = filePath;
+        }
+        final metadata = test['metadata'];
+        if (metadata is Map && metadata.isNotEmpty) {
+          out['metadata'] = Map<String, dynamic>.from(metadata);
         }
         final feature = test['feature'];
         if (feature != null && feature.toString().isNotEmpty) {
@@ -227,6 +260,22 @@ class ReportJsonOptimizer {
         if (description != null && description.toString().isNotEmpty) {
           out['description'] = description;
         }
+        // Keep the diagnostic fields emitted by TestReportDocument's
+        // canonical result projection.  These fields used to survive in the
+        // in-memory document but were silently discarded by the compressed
+        // report path, making persisted JSON disagree with HTML, console,
+        // JUnit, and history projections.
+        for (final field in const [
+          'failure',
+          'secondaryFailures',
+          'stackTrace',
+          'failedStep',
+          'failureOperation',
+          'failureSource',
+          'capabilities',
+        ]) {
+          if (test[field] != null) out[field] = test[field];
+        }
         final attempts = test['attempts'];
         if (attempts is int && attempts != 1) out['attempts'] = attempts;
         final retry = test['retry'];
@@ -236,9 +285,7 @@ class ReportJsonOptimizer {
           out['failedStepIndex'] = test['failedStepIndex'];
         }
         if (test['report'] is Map) {
-          out['report'] = optimizeReport(
-            Map<String, dynamic>.from(test['report'] as Map),
-          );
+          out['report'] = optimizeReport(test['report'] as Map);
         }
 
         final storage = test['storage'];
@@ -264,7 +311,7 @@ class ReportJsonOptimizer {
         if (steps is List && steps.isNotEmpty) {
           out['steps'] = [
             for (final s in steps)
-              if (s is Map) optimizeStep(Map<String, dynamic>.from(s)),
+              if (s is Map) optimizeStep(s),
           ];
         }
         return out;
@@ -301,7 +348,7 @@ class ReportJsonOptimizer {
       if (tests is List) {
         out['tests'] = [
           for (final t in tests)
-            if (t is Map) optimizeTest(Map<String, dynamic>.from(t)),
+            if (t is Map) optimizeTest(t),
         ];
       } else {
         out['tests'] = <Map<String, dynamic>>[];
@@ -355,40 +402,20 @@ class ReportJsonOptimizer {
             final text = step['stepText']?.toString() ?? '';
             final nested = text.startsWith('  ');
             if (!nested) {
-              parentPayload = {
-                'apiCalls': step['apiCalls'] ?? const [],
-                'appLogs': step['appLogs'] ?? const [],
-                'storageChanges': step['storageChanges'] ?? const [],
-                'secureStorageChanges':
-                    step['secureStorageChanges'] ?? const [],
-                'keychainChanges': step['keychainChanges'] ?? const [],
-                'screenshots': step['screenshots'] ?? const [],
-                'observer': step['observer'],
-              };
-              step.putIfAbsent('apiCalls', () => const []);
-              step.putIfAbsent('appLogs', () => const []);
-              step.putIfAbsent('storageChanges', () => const []);
-              step.putIfAbsent('secureStorageChanges', () => const []);
-              step.putIfAbsent('keychainChanges', () => const []);
-              step.putIfAbsent('screenshots', () => const []);
-              step.putIfAbsent('observer', () => null);
+              parentPayload = _stepPayload(step);
+              for (final field in _stepPayloadFields) {
+                step.putIfAbsent(field, () => parentPayload![field]);
+              }
             } else if (parentPayload != null) {
-              step['apiCalls'] = parentPayload['apiCalls'];
-              step['appLogs'] = parentPayload['appLogs'];
-              step['storageChanges'] = parentPayload['storageChanges'];
-              step['secureStorageChanges'] =
-                  parentPayload['secureStorageChanges'];
-              step['keychainChanges'] = parentPayload['keychainChanges'];
-              step['screenshots'] = parentPayload['screenshots'];
-              step['observer'] = parentPayload['observer'];
+              _applyStepPayload(step, parentPayload);
             } else {
-              step['apiCalls'] = const [];
-              step['appLogs'] = const [];
-              step['storageChanges'] = const [];
-              step['secureStorageChanges'] = const [];
-              step['keychainChanges'] = const [];
-              step['screenshots'] = const [];
-              step['observer'] = null;
+              _applyStepPayload(
+                step,
+                {
+                  for (final field in _stepPayloadFields)
+                    field: _emptyStepPayload(field),
+                },
+              );
             }
           }
         }

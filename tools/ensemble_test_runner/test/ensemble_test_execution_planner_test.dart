@@ -1,10 +1,59 @@
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
+import 'package:ensemble_test_runner/src/core/plan.dart';
+import 'package:ensemble_test_runner/src/runtime/compiled_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('EnsembleTestExecutionPlanner', () {
+    test('decodes the suite once and expands only selected definition files',
+        () async {
+      final collector = BenchmarkCollector(
+        caseId: 'planner.selected-definitions',
+        sample: 0,
+        processId: 'test',
+      );
+
+      final plan = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.buildForTest(
+          assetContents: {
+            'tests/selected.test.yaml': '''
+id: selected
+steps:
+  - expectVisible:
+      id: selected_button
+''',
+            'tests/unselected.test.yaml': '''
+id: unselected
+steps:
+  - expectVisible:
+      id: unselected_button
+''',
+          },
+          selection: const EnsembleTestSelection(ids: {'selected'}),
+        ),
+      );
+
+      final spans = collector.toJson();
+      final plannerSpan = spans.singleWhere(
+        (span) =>
+            span['service'] == 'planner' &&
+            span['operation'] == 'buildFromResolvedAssets',
+      );
+      expect(plannerSpan['counters'], {'documentsDecoded': 2});
+      expect(
+        spans.where((span) =>
+            span['service'] == 'planner' &&
+            span['operation'] == 'parseDefinitionsFromAsset'),
+        hasLength(1),
+      );
+      expect(plan.ordered.map((definition) => definition.testCase.id),
+          ['selected']);
+    });
+
     test('orders session producer before session consumers', () {
       final byId = {
         'signin': _def('a/signin.test.yaml', '''
@@ -206,6 +255,55 @@ steps:
       expect(
         definitions.single.testCase.steps.single.args['url'],
         'http://127.0.0.1:5001/reset',
+      );
+    });
+
+    test('decodes substituted scenario documents once before expansion',
+        () async {
+      final collector = BenchmarkCollector(
+        caseId: 'planner.substituted-scenarios',
+        sample: 0,
+        processId: 'test',
+      );
+      final definitions = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+          'suite/tests/service-scenarios.test.yaml',
+          r'''
+id: service_scenarios
+startScreen: Login
+scenarios:
+  - id: first
+  - id: second
+steps:
+  - httpRequest:
+      url: ${services.testService.url}/reset
+''',
+          services: const [
+            TestServiceConfig(
+              name: 'testService',
+              command: 'python',
+              url: 'http://127.0.0.1:5001',
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        definitions.map((definition) => definition.testCase.id),
+        ['service_scenarios[first]', 'service_scenarios[second]'],
+      );
+      expect(
+        definitions
+            .map((definition) => definition.testCase.steps.single.args['url'])
+            .toSet(),
+        {'http://127.0.0.1:5001/reset'},
+      );
+      expect(
+        collector.spans.where(
+          (span) => span.service == 'parser' && span.operation == 'parseString',
+        ),
+        isEmpty,
       );
     });
 
@@ -906,6 +1004,31 @@ steps:
       );
     });
 
+    test('selected files reuse preview YAML and skip full parsing of others',
+        () async {
+      final plan = await EnsembleTestExecutionPlanner.buildForTest(
+        assetContents: const {
+          'suite/tests/selected.test.yaml': '''
+id: selected
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+          'suite/tests/unselected.test.yaml': '''
+id: unselected
+unsupportedRootKey: this remains outside the selected test's parse path
+''',
+        },
+        selection: const EnsembleTestSelection(ids: {'selected'}),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id),
+        ['selected'],
+      );
+    });
+
     test('device matrix leaves startScreenInputs languageCode unchanged',
         () async {
       const yaml = '''
@@ -1220,6 +1343,161 @@ steps:
         'home_scenarios[first]',
         'home_scenarios[second]',
       ]);
+    });
+
+    test('selected scenarios retain substitutions with a reused YAML document',
+        () async {
+      final collector = BenchmarkCollector(
+        caseId: 'selected-scenarios',
+        sample: 0,
+        processId: 'test',
+      );
+      final plan = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.buildForTest(
+          assetContents: const {
+            'suite/tests/scenarios.test.yaml': r'''
+id: scenario_values
+startScreen: Home
+scenarios:
+  - id: first
+    vars:
+      label: First
+      field: first_input
+  - id: second
+    vars:
+      label: Second
+      field: second_input
+steps:
+  - expectText:
+      text: ${scenario.label}
+  - enterText:
+      id: ${scenario.field}
+      text: ${scenario.label}
+''',
+          },
+          selection: const EnsembleTestSelection(ids: {'scenario_values'}),
+        ),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id),
+        ['scenario_values[first]', 'scenario_values[second]'],
+      );
+      expect(
+        plan.ordered
+            .map((definition) => definition.testCase.steps.first.args['text']),
+        ['First', 'Second'],
+      );
+      final compiled = [
+        for (final definition in plan.ordered)
+          CompiledPlanCompiler().compile(definition.testCase),
+      ];
+      expect(compiled.map((item) => item.id), [
+        'scenario_values[first]',
+        'scenario_values[second]',
+      ]);
+
+      // Walk the executable graph (rather than relying on its node-map
+      // insertion order) and compare operations with each expanded parser
+      // model. This proves scenario substitution and authored order survive
+      // the production planner-to-compiled-plan boundary.
+      final compiledOperations = <List<PlanNode>>[];
+      for (final item in compiled) {
+        final operations = <PlanNode>[];
+        var nodeId = item.start;
+        var reachedEnd = false;
+        while (!reachedEnd) {
+          final node = item.nodes[nodeId];
+          if (node == null) fail('Missing node $nodeId in ${item.id}.');
+          switch (node) {
+            case StepBoundaryNode(:final next):
+              nodeId = next;
+            case OperationNode(:final next):
+              operations.add(node);
+              nodeId = next;
+            case EndNode():
+              reachedEnd = true;
+            default:
+              fail('Unexpected node in expanded simple scenario: $node');
+          }
+        }
+        compiledOperations.add(operations);
+      }
+      expect(
+        compiledOperations
+            .map((operations) => operations.map((node) {
+                  final operation = (node as OperationNode).operation;
+                  return [operation.name, operation.input];
+                }).toList())
+            .toList(),
+        [
+          [
+            [
+              'expectText',
+              {'text': 'First'}
+            ],
+            [
+              'enterText',
+              {'id': 'first_input', 'text': 'First'}
+            ],
+          ],
+          [
+            [
+              'expectText',
+              {'text': 'Second'}
+            ],
+            [
+              'enterText',
+              {'id': 'second_input', 'text': 'Second'}
+            ],
+          ],
+        ],
+      );
+      expect(
+        collector.spans.where(
+          (span) => span.service == 'parser' && span.operation == 'parseString',
+        ),
+        isEmpty,
+      );
+    });
+
+    test('unfiltered planning decodes each YAML asset once', () async {
+      final collector = BenchmarkCollector(
+        caseId: 'unfiltered-plan',
+        sample: 0,
+        processId: 'test',
+      );
+      final plan = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.buildForTest(
+          assetContents: const {
+            'suite/tests/login.test.yaml': '''
+id: login
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login
+''',
+            'suite/tests/home.test.yaml': '''
+id: home
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+          },
+        ),
+      );
+
+      expect(plan.ordered.map((definition) => definition.testCase.id),
+          ['home', 'login']);
+      expect(
+        collector.spans.where(
+          (span) => span.service == 'parser' && span.operation == 'parseString',
+        ),
+        isEmpty,
+      );
     });
 
     test('selection ignores missing CLI inputs in unrelated tests', () async {

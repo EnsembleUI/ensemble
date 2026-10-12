@@ -143,4 +143,46 @@ void main() {
       expect(ctx.runtime.deviceSize, device.screenSize);
     },
   );
+
+  testWidgets('widget adapter restores its screenshot viewport',
+      (tester) async {
+    final originalSize = tester.view.physicalSize;
+    final originalDpr = tester.view.devicePixelRatio;
+    final harness = EnsembleTestHarness(
+      appPath: 'unused',
+      appHome: 'Home',
+    );
+    final ctx = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'widget-reset', steps: []),
+    );
+    await harness.applyViewport(
+      tester,
+      ctx,
+      screenshotDevice: Devices.ios.iPhone15Pro,
+    );
+
+    await harness.runtimeAdapter.resetViewport(tester);
+
+    expect(tester.view.physicalSize, originalSize);
+    expect(tester.view.devicePixelRatio, originalDpr);
+  });
+
+  testWidgets('integration adapter leaves the physical viewport owned by host',
+      (tester) async {
+    const physicalSize = Size(1170, 2532);
+    tester.view.physicalSize = physicalSize;
+    tester.view.devicePixelRatio = 3.0;
+    final harness = EnsembleTestHarness(
+      appPath: 'unused',
+      appHome: 'Home',
+      executionMode: ExecutionMode.integration,
+    );
+
+    await harness.runtimeAdapter.resetViewport(tester);
+
+    expect(tester.view.physicalSize, physicalSize);
+    expect(tester.view.devicePixelRatio, 3.0);
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
 }

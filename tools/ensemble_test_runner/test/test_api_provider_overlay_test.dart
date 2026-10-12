@@ -226,11 +226,13 @@ void main() {
       });
 
       expect(LiveAsyncCallSupport.hasPendingLiveCalls, isTrue);
+      expect(LiveAsyncCallSupport.pendingLiveCallCount, 1);
       gate.complete();
       await Future.wait([artifact, live]);
 
       expect(events, ['artifact-start', 'artifact-end', 'live']);
       expect(LiveAsyncCallSupport.hasPendingLiveCalls, isFalse);
+      expect(LiveAsyncCallSupport.pendingLiveCallCount, 0);
     } finally {
       LiveAsyncCallSupport.reset();
     }

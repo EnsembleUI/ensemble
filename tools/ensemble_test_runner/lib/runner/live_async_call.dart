@@ -7,13 +7,24 @@ import 'dart:async';
 class LiveAsyncCallSupport {
   static Future<T?> Function<T>(Future<T> Function())? runner;
   static Future<T?> Function<T>(Future<T> Function())? platformHttpRunner;
-  static void Function()? drainPendingExceptions;
 
-  static int _pendingLiveCalls = 0;
+  static int _completedLiveCalls = 0;
+  static DateTime? _lastLiveCallCompletedAt;
   static final Set<Future<dynamic>> _inFlightLiveCalls = {};
   static Future<void> _liveCallQueue = Future<void>.value();
 
-  static bool get hasPendingLiveCalls => _pendingLiveCalls > 0;
+  static bool get hasPendingLiveCalls => _inFlightLiveCalls.isNotEmpty;
+  static int get pendingLiveCallCount => _inFlightLiveCalls.length;
+  static int get completedLiveCallCount => _completedLiveCalls;
+  static DateTime? get lastLiveCallCompletedAt => _lastLiveCallCompletedAt;
+
+  /// Captures the live calls already in flight at this boundary.
+  ///
+  /// The returned future does not include calls started after the snapshot.
+  static Future<void>? pendingLiveCallsSnapshot() {
+    if (_inFlightLiveCalls.isEmpty) return null;
+    return Future.wait(_inFlightLiveCalls.toList());
+  }
 
   static Future<void> waitForLiveCalls() async {
     if (_inFlightLiveCalls.isEmpty) {
@@ -52,7 +63,6 @@ class LiveAsyncCallSupport {
     final completer = Completer<T?>();
     final trackedFuture = completer.future;
     if (trackAsLiveCall) {
-      _pendingLiveCalls++;
       _inFlightLiveCalls.add(trackedFuture);
     }
 
@@ -64,10 +74,10 @@ class LiveAsyncCallSupport {
           completer.completeError(error, stackTrace);
         }
       } finally {
-        drainPendingExceptions?.call();
         if (trackAsLiveCall) {
-          _pendingLiveCalls--;
           _inFlightLiveCalls.remove(trackedFuture);
+          _completedLiveCalls++;
+          _lastLiveCallCompletedAt = DateTime.now().toUtc();
         }
       }
     });
@@ -78,8 +88,8 @@ class LiveAsyncCallSupport {
   static void reset() {
     runner = null;
     platformHttpRunner = null;
-    drainPendingExceptions = null;
-    _pendingLiveCalls = 0;
+    _completedLiveCalls = 0;
+    _lastLiveCallCompletedAt = null;
     _inFlightLiveCalls.clear();
     _liveCallQueue = Future<void>.value();
   }

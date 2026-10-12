@@ -1,11 +1,16 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
-import 'benchmarks/history.dart';
+import 'benchmarks/history_json.dart';
 import 'benchmarks/report.dart';
 import 'benchmarks/results.dart';
 import 'benchmarks/operation_cases.dart';
+import 'benchmarks/worker_case_watchdog.dart';
 
 const _prefix = 'ENSEMBLE_BENCHMARK_V1:';
 
@@ -53,7 +58,8 @@ Future<void> run(List<String> arguments) async {
     'case',
     'flutter',
     'retention-days',
-    'isolation'
+    'isolation',
+    'case-timeout-seconds'
   };
   final unknown = {
     ...flags.difference(acceptedFlags),
@@ -67,8 +73,10 @@ Future<void> run(List<String> arguments) async {
 --service=screenshot,observer --case=<case-id>
 --mode=widget|integration    Integration requires --device=<id>
 --samples=N --warmup=N --min-sample-ms=N
+--case-timeout-seconds=N  Maximum wall time for one workload (default 120)
 --compare=<run-id>           Pin a compatible baseline
 --history --import=<export.json> --prune-details --retention-days=30
+                             Keep detail for 10 recent runs; incomplete runs expire after 7 days
 --list --check-coverage --root=<directory> --flutter=<executable> --verbose''');
     return;
   }
@@ -91,9 +99,10 @@ Future<void> run(List<String> arguments) async {
       return;
     }
     if (flags.contains('prune-details')) {
-      history.pruneDetails(
+      final prunedRuns = history.pruneDetails(
           days: _integer(values, 'retention-days', 30, min: 1));
-      stdout.writeln('Pruned expired detail files; compact history retained.');
+      stdout.writeln(
+          'Pruned details in $prunedRuns run directories; 10 recent runs and compact history are retained.');
       return;
     }
     if (flags.contains('history')) {
@@ -165,6 +174,8 @@ Future<void> run(List<String> arguments) async {
       'samples':
           _integer(values, 'samples', preset == 'quick' ? 10 : 30, min: 1),
       'minimumSampleMs': _integer(values, 'min-sample-ms', 200, min: 0),
+      'caseTimeoutSeconds':
+          _integer(values, 'case-timeout-seconds', 120, min: 1),
       'fixtureRoot': p.join(runRoot.path, 'fixtures'),
       'workerOutput': p.join(runRoot.path, 'catalogue.json.gz'),
       'catalogueOnly': true
@@ -326,6 +337,7 @@ Future<void> run(List<String> arguments) async {
         'warmups': options['warmups'],
         'samples': options['samples'],
         'minimumSampleMs': options['minimumSampleMs'],
+        'caseTimeoutSeconds': options['caseTimeoutSeconds'],
         'isolation': isolateCases ? 'case' : 'shared'
       },
       'catalogueHash': sha256
@@ -404,10 +416,9 @@ Future<void> run(List<String> arguments) async {
           ..remove('summary'));
         for (final span in spans)
           trace.add(utf8.encode('${jsonEncode(span)}\n'));
-        await traceFile.flush();
       }
     trace.close();
-    await traceFile.close();
+    await traceFile.done;
     writeJson(File(p.join(runRoot.path, 'export.json')), {
       ...metadata,
       'samples': [
@@ -447,10 +458,6 @@ Future<Map<String, dynamic>> _worker(Directory package, Directory runRoot,
     '--no-pub',
     '--reporter=expanded',
     if (host != null) ...['-d', device!],
-    '--dart-define=ensembleBenchmarkOptions=${jsonEncode(options)}',
-    '--dart-define=ensembleTestArtifactRoot=${options['fixtureRoot']}',
-    '--dart-define=ensembleTestArtifactDisplayRoot=${options['fixtureRoot']}',
-    '--dart-define=ensembleTestExecutionMode=${options['mode']}',
     '--dart-define=ensembleBenchmarkDart=${Platform.resolvedExecutable}',
     '--dart-define=ensembleBenchmarkFlutter=$flutter',
     '--dart-define=ensembleBenchmarkPackageRoot=${package.path}'
@@ -458,22 +465,51 @@ Future<Map<String, dynamic>> _worker(Directory package, Directory runRoot,
   final clock = Stopwatch()..start();
   int? readyMs;
   final process = await Process.start(flutter, arguments,
-      workingDirectory: host ?? package.path);
+      workingDirectory: host ?? package.path,
+      environment: {
+        ...Platform.environment,
+        'ENSEMBLE_TEST_RUNNER_CONFIG': jsonEncode({
+          'ensembleBenchmarkOptions': jsonEncode(options),
+          'ensembleTestArtifactRoot': options['fixtureRoot'],
+          'ensembleTestArtifactDisplayRoot': options['fixtureRoot'],
+          'ensembleTestExecutionMode': options['mode'],
+        }),
+      });
+  final watchdog = BenchmarkWorkerCaseWatchdog(
+    timeout: Duration(seconds: options['caseTimeoutSeconds'] as int? ?? 120),
+    markerPrefix: _prefix,
+    onTimeout: (_) => process.kill(ProcessSignal.sigterm),
+  );
   final lines = <String>[];
+  final workerLog =
+      File(p.join(runRoot.path, 'worker.log')).openWrite(mode: FileMode.append);
   Future<void> listen(Stream<List<int>> stream) async {
     await for (final line
         in stream.transform(utf8.decoder).transform(const LineSplitter())) {
       lines.add(line);
+      watchdog.observeLine(line);
+      // The stdout and stderr readers share this sink. Buffer each line here;
+      // flushing per line can bind the sink while the other reader writes.
+      workerLog.writeln(line);
       if (line.contains('${_prefix}ready'))
         readyMs ??= clock.elapsedMilliseconds;
       if (verbose || line.contains('${_prefix}case:')) stdout.writeln(line);
     }
   }
 
-  await Future.wait([listen(process.stdout), listen(process.stderr)]);
-  final code = await process.exitCode;
-  File(p.join(runRoot.path, 'worker.log'))
-      .writeAsStringSync(lines.join('\n') + '\n', mode: FileMode.append);
+  late final int code;
+  try {
+    await Future.wait([listen(process.stdout), listen(process.stderr)]);
+    code = await process.exitCode;
+  } finally {
+    watchdog.dispose();
+    await workerLog.flush();
+    await workerLog.close();
+  }
+  if (watchdog.timedOutCase case final caseId?) {
+    throw StateError(
+        'Benchmark case "$caseId" exceeded its ${options['caseTimeoutSeconds'] ?? 120}s wall-time limit. The worker was stopped; see ${p.join(runRoot.path, 'worker.log')} for its last progress marker. Fixture preparation, execution, or cleanup may be stalled.');
+  }
   if (code != 0)
     throw StateError(
         'Benchmark worker exited $code. See ${p.join(runRoot.path, 'worker.log')}:\n${lines.skip((lines.length - 15).clamp(0, lines.length)).join('\n')}');

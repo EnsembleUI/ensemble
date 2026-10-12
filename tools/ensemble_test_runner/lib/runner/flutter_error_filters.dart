@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Flutter diagnostics that should not fail a YAML test step.
+/// Flutter diagnostics that should not fail a test step.
 ///
 /// Layout overflow is reported via [FlutterError.onError] in debug builds but
 /// does not replace the tree with [ErrorWidget] — the UI remains usable.

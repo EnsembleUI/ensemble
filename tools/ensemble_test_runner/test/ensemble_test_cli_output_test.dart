@@ -1,13 +1,29 @@
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
+import 'package:ensemble_test_runner/cli/cli_process_output.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('live progress output suppresses running events but keeps completion',
+      () {
+    const start =
+        'ENSEMBLE_TEST_PROGRESS_V1:{"status":"running","testId":"checkout"}';
+    const done =
+        'ENSEMBLE_TEST_PROGRESS_V1:{"status":"passed","testId":"checkout","durationMs":4200}';
+
+    expect(CliProcessOutput.isIntegrationProgressLine(start), isTrue);
+    expect(CliProcessOutput.formatIntegrationProgressLine(start), isNull);
+    expect(
+      CliProcessOutput.formatIntegrationProgressLine(done),
+      '[passed] checkout (4200ms)',
+    );
+  });
+
   test('extractSuiteReport keeps screen tracker and boxed summary', () {
     const noisy = '''
 00:00 +0: loading test/ensemble_tests.dart
 SCREEN TRACKER: Hello Home
 name is ={first: John}
-┌─ Ensemble YAML tests ─────────────────────────────
+┌─ Ensemble tests ─────────────────────────────
 │  ✓ hello_home_renders
 └─ 5 passed, 0 failed (5 total) · 653ms total
 
@@ -17,7 +33,7 @@ name is ={first: John}
     expect(
       extractSuiteReport(noisy),
       '''SCREEN TRACKER: Hello Home
-┌─ Ensemble YAML tests ─────────────────────────────
+┌─ Ensemble tests ─────────────────────────────
 │  ✓ hello_home_renders
 └─ 5 passed, 0 failed (5 total) · 653ms total
 ''',
@@ -27,14 +43,14 @@ name is ={first: John}
   test('extractSuiteReport can omit streamed screen tracker lines', () {
     const noisy = '''
 SCREEN TRACKER: Login
-┌─ Ensemble YAML tests ─────────────────────────────
+┌─ Ensemble tests ─────────────────────────────
 │  ✓ login_test
 └─ 1 passed, 0 failed (1 total) · 653ms total
 ''';
 
     expect(
       extractSuiteReport(noisy, includeScreenTracker: false),
-      '''┌─ Ensemble YAML tests ─────────────────────────────
+      '''┌─ Ensemble tests ─────────────────────────────
 │  ✓ login_test
 └─ 1 passed, 0 failed (1 total) · 653ms total
 ''',
@@ -63,7 +79,7 @@ SCREEN TRACKER: Login
         '--device-id=emulator-5554',
         '--timeout=30s',
         '--tests-dir=tests',
-        '--test-entry=test/application_yaml_tests.dart',
+        '--test-entry=test/application_tests.dart',
         '--input',
         'adminPassword=s4C>M7U6t~',
         '--input=expectedDeviceCount=2',
@@ -115,7 +131,7 @@ No declarative tests found. Add *.test.yaml files under ensemble/apps/sample_app
 When the exception was thrown, this was the stack:
 #0      EnsembleTestExecutionPlanner.build
 The test description was:
-  Ensemble app *.test.yaml
+  Ensemble app test suite
 ════════════════════════════════════════════════════════════════════════════════
 ''';
 
@@ -168,7 +184,7 @@ When the exception was thrown, this was the stack:
       ),
       isFalse,
     );
-    expect(filter.shouldEmit('┌─ Ensemble YAML tests ─────'), isFalse);
+    expect(filter.shouldEmit('┌─ Ensemble tests ─────'), isFalse);
     expect(filter.shouldEmit('SCREEN TRACKER: Home'), isFalse);
   });
 

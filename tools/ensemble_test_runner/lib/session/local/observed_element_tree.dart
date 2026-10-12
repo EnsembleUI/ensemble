@@ -2,12 +2,13 @@ import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
-import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
+import 'package:ensemble_test_runner/session/local/observed_element_actions.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Builds the kept observe element tree from the live Flutter element walk.
@@ -32,6 +33,7 @@ import 'package:flutter_test/flutter_test.dart';
     var index = 0;
     final seenRenderObjects = <Object>{};
     final claimedOwnedIds = <String>{};
+    final ancestry = _ObservationAncestry();
 
     SemanticsHandle? semantics;
     if (enableSemantics) {
@@ -48,23 +50,24 @@ import 'package:flutter_test/flutter_test.dart';
         // gesture/painter subtree can look exactly like an app icon/button to
         // the generic observer classifier, but it is an editing affordance for
         // the focused text field, not independent screen content.
-        if (_isTextSelectionHandleElement(element)) continue;
+        if (ancestry.inclusive(element).selectionHandle) continue;
         // allElements includes widgets retained by inactive routes (including
         // the previous screen beneath a pushed route). They are neither current
         // screen content nor scrollable offscreen targets, so exclude them
         // before classifying or serializing observer nodes.
-        if (!isUnderCurrentModalRoute(element)) continue;
+        final ancestors = ancestry.ancestorsOf(element);
+        if (!ancestors.routeCurrent) continue;
         // Some navigators retain route content in an Offstage subtree while a
         // transition or route replacement is in progress. Geometry alone would
         // label those nodes `offscreen=true`, incorrectly suggesting scrolling
         // can reveal them.
-        if (isUnderOffstageAncestor(element)) continue;
+        if (ancestors.offstage) continue;
 
-        final ownedKey = hasCompactValueKey(element);
+        final ownedKey = ancestry.inclusive(element).selfKeyed;
         final ownedId = readOwnedWidgetLocatorId(element);
         if (keyedOnly && ownedKey == false && ownedId == null) continue;
 
-        final underKeyed = _hasCompactKeyedAncestor(element);
+        final underKeyed = ancestors.keyed;
 
         var keep = false;
         // Owned keys / primaries may inherit exclusive wrapper ids; nested
@@ -130,7 +133,8 @@ import 'package:flutter_test/flutter_test.dart';
           registerRouteDependency: registerRouteDependency,
         );
         // Generic gesture wrappers with no key, label, text, or generated
-        // action have no usable identity for the runner or a future agent. The
+        // action have no usable identity for the runner or a downstream
+        // consumer. The
         // integration binding can expose transparent host-area gestures as
         // button-shaped nodes; publishing them only adds misleading controls to
         // the observed screen.
@@ -174,21 +178,61 @@ import 'package:flutter_test/flutter_test.dart';
   });
 }
 
-bool _isTextSelectionHandleElement(Element element) {
-  bool isHandleOverlay(Element candidate) => candidate.widget.runtimeType
-      .toString()
-      .contains('SelectionHandleOverlay');
+typedef _AncestorFacts = ({
+  bool routeCurrent,
+  bool offstage,
+  bool keyed,
+  bool selfKeyed,
+  bool selectionHandle,
+});
 
-  if (isHandleOverlay(element)) return true;
-  var found = false;
-  element.visitAncestorElements((ancestor) {
-    if (isHandleOverlay(ancestor)) {
-      found = true;
+/// Reuses ancestor facts within one synchronous observation of a stable tree.
+final class _ObservationAncestry {
+  final _facts = <Element, _AncestorFacts>{};
+
+  _AncestorFacts ancestorsOf(Element element) {
+    Element? parent;
+    element.visitAncestorElements((ancestor) {
+      parent = ancestor;
       return false;
+    });
+    return parent == null ? _root : inclusive(parent!);
+  }
+
+  _AncestorFacts inclusive(Element element) {
+    final cached = _facts[element];
+    if (cached != null) return cached;
+    final parent = ancestorsOf(element);
+    final widget = element.widget;
+    var routeCurrent = parent.routeCurrent;
+    if (widget.runtimeType.toString() == '_ModalScopeStatus') {
+      try {
+        final route = (widget as dynamic).route;
+        if (route is ModalRoute && !route.isCurrent) routeCurrent = false;
+      } catch (_) {
+        // Preserve the permissive behavior when Flutter changes this private widget.
+      }
     }
-    return true;
-  });
-  return found;
+    final renderObject = element.renderObject;
+    final selfKeyed = hasCompactValueKey(element);
+    return _facts[element] = (
+      routeCurrent: routeCurrent,
+      offstage: parent.offstage ||
+          (renderObject is RenderOffstage && renderObject.offstage),
+      keyed: parent.keyed || selfKeyed,
+      selfKeyed: selfKeyed,
+      selectionHandle: parent.selectionHandle ||
+          widget.runtimeType.toString().contains('SelectionHandleOverlay'),
+    );
+  }
+
+  static const _AncestorFacts _root = (
+    routeCurrent: true,
+    offstage: false,
+    keyed: false,
+    selfKeyed: false,
+    selectionHandle: false,
+  );
 }
 
 bool _keepUnkeyedElement(
@@ -471,18 +515,6 @@ List<UiElement> nestKeptElements(
 
     return [for (final i in roots) build(i)];
   });
-}
-
-bool _hasCompactKeyedAncestor(Element element) {
-  var found = false;
-  element.visitAncestorElements((ancestor) {
-    if (hasCompactValueKey(ancestor)) {
-      found = true;
-      return false;
-    }
-    return true;
-  });
-  return found;
 }
 
 bool _isPageShellElement(

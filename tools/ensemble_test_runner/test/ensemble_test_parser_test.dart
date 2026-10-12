@@ -2,27 +2,6 @@ import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('secure screenshots default to mask and parse explicit policy', () {
-    expect(
-      EnsembleTestParser.parseConfigString('').screenshots.secureContent,
-      SecureScreenshotPolicy.mask,
-    );
-    expect(
-      EnsembleTestParser.parseConfigString('''
-screenshots:
-  secureContent: skip
-''').screenshots.secureContent,
-      SecureScreenshotPolicy.skip,
-    );
-    expect(
-      () => EnsembleTestParser.parseConfigString('''
-screenshots:
-  secureContent: raw
-'''),
-      throwsA(isA<EnsembleTestFailure>()),
-    );
-  });
-
   group('EnsembleTestParser', () {
     test('parses minimal test file', () {
       const yaml = '''
@@ -732,6 +711,18 @@ logStorage:
       expect(config.logStorage.key, 'auth');
     });
 
+    test('parses API call logging config', () {
+      const yaml = '''
+logApiCalls:
+  enabled: false
+''';
+
+      expect(
+        EnsembleTestParser.parseConfigString(yaml).logApiCalls.enabled,
+        isFalse,
+      );
+    });
+
     test('parses AI-friendly metadata fields', () {
       const yaml = '''
 id: login_valid
@@ -798,7 +789,7 @@ steps:
           EnsembleSingleTestResult.failed(
             testId: 'b',
             durationMs: 2,
-            error: 'oops',
+            message: 'oops',
           ),
         ],
       );

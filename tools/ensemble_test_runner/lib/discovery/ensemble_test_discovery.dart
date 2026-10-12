@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble_test_runner/discovery/device_matrix.dart' as matrix;
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
@@ -27,12 +28,18 @@ class EnsembleTestAppTarget {
 
 /// Discovers declarative tests and app settings from the host Flutter app bundle.
 class EnsembleTestDiscovery {
-  /// All `*.test.yaml` files bundled under [testsAssetPrefix].
-  static Future<List<String>> findTestYamlAssets(
-      String testsAssetPrefix) async {
-    return await RunnerBenchmark.async('discovery', 'findTestYamlAssets',
-        () async {
-      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+  // The asset manifest is immutable for the lifetime of a test process. Keep
+  // one shared load for discovery and configuration lookup so startup does not
+  // perform the same platform-channel request twice.
+  static Future<AssetManifest>? _assetManifestFuture;
+
+  static Future<AssetManifest> _loadAssetManifest() =>
+      _assetManifestFuture ??= AssetManifest.loadFromAssetBundle(rootBundle);
+
+  /// All test definition assets bundled under [testsAssetPrefix].
+  static Future<List<String>> findTestAssets(String testsAssetPrefix) async {
+    return await RunnerBenchmark.async('discovery', 'findTestAssets', () async {
+      final manifest = await _loadAssetManifest();
       final shardPaths = _shardPathsFromEnvironment();
       final files = manifest
           .listAssets()
@@ -52,9 +59,9 @@ class EnsembleTestDiscovery {
     });
   }
 
-  /// Optional suite-level config bundled as `tests/config.yaml`.
-  static Future<String?> findConfigYamlAsset(String testsAssetPrefix) async {
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+  /// Optional suite-level configuration bundled with the test assets.
+  static Future<String?> findConfigAsset(String testsAssetPrefix) async {
+    final manifest = await _loadAssetManifest();
     final path = '${testsAssetPrefix}config.yaml';
     return manifest.listAssets().contains(path) ? path : null;
   }
@@ -63,7 +70,7 @@ class EnsembleTestDiscovery {
     String testsAssetPrefix,
   ) async {
     return await RunnerBenchmark.async('discovery', 'loadTestConfig', () async {
-      final path = await findConfigYamlAsset(testsAssetPrefix);
+      final path = await findConfigAsset(testsAssetPrefix);
       if (path == null) return const EnsembleTestConfig();
       final content = await rootBundle.loadString(path);
       final config = EnsembleTestParser.parseConfigString(
@@ -110,10 +117,8 @@ class EnsembleTestDiscovery {
       );
 
   static Set<String> _deviceIdsFromEnvironment() {
-    const raw = String.fromEnvironment('ensembleTestDevice');
-    if (raw.isEmpty) return const {};
-    return raw
-        .split(',')
+    return RunnerRuntimeConfiguration.current
+        .strings('ensembleTestDevice')
         .map((part) => part.trim())
         .where((part) => part.isNotEmpty)
         .toSet();
@@ -130,17 +135,16 @@ class EnsembleTestDiscovery {
       const String.fromEnvironment('ensembleTestPhysicalPlatform');
 
   static Set<String> _shardPathsFromEnvironment() {
-    const raw = String.fromEnvironment('ensembleTestShardPath');
-    if (raw.isEmpty) return const {};
-    return raw
-        .split(',')
+    return RunnerRuntimeConfiguration.current
+        .strings('ensembleTestShardPath')
         .map((part) => part.trim().replaceAll('\\', '/'))
         .where((part) => part.isNotEmpty)
         .toSet();
   }
 
   static EnsembleTestConfig? _withServiceOverrides(EnsembleTestConfig config) {
-    const rawOverrides = String.fromEnvironment('ensembleTestServiceOverrides');
+    final rawOverrides = RunnerRuntimeConfiguration.current
+        .string('ensembleTestServiceOverrides');
     if (rawOverrides.isEmpty || config.services.isEmpty) return null;
 
     final dynamic decoded = json.decode(rawOverrides);
@@ -200,10 +204,8 @@ class EnsembleTestDiscovery {
   }
 
   static EnsembleTestConfig _withWorkerIsolation(EnsembleTestConfig config) {
-    const workerIndex = int.fromEnvironment(
-      'ensembleTestWorkerIndex',
-      defaultValue: 0,
-    );
+    final workerIndex =
+        RunnerRuntimeConfiguration.current.integer('ensembleTestWorkerIndex');
     if (workerIndex <= 0 || config.services.isEmpty) return config;
 
     return EnsembleTestConfig(

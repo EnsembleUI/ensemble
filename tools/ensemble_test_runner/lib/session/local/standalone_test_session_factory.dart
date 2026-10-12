@@ -1,4 +1,5 @@
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/application/standalone_ensemble_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
@@ -13,7 +14,7 @@ import 'package:ensemble_test_runner/session/test_session_factory.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Standalone (YAML-independent) session factory for Flutter test contexts.
+/// Standalone session factory for Flutter test contexts.
 ///
 /// Requires a valid [WidgetTester] / test binding. Reuses
 /// [EnsembleTestHarness] — does not invent a second bootstrap path.
@@ -70,18 +71,32 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
       context.runtime.locale = locale;
     }
 
-    await harness.loadScreen(
-      tester: tester,
-      testCase: testCase,
-      context: context,
-      suiteConfig: suiteConfig,
-      forcedLocale: locale,
-    );
+    await context.navigationFlow.startListeningWhenReady();
+    try {
+      await harness.loadScreen(
+        tester: tester,
+        testCase: testCase,
+        context: context,
+        suiteConfig: suiteConfig,
+        forcedLocale: locale,
+      );
+      await context.navigationFlow.beginTestAfterPending(
+        ScreenTracker().getCurrentScreenIdentifier,
+      );
+    } catch (error, stackTrace) {
+      try {
+        await context.navigationFlow.stopListening(
+          clearHistory: true,
+        );
+      } catch (_) {}
+      Error.throwWithStackTrace(error, stackTrace);
+    }
 
     final assertions = AssertionEngine(tester: tester, context: context);
     final services = StandaloneEnsembleApplicationHandle(
       context: context,
       configDescription: const {},
+      ownsNavigationFlow: false,
     ).services;
     final executor = TestStepExecutor(
       tester: tester,

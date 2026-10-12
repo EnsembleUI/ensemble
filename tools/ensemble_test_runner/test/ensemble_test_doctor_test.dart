@@ -19,7 +19,7 @@ steps:
     final result = await EnsembleTestDoctor(dir.path).run();
 
     expect(result.hasErrors, isFalse);
-    expect(result.lines.join('\n'), contains('Found 1 YAML test file'));
+    expect(result.lines.join('\n'), contains('Found 1 declarative test file'));
   });
 
   test('doctor accepts test profile selectors', () async {
@@ -164,6 +164,38 @@ devices:
       output,
       isNot(contains('does not support the `devices` viewport matrix')),
     );
+  });
+
+  test('doctor fixes platform requirements through platform support', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'login_flow.test.yaml', '''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+    File('${dir.path}/ensemble/apps/sample_app/tests/config.yaml')
+        .writeAsStringSync('mode: integration\n');
+    final gradle = File('${dir.path}/android/app/build.gradle.kts')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+android {
+    compileOptions {
+    }
+}
+dependencies {
+}
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run(fix: true);
+
+    expect(gradle.readAsStringSync(),
+        contains('isCoreLibraryDesugaringEnabled = true'));
+    expect(gradle.readAsStringSync(), contains('desugar_jdk_libs'));
+    expect(result.lines.join('\n'),
+        contains('Android core library desugaring is enabled'));
   });
 }
 

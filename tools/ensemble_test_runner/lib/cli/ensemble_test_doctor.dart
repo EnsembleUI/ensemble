@@ -1,10 +1,15 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
+import 'package:ensemble_test_runner/cli/app_platform_support.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/models/test_document_keys.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -31,6 +36,14 @@ class EnsembleTestDoctor {
 
   Future<EnsembleTestDoctorResult> run({bool fix = false}) async {
     return await RunnerBenchmark.async('tools', 'run', () async {
+      final platformSupport = AppPlatformSupport(
+        appDir: appDir,
+        rewriteIfChanged: (file, rewrite) {
+          final source = file.readAsStringSync();
+          final updated = rewrite(source);
+          if (updated != source) file.writeAsStringSync(updated);
+        },
+      );
       final lines = <String>['Ensemble test runner doctor'];
       var hasErrors = false;
 
@@ -116,7 +129,7 @@ class EnsembleTestDoctor {
         );
         return EnsembleTestDoctorResult(lines: lines, hasErrors: hasErrors);
       }
-      ok('Found ${testFiles.length} YAML test file(s)');
+      ok('Found ${testFiles.length} declarative test file(s)');
 
       var suiteConfig = const EnsembleTestConfig();
       final testConfigFile = File(p.join(testsDir.path, 'config.yaml'));
@@ -160,12 +173,15 @@ class EnsembleTestDoctor {
         if (androidProject.existsSync()) {
           if (fix) {
             final before =
-                YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+                AppPlatformSupport.androidDesugaringRequirementMessage(
+              appDir,
+            );
             if (before != null) {
-              YamlTestAppPatcher(appDir).applyAndroidDesugaringFix();
+              platformSupport.applyAndroidDesugaringFix();
               final after =
-                  YamlTestAppPatcher.androidDesugaringRequirementMessage(
-                      appDir);
+                  AppPlatformSupport.androidDesugaringRequirementMessage(
+                appDir,
+              );
               if (after == null) {
                 ok('Enabled Android core library desugaring');
               } else {
@@ -174,7 +190,7 @@ class EnsembleTestDoctor {
             }
           }
           final desugaring =
-              YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+              AppPlatformSupport.androidDesugaringRequirementMessage(appDir);
           if (desugaring == null) {
             ok('Android core library desugaring is enabled');
           } else {
@@ -184,20 +200,20 @@ class EnsembleTestDoctor {
         if (iosProject.existsSync()) {
           if (fix) {
             final before =
-                YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+                AppPlatformSupport.iosDeploymentTargetRequirementMessage(
               appDir,
             );
             if (before != null) {
-              YamlTestAppPatcher(appDir).applyIosDeploymentTargetFix();
+              platformSupport.applyIosDeploymentTargetFix();
               // Keep the raised files permanently for doctor --fix (no restore).
               final after =
-                  YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+                  AppPlatformSupport.iosDeploymentTargetRequirementMessage(
                 appDir,
               );
               if (after == null) {
                 ok(
                   'Raised iOS deployment target to '
-                  '${YamlTestAppPatcher.minIntegrationIosDeploymentTarget}',
+                  '${AppPlatformSupport.minIntegrationIosDeploymentTarget}',
                 );
               } else {
                 warn(after);
@@ -332,7 +348,7 @@ _DoctorTest _parseDoctorTest(String content) {
       error: 'root must be a map',
     );
   }
-  final unsupportedKeys = _unsupportedTestRootKeys(doc);
+  final unsupportedKeys = TestDocumentKeys.unsupportedRootKeys(doc.keys);
   if (unsupportedKeys.isNotEmpty) {
     return (
       id: '',
@@ -411,7 +427,7 @@ void _reportIosDeploymentTarget({
   required void Function(String message) warn,
 }) {
   final message =
-      YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(appDir);
+      AppPlatformSupport.iosDeploymentTargetRequirementMessage(appDir);
   if (message == null) {
     final podfile = File(p.join(appDir, 'ios', 'Podfile'));
     if (!podfile.existsSync()) {
@@ -450,31 +466,4 @@ String _withoutTrailingSlash(String path) {
   return normalized.endsWith('/')
       ? normalized.substring(0, normalized.length - 1)
       : normalized;
-}
-
-List<String> _unsupportedTestRootKeys(YamlMap map) {
-  const supported = {
-    'id',
-    'type',
-    'feature',
-    'tags',
-    'description',
-    'owner',
-    'priority',
-    'parallel',
-    'retry',
-    'startScreen',
-    'startScreenInputs',
-    'session',
-    'profiles',
-    'initialState',
-    'setup',
-    'mocks',
-    'scenarios',
-    'steps',
-  };
-  return map.keys
-      .map((key) => key.toString())
-      .where((key) => !supported.contains(key))
-      .toList();
 }

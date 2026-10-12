@@ -54,19 +54,7 @@ class AppSessionSnapshot {
   Future<void> restoreOnto(StorageManager storage) async {
     return await RunnerBenchmark.async('lifecycle', 'restoreOnto', () async {
       await runRestorePhases(
-        clear: () async {
-          await storage.clearPublicStorage();
-          for (final key in storage
-              .getKeys()
-              .where((key) => key.startsWith('enc_'))
-              .toList()) {
-            await storage.remove(key);
-          }
-          final currentKeychain = await storage.getAllFromKeychain();
-          for (final key in currentKeychain.keys) {
-            await storage.removeSecurely(key);
-          }
-        },
+        clear: () => clearPersistentStorage(storage),
         rewrite: () async {
           for (final entry in publicStorage.entries) {
             await storage.write(entry.key, _copy(entry.value));
@@ -83,6 +71,20 @@ class AppSessionSnapshot {
         },
       );
     });
+  }
+
+  /// Clears public, encrypted, and keychain values through one lifecycle
+  /// primitive shared by snapshot restore and explicit storage reset.
+  static Future<void> clearPersistentStorage(StorageManager storage) async {
+    await storage.clearPublicStorage();
+    for (final key
+        in storage.getKeys().where((key) => key.startsWith('enc_')).toList()) {
+      await storage.remove(key);
+    }
+    final keychain = await storage.getAllFromKeychain();
+    for (final key in keychain.keys) {
+      await storage.removeSecurely(key);
+    }
   }
 
   /// Runs clear then rewrite, wrapping failures with a phase-named [StateError].

@@ -25,11 +25,9 @@ steps:
   - waitFor:
       id: shop_route_page
       timeoutMs: 5000
-  - waitFor:
-      id: shop_title
-      timeoutMs: 15000
   - expectVisible:
       id: shop_title
+      timeoutMs: 15000
   - expectVisible:
       id: shop_featured_button
   - tap:

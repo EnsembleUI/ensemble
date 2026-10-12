@@ -1,20 +1,28 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
+import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Audits observer snapshots in a generated test-runner report.
 ///
 /// Run with `dart run tool/audit_observer_report.dart [--format=json] [report-path]` from the
 /// ensemble_test_runner package. The path may be a report directory,
-/// `index.html`, `results.json.gz`, or an uncompressed results JSON file.
+/// `index.html`, the SQLite report database, or a legacy JSON report file.
 Future<void> main(List<String> args) async {
   if (args.contains('--help') || args.contains('-h')) {
     stdout.writeln('Usage: dart run tool/audit_observer_report.dart '
         '[--format=text|json] [--no-ocr] [report-path]');
-    stdout.writeln(
-        'Path may be a report directory, index.html, results.json.gz, or results.json.');
+    stdout.writeln('Path may be a report directory, index.html, '
+        'ensemble_test.db, or a legacy JSON report file.');
     stdout.writeln('If omitted, the tool prompts for the report path.');
     return;
   }
@@ -56,7 +64,7 @@ Future<void> main(List<String> args) async {
 
   try {
     final reportFile = _resolveReportFile(input.trim());
-    final document = _readDocument(reportFile);
+    final document = await _readDocument(reportFile);
     final audit = _ObserverReportAudit(
       reportFile,
       document,
@@ -76,7 +84,7 @@ Future<void> main(List<String> args) async {
 }
 
 String? _promptForPath() {
-  stdout.write('Report path (directory, index.html, or results.json.gz): ');
+  stdout.write('Report path (directory, index.html, or ensemble_test.db): ');
   return stdin.readLineSync();
 }
 
@@ -84,17 +92,42 @@ File _resolveReportFile(String input) {
   final path = p.normalize(p.absolute(input));
   final entity = FileSystemEntity.typeSync(path);
   if (entity == FileSystemEntityType.directory) {
-    return File(p.join(path, 'results.json.gz'));
+    return File(p.join(path, 'ensemble_test.db'));
   }
   if (p.basename(path) == 'index.html') {
-    return File(p.join(p.dirname(path), 'results.json.gz'));
+    return File(p.join(p.dirname(path), 'ensemble_test.db'));
   }
   return File(path);
 }
 
-Map<String, dynamic> _readDocument(File file) {
+Future<Map<String, dynamic>> _readDocument(File file) async {
   if (!file.existsSync()) {
     throw FileSystemException('Report data file not found', file.path);
+  }
+  if (p.extension(file.path) == '.db') {
+    sqfliteFfiInit();
+    final database = await databaseFactoryFfi.openDatabase(
+      file.path,
+      options: OpenDatabaseOptions(readOnly: true),
+    );
+    try {
+      final rows = await database.rawQuery('''
+SELECT report_data FROM test_results
+WHERE record_type = 'run'
+ORDER BY id DESC LIMIT 1
+''');
+      if (rows.isEmpty || rows.single['report_data'] == null) {
+        throw const FormatException('Database has no completed current report');
+      }
+      final compressed = rows.single['report_data'] as List<int>;
+      final decoded = jsonDecode(utf8.decode(gzip.decode(compressed)));
+      if (decoded is! Map) {
+        throw const FormatException('Database report root is not JSON object');
+      }
+      return ReportJsonOptimizer.expand(Map<String, dynamic>.from(decoded));
+    } finally {
+      await database.close();
+    }
   }
   final bytes = file.readAsBytesSync();
   final content = bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b
@@ -125,12 +158,26 @@ class _ObserverReportAudit {
   final Map<String, Set<String>> _screenNamesByScreenshot = {};
   final List<_VisualSnapshot> _visualSnapshots = [];
   final Set<String> _imagePaths = {};
+  final Map<String, Uint8List> _archiveImages = {};
+  bool _archiveLoaded = false;
+  Directory? _ocrImageDirectory;
 
   int get errors => findings.where((f) => f.severity == 'ERROR').length;
   int get warnings => findings.where((f) => f.severity == 'WARN').length;
   int get reviews => findings.where((f) => f.severity == 'REVIEW').length;
 
   Future<void> run() async {
+    try {
+      await _runAudit();
+    } finally {
+      final ocrImageDirectory = _ocrImageDirectory;
+      if (ocrImageDirectory != null && ocrImageDirectory.existsSync()) {
+        await ocrImageDirectory.delete(recursive: true);
+      }
+    }
+  }
+
+  Future<void> _runAudit() async {
     final testList = document['tests'];
     if (testList is! List) {
       _add('ERROR', 'Report has no tests list.');
@@ -570,22 +617,91 @@ class _ObserverReportAudit {
     }
     final reportDir = p.dirname(reportFile.path);
     final resolved = p.normalize(p.join(reportDir, href));
-    if (!File(resolved).existsSync()) {
+    Uint8List? bytes;
+    String? imagePath;
+    final imageFile = File(resolved);
+    if (imageFile.existsSync()) {
+      bytes = imageFile.readAsBytesSync();
+      imagePath = resolved;
+    } else {
+      bytes = _readArchivedScreenshot(href);
+      if (bytes != null && enableOcr) {
+        imagePath = _materializeForOcr(href, bytes);
+      }
+    }
+    if (bytes == null) {
       _add('WARN', '$where: screenshot file is missing (${p.basename(href)}).');
       return null;
     }
     try {
-      final decoded = img.decodeImage(File(resolved).readAsBytesSync());
+      final decoded = img.decodeImage(bytes);
       if (decoded == null) {
         _add('WARN', '$where: screenshot image could not be decoded.');
         return null;
       }
-      _imagePaths.add(resolved);
-      return _ScreenshotInfo(resolved, decoded.width, decoded.height);
+      if (imagePath != null) _imagePaths.add(imagePath);
+      return _ScreenshotInfo(imagePath ?? href, decoded.width, decoded.height);
     } on Object {
       _add('WARN', '$where: screenshot image could not be decoded.');
       return null;
     }
+  }
+
+  Uint8List? _readArchivedScreenshot(String href) {
+    final fragmentIndex = href.indexOf('#');
+    final archiveReference = fragmentIndex < 0
+        ? 'screenshots.zip'
+        : href.substring(0, fragmentIndex);
+    final archivePath = p.posix.normalize(
+      archiveReference.replaceAll('\\', '/'),
+    );
+    final entryPath = p.posix.normalize(
+      (fragmentIndex < 0 ? href : href.substring(fragmentIndex + 1))
+          .replaceAll('\\', '/'),
+    );
+    if (p.posix.isAbsolute(archivePath) ||
+        archivePath == '..' ||
+        archivePath.startsWith('../') ||
+        p.posix.basename(archivePath) != 'screenshots.zip' ||
+        p.posix.isAbsolute(entryPath) ||
+        entryPath == '..' ||
+        entryPath.startsWith('../')) {
+      return null;
+    }
+    if (!_archiveLoaded) {
+      _archiveLoaded = true;
+      final archiveFile = File(
+        p.join(p.dirname(reportFile.path), 'screenshots.zip'),
+      );
+      if (archiveFile.existsSync()) {
+        try {
+          final archive =
+              ZipDecoder().decodeBytes(archiveFile.readAsBytesSync());
+          for (final entry in archive.files) {
+            if (entry.isFile) {
+              final contents = entry.readBytes();
+              if (contents != null) {
+                _archiveImages[p.posix.normalize(entry.name)] = contents;
+              }
+            }
+          }
+        } on Object {
+          _add('WARN', 'Screenshot archive could not be read.');
+        }
+      }
+    }
+    return _archiveImages[entryPath];
+  }
+
+  String _materializeForOcr(String href, Uint8List bytes) {
+    final directory = _ocrImageDirectory ??=
+        Directory.systemTemp.createTempSync('observer-audit-');
+    final relativePath = p.posix.normalize(href.replaceAll('\\', '/'));
+    final destination = File(p.join(directory.path, relativePath));
+    if (destination.existsSync()) return destination.path;
+    destination.parent.createSync(recursive: true);
+    destination.writeAsBytesSync(bytes, flush: true);
+    return destination.path;
   }
 
   Future<void> _auditScreenshotText() async {
