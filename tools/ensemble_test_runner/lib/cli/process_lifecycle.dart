@@ -88,7 +88,7 @@ Future<ManagedProcessExit> waitForManagedProcess(
           () => resolveDescendants(rootPid),
         ).then<List<int>>(
           (descendants) => descendants,
-          onError: (Object _, StackTrace __) => const [],
+          onError: (Object _, StackTrace __) => const <int>[],
         );
         return await resolution.timeout(
           budget,

@@ -35,7 +35,6 @@ import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
 import 'package:ensemble_test_runner/discovery/test_suite_source.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/console_test_case.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
