@@ -309,38 +309,14 @@ class TestStepExecutor {
           (isSimpleId || input.arguments['timeoutMs'] is int);
       Finder? resolvedFinder;
       if (canWaitForLocator && isSimpleId) {
-        final timeout = Duration(
-          milliseconds: input.arguments['timeoutMs'] as int? ??
-              config.defaultWaitTimeout.inMilliseconds,
+        // Simple IDs use the same bounded actionability wait as legacy taps.
+        // Resolving them as an already-interactive Finder here can fail while
+        // a mounted control is still covered by a loading layer or transition.
+        await tapForOperation(
+          locator.id!,
+          timeoutMs: input.arguments['timeoutMs'] as int?,
+          onBeforeTap: boundary,
         );
-        bool targetExists() => assertions
-            .finderForId(locator.id!, skipOffstage: false)
-            .evaluate()
-            .isNotEmpty;
-
-        // A locator can match an Element before it is actionable (for example
-        // during a route transition). Existence is the wait condition; the
-        // normal tap path then waits for hit testing and handles visibility.
-        if (!targetExists()) {
-          try {
-            await _runtime.waitForCondition(
-              condition: targetExists,
-              timeout: timeout,
-            );
-          } on FlutterError catch (timeoutError) {
-            if (!timeoutError.toString().contains('timed out')) rethrow;
-            throw _tapTargetNotFound(input, target, timeout);
-          }
-        }
-
-        // Resolve mounted IDs through the shared interaction rules. Allow
-        // offscreen targets so tapFinder can scroll them into view, while
-        // disabled and offstage targets stay excluded.
-        final finder = finderForOperationInput(
-          input,
-          allowOffscreen: true,
-        );
-        await tapFinderForOperation(finder, onBeforeTap: boundary);
         return;
       } else if (canWaitForLocator) {
         final timeout = Duration(

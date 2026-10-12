@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/actions/scrollable_waiter.dart';
 import 'package:ensemble_test_runner/actions/test_step_runtime.dart';
 import 'package:ensemble_test_runner/actions/select_index_options.dart';
 import 'package:ensemble_test_runner/session/operation_target.dart';
+import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -421,9 +422,11 @@ class TestStepWidgetActions {
               '${assertions.widgetIdFailureHint(id)}',
             );
           }
-          throw EnsembleTestFailure(
-            'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
-            '${assertions.widgetIdFailureHint(id)}',
+          throw TestExecutionError(
+            code: TestExecutionErrorCode.elementNotFound,
+            message: 'Timed out after ${effectiveTimeout}ms waiting for id '
+                '"$id". ${assertions.widgetIdFailureHint(id)}',
+            details: {'id': id},
           );
         }
         throw EnsembleTestFailure(
@@ -442,7 +445,7 @@ class TestStepWidgetActions {
         await runtime.pump(label: 'tap.beforeTap');
       }
       tappableFinder = _hitTestableFinderForTap(
-        _interactiveFinder(assertions.finderForId(id, skipOffstage: false)),
+        assertions.finderForId(id, skipOffstage: false),
         id,
       );
       await onBeforeTap?.call();
@@ -457,11 +460,11 @@ class TestStepWidgetActions {
     final baseFinder = assertions.finderForId(id, skipOffstage: false);
     if (baseFinder.evaluate().isEmpty) return null;
 
-    final finder = _interactiveFinder(baseFinder);
-    final count = finder.evaluate().length;
+    final interactiveFinder = _interactiveFinder(baseFinder);
+    final count = interactiveFinder.evaluate().length;
     if (count == 0) return null;
     if (count > 1) {
-      final hitTestable = finder.hitTestable();
+      final hitTestable = interactiveFinder.hitTestable();
       final hitTestableCount = hitTestable.evaluate().length;
       if (hitTestableCount > 1) {
         throw EnsembleTestFailure(
@@ -472,7 +475,7 @@ class TestStepWidgetActions {
       return hitTestableCount == 1 ? hitTestable : null;
     }
 
-    final hitTestable = finder.hitTestable();
+    final hitTestable = interactiveFinder.hitTestable();
     return hitTestable.evaluate().length == 1 ? hitTestable : null;
   }
 
@@ -598,14 +601,18 @@ class TestStepWidgetActions {
     if (value == null || value.isEmpty) {
       throw EnsembleTestFailure('select requires "value"');
     }
-    await tap(
-      id,
-      timeoutMs: timeoutMs,
-      onBeforeTap: () async {
-        if (step != null) await _emitEvidenceBoundary(step);
-        await onBeforeSelection?.call();
-      },
-    );
+    try {
+      await tap(
+        id,
+        timeoutMs: timeoutMs,
+        onBeforeTap: () async {
+          if (step != null) await _emitEvidenceBoundary(step);
+          await onBeforeSelection?.call();
+        },
+      );
+    } on TestExecutionError catch (error) {
+      throw EnsembleTestFailure(error.message);
+    }
     final option = find.text(value);
     if (option.evaluate().isEmpty) {
       throw EnsembleTestFailure('select could not find option "$value"');

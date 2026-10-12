@@ -1796,6 +1796,37 @@ void main() {
     expect(tapped, isTrue);
   });
 
+  testWidgets('structured tap waits until an ID target becomes hit-testable',
+      (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: _DelayedTappableButton(onTap: () => tapped = true),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'delayed_structured_tap',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    await executor.execute(const TestStep(
+      type: 'tap',
+      args: {'id': 'delayed_button', 'timeoutMs': 1000},
+    ));
+
+    expect(tapped, isTrue);
+  });
+
   testWidgets('tap resolves a rendered target before polling a new frame',
       (tester) async {
     var tapped = false;

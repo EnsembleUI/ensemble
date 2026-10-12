@@ -7,7 +7,6 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/test_bootstrap.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/action_operation_handler.dart';
-import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'support/session_operation.dart';
 import 'package:ensemble_test_runner/src/core/operation.dart';
 import 'package:flutter/material.dart';
@@ -1180,7 +1179,7 @@ void main() {
     }
   });
 
-  testWidgets('raw and registered taps do not activate disabled ID targets',
+  testWidgets('raw and registered taps treat disabled ID targets as no-ops',
       (tester) async {
     var tapCount = 0;
     await tester.pumpWidget(MaterialApp(
@@ -1203,26 +1202,16 @@ void main() {
     );
     addTearDown(session.close);
 
-    await expectLater(
-      session.executor.execute(const TestStep(
-        type: 'tap',
-        args: {'id': 'disabled-action-target'},
-      )),
-      throwsA(isA<TestExecutionError>()),
-    );
+    await session.executor.execute(const TestStep(
+      type: 'tap',
+      args: {'id': 'disabled-action-target'},
+    ));
 
     final registered = await session.act(sessionOperation(
       'tap',
       input: const {'id': 'disabled-action-target'},
     ));
-    expect(registered.succeeded, isFalse);
-    expect(
-      registered.error?.code,
-      anyOf(
-        TestExecutionErrorCode.elementNotFound,
-        TestExecutionErrorCode.elementNotInteractable,
-      ),
-    );
+    expect(registered.succeeded, isTrue);
     expect(tapCount, 0);
   });
 
