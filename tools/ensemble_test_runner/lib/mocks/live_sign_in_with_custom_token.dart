@@ -1,3 +1,7 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';

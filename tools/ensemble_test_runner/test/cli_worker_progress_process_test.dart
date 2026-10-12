@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:ensemble_test_runner/cli/cli_worker_progress_output.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/dart_process.dart';
+
 void main() {
   test('CLI progress process prints outcomes but retains running events',
       () async {
@@ -19,14 +21,9 @@ void main() {
         }),
       ].join('\n'));
 
-    final result = await Process.run(
-      'dart',
-      [
-        'run',
-        'test/support/cli_worker_progress_process.dart',
-        progressFile.path
-      ],
-      workingDirectory: Directory.current.path,
+    final result = await runDartScript(
+      'test/support/cli_worker_progress_process.dart',
+      arguments: [progressFile.path],
     );
 
     expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');

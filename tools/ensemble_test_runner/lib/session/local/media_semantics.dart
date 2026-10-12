@@ -1,3 +1,7 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:flutter/widgets.dart';

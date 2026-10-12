@@ -1,19 +1,16 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/dart_process.dart';
 
 void main() {
   test('CLI help exits before inspecting the app or starting workers',
       () async {
-    final result = await Process.run(
-      'dart',
-      const [
-        'run',
-        'bin/ensemble_test.dart',
+    final result = await runDartScript(
+      'bin/ensemble_test.dart',
+      arguments: const [
         '--app-dir=/path/that/does/not/exist',
         '--help',
       ],
-      workingDirectory: Directory.current.path,
     );
 
     expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
@@ -22,10 +19,8 @@ void main() {
   });
 
   test('compiled worker plan batch runs in a plain Dart process', () async {
-    final result = await Process.run(
-      'dart',
-      const ['run', 'test/support/cli_plan_batch_plain_dart.dart'],
-      workingDirectory: Directory.current.path,
+    final result = await runDartScript(
+      'test/support/cli_plan_batch_plain_dart.dart',
     );
 
     expect(
@@ -39,18 +34,14 @@ void main() {
 
   test('CLI plan handoff imports and validates without Flutter symbols',
       () async {
-    final packageRoot = Directory.current.path;
-    final result = await Process.run(
-      'dart',
-      const [
-        'run',
-        'bin/ensemble_test.dart',
+    final result = await runDartScript(
+      'bin/ensemble_test.dart',
+      arguments: const [
         '--app-dir=example_host',
         '--tests-dir=tests',
         '--test-entry=test/application_tests.dart',
         '--validate-only',
       ],
-      workingDirectory: packageRoot,
     );
 
     expect(

@@ -1,3 +1,7 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 /// Shared environment and reporting boundary for test entry points.
 ///
 /// Keeping dart-define decoding and machine report emission here ensures the
