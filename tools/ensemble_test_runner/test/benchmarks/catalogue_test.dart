@@ -31,6 +31,14 @@ void main() {
       reason:
           'Each control-flow invocation closes its runtime session; setup runs once per sample.',
     );
+    for (final id in ['screenshot.capture.400', 'screenshot.capture.1200']) {
+      expect(
+        cases.singleWhere((c) => c.id == id).batchable,
+        isFalse,
+        reason:
+            'Raster captures use one operation per sample; repeated surface fixture resets can stall the worker.',
+      );
+    }
     expect(capabilityCases.keys.toSet(), coveredCapabilities);
     checkCatalogue(cases);
     final integration = buildCases(

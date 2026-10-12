@@ -841,6 +841,12 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       await f.tester.binding.setSurfaceSize(null);
     },
         quick: size == 400,
+        // A capture is already a relatively expensive raster operation. The
+        // duration-floor batching loop repeatedly rebuilds the widget fixture
+        // and changes the test surface; on CI that can stall the worker before
+        // it reaches the 200 ms measurement floor. Keep one capture per sample
+        // and use the normal sample count for statistical coverage.
+        batchable: false,
         dimensions: {'width': size, 'height': size},
         verify: (r) => require((r as List).first == size && r.last == size,
             'Wrong capture size: $r')));
