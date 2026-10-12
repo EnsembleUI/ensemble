@@ -306,9 +306,12 @@ class TestStepExecutor {
           target.occurrence == null &&
           !_locatorHasOccurrence(locator) &&
           locator != null &&
-          (isSimpleId || input.arguments['timeoutMs'] is int);
+          ((isSimpleId && input.arguments['target'] == null) ||
+              input.arguments['timeoutMs'] is int);
       Finder? resolvedFinder;
-      if (canWaitForLocator && isSimpleId) {
+      if (canWaitForLocator &&
+          isSimpleId &&
+          input.arguments['target'] == null) {
         // Simple IDs use the same bounded actionability wait as legacy taps.
         // Resolving them as an already-interactive Finder here can fail while
         // a mounted control is still covered by a loading layer or transition.
