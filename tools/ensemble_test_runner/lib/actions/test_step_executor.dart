@@ -333,11 +333,9 @@ class TestStepExecutor {
           }
         }
 
-        // Resolve the mounted target through the shared locator rules before
-        // tapping. The legacy id-only tap helper considers a disabled button
-        // hit-testable and would report success after delivering a no-op tap.
-        // Allow offscreen matches here so tapFinder can still scroll them into
-        // view; disabled and offstage matches remain excluded.
+        // Resolve mounted IDs through the shared interaction rules. Allow
+        // offscreen targets so tapFinder can scroll them into view, while
+        // disabled and offstage targets stay excluded.
         final finder = finderForOperationInput(
           input,
           allowOffscreen: true,
