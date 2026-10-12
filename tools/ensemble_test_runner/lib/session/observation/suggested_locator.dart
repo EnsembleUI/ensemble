@@ -1,8 +1,8 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
-import 'package:ensemble_test_runner/session/local/local_action_executor.dart';
+import 'package:ensemble_test_runner/session/local/flutter_target_resolver.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
@@ -219,7 +219,7 @@ List<UiElement> mapObservationLocatorTree({
   });
 }
 
-/// Agent / report locator candidates in preference order.
+/// Report locator candidates in preference order.
 ///
 /// Ranking: `id` → caption+role by type → `within` parent + local text/role.
 /// Cheap/report paths take the first entry; live enrich verifies uniqueness.

@@ -1,9 +1,18 @@
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/session/session.dart';
+import 'support/session_operation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('empty operation target reuses the canonical empty value', () {
+    final first = ElementTarget.fromOperationArgs(const {});
+    final second = ElementTarget.fromOperationArgs(const {});
+
+    expect(identical(first, second), isTrue);
+    expect(first.usesStructuredTarget, isFalse);
+  });
+
   group('session contract JSON round-trips', () {
     test('SessionCapabilities', () {
       const original = SessionCapabilities(
@@ -25,7 +34,7 @@ void main() {
     });
 
     test('SessionPermissions', () {
-      final original = SessionPermissions.yamlController;
+      final original = SessionPermissions.testController;
       final roundTrip = SessionPermissions.fromJson(
         jsonDecode(jsonEncode(original.toJson())) as Map<String, dynamic>,
       );
@@ -95,41 +104,14 @@ void main() {
       expect(roundTrip.toJson(), original.toJson());
     });
 
-    test('TestAction variants', () {
-      final actions = <TestAction>[
-        const TapAction(ElementTarget(testId: 'login_button')),
-        const EnterTextAction(
-          target: ElementTarget(
-            elementId: 'el_1',
-            observationId: 'obs_1',
-          ),
-          value: 'user@test.com',
-        ),
-        const ScrollUntilVisibleAction(
-          target: ElementTarget(testId: 'footer'),
-          scrollableId: 'list',
-        ),
-        const SwipeAction(direction: SwipeDirection.left),
-        const DragAction(
-          target: ElementTarget(testId: 'knob'),
-          dx: 10,
-          dy: -5,
-        ),
-        const SelectIndexAction(
-          target: ElementTarget(testId: 'picker'),
-          index: 2,
-        ),
-        const SetSliderAction(
-          target: ElementTarget(testId: 'volume'),
-          value: 0.5,
-        ),
-      ];
-      for (final action in actions) {
-        final roundTrip = TestAction.fromJson(
-          jsonDecode(jsonEncode(action.toJson())) as Map<String, dynamic>,
-        );
-        expect(roundTrip.toJson(), action.toJson(), reason: action.type);
-      }
+    test('core operation request carries the registered route and input', () {
+      final operation = sessionOperation('tap', input: const {
+        'target': {'id': 'login_button'},
+      });
+      expect(operation.name, 'tap');
+      expect(operation.kind, OperationKind.interaction);
+      expect(operation.handlerKey, 'interaction.tap');
+      expect(operation.input['target'], {'id': 'login_button'});
     });
 
     test('ActionResult with error', () {
@@ -151,40 +133,17 @@ void main() {
       expect(roundTrip.toJson(), original.toJson());
     });
 
-    test('TestAssertion and WaitCondition variants', () {
-      final assertions = <TestAssertion>[
-        const ElementVisibleAssertion(testId: 'title'),
-        const ElementTextAssertion(
-            testId: 'title', text: 'Hello', contains: true),
-        const ScreenAssertion(screen: 'Home'),
-        const ElementEnabledAssertion(testId: 'submit', enabled: false),
-        const GenericAssertion(
-          domain: 'api',
-          name: 'expectApiCalled',
-          args: {'name': 'login'},
-        ),
-      ];
-      for (final a in assertions) {
-        final roundTrip = TestAssertion.fromJson(
-          jsonDecode(jsonEncode(a.toJson())) as Map<String, dynamic>,
-        );
-        expect(roundTrip.toJson(), a.toJson(), reason: a.type);
-      }
-
-      final waits = <WaitCondition>[
-        const PumpWait(duration: Duration(milliseconds: 100)),
-        const SettleWait(timeout: Duration(seconds: 1)),
-        const ElementWait(testId: 'spinner', gone: true),
-        const TextWait(anyOf: ['Done', 'Complete']),
-        const ScreenWait(screen: 'Home'),
-        const ApiWait(name: 'getProfile', args: {'timeoutMs': 5000}),
-      ];
-      for (final w in waits) {
-        final roundTrip = WaitCondition.fromJson(
-          jsonDecode(jsonEncode(w.toJson())) as Map<String, dynamic>,
-        );
-        expect(roundTrip.toJson(), w.toJson(), reason: w.type);
-      }
+    test('wait and assertion requests use registered operation metadata', () {
+      final assertion = sessionOperation('expectVisible', input: const {
+        'id': 'title',
+      });
+      final wait = sessionOperation('waitForNavigation', input: const {
+        'screen': 'Home',
+      });
+      expect(assertion.kind, OperationKind.assertion);
+      expect(assertion.handlerKey, 'expectVisible');
+      expect(wait.kind, OperationKind.wait);
+      expect(wait.handlerKey, 'waitForNavigation');
     });
 
     test('AssertionResult WaitResult ArtifactRequest TestArtifact', () {

@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
+import 'package:ensemble_test_runner/cli/process_lifecycle.dart';
 import 'package:http/http.dart' as http;
 
 class TestServiceManager {
@@ -13,8 +15,20 @@ class TestServiceManager {
   final String? artifactRoot;
   final List<_RunningTestService> _running = [];
 
+  /// Whether this suite owns any external services.
+  ///
+  /// Application and device-hosted suites commonly have no service process to
+  /// start. Exposing this small fact lets the lifecycle boundary avoid
+  /// entering Flutter's asynchronous test zone for a no-op startup.
+  bool get hasConfiguredServices => configs.isNotEmpty;
+  // A stop can overlap startup when a suite is interrupted.  Keep a small
+  // generation flag so a service created after stopAll began is never left
+  // unmanaged.
+  bool _stopRequested = false;
+
   Future<void> startAll() async {
     return await RunnerBenchmark.async('support_service', 'startAll', () async {
+      _stopRequested = false;
       try {
         for (final config in configs) {
           if (await _isReady(config.resolvedReadyUrl)) continue;
@@ -22,8 +36,14 @@ class TestServiceManager {
             config,
             artifactRoot: artifactRoot,
           );
+          if (_stopRequested) {
+            await service.stop();
+            return;
+          }
           _running.add(service);
-          await service.waitUntilReady();
+          await service.waitUntilReady(
+            isCancelled: () => _stopRequested,
+          );
         }
       } catch (_) {
         await stopAll();
@@ -34,10 +54,24 @@ class TestServiceManager {
 
   Future<void> stopAll() async {
     return await RunnerBenchmark.async('support_service', 'stopAll', () async {
-      for (final service in _running.reversed) {
-        await service.stop();
+      _stopRequested = true;
+      Object? firstError;
+      StackTrace? firstStackTrace;
+      // Continue through every child when one process refuses cleanup. This
+      // matters during suite timeout/interruption, where orphaned services can
+      // affect the next run even though the first cleanup failure is reported.
+      for (final service in _running.reversed.toList()) {
+        try {
+          await service.stop();
+        } catch (error, stackTrace) {
+          firstError ??= error;
+          firstStackTrace ??= stackTrace;
+        }
       }
       _running.clear();
+      if (firstError != null) {
+        Error.throwWithStackTrace(firstError, firstStackTrace!);
+      }
     });
   }
 
@@ -58,9 +92,8 @@ class TestServiceManager {
 }
 
 class _RunningTestService {
-  static const _artifactSuffix = String.fromEnvironment(
-    'ensembleTestWorkerSuffix',
-  );
+  static final _artifactSuffix =
+      RunnerRuntimeConfiguration.current.string('ensembleTestWorkerSuffix');
 
   _RunningTestService({
     required this.config,
@@ -80,6 +113,7 @@ class _RunningTestService {
   final StreamSubscription<List<int>> stdoutSubscription;
   final StreamSubscription<List<int>> stderrSubscription;
   int? exitCode;
+  Future<void>? _stopFuture;
 
   static Future<_RunningTestService> start(
     TestServiceConfig config, {
@@ -129,7 +163,7 @@ class _RunningTestService {
     });
   }
 
-  Future<void> waitUntilReady() async {
+  Future<void> waitUntilReady({bool Function()? isCancelled}) async {
     return await RunnerBenchmark.async('support_service', 'waitUntilReady',
         () async {
       final readyUrl = config.resolvedReadyUrl;
@@ -140,6 +174,11 @@ class _RunningTestService {
       );
       Object? lastError;
       while (DateTime.now().isBefore(deadline)) {
+        if (isCancelled?.call() ?? false) {
+          throw StateError(
+            'Test service "${config.name}" startup was cancelled.',
+          );
+        }
         if (exitCode != null) {
           await logSink.flush();
           throw StateError(
@@ -168,20 +207,26 @@ class _RunningTestService {
   }
 
   Future<void> stop() async {
-    return await RunnerBenchmark.async('support_service', 'stop', () async {
+    final existing = _stopFuture;
+    if (existing != null) return existing;
+    final stopFuture =
+        RunnerBenchmark.async('support_service', 'stop', () async {
       if (exitCode == null) {
-        process.kill(ProcessSignal.sigterm);
-        try {
-          await process.exitCode.timeout(const Duration(seconds: 3));
-        } on TimeoutException {
-          process.kill(ProcessSignal.sigkill);
-          await process.exitCode;
-        }
+        // Services can launch helper processes. Reuse the worker lifecycle
+        // path so timeout cleanup also reaps descendants before suite teardown
+        // returns, while retaining the same bounded graceful/forced shutdown.
+        await waitForManagedProcess(
+          process,
+          terminateOnStart: ProcessSignal.sigterm,
+          terminationGracePeriod: const Duration(seconds: 3),
+        );
       }
       await stdoutSubscription.cancel();
       await stderrSubscription.cancel();
       await logSink.flush();
       await logSink.close();
     });
+    _stopFuture = stopFuture;
+    return stopFuture;
   }
 }

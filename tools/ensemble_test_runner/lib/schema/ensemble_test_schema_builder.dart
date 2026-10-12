@@ -209,6 +209,9 @@ class EnsembleTestSchemaBuilder {
             {
               'required': ['bounds']
             },
+            {
+              'required': ['within']
+            },
           ],
         },
         'initialState': _initialStateDef(),
@@ -329,21 +332,21 @@ class EnsembleTestSchemaBuilder {
       final mocksSchema = Map<String, dynamic>.from(
           (defs['testCase'] as Map)['properties']['mocks']);
 
-      for (final yamlKey in TestStepVocabulary.yamlStepKeys) {
-        final entry = TestStepRegistry.entries[yamlKey]!;
+      for (final stepKey in TestStepVocabulary.stepKeys) {
+        final entry = TestStepRegistry.entries[stepKey]!;
         final description = entry.description;
-        final argsSchema = yamlKey == 'mocks'
+        final argsSchema = stepKey == 'mocks'
             ? mocksSchema
-            : TestStepVocabulary.argJsonSchemaForYamlKey(yamlKey);
-        final argsDefName = 'args_$yamlKey';
+            : TestStepVocabulary.argJsonSchemaForKey(stepKey);
+        final argsDefName = 'args_$stepKey';
 
         final exampleArgs = Map<String, dynamic>.from(entry.example);
-        final exampleStep = {yamlKey: exampleArgs};
+        final exampleStep = {stepKey: exampleArgs};
 
         if (registeredArgDefs.add(argsDefName)) {
           defs[argsDefName] = {
             ...argsSchema,
-            'title': yamlKey,
+            'title': stepKey,
             'description': description,
             'examples': [exampleArgs],
           };
@@ -351,20 +354,20 @@ class EnsembleTestSchemaBuilder {
 
         stepOneOf.add({
           'type': 'object',
-          'title': yamlKey,
+          'title': stepKey,
           'description': description,
           'examples': [exampleStep],
           'additionalProperties': false,
           'minProperties': 1,
           'maxProperties': 1,
           'properties': {
-            yamlKey: {
+            stepKey: {
               '\$ref': '#/\$defs/$argsDefName',
               'description': description,
               'examples': [exampleArgs],
             },
           },
-          'required': [yamlKey],
+          'required': [stepKey],
         });
       }
 
@@ -496,11 +499,6 @@ class EnsembleTestSchemaBuilder {
               'excludeSteps': {
                 'type': 'array',
                 'items': {'type': 'string'},
-              },
-              'secureContent': {
-                'type': 'string',
-                'enum': ['mask', 'skip', 'allow'],
-                'default': 'mask',
               },
             },
           },

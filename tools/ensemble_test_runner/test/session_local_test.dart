@@ -1,4 +1,8 @@
+import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/leaf_command_queue.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
@@ -6,75 +10,32 @@ import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
-import 'package:ensemble_test_runner/session/session_capabilities.dart';
-import 'package:ensemble_test_runner/session/yaml/session_step_routing.dart';
-import 'package:ensemble_test_runner/session/yaml/yaml_step_migration_matrix.dart';
-import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('YamlStepMigrationMatrix', () {
-    test('covers every registry entry and alias canonical', () {
-      final missing = <String>[];
-      for (final key in TestStepRegistry.entries.keys) {
-        if (YamlStepMigrationMatrix.pathFor(key) == null) {
-          missing.add(key);
-        }
-      }
-      expect(missing, isEmpty, reason: 'Missing matrix paths: $missing');
+  testWidgets('attached session builds one executor with supplied config',
+      (tester) async {
+    const testCase = EnsembleTestCase(id: 'attached-session', steps: []);
+    final context = EnsembleTestContext.fromTestCase(testCase);
+    final config =
+        EnsembleConfig(definitionProvider: _UnusedDefinitionProvider());
+    final harness = _ConfigForwardingHarness(config);
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      context: context,
+      harness: harness,
+      config: config,
+      sessionId: testCase.id,
+    );
 
-      for (final key in TestStepRegistry.entries.keys) {
-        final canonical = TestStepVocabulary.resolveStepType(key);
-        expect(
-          YamlStepMigrationMatrix.pathFor(canonical),
-          isNotNull,
-          reason: 'canonical $canonical for $key missing',
-        );
-      }
-    });
-
-    test('control-flow steps are classified as control', () {
-      for (final step in ['group', 'repeat', 'optional', 'ifVisible']) {
-        expect(YamlStepMigrationMatrix.isControlFlow(step), isTrue);
-      }
-    });
-
-    test('session routing matches category-derived paths for all registry keys',
-        () {
-      for (final e in TestStepRegistry.entries.entries) {
-        final path = SessionStepRouting.pathFor(e.key);
-        expect(path, isNotNull, reason: e.key);
-        expect(
-          path,
-          YamlStepMigrationMatrix.pathFor(e.key),
-          reason: e.key,
-        );
-      }
-    });
-
-    test('ui action capabilities match registry-derived act paths', () {
-      final derived = SessionStepRouting.uiActionNames();
-      expect(derived, isNotEmpty);
-      expect(SessionCapabilities.local.actions, derived);
-      expect(SessionPermissions.yamlController.actions, derived);
-      expect(
-        SessionPermissions.restrictedUi.actions,
-        derived.difference(SessionStepRouting.restrictedUiExclusions),
-      );
-      for (final name in derived) {
-        expect(
-          SessionStepRouting.pathFor(name),
-          YamlStepPath.act,
-          reason: name,
-        );
-      }
-    });
-
-    test('unknown operations have no routing', () {
-      expect(YamlStepMigrationMatrix.pathFor('pinchZoom'), isNull);
-      expect(SessionStepRouting.pathFor('notARealStep'), isNull);
-    });
+    expect(session.executor.context, same(context));
+    expect(session.executor.harness, same(harness));
+    expect(session.executor.services, same(session.services));
+    expect(session.executor.assertions, same(session.assertions));
+    await session.executor.openScreenByName('Next');
+    expect(harness.existingConfig, same(config));
+    await session.close();
   });
 
   group('LeafCommandQueue', () {
@@ -160,6 +121,34 @@ void main() {
   });
 
   group('ObservationRegistry', () {
+    test('classifies a missing handle in a retained observation as stale', () {
+      final registry = ObservationRegistry();
+      registry.registerObservation(
+        observationId: 'obs_1',
+        handles: const {},
+      );
+
+      expect(
+        () => registry.resolve(
+          observationId: 'obs_1',
+          elementId: 'el_missing',
+        ),
+        throwsA(
+          isA<TestExecutionError>()
+              .having(
+                (error) => error.code,
+                'code',
+                TestExecutionErrorCode.staleObservation,
+              )
+              .having(
+                (error) => error.details['reason'],
+                'reason',
+                'elementNotRetained',
+              ),
+        ),
+      );
+    });
+
     testWidgets('rejects detached and expired observations', (tester) async {
       await tester.pumpWidget(
         const Directionality(
@@ -277,3 +266,30 @@ void main() {
     });
   });
 }
+
+final class _ConfigForwardingHarness extends EnsembleTestHarness {
+  _ConfigForwardingHarness(this.config) : super(appPath: '', appHome: '');
+
+  final EnsembleConfig config;
+  EnsembleConfig? existingConfig;
+
+  @override
+  Future<EnsembleConfig> loadScreen({
+    required WidgetTester tester,
+    required EnsembleTestCase testCase,
+    EnsembleConfig? existingConfig,
+    EnsembleTestContext? context,
+    EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
+    Future<void> Function()? beforeBootstrap,
+    Locale? forcedLocale,
+  }) async {
+    this.existingConfig = existingConfig;
+    return config;
+  }
+}
+
+final class _UnusedDefinitionProvider implements DefinitionProvider {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+// ignore_for_file: deprecated_member_use_from_same_package

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'cases.dart';
@@ -14,15 +15,21 @@ import 'operation_cases.dart';
 const workerPrefix = 'ENSEMBLE_BENCHMARK_V1:';
 
 void benchmarkWorkerMain() {
-  final options = jsonDecode(const String.fromEnvironment(
-      'ensembleBenchmarkOptions',
-      defaultValue: '{}')) as Map<String, dynamic>;
+  final options = jsonDecode(RunnerRuntimeConfiguration.current.string(
+    'ensembleBenchmarkOptions',
+    defaultValue: '{}',
+  )) as Map<String, dynamic>;
   testWidgets('standalone runner benchmark', (tester) async {
     final mode = options['mode'] as String? ?? 'widget';
     final root = mode == 'integration'
         ? Directory.systemTemp.createTempSync('ensemble_bench_fixture_')
         : Directory(options['fixtureRoot'] as String)
       ..createSync(recursive: true);
+    if (mode == 'integration') {
+      addTearDown(() async {
+        if (root.existsSync()) await root.delete(recursive: true);
+      });
+    }
     EnsembleTestHarness.ensureTestPlugins();
     await tester.runAsync(StorageManager().init);
     final fixtures = BenchmarkFixtures(tester, root);
@@ -55,6 +62,11 @@ void benchmarkWorkerMain() {
           'physicalHeight': tester.view.physicalSize.height
         }
       }, options, mode);
+      // The benchmark worker is a dedicated subprocess. Flutter's live test
+      // binding can retain framework-owned handles after the test body has
+      // completed, so let the parent runner observe a terminal process once
+      // the catalogue has been written.
+      _exitAfterTestFinalizes();
       return;
     }
     print('${workerPrefix}ready');
@@ -118,6 +130,11 @@ void benchmarkWorkerMain() {
             });
         var elapsed = 0, iterations = 0;
         var preparationUs = 0, cleanupUs = 0, verificationUs = 0;
+        // maxRss is a process high-water mark. Capturing it at both sample
+        // boundaries gives shared workers a bounded per-sample growth signal
+        // without polling or adding work inside the measured body.
+        final samplePeakRssBeforeBytes = ProcessInfo.maxRss;
+        final sampleRssBeforeBytes = ProcessInfo.currentRss;
         Object? observation;
         final external = <Map<String, dynamic>>[];
         Object? error;
@@ -180,6 +197,12 @@ void benchmarkWorkerMain() {
         if (iterations == 500000 && elapsed < minimum)
           error = StateError(
               'Batch limit reached before minimum measurement duration');
+        final sampleRssAfterBytes = ProcessInfo.currentRss;
+        final samplePeakRssAfterBytes = ProcessInfo.maxRss;
+        final samplePeakRssDeltaBytes =
+            samplePeakRssAfterBytes >= samplePeakRssBeforeBytes
+                ? samplePeakRssAfterBytes - samplePeakRssBeforeBytes
+                : null;
         samples.add({
           'caseId': c.id,
           'index': index + (options['sampleOffset'] as int? ?? 0),
@@ -192,6 +215,19 @@ void benchmarkWorkerMain() {
           'verificationUs': verificationUs,
           if (observation != null) 'resourceObservations': observation,
           'batchCapped': iterations == 500000 && elapsed < minimum,
+          'batchingEnabled': c.batchable && !c.cold,
+          'minimumSampleUs': minimum,
+          'minimumDurationSatisfied':
+              !(c.batchable && !c.cold) || elapsed >= minimum,
+          'memoryResources': {
+            'rssBeforeBytes': sampleRssBeforeBytes,
+            'rssAfterBytes': sampleRssAfterBytes,
+            'peakRssBeforeBytes': samplePeakRssBeforeBytes,
+            'peakRssAfterBytes': samplePeakRssAfterBytes,
+            'peakRssDeltaBytes': samplePeakRssDeltaBytes,
+            'measurement': 'process-high-water-mark-delta',
+            'scope': 'sample-boundary',
+          },
           'externalProcessResources': [
             for (final e in external) e['resources']
           ],
@@ -251,7 +287,18 @@ void benchmarkWorkerMain() {
       'worker': options['worker'] ?? 0
     }, options, mode);
     if (mode == 'integration') root.deleteSync(recursive: true);
+    // Result files and device chunks are emitted synchronously above. The
+    // worker has no useful work after publication and must not stay alive on
+    // framework timers owned by the live test binding.
+    _exitAfterTestFinalizes();
   }, timeout: const Timeout(Duration(hours: 3)));
+}
+
+/// Gives `flutter test` one turn to publish a passing result before ending the
+/// dedicated worker. Without this, Flutter reports a clean shell exit as a
+/// failed test even though the benchmark payload was already written.
+void _exitAfterTestFinalizes() {
+  Future<void>.delayed(const Duration(milliseconds: 100), () => exit(0));
 }
 
 void emitWorker(

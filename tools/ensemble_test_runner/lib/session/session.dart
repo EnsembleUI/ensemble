@@ -1,10 +1,12 @@
 /// Semantic execution contracts for Ensemble tests (observe / act / wait / assert).
 library;
 
+export 'package:ensemble_test_runner/src/core/operation.dart'
+    show OperationKind, SourceLocation, TestOperation;
 export 'actions/action_result.dart';
 export 'actions/artifact_request.dart';
-export 'actions/test_action.dart';
-export 'assertions/test_assertion.dart';
+export 'operation_result.dart';
+export 'operation_target.dart';
 export 'errors/test_execution_error.dart';
 export 'observation/observation_options.dart';
 export 'observation/ui_element.dart';

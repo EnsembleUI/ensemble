@@ -139,15 +139,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "secureContent": {
-          "type": "string",
-          "enum": [
-            "mask",
-            "skip",
-            "allow"
-          ],
-          "default": "mask"
         }
       }
     },

@@ -6,10 +6,38 @@ import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
+import 'package:ensemble_test_runner/runner/screenshot_highlight_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('screenshot highlight kinds share action policy with host tapAt rule',
+      () {
+    expect(
+      screenshotHighlightKind(TestStep(type: 'tap', args: const {})),
+      'action',
+    );
+    expect(
+      screenshotHighlightKind(TestStep(type: 'expectVisible', args: const {})),
+      'assertion',
+    );
+    expect(
+      screenshotHighlightKind(
+        TestStep(type: 'tapAt', args: const {}),
+        tapAtIsAction: true,
+      ),
+      'action',
+    );
+    expect(
+      screenshotHighlightKind(
+        TestStep(type: 'tap', args: const {}),
+        forFailure: true,
+        tapAtIsAction: true,
+      ),
+      'failure',
+    );
+  });
+
   test('layer bounds keep the physical RenderView paintBounds', () {
     const physical = Size(1179, 2556);
     final bounds = screenshotLayerBounds(
@@ -102,6 +130,33 @@ void main() {
     expect(rect.height, lessThan(10));
   });
 
+  test('shared highlight builder maps the target into report coordinates', () {
+    final highlight = buildScreenshotHighlight(
+      logicalRect: const Rect.fromLTWH(24, 48, 200, 20),
+      logicalSize: const Size(393, 852),
+      imageSize: const Size(1179, 2556),
+      kind: 'action',
+    );
+
+    expect(highlight, isNotNull);
+    expect(highlight!.toJson(), {
+      'kind': 'action',
+      'left': closeTo(6.1069, 0.001),
+      'top': closeTo(5.6338, 0.001),
+      'width': closeTo(50.89, 0.01),
+      'height': closeTo(2.347, 0.01),
+    });
+    expect(
+      buildScreenshotHighlight(
+        logicalRect: Rect.zero,
+        logicalSize: const Size(393, 852),
+        imageSize: const Size(1179, 2556),
+        kind: 'assertion',
+      ),
+      isNull,
+    );
+  });
+
   testWidgets(
     'root-layer capture is the full view, not a DPR-zoomed crop',
     (tester) async {
@@ -191,7 +246,7 @@ void main() {
     },
   );
 
-  testWidgets('allow keeps obscure text, mask covers it', (tester) async {
+  testWidgets('screenshots include secure editable content', (tester) async {
     tester.view.physicalSize = const Size(400, 200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -217,27 +272,16 @@ void main() {
     final field = tester.getRect(find.byKey(const ValueKey('secret')));
     final sample = field.center;
 
-    Future<Color> samplePolicy(SecureScreenshotPolicy policy) async {
-      final image = ExtendedStepHandlers.captureScreenshotImage(
-        tester,
-        secureContent: policy,
-      );
-      addTearDown(image.dispose);
-      final bytes = await tester.runAsync(() => _rgba(image));
-      return _rgbaAt(
-        bytes!,
-        image.width,
-        sample.dx.round().clamp(0, image.width - 1),
-        sample.dy.round().clamp(0, image.height - 1),
-      );
-    }
-
-    const maskFill = Color(0xFF202124);
-    final masked = await samplePolicy(SecureScreenshotPolicy.mask);
-    final allowed = await samplePolicy(SecureScreenshotPolicy.allow);
-
-    expect(masked, maskFill);
-    expect(allowed, isNot(maskFill));
+    final image = ExtendedStepHandlers.captureScreenshotImage(tester);
+    addTearDown(image.dispose);
+    final bytes = await tester.runAsync(() => _rgba(image));
+    final color = _rgbaAt(
+      bytes!,
+      image.width,
+      sample.dx.round().clamp(0, image.width - 1),
+      sample.dy.round().clamp(0, image.height - 1),
+    );
+    expect(color, isNot(const Color(0xFF202124)));
   });
 
   testWidgets('screenshotImageRegionHasContrast rejects flat empty regions',

@@ -83,6 +83,7 @@ void writeBenchmarkReport(File file, List<Map<String, dynamic>> runs) {
     };
     const shortHash = value => value ? String(value).slice(0,8) : 'unknown revision';
     const statusClass = status => status === 'measured' ? 'good' : status === 'invalid' ? 'bad' : 'warn';
+    const qualityClass = quality => quality === 'stable' ? 'good' : quality === 'unstable' ? 'bad' : 'warn';
     function addChip(parent, label, value, className) {
       const chip = document.createElement('span');
       chip.className = 'chip' + (className ? ' ' + className : '');
@@ -224,6 +225,8 @@ void writeBenchmarkReport(File file, List<Map<String, dynamic>> runs) {
       addChip(byId('meta'),'Revision',shortHash(run.commit));
       addChip(byId('meta'),'Mode',run.mode || 'unknown');
       addChip(byId('meta'),'Case status',item.status,statusClass(item.status));
+      const quality=item.measurementQuality;
+      if (quality) addChip(byId('meta'),'Evidence',quality.classification,qualityClass(quality.classification));
 
       byId('stats').replaceChildren();
       const services=item.services || [];
@@ -231,7 +234,10 @@ void writeBenchmarkReport(File file, List<Map<String, dynamic>> runs) {
       addStat('Case median',duration(item.timePerOperationUs && item.timePerOperationUs.median),'elapsed per iteration');
       addStat('Service exclusive total',duration(serviceTotal),'sum of exclusive service time per iteration');
       addStat('Runner operations',String((item.operations || []).length),'distinct operations in this case');
-      addStat('Valid samples',(item.validSampleCount || 0)+' / '+(item.sampleCount || 0),'valid / total measured samples');
+      const qualityNote=quality && quality.warnings && quality.warnings.length
+        ? quality.warnings[0]
+        : 'valid / total measured samples';
+      addStat('Valid samples',(item.validSampleCount || 0)+' / '+(item.sampleCount || 0),qualityNote);
 
       byId('services').replaceChildren();
       const maxService=Math.max(1,...services.map(service=>Number(service.exclusiveUsPerIteration || 0)));

@@ -1,49 +1,46 @@
 import 'dart:ui' as ui;
 
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
-import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
-import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
+import 'package:ensemble_test_runner/runner/emergency_failure_screenshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
-import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
+import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
-import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
+import 'package:ensemble_test_runner/runner/screenshot_device_target.dart';
+import 'package:ensemble_test_runner/runner/screenshot_highlight_builder.dart';
 import 'package:ensemble_test_runner/runner/step_highlight_finder.dart';
-import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/runner/test_artifact_coordinator.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
+import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
+import 'package:ensemble_test_runner/runner/step_screenshot_artifact_writer.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:ensemble_test_runner/runner/step_visual_snapshot.dart';
+import 'package:ensemble_test_runner/runner/step_policy.dart';
+import 'package:ensemble_test_runner/runner/screenshot_capture_failure.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// True when a screenshot diagnostic should never fail the host test.
 bool isHostScreenshotDiagnostic(Object? error) {
-  final text = error?.toString() ?? '';
-  return text
-          .contains('Screenshot skipped because secure content is visible') ||
-      text.contains('screenshot requires a painted render view');
+  return classifyScreenshotCaptureFailure(error) ==
+      ScreenshotCaptureFailureKind.unpaintedRenderView;
 }
 
 /// Raster / encode failures from host screenshot capture (not app crashes).
 bool isHostScreenshotCaptureFailure(Object? error) {
-  final text = error?.toString() ?? '';
-  return text.contains('toImageSync') ||
-      text.contains('RenderRepaintBoundary') ||
-      text.contains('debugNeedsPaint') ||
-      text.contains('Cannot capture screenshot');
+  return classifyScreenshotCaptureFailure(error) ==
+      ScreenshotCaptureFailureKind.renderCapture;
 }
 
-/// Captures one report frame for a host YAML step.
+/// Captures one report frame for a host test step.
 ///
 /// Failures here must not change the test result — the HTML gallery is
-/// diagnostic, not an assertion. [SecureScreenshotPolicy.skip] throws when a
-/// password field is on screen; that is swallowed here.
+/// diagnostic, not an assertion.
 Future<void> captureHostStepScreenshot({
   required WidgetTester tester,
   required EnsembleTestContext context,
@@ -51,32 +48,26 @@ Future<void> captureHostStepScreenshot({
   NavigationTestService? navigation,
   required TestStep step,
   required int stepIndex,
+  bool atCurrentFrame = false,
+  ObservationDetailLevel observationDetail = ObservationDetailLevel.standard,
 }) async {
   if (!context.config.screenshots.shouldCaptureStep(step.type)) return;
   try {
-    await tester.pump();
-    // One more frame so a newly mounted theme (EnsembleApp after login)
-    // can apply preloaded fallback fonts before we rasterize.
-    await tester.pump();
-    // Freeze Observer from the same rendered frame as the screenshot. The
-    // widget tree may navigate as soon as this method yields.
-    DiagnosticUiSnapshot? observerSnapshot;
-    try {
-      observerSnapshot = captureDiagnosticUiSnapshot(
-        tester: tester,
-        assertions: assertions,
-        navigation: navigation,
-      );
-    } catch (_) {
-      // Observer capture is diagnostic and must not suppress the screenshot.
+    if (!atCurrentFrame) {
+      await tester.pump();
+      // One more frame so a newly mounted theme (EnsembleApp after login)
+      // can apply preloaded fallback fonts before we rasterize.
+      await tester.pump();
     }
-    // Capture is synchronous (`toImageSync`). Do not wrap in `runAsync`:
-    // `secureContent: skip` throws, and runAsync would report that as a
-    // FlutterError and fail the test.
-    final image = ExtendedStepHandlers.captureScreenshotImage(
-      tester,
-      secureContent: context.config.screenshots.secureContent,
+    // Capture is synchronous; do not wrap it in runAsync.
+    final visual = captureStepVisualSnapshot(
+      tester: tester,
+      assertions: assertions,
+      navigation: navigation,
+      observationDetail: observationDetail,
     );
+    final image = visual.image;
+    final observerSnapshot = visual.observerSnapshot;
     final device = hostScreenshotDevice(context);
     final highlight = _hostStepHighlight(
       tester: tester,
@@ -86,27 +77,16 @@ Future<void> captureHostStepScreenshot({
       device: device,
       observation: observerSnapshot?.observation,
     );
-    context.runtime.addScreenshotSheetFrame(
-      ScreenshotSheetFrame(
-        stepIndex: stepIndex,
-        label: '${stepIndex + 1}. ${formatStepBrief(step)}',
-        image: image,
-        deviceId: device?.id,
-        deviceLabel: device?.displayLabel,
-        platform: device?.platform,
-        model: device?.model,
-        highlight: highlight,
-      ),
+    writeStepScreenshotArtifacts(
+      tester: tester,
+      context: context,
+      step: step,
+      stepIndex: stepIndex,
+      image: image,
+      device: device,
+      highlight: highlight,
+      observerSnapshot: observerSnapshot,
     );
-    final snap = observerSnapshot;
-    if (snap != null) {
-      upsertStepObserverFromSnapshot(
-        ctx: context,
-        tester: tester,
-        stepIndex: stepIndex,
-        snap: snap,
-      );
-    }
   } catch (error) {
     if (!isHostScreenshotDiagnostic(error) &&
         !isHostScreenshotCaptureFailure(error)) {
@@ -135,10 +115,11 @@ ScreenshotHighlight? _hostStepHighlight({
     // Host screenshots are captured after each step. Mutation steps can leave
     // selection handles on top of the field, so don't require a fresh hit test
     // for those; they still need current-route, visible geometry.
-    final requireHitTestable = _isHostUserAction(step) &&
-        step.type != 'enterText' &&
-        step.type != 'clearText' &&
-        step.type != 'replaceText';
+    final requireHitTestable =
+        (step.type == 'tapAt' || isUserActionStep(step)) &&
+            step.type != 'enterText' &&
+            step.type != 'clearText' &&
+            step.type != 'replaceText';
     rect = assertions.rectForVisuallyActionable(
       finder,
       requireHitTestable: requireHitTestable,
@@ -150,50 +131,14 @@ ScreenshotHighlight? _hostStepHighlight({
   if (rect == null) return null;
 
   final viewSize = tester.binding.renderViews.first.size;
-  final scaled = screenshotLogicalRectToImagePixels(
+  return buildScreenshotHighlight(
     logicalRect: rect,
     logicalSize: viewSize,
     imageSize: ui.Size(image.width.toDouble(), image.height.toDouble()),
-  );
-  if (scaled.isEmpty) return null;
-  final frameDevice = !framesScreenshotsWithDeviceBezel || device == null
-      ? null
-      : resolveScreenshotDevice({
-          'platform': device.platform,
-          'model': device.model,
-        });
-  final framed = screenshotHighlightPercentRect(
-    rectInImagePixels: scaled,
-    imageSize: ui.Size(image.width.toDouble(), image.height.toDouble()),
-    frameDevice: frameDevice,
-  );
-  if (framed.isEmpty) return null;
-  return ScreenshotHighlight(
-    kind: _isHostUserAction(step) ? 'action' : 'assertion',
-    left: framed.left,
-    top: framed.top,
-    width: framed.width,
-    height: framed.height,
+    kind: screenshotHighlightKind(step, tapAtIsAction: true),
+    device: device,
   );
 }
-
-bool _isHostUserAction(TestStep step) => const {
-      'tap',
-      'tapAt',
-      'doubleTap',
-      'longPress',
-      'toggle',
-      'check',
-      'uncheck',
-      'enterText',
-      'clearText',
-      'replaceText',
-      'submitText',
-      'focus',
-      'select',
-      'selectIndex',
-      'setSlider',
-    }.contains(step.type);
 
 /// One last frame when a host test dies before any step screenshot landed.
 Future<void> captureHostEmergencyScreenshot({
@@ -203,16 +148,10 @@ Future<void> captureHostEmergencyScreenshot({
   if (!context.config.screenshots.enabled) return;
   try {
     await tester.pump();
-    final image = ExtendedStepHandlers.captureScreenshotImage(
-      tester,
-      secureContent: context.config.screenshots.secureContent,
-    );
     final device = hostScreenshotDevice(context);
     context.runtime.addScreenshotSheetFrame(
-      ScreenshotSheetFrame(
-        stepIndex: 0,
-        label: 'Runner failure',
-        image: image,
+      captureEmergencyFailureScreenshotFrame(
+        tester: tester,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
         platform: device?.platform,
@@ -228,55 +167,29 @@ Future<void> captureHostEmergencyScreenshot({
 }
 
 TestDeviceTarget? hostScreenshotDevice(EnsembleTestContext ctx) {
-  final target = ctx.testCase.deviceTarget;
-  if (target != null) return target;
-  if (ctx.config.devices.length == 1) return ctx.config.devices.single;
-  if (!ctx.config.screenshots.enabled) return null;
-  return const TestDeviceTarget(
-    id: 'ios',
-    platform: 'ios',
-    model: 'iPhone 15 Pro',
-  );
+  return screenshotDeviceTargetFor(ctx);
 }
 
-/// Matches the widget surface to the device bezel used in the HTML report.
-///
-/// Without this, widget tests layout at the default 800×600 (or the live
-/// window) and the encoder stretches that bitmap into an iPhone frame.
-///
-/// Integration mode must not override the physical display — read the real
-/// size into [EnsembleTestContext.runtime] for reporting only.
+/// Applies the mode-specific display policy shared with standalone runs.
 Future<void> applyHostScreenshotViewport(
   WidgetTester tester,
   EnsembleTestContext context, {
   ExecutionMode mode = ExecutionMode.widget,
 }) async {
-  if (mode == ExecutionMode.integration) {
-    context.runtime.deviceSize = tester.view.physicalSize;
-    return;
-  }
-  final device = screenshotDeviceForTestCase(context.testCase, context.config);
-  if (device == null) return;
-  await tester.binding.setSurfaceSize(device.screenSize);
-  tester.view.devicePixelRatio = 1.0;
-  tester.view.physicalSize = device.screenSize;
-  final padding = FakeViewPadding(
-    left: device.safeAreas.left,
-    top: device.safeAreas.top,
-    right: device.safeAreas.right,
-    bottom: device.safeAreas.bottom,
+  await EnsembleTestHarness.runtimeAdapterFor(mode).applyViewport(
+    tester,
+    context,
+    screenshotDeviceForTestCase(context.testCase, context.config),
+    ensureDefaultViewport: false,
+    reportLogicalDisplaySize: false,
   );
-  tester.view.padding = padding;
-  tester.view.viewPadding = padding;
-  context.runtime.deviceSize = device.screenSize;
 }
 
-Future<void> resetHostScreenshotViewport(WidgetTester tester) async {
-  tester.view.resetPhysicalSize();
-  tester.view.resetDevicePixelRatio();
-  tester.view.resetPadding();
-  tester.view.resetViewPadding();
-  await tester.binding.setSurfaceSize(null);
+Future<void> resetHostScreenshotViewport(
+  WidgetTester tester, {
+  ExecutionMode mode = ExecutionMode.widget,
+}) async {
+  await EnsembleTestHarness.runtimeAdapterFor(mode).resetViewport(tester);
 }
 
 /// Writes screenshot frames, dump tree, API, storage, and app console logs.
@@ -294,14 +207,9 @@ Future<void> attachHostDebugArtifacts({
   String? failureMessage,
 }) async {
   try {
-    final frames = List<ScreenshotSheetFrame>.from(
-      context.runtime.screenshotSheetFrames,
-    );
-    context.runtime.screenshotSheetFrames.clear();
-    final stepObservers = List<StepObserverArtifact>.from(
-      context.runtime.stepObservers,
-    );
-    context.runtime.stepObservers.clear();
+    final artifacts = context.runtime.takeScreenshotArtifacts();
+    final frames = artifacts.frames;
+    final stepObservers = artifacts.stepObservers;
     if (context.config.screenshots.enabled &&
         (frames.isNotEmpty ||
             stepObservers.isNotEmpty ||
@@ -328,7 +236,6 @@ Future<void> attachHostDebugArtifacts({
         }
       });
       if (path != null) {
-        context.logger.log('screenshots: $path');
         context.logger.log('screenshotFrames: $path');
       }
     } else {
@@ -347,7 +254,7 @@ Future<void> attachHostDebugArtifacts({
 
   if (context.config.dumpTree.enabled) {
     try {
-      replaceHostArtifactLog(
+      TestArtifactCoordinator.replaceArtifactLog(
         context.logger,
         'dumpTree',
         await writeDumpTreeLog(context),
@@ -357,15 +264,10 @@ Future<void> attachHostDebugArtifacts({
     }
   }
 
-  try {
-    replaceHostArtifactLog(
-      context.logger,
-      'apiCalls',
-      await writeApiCallsLog(context),
-    );
-  } catch (error) {
-    context.logger.log('apiCallsError: $error');
-  }
+  // The attempt-finished kernel subscriber normally publishes these sidecars
+  // before this cleanup boundary. Keep this once-guarded call for setup
+  // failures that never start a kernel attempt.
+  await const TestArtifactCoordinator().attachLogArtifactsOnce(context);
   try {
     Map<String, dynamic> keys = const {};
     if (StorageManager().initialized) {
@@ -373,7 +275,7 @@ Future<void> attachHostDebugArtifacts({
         keys = capturePublicStorage();
       } catch (_) {}
     }
-    replaceHostArtifactLog(
+    TestArtifactCoordinator.replaceArtifactLog(
       context.logger,
       'storage',
       await writeStorageLogFile(
@@ -388,22 +290,4 @@ Future<void> attachHostDebugArtifacts({
   } catch (error) {
     context.logger.log('storageError: $error');
   }
-  try {
-    replaceHostArtifactLog(
-      context.logger,
-      'appLogs',
-      await writeAppConsoleLog(context),
-    );
-  } catch (error) {
-    context.logger.log('appLogsError: $error');
-  }
-}
-
-void replaceHostArtifactLog(TestLogger logger, String label, String path) {
-  logger.logs.removeWhere((entry) {
-    final separator = entry.indexOf(':');
-    if (separator <= 0) return false;
-    return entry.substring(0, separator).trim() == label;
-  });
-  logger.log('$label: $path');
 }

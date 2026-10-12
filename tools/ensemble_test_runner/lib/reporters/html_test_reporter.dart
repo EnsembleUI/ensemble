@@ -3,51 +3,38 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/atomic_file.dart';
-import 'package:ensemble_test_runner/reporters/html_test_report_app_js.dart';
-import 'package:ensemble_test_runner/reporters/html_test_report_css.dart';
+import 'package:ensemble_test_runner/reporters/report_resources.dart';
+import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 import 'package:path/path.dart' as p;
 
-/// Writes a thin HTML report shell once; test data lives in results.json.gz.
+/// Writes the HTML report shell; the runner stores current run data in SQLite.
 class HtmlTestReporter {
-  /// Writes the HTML shell (if needed) and results.
-  ///
-  /// When [isSuiteRunning] is true: writes shell + loading results.
-  /// When false: writes complete results; writes shell only if missing.
-  String write(
+  /// Writes a complete report to the database and refreshes its HTML shell.
+  Future<String> write(
     EnsembleTestRunResult result, {
     String? artifactRoot,
     String? displayRoot,
     int? wallTimeMs,
     bool isSuiteRunning = false,
-  }) {
-    return RunnerBenchmark.sync('report', 'write', () {
+  }) async {
+    return await RunnerBenchmark.async('report', 'write', () async {
       final root = artifactRoot ?? ensembleTestArtifactRoot;
       final display = displayRoot ?? _defaultDisplayRoot;
-      final reportDir = Directory(p.join(root, 'report'));
-      reportDir.createSync(recursive: true);
-      final htmlFile = File(p.join(reportDir.path, 'index.html'));
 
       if (isSuiteRunning) {
-        AtomicFile.writeStringSync(htmlFile, buildShellHtml());
-        TestReportDocument.writeResults(
-          reportDir,
-          TestReportDocument.buildLoading(wallTimeMs: wallTimeMs),
-        );
+        await EnsembleTestHistoryStore.markReportLoading(artifactRoot: root);
+        writeShell(artifactRoot: root, displayRoot: display);
       } else {
-        if (!htmlFile.existsSync()) {
-          AtomicFile.writeStringSync(htmlFile, buildShellHtml());
-        }
-        TestReportDocument.writeResults(
-          reportDir,
-          TestReportDocument.buildComplete(
-            result,
-            artifactRoot: root,
-            displayRoot: display,
-            wallTimeMs: wallTimeMs,
-          ),
+        await EnsembleTestHistoryStore.recordCompletedRun(
+          appDir: Directory.current.path,
+          artifactRoot: root,
+          result: result,
+          wallTimeMs: wallTimeMs,
         );
+        writeShell(artifactRoot: root, displayRoot: display);
         TestReportDocument.cleanTransientArtifacts(root);
       }
 
@@ -55,36 +42,23 @@ class HtmlTestReporter {
     });
   }
 
-  /// Updates results only (suite finished). Does not rewrite index.html.
-  String writeResultsOnly(
-    EnsembleTestRunResult result, {
+  /// Writes only the static shell. The CLI uses this because results are
+  /// persisted in the SQLite report row.
+  String writeShell({
     String? artifactRoot,
     String? displayRoot,
-    int? wallTimeMs,
+    bool cleanIntermediates = false,
   }) {
-    return RunnerBenchmark.sync('report', 'writeResultsOnly', () {
-      final root = artifactRoot ?? ensembleTestArtifactRoot;
-      final display = displayRoot ?? _defaultDisplayRoot;
-      final reportDir = Directory(p.join(root, 'report'));
-      reportDir.createSync(recursive: true);
-      final htmlFile = File(p.join(reportDir.path, 'index.html'));
-      if (!htmlFile.existsSync()) {
-        AtomicFile.writeStringSync(htmlFile, buildShellHtml());
-      }
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildComplete(
-          result,
-          artifactRoot: root,
-          displayRoot: display,
-          wallTimeMs: wallTimeMs,
-        ),
-      );
-      TestReportDocument.cleanTransientArtifacts(root);
-      return p
-          .join(display, 'report', TestReportDocument.resultsFileName)
-          .replaceAll('\\', '/');
-    });
+    final root = artifactRoot ?? ensembleTestArtifactRoot;
+    final display = displayRoot ?? _defaultDisplayRoot;
+    final reportDir = Directory(p.join(root, 'report'))
+      ..createSync(recursive: true);
+    final htmlFile = File(p.join(reportDir.path, 'index.html'));
+    AtomicFile.writeStringSync(htmlFile, buildShellHtml());
+    final obsoleteResults = File(p.join(reportDir.path, 'results.json.gz'));
+    if (obsoleteResults.existsSync()) obsoleteResults.deleteSync();
+    if (cleanIntermediates) TestReportDocument.cleanTransientArtifacts(root);
+    return p.join(display, 'report', 'index.html').replaceAll('\\', '/');
   }
 
   /// Thin HTML shell (no embedded test payload).
@@ -103,7 +77,7 @@ class HtmlTestReporter {
             '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
         ..writeln(
             '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">')
-        ..writeln('<style>$ensembleHtmlTestReportCss</style>')
+        ..writeln('<style>${ReportResources.css}</style>')
         ..writeln('</head>')
         ..writeln('<body>')
         ..writeln('<div class="grid-overlay"></div>')
@@ -115,7 +89,7 @@ class HtmlTestReporter {
         ..writeln('  <h1>Ensemble Test Runner</h1>')
         ..writeln('  <p class="subtitle">Test Suite Execution in Progress</p>')
         ..writeln(
-            '  <div class="loader-progress-info">Running declarative tests. This page updates automatically when test results are ready.</div>')
+            '  <div class="loader-progress-info">Waiting for a completed test report in ensemble_test.db. This page checks for updates automatically.</div>')
         ..writeln('  <div class="skeleton-line-full"></div>')
         ..writeln('  <div class="skeleton-line-full"></div>')
         ..writeln('  <div class="skeleton-line-full"></div>')
@@ -195,42 +169,12 @@ class HtmlTestReporter {
         ..writeln('<div class="chart-tooltip" id="chart-tooltip"></div>')
         ..writeln(_modalMarkup())
         ..writeln('<script>')
-        ..writeln(ensembleHtmlTestReportAppJs)
+        ..writeln(ReportResources.javascript)
         ..writeln('</script>')
         ..writeln('</body>')
         ..writeln('</html>');
       return buffer.toString();
     });
-  }
-
-  /// Kept for callers that still expect an HTML string; also writes results.
-  String buildHtml(
-    EnsembleTestRunResult result, {
-    required String artifactRoot,
-    required String displayRoot,
-    int? wallTimeMs,
-    bool isSuiteRunning = false,
-  }) {
-    final reportDir = Directory(p.join(artifactRoot, 'report'));
-    reportDir.createSync(recursive: true);
-    if (isSuiteRunning) {
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildLoading(wallTimeMs: wallTimeMs),
-      );
-    } else {
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildComplete(
-          result,
-          artifactRoot: artifactRoot,
-          displayRoot: displayRoot,
-          wallTimeMs: wallTimeMs,
-        ),
-      );
-      TestReportDocument.cleanTransientArtifacts(artifactRoot);
-    }
-    return buildShellHtml();
   }
 
   String _modalMarkup() {
@@ -338,6 +282,7 @@ class HtmlTestReporter {
 
 /// True when this Flutter test process is a parallel CLI worker shard.
 bool isEnsembleTestParallelWorker() {
-  const suffix = String.fromEnvironment('ensembleTestWorkerSuffix');
+  final suffix =
+      RunnerRuntimeConfiguration.current.string('ensembleTestWorkerSuffix');
   return suffix.isNotEmpty;
 }

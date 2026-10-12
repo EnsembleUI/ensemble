@@ -1,6 +1,8 @@
 import 'dart:io';
 
-import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
+import 'package:ensemble_test_runner/cli/app_patcher.dart';
+import 'package:ensemble_test_runner/cli/app_platform_support.dart';
+import 'package:ensemble_test_runner/cli/entry_source_transformer.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,7 +33,7 @@ definitions:
     File('${dir.path}/ensemble/apps/hello/tests/home.test.yaml')
         .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
 
-    final patcher = YamlTestAppPatcher(dir.path);
+    final patcher = TestAppPatcher(dir.path);
     patcher.enable(mode: ExecutionMode.integration);
 
     expect(
@@ -39,16 +41,154 @@ definitions:
       contains('integration_test:'),
     );
     final entry = File(
-      '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+      '${dir.path}/${TestAppPatcher.integrationTestEntryRelativePath}',
     );
     expect(
       entry.readAsStringSync(),
-      contains('runEnsembleIntegrationYamlTests'),
+      contains('runEnsembleIntegrationTests'),
     );
 
     patcher.restore();
     expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
     expect(entry.existsSync(), isFalse);
+  });
+
+  test('integration rollback preserves a pre-existing empty adapter file', () {
+    final dir = Directory.systemTemp.createTempSync('integration_empty_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_app
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets:
+    - ensemble/
+''');
+    File('${dir.path}/test/ensemble_tests.dart')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('void main() { runApplicationTests(); }');
+    final adapter = File(
+      '${dir.path}/${TestAppPatcher.integrationTestEntryRelativePath}',
+    )..createSync(recursive: true);
+
+    final patcher = TestAppPatcher(
+      dir.path,
+      testEntryRelativePath: 'test/ensemble_tests.dart',
+    );
+    patcher.enable(mode: ExecutionMode.integration);
+    expect(adapter.readAsStringSync(), isNotEmpty);
+
+    patcher.restore();
+    expect(adapter.existsSync(), isTrue);
+    expect(adapter.readAsStringSync(), isEmpty);
+  });
+
+  test('custom entry symlink cannot make the patcher read outside the app', () {
+    final dir = Directory.systemTemp.createTempSync('integration_entry_link_');
+    final outside =
+        Directory.systemTemp.createTempSync('integration_entry_target_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    addTearDown(() => outside.deleteSync(recursive: true));
+    const pubspec = 'name: sample_app\nflutter:\n  assets: []\n';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    File('${outside.path}/application_tests.dart').writeAsStringSync(
+      'Future<void> main() => runApplicationTests();',
+    );
+    Directory('${dir.path}/test').createSync();
+    Link('${dir.path}/test/application_tests.dart')
+        .createSync('${outside.path}/application_tests.dart');
+
+    final patcher = TestAppPatcher(
+      dir.path,
+      testEntryRelativePath: 'test/application_tests.dart',
+    );
+    expect(() => patcher.enable(), throwsStateError);
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+    expect(
+      File('${outside.path}/application_tests.dart').readAsStringSync(),
+      'Future<void> main() => runApplicationTests();',
+    );
+  });
+
+  test('pubspec symlink is rejected before patcher mutations', () {
+    final dir =
+        Directory.systemTemp.createTempSync('integration_pubspec_link_');
+    final outside =
+        Directory.systemTemp.createTempSync('integration_pubspec_target_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    addTearDown(() => outside.deleteSync(recursive: true));
+    const pubspec = 'name: sample_app\nflutter:\n  assets: []\n';
+    File('${outside.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    Link('${dir.path}/pubspec.yaml').createSync('${outside.path}/pubspec.yaml');
+
+    final patcher = TestAppPatcher(dir.path);
+    expect(() => patcher.enable(), throwsStateError);
+    expect(
+      File('${outside.path}/pubspec.yaml').readAsStringSync(),
+      pubspec,
+    );
+    expect(File('${dir.path}/test/ensemble_tests.dart').existsSync(), isFalse);
+  });
+
+  test('integration entry symlink cannot write outside the app', () {
+    final dir = Directory.systemTemp.createTempSync('integration_output_link_');
+    final outside =
+        Directory.systemTemp.createTempSync('integration_output_target_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    addTearDown(() => outside.deleteSync(recursive: true));
+    const pubspec = 'name: sample_app\nflutter:\n  assets: []\n';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    Directory('${dir.path}/test').createSync();
+    File('${dir.path}/test/application_tests.dart').writeAsStringSync(
+      'Future<void> main() => runApplicationTests();',
+    );
+    Link('${dir.path}/integration_test').createSync(outside.path);
+
+    final patcher = TestAppPatcher(
+      dir.path,
+      testEntryRelativePath: 'test/application_tests.dart',
+    );
+    expect(
+      () => patcher.enable(mode: ExecutionMode.integration),
+      throwsStateError,
+    );
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+    expect(
+      File('${outside.path}/application_tests.dart').existsSync(),
+      isFalse,
+    );
+  });
+
+  test('generated integration entry rejects external widget source symlinks',
+      () {
+    final dir =
+        Directory.systemTemp.createTempSync('integration_widget_source_link_');
+    final outside =
+        Directory.systemTemp.createTempSync('integration_widget_source_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    addTearDown(() => outside.deleteSync(recursive: true));
+    const pubspec = 'name: sample_app\nflutter:\n  assets: []\n';
+    const widgetEntry = 'Future<void> main() => runEnsembleTests();\n';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    File('${outside.path}/ensemble_tests.dart').writeAsStringSync(widgetEntry);
+    Link('${dir.path}/test').createSync(outside.path);
+
+    final patcher = TestAppPatcher(dir.path);
+    expect(
+      () => patcher.enable(mode: ExecutionMode.integration),
+      throwsStateError,
+    );
+
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+    expect(
+      File('${outside.path}/ensemble_tests.dart').readAsStringSync(),
+      widgetEntry,
+    );
+    expect(
+      Directory('${dir.path}/integration_test').existsSync(),
+      isFalse,
+    );
   });
 
   test('integration entry keeps custom widget bootstrap helpers', () {
@@ -75,7 +215,7 @@ definitions:
 ''');
     File('${dir.path}/ensemble/apps/hello/tests/home.test.yaml')
         .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
-    File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+    File('${dir.path}/${TestAppPatcher.testEntryRelativePath}')
       ..parent.createSync(recursive: true)
       ..writeAsStringSync('''
 import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
@@ -83,7 +223,7 @@ import 'package:sample_app/generated/ensemble_modules.dart';
 import 'package:sample_app/main.dart' as starter;
 
 Future<void> main() async {
-  await runEnsembleYamlTests(
+  await runEnsembleTests(
     bootstrap: () => EnsembleModules().init(),
     externalMethods: {
       'captureCertificateForHost': starter.captureCertificateForHost,
@@ -92,13 +232,13 @@ Future<void> main() async {
 }
 ''');
 
-    final patcher = YamlTestAppPatcher(dir.path);
+    final patcher = TestAppPatcher(dir.path);
     patcher.enable(mode: ExecutionMode.integration);
     final entry = File(
-      '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+      '${dir.path}/${TestAppPatcher.integrationTestEntryRelativePath}',
     ).readAsStringSync();
-    expect(entry, contains('runEnsembleIntegrationYamlTests'));
-    expect(entry, isNot(contains('runEnsembleYamlTests(')));
+    expect(entry, contains('runEnsembleIntegrationTests'));
+    expect(entry, isNot(contains('runEnsembleTests(')));
     expect(entry, contains('ensemble_integration_test_entry.dart'));
     expect(entry, contains('captureCertificateForHost'));
     expect(
@@ -133,10 +273,10 @@ definitions:
         .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
     Directory('${dir.path}/integration_test').createSync(recursive: true);
     File(
-      '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+      '${dir.path}/${TestAppPatcher.integrationTestEntryRelativePath}',
     ).writeAsStringSync('''
 // Wrong entry — mentions the name only in a comment:
-// runEnsembleIntegrationYamlTests
+// runEnsembleIntegrationTests
 void main() {}
 ''');
     const podfile = "# platform :ios, '13.0'\n";
@@ -147,7 +287,7 @@ void main() {}
       ..parent.createSync(recursive: true)
       ..writeAsStringSync('IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n');
 
-    final patcher = YamlTestAppPatcher(dir.path);
+    final patcher = TestAppPatcher(dir.path);
     expect(
       () => patcher.enable(mode: ExecutionMode.integration),
       throwsStateError,
@@ -165,7 +305,7 @@ void main() {}
     );
     expect(
       File(
-        '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+        '${dir.path}/${TestAppPatcher.integrationTestEntryRelativePath}',
       ).readAsStringSync(),
       contains('void main() {}'),
     );
@@ -213,7 +353,7 @@ definitions:
 <string>13.0</string>
 ''');
 
-    final patcher = YamlTestAppPatcher(dir.path);
+    final patcher = TestAppPatcher(dir.path);
     expect(
       () => patcher.enable(
         mode: ExecutionMode.integration,
@@ -267,7 +407,7 @@ definitions:
         ..parent.createSync(recursive: true)
         ..writeAsStringSync(podfile);
 
-      final patcher = YamlTestAppPatcher(dir.path);
+      final patcher = TestAppPatcher(dir.path);
       expect(
         () => patcher.enable(
           mode: ExecutionMode.integration,
@@ -320,7 +460,7 @@ definitions:
 <string>13.0</string>
 ''');
 
-    final patcher = YamlTestAppPatcher(dir.path);
+    final patcher = TestAppPatcher(dir.path);
     patcher.enable(
       mode: ExecutionMode.integration,
       targetPlatform: 'ios',
@@ -351,49 +491,78 @@ definitions:
 
   test('entry point validation ignores comments', () {
     expect(
-      YamlTestAppPatcher.entryPointCallsFunction(
-        '// runEnsembleIntegrationYamlTests()\nvoid main() {}',
-        'runEnsembleIntegrationYamlTests',
+      EntrySourceTransformer.entryPointCallsFunction(
+        '// runEnsembleIntegrationTests()\nvoid main() {}',
+        'runEnsembleIntegrationTests',
       ),
       isFalse,
     );
     expect(
-      YamlTestAppPatcher.entryPointCallsFunction(
-        '/* runEnsembleIntegrationYamlTests() */\nvoid main() {}',
-        'runEnsembleIntegrationYamlTests',
+      EntrySourceTransformer.entryPointCallsFunction(
+        '/* runEnsembleIntegrationTests() */\nvoid main() {}',
+        'runEnsembleIntegrationTests',
       ),
       isFalse,
     );
     expect(
-      YamlTestAppPatcher.entryPointCallsFunction(
-        'Future<void> main() async {\n  await runEnsembleIntegrationYamlTests();\n}',
-        'runEnsembleIntegrationYamlTests',
+      EntrySourceTransformer.entryPointCallsFunction(
+        'Future<void> main() async {\n  await runEnsembleIntegrationTests();\n}',
+        'runEnsembleIntegrationTests',
       ),
       isTrue,
+    );
+    expect(
+      EntrySourceTransformer.entryPointCallsFunction(
+        "const marker = 'runEnsembleIntegrationTests()';\nvoid main() {}",
+        'runEnsembleIntegrationTests',
+      ),
+      isFalse,
+    );
+  });
+
+  test('entry point validation checks candidates in one match pass', () {
+    const candidates = ['runApp', 'runApplicationIntegrationTests'];
+    expect(
+      EntrySourceTransformer.entryPointCallsAny(
+        '// runApp()\nFuture<void> main() => runApplicationIntegrationTests();',
+        candidates,
+      ),
+      isTrue,
+    );
+    expect(
+      EntrySourceTransformer.entryPointCallsAny(
+        '// runApp()\nvoid main() {}',
+        candidates,
+      ),
+      isFalse,
+    );
+    expect(
+      EntrySourceTransformer.entryPointCallsAny('void main() {}', const []),
+      isFalse,
     );
   });
 
   test('iOS deployment helpers raise below 15 and leave higher versions', () {
     expect(
-      YamlTestAppPatcher.raisePodfilePlatform("# platform :ios, '13.0'\n"),
+      AppPlatformSupport.raisePodfilePlatform("# platform :ios, '13.0'\n"),
       "platform :ios, '15.0'\n",
     );
     expect(
-      YamlTestAppPatcher.raisePodfilePlatform("platform :ios, '16.0'\n"),
+      AppPlatformSupport.raisePodfilePlatform("platform :ios, '16.0'\n"),
       "platform :ios, '16.0'\n",
     );
     expect(
-      YamlTestAppPatcher.raisePbxprojDeploymentTarget(
+      AppPlatformSupport.raisePbxprojDeploymentTarget(
         'IPHONEOS_DEPLOYMENT_TARGET = 13.0;',
       ),
       'IPHONEOS_DEPLOYMENT_TARGET = 15.0;',
     );
     expect(
-      YamlTestAppPatcher.iosVersionLessThan('13.0', '15.0'),
+      AppPlatformSupport.iosVersionLessThan('13.0', '15.0'),
       isTrue,
     );
     expect(
-      YamlTestAppPatcher.iosVersionLessThan('15.0', '15.0'),
+      AppPlatformSupport.iosVersionLessThan('15.0', '15.0'),
       isFalse,
     );
   });
@@ -408,11 +577,11 @@ android {
 }
 ''';
     final patchedKts =
-        YamlTestAppPatcher.enableGradleKtsCoreLibraryDesugaring(kts);
+        AppPlatformSupport.enableGradleKtsCoreLibraryDesugaring(kts);
     expect(patchedKts, contains('isCoreLibraryDesugaringEnabled = true'));
     expect(patchedKts, contains('desugar_jdk_libs:2.1.4'));
     expect(
-      YamlTestAppPatcher.enableGradleKtsCoreLibraryDesugaring(patchedKts),
+      AppPlatformSupport.enableGradleKtsCoreLibraryDesugaring(patchedKts),
       patchedKts,
     );
 
@@ -425,7 +594,7 @@ android {
 }
 ''';
     final patchedGroovy =
-        YamlTestAppPatcher.enableGradleGroovyCoreLibraryDesugaring(groovy);
+        AppPlatformSupport.enableGradleGroovyCoreLibraryDesugaring(groovy);
     expect(patchedGroovy, contains('coreLibraryDesugaringEnabled true'));
     expect(patchedGroovy, contains("desugar_jdk_libs:2.1.4"));
   });

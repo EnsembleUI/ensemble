@@ -34,13 +34,13 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 `expectScreen` (alias), `expectNavigateTo`, `expectVisited`, `expectNotVisited`, `expectBackStack`, `expectCanGoBack`, `goBack`
 
 ### API mocks / assert / logs
-`mocks`, `httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
+`mocks`, `httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`
 
 ### Storage / runtime
-`setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
+`setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
 
 ### Scripts / debug / quality
-`runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
+`expectConsoleLog`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
 
 ### Control flow
 `group`, `repeat`, `optional`, `ifVisible`
@@ -87,9 +87,10 @@ steps:
 
 Editor validation: `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json` (committed copy at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json), regenerate with `dart run tool/generate_schema.dart`). Arg shapes come from [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) on each [`TestStepRegistryEntry`](lib/vocabulary/test_step_registry.dart).
 
-Performance logging captures Flutter frame timing **per screen** into
-`results.json.gz` (`tests[].report.screens`). Enable it once for the full suite
-in `tests/config.yaml`:
+Performance logging captures Flutter frame timing **per screen** in the current
+report payload stored in `report/ensemble_test.db`
+(`tests[].report.screens`). Enable it once for the full suite in
+`tests/config.yaml`:
 
 ```yaml
 performance:
@@ -107,8 +108,9 @@ timers:
 ```
 
 `dumpTree` and `performance` are suite-level **config** flags; when enabled
-they emit **per-screen** payloads under `report.screens` in
-`results.json.gz`. `logApiCalls` and `logStorage` likewise attach **per-test**
+they emit **per-screen** payloads under `report.screens` in the current report
+payload stored in `report/ensemble_test.db`. `logApiCalls` and `logStorage`
+likewise attach **per-test**
 data to each test result / HTML card:
 
 ```yaml
@@ -181,13 +183,13 @@ references, and executes each test once in topological order.
 
 ## Adding a step
 
-1. Add one row to [`tool/generate_step_registry.dart`](tool/generate_step_registry.dart) (`desc` + optional `example` override; defaults come from `defaultExampleForArg`) and run `dart run tool/generate_step_registry.dart`.
+1. Add one row to [`tool/generate_step_registry.dart`](tool/generate_step_registry.dart) (`desc` + optional `example` override; defaults come from `defaultExampleForArg`), verify with `dart run tool/generate_step_registry.dart --check`, then write with `dart run tool/generate_step_registry.dart --write`.
 2. If needed, add a variant to [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) and its `jsonSchema` switch.
-3. Implement in [`TestStepExecutor`](lib/actions/test_step_executor.dart) and/or [`ExtendedStepHandlers`](lib/actions/extended_step_handlers.dart).
+3. Implement in the registered operation handler in [`TestRuntimeOperationDispatcher`](lib/actions/test_runtime_operation_dispatcher.dart).
 4. Run `dart run tool/generate_schema.dart` and document here.
 
 Session routing and UI capability lists are derived from registry categories via
-[`SessionStepRouting`](lib/session/yaml/session_step_routing.dart) — do **not**
+[`SessionStepRouting`](lib/session/step_routing.dart) — do **not**
 hand-edit a parallel migration matrix. New UI actions / waits without a dedicated
 sealed session type route through `GenericAction` / `GenericWait` automatically.
 Add a typed `TestAction` / `WaitCondition` only when the programmatic session API

@@ -75,20 +75,15 @@ const coveredSteps = <String>{
   'removeStorage',
   'clearStorage',
   'setEnv',
-  'setAuth',
-  'clearAuth',
   'setPermission',
   'setDevice',
   'setLocale',
   'setTheme',
-  'runScript',
-  'expectScriptResult',
   'expectConsoleLog',
   'group',
   'repeat',
   'optional',
   'ifVisible',
-  'logApiCalls',
   'expectNoConsoleErrors',
   'expectNoRenderErrors',
   'expectError',
@@ -126,7 +121,6 @@ const subsystemCases = <String, List<String>>{
     'screenshot.sustained.100',
     'screenshot.frame.ios.fallback',
     'screenshot.frame.android.fallback',
-    'screenshot.secure.mask',
     'screenshot.frames.changed'
   ],
   'observers': [
@@ -152,12 +146,16 @@ const subsystemCases = <String, List<String>>{
     'session.capabilities',
     'session.queue.contention',
     'session.capture-artifact',
+    'session.runtime-operation',
+    'session.finder-cache.same-revision',
+    'session.finder-cache.invalidated',
     'session.wait.timeout',
     'session.permission-denied'
   ],
   'planning': [
     'planner.suite.1000',
     'planner.selection.1000',
+    'planner.compile-batch.100',
     'planner.cycle',
     'mock.composition',
     'planner.matrix',
@@ -167,6 +165,7 @@ const subsystemCases = <String, List<String>>{
   ],
   'lifecycle': [
     'workflow.standalone',
+    'workflow.standalone-storage',
     'workflow.retry',
     'lifecycle.storage-diff.1000',
     'lifecycle.restore-phases'
@@ -220,7 +219,6 @@ const capabilityCases = <String, List<String>>{
     'step.expectScreen',
     'step.expectApiCalled',
     'step.expectStorage',
-    'step.expectScriptResult',
     'step.expectAccessible'
   ],
   'waits': [

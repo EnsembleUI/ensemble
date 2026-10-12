@@ -254,11 +254,10 @@ class _IncomingArtifact {
     received += chunk.length;
   }
 
-  Future<List<int>> finish() async {
+  Future<void> finish() async {
     await _sink?.flush();
     await _sink?.close();
     _sink = null;
-    return tempFile.readAsBytesSync();
   }
 
   Future<void> dispose() async {
@@ -300,7 +299,10 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
     int? completeCount;
     String? completeHash;
     String? error;
-    final tempDir = Directory.systemTemp.createTempSync('ensemble_artifacts_');
+    Directory? tempDir;
+
+    Directory stagingDirectory() => tempDir ??=
+        Directory.systemTemp.createTempSync('ensemble_artifacts_${pid}_');
 
     void ingestManifestEntries(List<dynamic> artifacts) {
       for (final item in artifacts) {
@@ -350,18 +352,22 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
             sawComplete = true;
             final artifacts = record['artifacts'];
             if (artifacts is List) {
-              // Legacy single-line complete with full manifest.
-              expectedByComplete.clear();
-              manifestOrder.clear();
-              ingestManifestEntries(artifacts);
-              completeCount = manifestOrder.length;
-              completeHash = ensembleTestArtifactManifestSha256(manifestOrder);
+              error ??= 'Invalid integration artifact complete record.';
             } else {
               final count = record['count'];
               if (count is int) {
                 completeCount = count;
+              } else {
+                error ??=
+                    'Integration artifact complete record is missing a count.';
               }
-              completeHash = record['sha256']?.toString();
+              final hash = record['sha256']?.toString();
+              if (hash == null || hash.isEmpty) {
+                error ??=
+                    'Integration artifact complete record is missing a checksum.';
+              } else {
+                completeHash = hash;
+              }
             }
             break;
           case 'start':
@@ -399,7 +405,7 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
               relativePath: relativePath,
               expectedSize: expectedSize,
               expectedHash: expectedHash,
-              tempFile: File(p.join(tempDir.path, safeTempName)),
+              tempFile: File(p.join(stagingDirectory().path, safeTempName)),
             );
             await incoming.open();
             pending[id] = incoming;
@@ -437,23 +443,25 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
               break;
             }
             try {
-              final bytes = await artifact.finish();
-              if (bytes.length != artifact.expectedSize) {
+              await artifact.finish();
+              if (artifact.received != artifact.expectedSize) {
                 throw StateError(
                   'Integration artifact ${artifact.relativePath} has '
-                  '${bytes.length} bytes; expected ${artifact.expectedSize}.',
+                  '${artifact.received} bytes; expected ${artifact.expectedSize}.',
                 );
               }
-              final actualHash = sha256.convert(bytes).toString();
+              final actualHash =
+                  (await sha256.bind(artifact.tempFile.openRead()).first)
+                      .toString();
               if (actualHash != artifact.expectedHash) {
                 throw StateError(
                   'Integration artifact checksum failed: ${artifact.relativePath}',
                 );
               }
-              _writeArtifactBytes(
+              await _materializeArtifactFile(
                 artifactRoot: artifactRoot,
                 relativePath: artifact.relativePath,
-                bytes: bytes,
+                source: artifact.tempFile,
               );
               receivedPaths.add(artifact.relativePath);
               receivedIds.add(id);
@@ -468,9 +476,6 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
         }
       }
 
-      for (final artifact in pending.values) {
-        await artifact.dispose();
-      }
       if (pending.isNotEmpty) {
         error ??=
             'Integration artifact transport ended with ${pending.length} incomplete artifact(s).';
@@ -521,18 +526,26 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
         receivedPaths: receivedPaths,
       );
     } finally {
+      // Pending writes may remain when output is truncated or an unexpected
+      // receiver error escapes the record loop. Close their sinks before
+      // removing the staging directory on every exit path.
+      for (final artifact in pending.values) {
+        try {
+          await artifact.dispose();
+        } catch (_) {}
+      }
       try {
-        tempDir.deleteSync(recursive: true);
+        tempDir?.deleteSync(recursive: true);
       } catch (_) {}
     }
   });
 }
 
-void _writeArtifactBytes({
+Future<void> _materializeArtifactFile({
   required String artifactRoot,
   required String relativePath,
-  required List<int> bytes,
-}) {
+  required File source,
+}) async {
   final normalized = p.posix.normalize(relativePath.replaceAll('\\', '/'));
   if (p.posix.isAbsolute(normalized) ||
       normalized == '..' ||
@@ -544,5 +557,33 @@ void _writeArtifactBytes({
   if (!p.isWithin(root, target)) {
     throw StateError('Unsafe integration artifact path: $normalized');
   }
-  AtomicFile.writeBytesSync(File(target), bytes);
+  final destination = File(target);
+  destination.parent.createSync(recursive: true);
+  AtomicFile.recoverOrphanSync(destination);
+  AtomicFile.recoverStaleTempsSync(destination);
+  final temporary = File(
+    '${destination.path}.tmp-$pid-${DateTime.now().microsecondsSinceEpoch}',
+  );
+  IOSink? sink;
+  try {
+    sink = temporary.openWrite();
+    await for (final chunk in source.openRead()) {
+      sink.add(chunk);
+    }
+    await sink.flush();
+    await sink.close();
+    sink = null;
+    temporary.renameSync(destination.path);
+    RunnerBenchmark.count('bytesWritten', source.lengthSync());
+    RunnerBenchmark.count('filesWritten', 1);
+  } finally {
+    try {
+      await sink?.close();
+    } catch (_) {}
+    if (temporary.existsSync()) {
+      try {
+        temporary.deleteSync();
+      } catch (_) {}
+    }
+  }
 }

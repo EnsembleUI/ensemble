@@ -6,19 +6,22 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
+import 'package:ensemble_test_runner/actions/navigation_waiter.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
 import 'package:ensemble_test_runner/session/actions/action_result.dart';
 import 'package:ensemble_test_runner/session/actions/artifact_request.dart';
-import 'package:ensemble_test_runner/session/assertions/test_assertion.dart';
+import 'package:ensemble_test_runner/session/operation_result.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
-import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
+import 'package:ensemble_test_runner/cli/app_patcher.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
@@ -30,6 +33,7 @@ import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
+import 'package:ensemble_test_runner/reporters/screenshot_archive.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
@@ -38,6 +42,7 @@ import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_runner.dart';
+import 'package:ensemble_test_runner/runner/event_driven_settler.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
 import 'package:ensemble_test_runner/runner/host_screenshot_optimizer.dart';
@@ -47,19 +52,26 @@ import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:ensemble_test_runner/runner/step_report_capture.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:ensemble_test_runner/runner/test_visual_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/schema/ensemble_test_schema_builder.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/local/leaf_command_queue.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
+import 'package:ensemble_test_runner/src/core/runtime.dart';
+import 'package:ensemble_test_runner/src/core/operation.dart';
+import 'package:ensemble_test_runner/src/core/kernel.dart';
+import 'package:ensemble_test_runner/src/core/execution_kernel_runner.dart';
+import 'package:ensemble_test_runner/src/core/plan.dart';
+import 'package:ensemble_test_runner/src/core/policy.dart';
+import 'package:ensemble_test_runner/src/runtime/step_evidence_subscriber.dart';
+import 'package:ensemble_test_runner/src/runtime/operation_registry.dart';
+import 'package:ensemble_test_runner/src/runtime/flutter_test_runtime.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
-import 'package:ensemble_test_runner/session/yaml/session_step_routing.dart';
-import 'package:ensemble_test_runner/session/yaml/yaml_step_dispatcher.dart';
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
+import 'package:ensemble_test_runner/src/runtime/compiled_plan.dart';
 import 'package:ensemble_test_runner/src/worker_capacity.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
@@ -69,6 +81,21 @@ import 'package:yaml/yaml.dart';
 import 'coverage.dart';
 import 'operation_cases.dart';
 import 'worker_project.dart';
+
+/// Advances benchmark fixtures until Flutter has had two quiet turns.
+///
+/// Benchmark setup must not use an unbounded settle helper: repeating
+/// animations in a fixture would make the benchmark itself hang. The runner's
+/// production observer uses the same bounded event-driven rule.
+Future<void> settleBenchmarkFixture(
+  WidgetTester tester, {
+  Duration timeout = const Duration(seconds: 5),
+}) =>
+    EventDrivenSettler(tester: tester).settle(timeout: timeout);
+
+ScreenshotSheetAggregator? _noScreenshotSheets() => null;
+
+void _drainNothing(WidgetTester tester) {}
 
 class BenchmarkCase {
   BenchmarkCase(
@@ -85,6 +112,7 @@ class BenchmarkCase {
     this.skipReason,
     this.cold = false,
     this.batchable = true,
+    this.fixtureVersion = 1,
   });
   final List<Map<String, dynamic>> Function()? externalMeasurements;
   final String id, service, kind;
@@ -92,13 +120,14 @@ class BenchmarkCase {
   final Future<void> Function()? prepare, cleanup;
   final void Function(Object?)? verify;
   final bool quick, cold, batchable;
+  final int fixtureVersion;
   final String? skipReason;
   final Map<String, Object> dimensions;
   Map<String, Object?> toJson() => {
         'id': id,
         'service': service,
         'kind': kind,
-        'fixtureVersion': 1,
+        'fixtureVersion': fixtureVersion,
         'dimensions': dimensions,
         'operations': [
           for (final entry in operationCases.entries)
@@ -115,6 +144,14 @@ class BenchmarkCase {
         'batchable': batchable,
         if (skipReason != null) 'skipReason': skipReason
       };
+}
+
+void _clearScreenshotArchiveFixture(String artifactRoot) {
+  final report = Directory('$artifactRoot/report');
+  final images = Directory('${report.path}/screenshots');
+  if (images.existsSync()) images.deleteSync(recursive: true);
+  final archive = File('${report.path}/${ScreenshotArchive.fileName}');
+  if (archive.existsSync()) archive.deleteSync();
 }
 
 void checkCoverage() {
@@ -176,8 +213,6 @@ const runtimeSteps = {
   'restartApp',
   'launchApp',
   'trigger',
-  'runScript',
-  'expectScriptResult',
   'setDevice',
   'expectBackStack'
 };
@@ -226,6 +261,7 @@ class BenchmarkFixtures {
       {int nodes = 40,
       int depth = 1,
       String step = '',
+      bool uniqueLabels = false,
       bool screenshots = false}) async {
     sessionReady = false;
     harness = null;
@@ -252,7 +288,7 @@ class BenchmarkFixtures {
     storage.values
       ..clear()
       ..['key'] = true;
-    YamlTestSession.navigationFlow.seed(['Login', 'Home']);
+    context.navigationFlow.seed(['Login', 'Home']);
     Widget target;
     if ([
       'enterText',
@@ -312,7 +348,8 @@ class BenchmarkFixtures {
       for (var i = 0; i < nodes; i++)
         SizedBox(
             height: 18,
-            child: Text(i.isEven ? 'Repeated label' : 'Item $i',
+            child: Text(
+                !uniqueLabels && i.isEven ? 'Repeated label' : 'Item $i',
                 key: ValueKey('node_$i'))),
       const Offstage(child: Text('Hidden', key: ValueKey('hidden'))),
     ]);
@@ -323,8 +360,8 @@ class BenchmarkFixtures {
         home: Scaffold(
             body: SingleChildScrollView(
                 key: const ValueKey('list'), child: tree))));
-    await tester.pumpAndSettle();
-    YamlTestSession.navigationFlow.seed(['Login', 'Home']);
+    await settleBenchmarkFixture(tester);
+    context.navigationFlow.seed(['Login', 'Home']);
     session = LocalTestExecutionSession.attach(
         tester: tester,
         context: context,
@@ -400,6 +437,41 @@ void require(bool condition, String message) {
   if (!condition) throw StateError(message);
 }
 
+TestOperation _sessionOperation(String name, Map<String, Object?> input) {
+  final descriptor = operationRegistry.lookup(name);
+  if (descriptor == null) throw StateError('No operation descriptor for $name');
+  return TestOperation(
+    id: 'benchmark-session-$name',
+    name: descriptor.name,
+    kind: descriptor.kind,
+    handlerKey: descriptor.handlerKey,
+    input: input,
+    source: SourceLocation('benchmark', 'session.$name'),
+  );
+}
+
+Future<OperationResult> _executeRuntimeStep(
+  BenchmarkFixtures fixture,
+  TestStep step,
+) =>
+    FlutterTestRuntime(fixture.session).execute(_operationForStep(step));
+
+TestOperation _operationForStep(TestStep step) {
+  final name = TestStepVocabulary.resolveStepType(step.type);
+  final descriptor = operationRegistry.lookup(name);
+  if (descriptor == null) {
+    throw StateError('No operation descriptor for ${step.type}');
+  }
+  return TestOperation(
+    id: 'benchmark-step',
+    name: name,
+    kind: descriptor.kind,
+    handlerKey: descriptor.handlerKey,
+    input: Map<String, Object?>.from(step.args),
+    source: const SourceLocation('benchmark.yaml', 'steps[0]'),
+  );
+}
+
 List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
   checkCoverage();
   final cases = <BenchmarkCase>[];
@@ -407,16 +479,26 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
           String id, String service, Future<Object?> Function() body,
           {int nodes = 40,
           int depth = 1,
+          bool uniqueLabels = false,
           bool quick = false,
           Map<String, Object> dimensions = const {},
           void Function(Object?)? verify,
           String? skipReason,
           String kind = 'component'}) =>
       BenchmarkCase(id, service, body,
-          prepare: () => f.prepare(nodes: nodes, depth: depth),
+          prepare: () => f.prepare(
+                nodes: nodes,
+                depth: depth,
+                uniqueLabels: uniqueLabels,
+              ),
           cleanup: f.cleanup,
           quick: quick,
-          dimensions: {'nodes': nodes, 'depth': depth, ...dimensions},
+          dimensions: {
+            'nodes': nodes,
+            'depth': depth,
+            if (uniqueLabels) 'uniqueLabels': true,
+            ...dimensions,
+          },
           verify: verify,
           skipReason: skipReason,
           kind: kind);
@@ -426,6 +508,63 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
   cases.add(BenchmarkCase('control.instrumented', 'control',
       () async => RunnerBenchmark.sync('control', 'noop', () => 1),
       quick: true, verify: (r) => require(r == 1, 'instrumented noop')));
+  cases.add(BenchmarkCase('kernel.subscriber.dispatch', 'kernel', () async {
+    var captures = 0;
+    final subscriber = StepEvidenceSubscriber(capture: (_) {
+      captures++;
+      return true;
+    });
+    for (var i = 0; i < 100000; i++) {
+      subscriber.call(const ExecutionEvent(
+        sequence: 0,
+        kind: ExecutionEventKind.operationFinished,
+      ));
+    }
+    for (var i = 0; i < 1000; i++) {
+      subscriber.call(ExecutionEvent(
+        sequence: i,
+        kind: ExecutionEventKind.stepFinished,
+        stepIndex: i,
+      ));
+    }
+    return captures;
+  }, quick: true, verify: (r) => require(r == 1000, 'subscriber dispatch')));
+  final subscriberPlan = _kernelDispatchBenchmarkPlan();
+  cases.add(BenchmarkCase(
+    'kernel.no_subscribers',
+    'kernel',
+    () async => (await ExecutionKernel(
+      plan: subscriberPlan,
+      policy: CompiledExecutionPolicy(subscriberPlan),
+      runtime: _KernelBenchmarkRuntime(),
+    ).run())
+        .events,
+    quick: true,
+    dimensions: const {'operations': 100, 'eventSubscribers': 0},
+    verify: (r) => require(r == 303, 'unobserved kernel event count: $r'),
+  ));
+  cases.add(BenchmarkCase(
+    'kernel.subscribers.enabled',
+    'kernel',
+    () async {
+      var delivered = 0;
+      final result = await ExecutionKernel(
+        plan: subscriberPlan,
+        policy: CompiledExecutionPolicy(subscriberPlan),
+        runtime: _KernelBenchmarkRuntime(),
+        eventSubscriptions: [
+          EventSubscription(
+            kinds: const {ExecutionEventKind.operationFinished},
+            handle: (_) => delivered++,
+          ),
+        ],
+      ).run();
+      return '${result.events}:$delivered';
+    },
+    quick: true,
+    dimensions: const {'operations': 100, 'eventSubscribers': 1},
+    verify: (r) => require(r == '303:100', 'observed kernel event count'),
+  ));
   for (final nodes in [40, 400, 1200]) {
     for (final keyed in [false, true]) {
       cases.add(uiCase(
@@ -453,6 +592,198 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         verify: (r) => require(
             (r as DiagnosticUiSnapshot).observation.elements.isNotEmpty,
             'Empty diagnostic snapshot')));
+  }
+  cases.add(uiCase(
+    'observer.diagnostic.unique.40',
+    'observer',
+    () async => captureDiagnosticUiSnapshot(
+      tester: f.tester,
+      assertions: f.session.assertions,
+      navigation: f.navigation,
+    ),
+    nodes: 40,
+    uniqueLabels: true,
+    quick: true,
+    verify: (r) => require(
+      (r as DiagnosticUiSnapshot).observation.elements.isNotEmpty,
+      'Empty unique-label diagnostic snapshot',
+    ),
+  ));
+  const repeatedConditionalObservations = 100;
+  const conditionalTarget = {'id': 'target'};
+  final conditionalRequest = ObservationRequest(target: conditionalTarget);
+  FlutterTestRuntime? cachedRuntime;
+  cases.add(BenchmarkCase(
+    'observer.runtime.conditional.cached.100',
+    'observer',
+    () async {
+      RuntimeView? view;
+      for (var index = 0; index < repeatedConditionalObservations; index++) {
+        view = await cachedRuntime!.observe(conditionalRequest);
+      }
+      RunnerBenchmark.count('observations', repeatedConditionalObservations);
+      return view!.targetVisible;
+    },
+    prepare: () async {
+      await f.prepare(nodes: 40);
+      cachedRuntime = FlutterTestRuntime(f.session);
+    },
+    quick: true,
+    // Rebuilding and settling a Flutter fixture per internal batch dominates
+    // this cached-read workload. One sample already includes 100 observations;
+    // repeated prepare/body/cleanup cycles add setup cost rather than signal.
+    batchable: false,
+    dimensions: const {'observations': repeatedConditionalObservations},
+    verify: (result) =>
+        require(result == true, 'Cached target was not visible'),
+    cleanup: () async {
+      final runtime = cachedRuntime;
+      cachedRuntime = null;
+      await runtime?.close();
+      await f.cleanup();
+    },
+  ));
+  cases.add(uiCase(
+    'observer.runtime.conditional.uncached.100',
+    'observer',
+    () async {
+      RuntimeView? view;
+      for (var index = 0; index < repeatedConditionalObservations; index++) {
+        final step = TestStep(
+          type: 'ifVisible',
+          args: Map<String, dynamic>.from(conditionalTarget),
+        );
+        var visible = false;
+        try {
+          final finder = f.session.executor.finderForTargetStep(
+            step,
+            requireInteractive: false,
+          );
+          visible = finder
+              .evaluate()
+              .any(f.session.assertions.isElementVisuallyActionable);
+        } catch (_) {
+          // Match the runtime's hidden edge for a missing conditional target.
+        }
+        view = RuntimeView(
+          revision: 0,
+          level: ObservationLevel.minimal,
+          target: conditionalTarget,
+          targetVisible: visible,
+        );
+      }
+      RunnerBenchmark.count('observations', repeatedConditionalObservations);
+      return view!.targetVisible;
+    },
+    nodes: 40,
+    quick: true,
+    dimensions: const {'observations': repeatedConditionalObservations},
+    verify: (result) =>
+        require(result == true, 'Uncached target was not visible'),
+  ));
+  cases.add(BenchmarkCase(
+    'session.runtime-operation',
+    'session',
+    () async {
+      final result = await _executeRuntimeStep(
+        f,
+        const TestStep(type: 'expectVisible', args: {'id': 'target'}),
+      );
+      return result.succeeded;
+    },
+    prepare: () => f.prepare(),
+    cleanup: f.cleanup,
+    quick: true,
+    batchable: false,
+    fixtureVersion: 2,
+    verify: (result) => require(result == true, 'Runtime operation failed'),
+  ));
+  cases.add(BenchmarkCase(
+    'execution.control-flow',
+    'execution',
+    () async {
+      final testCase = EnsembleTestCase(
+        id: 'benchmark_control_flow',
+        startScreen: 'Home',
+        steps: const [
+          TestStep(
+            type: 'ifVisible',
+            args: {'id': 'target'},
+            nestedSteps: [
+              TestStep(type: 'expectVisible', args: {'id': 'target'}),
+            ],
+          ),
+        ],
+      );
+      final result = await ExecutionKernelRunner(
+        plan: CompiledPlanCompiler().compile(testCase),
+        runtime: FlutterTestRuntime(f.session),
+      ).run();
+      return result.outcome == AttemptOutcome.passed;
+    },
+    prepare: () => f.prepare(step: 'ifVisible'),
+    cleanup: f.cleanup,
+    quick: true,
+    // Each run closes its runtime session. A batch would call body again on
+    // the closed session because preparation is once per sample, not per
+    // batch iteration.
+    batchable: false,
+    verify: (result) =>
+        require(result == true, 'Control-flow operation did not complete'),
+  ));
+  const finderLookups = 256;
+  final finderTarget = ElementTarget(testId: 'target');
+  for (final cached in [true, false]) {
+    cases.add(BenchmarkCase(
+      cached
+          ? 'session.finder-cache.same-revision'
+          : 'session.finder-cache.invalidated',
+      'session',
+      () async {
+        final resolver = f.session.resolver;
+        Finder? previous;
+        var identityReuses = 0;
+        var matches = 0;
+        for (var i = 0; i < finderLookups; i++) {
+          if (!cached) resolver.invalidateResolvedFinders();
+          final finder = resolver.resolveFinder(
+            finderTarget,
+            requireInteractive: false,
+          );
+          if (identical(previous, finder)) identityReuses++;
+          previous = finder;
+          matches += finder.evaluate().length;
+        }
+        RunnerBenchmark.count('finderLookups', finderLookups);
+        return {
+          'finderLookups': finderLookups,
+          'identityReuses': identityReuses,
+          'matches': matches,
+          'checksum': matches * 31 + identityReuses,
+        };
+      },
+      prepare: () => f.prepareRuntime('widget'),
+      cleanup: f.cleanup,
+      quick: true,
+      dimensions: {
+        'lookups': finderLookups,
+        'revision': 'fixed',
+        'cacheMode': cached ? 'same-revision' : 'invalidate-each-lookup',
+      },
+      verify: (result) {
+        final value = result as Map;
+        require(value['finderLookups'] == finderLookups,
+            'Finder workload was incomplete');
+        require(value['matches'] == finderLookups,
+            'Finder workload did not resolve the fixed target each time');
+        require(value['identityReuses'] == (cached ? finderLookups - 1 : 0),
+            'Finder cache identity behavior changed');
+        require(
+            value['checksum'] ==
+                finderLookups * 31 + (cached ? finderLookups - 1 : 0),
+            'Finder workload checksum changed');
+      },
+    ));
   }
   for (final sync in [
     ObservationSynchronization.nextFrame,
@@ -637,12 +968,188 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
           item.message ?? 'Wrong workflow status');
       return item.toJson();
     },
-        quick: policy == StepReportCapturePolicy.beforeAction,
+        quick: policy != StepReportCapturePolicy.onFailure,
         kind: 'workflow',
         dimensions: {'capturePolicy': policy.name},
         verify: (r) => require(
             (r as Map)['testId'] == 'workflow', 'Workflow result missing')));
   }
+  for (final enabled in [false, true]) {
+    final subscriberCount = enabled ? 1 : 0;
+    cases.add(BenchmarkCase(
+      'workflow.evidence.${enabled ? 'enabled' : 'disabled'}',
+      'workflow',
+      () async {
+        const steps = [
+          TestStep(type: 'expectText', args: {'text': 'Welcome'}),
+          TestStep(type: 'expectText', args: {'text': 'Welcome'}),
+          TestStep(type: 'expectText', args: {'text': 'Welcome'}),
+          TestStep(type: 'expectText', args: {'text': 'Welcome'}),
+        ];
+        final test = EnsembleTestCase(
+          id: 'workflow-evidence-pair',
+          steps: steps,
+        );
+        final result = await EnsembleTestRunner.application(
+          driver: FixtureDriver(f),
+        ).runPlan(
+          EnsembleTestExecutionPlan(
+            ordered: [
+              EnsembleTestDefinition(assetPath: 'fixture', testCase: test),
+            ],
+            config: EnsembleTestConfig(
+              screenshots: ScreenshotConfig(enabled: enabled),
+            ),
+          ),
+          f.tester,
+        );
+        final item = result.resultsById[test.id]!;
+        final hasFrames = item.logs.any(
+          (line) => line.startsWith('screenshotFrames:'),
+        );
+        return {
+          'status': item.status.name,
+          'stepCount': steps.length,
+          'reportedStepCount': item.report?.stepsOutline.length,
+          'hasScreenshotFrames': hasFrames,
+        };
+      },
+      quick: true,
+      kind: 'workflow',
+      dimensions: {
+        'steps': 4,
+        'evidenceSubscribers': subscriberCount,
+        'screenshotsEnabled': enabled,
+      },
+      verify: (result) {
+        final value = result as Map;
+        require(value['status'] == TestStatus.passed.name,
+            'Evidence workload did not pass');
+        require(value['stepCount'] == 4, 'Evidence workload lost steps');
+        require(value['reportedStepCount'] == 4,
+            'Evidence workload report lost steps');
+        require(value['hasScreenshotFrames'] == enabled,
+            'Evidence workload frame publication did not match configuration');
+      },
+    ));
+  }
+  cases.add(BenchmarkCase(
+    'workflow.capture.finderTap',
+    'workflow',
+    () async {
+      final test = EnsembleTestCase(
+        id: 'workflow-finder-tap',
+        steps: const [
+          TestStep(type: 'doubleTap', args: {'id': 'target'}),
+        ],
+      );
+      final result = await EnsembleTestRunner.application(
+        driver: FixtureDriver(f),
+      ).runPlan(
+        EnsembleTestExecutionPlan(
+          ordered: [
+            EnsembleTestDefinition(assetPath: 'fixture', testCase: test),
+          ],
+          config: EnsembleTestConfig(
+            screenshots: ScreenshotConfig(enabled: true),
+          ),
+        ),
+        f.tester,
+      );
+      final item = result.resultsById[test.id]!;
+      require(item.status == TestStatus.passed,
+          item.message ?? 'Finder tap workload failed');
+      return {
+        'testId': item.testId,
+        'status': item.status.name,
+        'hasScreenshotFrames': item.logs.any(
+          (line) => line.startsWith('screenshotFrames:'),
+        ),
+      };
+    },
+    quick: true,
+    kind: 'workflow',
+    dimensions: const {
+      'action': 'doubleTap',
+      'targetPath': 'resolved-finder',
+      'screenshotsEnabled': true,
+    },
+    verify: (result) {
+      final value = result as Map;
+      require(value['status'] == TestStatus.passed.name,
+          'Finder tap workflow did not pass');
+      require(value['hasScreenshotFrames'] == true,
+          'Finder tap workflow did not publish evidence');
+    },
+  ));
+  cases.add(BenchmarkCase(
+    'workflow.trigger.tap',
+    'workflow',
+    () async {
+      final test = EnsembleTestCase(
+        id: 'workflow_trigger_tap',
+        steps: const [
+          TestStep(
+            type: 'trigger',
+            args: {'action': 'onTap', 'id': 'target'},
+          ),
+        ],
+      );
+      final driver = FixtureDriver(f);
+      final result =
+          await EnsembleTestRunner.application(driver: driver).runPlan(
+        EnsembleTestExecutionPlan(
+          ordered: [
+            EnsembleTestDefinition(assetPath: 'fixture', testCase: test),
+          ],
+          config: const EnsembleTestConfig(
+            screenshots: ScreenshotConfig(enabled: true),
+          ),
+        ),
+        f.tester,
+      );
+      final item = result.resultsById['workflow_trigger_tap']!;
+      require(
+        item.status == TestStatus.passed,
+        item.message ?? 'Trigger tap workflow failed',
+      );
+      return item.toJson();
+    },
+    quick: true,
+    kind: 'workflow',
+    dimensions: const {'action': 'trigger.onTap'},
+    verify: (r) => require(
+      (r as Map)['testId'] == 'workflow_trigger_tap',
+      'Trigger workflow result missing',
+    ),
+  ));
+  cases.add(BenchmarkCase(
+    'workflow.performance-artifacts',
+    'workflow',
+    () async {
+      final context = EnsembleTestContext.fromTestCase(
+        const EnsembleTestCase(id: 'performance_artifacts', steps: []),
+        config: const EnsembleTestConfig(
+          performance: PerformanceConfig(enabled: true),
+        ),
+      );
+      final tracker = ScreenTracker();
+      tracker.trackScreen(screenName: 'Home');
+      const visuals = TestVisualArtifacts(
+        screenshotSheets: _noScreenshotSheets,
+        drainFlutterExceptions: _drainNothing,
+      );
+      visuals.captureScreenArtifacts(context);
+      final result = context.runtime.screenArtifacts['Home'];
+      tracker.clearAll();
+      return result;
+    },
+    quick: true,
+    kind: 'workflow',
+    dimensions: const {'performanceArtifacts': true},
+    verify: (result) =>
+        require(result is Map, 'Screen performance artifact missing'),
+  ));
   cases.add(BenchmarkCase('workflow.retry', 'workflow', () async {
     final driver = FixtureDriver(f, failFirstLaunch: true);
     final test = EnsembleTestCase(id: 'retry', retry: 1, steps: const [
@@ -667,6 +1174,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         appHome: 'Home');
     const test =
         EnsembleTestCase(id: 'standalone', startScreen: 'Home', steps: [
+      TestStep(type: 'waitFor', args: {'id': 'target', 'timeoutMs': 5000}),
       TestStep(
           type: 'expectVisible', args: {'id': 'target', 'timeoutMs': 5000}),
       TestStep(type: 'expectText', args: {'text': 'Welcome'})
@@ -682,15 +1190,49 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       verify: (r) => require(
           (r as EnsembleSingleTestResult).status == TestStatus.passed,
           r.message ?? 'Standalone failed')));
+  cases.add(BenchmarkCase('workflow.standalone-storage', 'workflow', () async {
+    final harness = EnsembleTestHarness(
+        appPath:
+            '${mode == 'integration' ? 'packages/ensemble_test_runner/' : ''}tool/benchmarks/fixtures/ensemble/apps/demo/',
+        appHome: 'Home');
+    const test = EnsembleTestCase(
+      id: 'standalone_storage',
+      startScreen: 'Home',
+      steps: [
+        TestStep(
+          type: 'expectVisible',
+          args: {'id': 'target', 'timeoutMs': 5000},
+        ),
+      ],
+    );
+    final result = await EnsembleTestRunner(harness: harness).runPlan(
+        const EnsembleTestExecutionPlan(
+          ordered: [
+            EnsembleTestDefinition(assetPath: 'fixture', testCase: test)
+          ],
+          config: EnsembleTestConfig(
+            logStorage: LogStorageConfig(enabled: true),
+          ),
+        ),
+        f.tester);
+    return result.resultsById['standalone_storage'];
+  },
+      kind: 'workflow',
+      verify: (r) => require(
+          (r as EnsembleSingleTestResult).status == TestStatus.passed,
+          r.message ?? 'Standalone storage workflow failed')));
   cases.add(uiCase('session.snapshot-target', 'session', () async {
     final observation = await f.session.observe(
         options: const ObservationOptions(
             synchronization: ObservationSynchronization.immediate));
     final target = flattenElements(observation.elements)
         .firstWhere((e) => e.testId == 'target');
-    final result = await f.session.act(TapAction(ElementTarget(
-        elementId: target.elementId,
-        observationId: observation.observationId)));
+    final result = await f.session.act(_sessionOperation('tap', {
+      'target': {
+        'elementId': target.elementId,
+        'observationId': observation.observationId,
+      },
+    }));
     require(result.succeeded, 'Snapshot action failed');
     return true;
   }, verify: (r) => require(r == true, 'Snapshot target')));
@@ -746,6 +1288,66 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
             (r as EnsembleTestExecutionPlan).ordered.length == 1,
             'Selection')));
   }
+  final scenarios = [
+    for (var i = 0; i < 100; i++)
+      {
+        'id': 'scenario_$i',
+        'description': 'Scenario $i',
+        'vars': {'expected': i},
+      },
+  ];
+  cases.add(BenchmarkCase(
+    'planner.scenarios.100',
+    'planner',
+    () async => EnsembleTestExecutionPlanner.buildForTest(
+      assetContents: {
+        'tests/scenarios.test.yaml': jsonEncode({
+          'id': 'scenarios',
+          'steps': [
+            {
+              'expectText': {'text': r'${scenario.expected}'},
+            },
+          ],
+          'scenarios': scenarios,
+        }),
+      },
+      selection: const EnsembleTestSelection(ids: {'scenarios[scenario_99]'}),
+    ),
+    quick: true,
+    dimensions: const {'scenarios': 100, 'selected': 1},
+    verify: (result) {
+      final plan = result as EnsembleTestExecutionPlan;
+      require(plan.ordered.length == 1, 'Scenario selection count');
+      require(
+        plan.ordered.single.testCase.steps.single.args['text'] == 99,
+        'Selected scenario substitution',
+      );
+    },
+  ));
+  final compileBatch = [
+    for (var index = 0; index < 100; index++)
+      EnsembleTestCase(
+        id: 'compiled_$index',
+        steps: [
+          for (var step = 0; step < 10; step++)
+            const TestStep(type: 'pump', args: {'durationMs': 0}),
+        ],
+      ),
+  ];
+  cases.add(BenchmarkCase(
+    'planner.compile-batch.100',
+    'planner',
+    () async => CompiledPlanBatch(compileBatch),
+    quick: true,
+    dimensions: const {'tests': 100, 'stepsPerTest': 10},
+    verify: (result) {
+      final batch = result as CompiledPlanBatch;
+      require(
+        batch.forTest('compiled_99').plan.id == 'compiled_99',
+        'Compiled plan missing from prepared batch',
+      );
+    },
+  ));
   cases.add(BenchmarkCase('planner.cycle', 'planner', () async {
     try {
       await EnsembleTestExecutionPlanner.buildForTest(assetContents: {
@@ -802,6 +1404,10 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         'report',
         () async =>
             HtmlTestReporter().write(reportResults, artifactRoot: f.root.path),
+        prepare: () async {
+          final shell = File('${f.root.path}/report/index.html');
+          if (shell.existsSync()) shell.deleteSync();
+        },
         dimensions: {'tests': count},
         verify: (r) => require(
             File('${f.root.path}/report/index.html').existsSync(),
@@ -819,11 +1425,11 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         result: fixtureResults(10)));
     return true;
   }, prepare: () async {
-    final db = File('${f.root.path}/report/ensemble_test_history.db');
+    final db = File('${f.root.path}/report/ensemble_test.db');
     if (db.existsSync()) db.deleteSync();
   },
       verify: (r) => require(
-          File('${f.root.path}/report/ensemble_test_history.db').existsSync(),
+          File('${f.root.path}/report/ensemble_test.db').existsSync(),
           'History DB missing')));
   for (final bytes in [1024, 1024 * 1024]) {
     final payload = Uint8List.fromList(List.generate(bytes, (i) => i % 256));
@@ -857,6 +1463,34 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         verify: (r) => require(
             (r as ArtifactTransportResult).complete, 'Transport incomplete')));
   }
+  const archiveFiles = 16;
+  const archiveFileBytes = 256 * 1024;
+  final archivePayload = List<int>.generate(
+    archiveFileBytes,
+    (index) => index & 0xff,
+  );
+  cases.add(BenchmarkCase(
+    'artifact.archive.4m',
+    'artifact',
+    () async => ScreenshotArchive.create(f.root.path),
+    prepare: () async {
+      _clearScreenshotArchiveFixture(f.root.path);
+      final images = Directory('${f.root.path}/report/screenshots')
+        ..createSync(recursive: true);
+      for (var index = 0; index < archiveFiles; index++) {
+        File('${images.path}/frame_$index.webp')
+            .writeAsBytesSync(archivePayload);
+      }
+    },
+    cleanup: () async => _clearScreenshotArchiveFixture(f.root.path),
+    quick: true,
+    dimensions: {
+      'files': archiveFiles,
+      'bytes': archiveFiles * archiveFileBytes,
+      'compression': 'stored',
+    },
+    verify: (result) => require(result == true, 'Screenshot archive missing'),
+  ));
   cases.add(BenchmarkCase(
       'artifact.incomplete',
       'artifact',
@@ -957,7 +1591,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
   }, verify: (r) => require(r is String, 'Aggregator did not write frames')));
   cases.add(BenchmarkCase('cli.patch-restore', 'cli', () async {
     final before = File('${f.root.path}/pubspec.yaml').readAsStringSync();
-    final patcher = YamlTestAppPatcher(f.root.path);
+    final patcher = TestAppPatcher(f.root.path);
     try {
       patcher.enable();
     } finally {
@@ -1088,25 +1722,24 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
           {name: args}
         ]
       }));
-      require(SessionStepRouting.pathFor(name) != null, 'No routing for $name');
       if (name == 'expectStyle') {
-        try {
-          await YamlStepDispatcher(session: f.session)
-              .execute(parsed.steps.single);
-        } catch (error) {
-          require(error.toString().contains('Unsupported property'),
-              'Unexpected style failure: $error');
+        final result = await _executeRuntimeStep(f, parsed.steps.single);
+        if (!result.succeeded &&
+            result.error.toString().contains('Unsupported property')) {
           return true;
         }
         throw StateError(
             'expectStyle unexpectedly succeeded; update its benchmark fixture');
       }
+      OperationResult result;
       if (name == 'httpRequest') {
-        await f.tester.runAsync(() => YamlStepDispatcher(session: f.session)
-            .execute(parsed.steps.single));
+        result = (await f.tester
+            .runAsync(() => _executeRuntimeStep(f, parsed.steps.single)))!;
       } else {
-        await YamlStepDispatcher(session: f.session)
-            .execute(parsed.steps.single);
+        result = await _executeRuntimeStep(f, parsed.steps.single);
+      }
+      if (!result.succeeded) {
+        throw result.cause ?? StateError(result.error ?? 'Step $name failed');
       }
       RunnerBenchmark.count('steps', 1);
       return true;
@@ -1129,7 +1762,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         dimensions: {
           'step': name,
           'canonical': canonical,
-          'path': 'yaml',
+          'path': 'compiled-runtime',
           if (name == 'expectStyle')
             'expectedOutcome': 'unsupported-property-error'
         },
@@ -1141,13 +1774,17 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       cases.add(uiCase(
           'locator.$kind.$nodes',
           'locator',
-          () async => f.session.act(TapAction(ElementTarget(
-              locator: ElementLocator(
-                  text: kind == 'structured'
-                      ? 'Hello'
-                      : kind == 'missing'
-                          ? 'Absent'
-                          : 'Repeated label')))),
+          () async => f.session.act(_sessionOperation('tap', {
+                'target': {
+                  'locator': {
+                    'text': kind == 'structured'
+                        ? 'Hello'
+                        : kind == 'missing'
+                            ? 'Absent'
+                            : 'Repeated label',
+                  },
+                },
+              })),
           nodes: nodes,
           dimensions: {
             'resolution': kind,
@@ -1167,7 +1804,11 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
   }
   ElementTarget? stale;
   cases.add(BenchmarkCase(
-      'locator.stale', 'locator', () async => f.session.act(TapAction(stale!)),
+      'locator.stale',
+      'locator',
+      () async => f.session.act(_sessionOperation('tap', {
+            'target': stale!.toJson(),
+          })),
       prepare: () async {
         await f.prepare();
         final o = await f.session.observe(
@@ -1286,8 +1927,11 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         'session.wait.${matched ? 'success' : 'timeout'}',
         'session',
         () => f.session.waitFor(
-            ElementWait(testId: matched ? 'target' : 'missing'),
-            timeout: const Duration(milliseconds: 20)),
+              _sessionOperation('waitFor', {
+                'target': {'testId': matched ? 'target' : 'missing'},
+                'timeoutMs': 20,
+              }),
+            ),
         dimensions: {'expectedOutcome': matched ? 'satisfied' : 'timeout'},
         verify: (r) => require(
             (r as WaitResult).status ==
@@ -1296,14 +1940,19 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
     cases.add(uiCase(
         'session.assert.${matched ? 'success' : 'missing'}',
         'session',
-        () => f.session.assertCondition(
-            ElementExistsAssertion(testId: matched ? 'target' : 'missing')),
+        () => f.session.assertCondition(_sessionOperation('expectExists', {
+              'id': matched ? 'target' : 'missing',
+            })),
         dimensions: {'expectedOutcome': matched ? 'success' : 'failed'},
         verify: (r) => require((r as AssertionResult).passed == matched,
             'Wrong assertion outcome')));
   }
-  cases.add(BenchmarkCase('session.permission-denied', 'session',
-      () => f.session.act(const TapAction(ElementTarget(testId: 'target'))),
+  cases.add(BenchmarkCase(
+      'session.permission-denied',
+      'session',
+      () => f.session.act(_sessionOperation('tap', {
+            'target': const {'testId': 'target'},
+          })),
       prepare: () async {
         await f.prepare();
         await f.session.close();
@@ -1345,25 +1994,17 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
             : null,
         verify: (r) => require(r is String, 'Framed output missing')));
   }
-  for (final policy in [
-    SecureScreenshotPolicy.mask,
-    SecureScreenshotPolicy.allow
-  ]) {
-    cases.add(BenchmarkCase('screenshot.secure.${policy.name}', 'screenshot',
-        () async {
-      f.image = ExtendedStepHandlers.captureScreenshotImage(f.tester,
-          secureContent: policy);
-      return f.image!.width;
-    }, prepare: () async {
-      await f.prepare();
-      await f.tester.pumpWidget(MaterialApp(
-          home: Scaffold(
-              body: TextField(controller: f.controller, obscureText: true))));
-    },
-        cleanup: f.cleanup,
-        dimensions: {'secureContent': policy.name},
-        verify: (r) => require(r is int && r > 0, 'Secure capture missing')));
-  }
+  cases.add(BenchmarkCase('screenshot.secure.allow', 'screenshot', () async {
+    f.image = ExtendedStepHandlers.captureScreenshotImage(f.tester);
+    return f.image!.width;
+  }, prepare: () async {
+    await f.prepare();
+    await f.tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: TextField(controller: f.controller, obscureText: true))));
+  },
+      cleanup: f.cleanup,
+      verify: (r) => require(r is int && r > 0, 'Secure capture missing')));
   cases.add(BenchmarkCase(
       'planner.matrix',
       'planner',
@@ -1481,7 +2122,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       () async =>
           TestReporter().formatFailureSummary(EnsembleTestRunResult(results: [
             EnsembleSingleTestResult.failed(
-                testId: 'fixture', durationMs: 0, error: 'Expected error')
+                testId: 'fixture', durationMs: 0, message: 'Expected error')
           ])),
       verify: (r) => require(
           (r as String).contains('fixture'), 'Failure report missing')));
@@ -1560,16 +2201,30 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
   cases.add(BenchmarkCase('screenshot.navigation-pairing', 'screenshot',
       () async {
     var captured = false;
-    f.session.executor.onWaitForNavigationMatched = (step) async {
-      captured = await EnsembleTestRunner(harness: f.harness!)
-          .captureWaitForNavigationScreenshotForBenchmark(
-              session: f.session,
-              executor: f.session.executor,
-              step: step,
-              stepIndex: 0);
+    const step = TestStep(
+      type: 'waitForNavigation',
+      args: {'screen': 'Home', 'timeoutMs': 100},
+    );
+    f.session.executor.onEvidenceBoundary = (step) async {
+      captured = await const TestVisualArtifacts(
+        screenshotSheets: _noScreenshotSheets,
+        drainFlutterExceptions: _drainNothing,
+      ).captureWaitForNavigationScreenshot(
+        executor: f.session.executor,
+        step: step,
+        stepIndex: 0,
+      );
     };
-    await f.session.executor.execute(const TestStep(
-        type: 'waitForNavigation', args: {'screen': 'Home', 'timeoutMs': 100}));
+    await NavigationWaiter(
+      tester: f.tester,
+      context: f.context,
+      navigation: f.session.executor.services.navigation,
+      config: f.session.executor.config,
+    ).waitForNavigation(
+      screen: 'Home',
+      timeoutMs: 100,
+      onMatched: () => f.session.executor.emitEvidenceBoundary(step),
+    );
     return captured;
   },
       prepare: () => f.prepareRuntime(mode, screenshots: true),
@@ -1579,6 +2234,56 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       verify: (r) => require(
           r == true && f.context.runtime.screenshotSheetFrames.isNotEmpty,
           'Navigation screenshot missing')));
+  cases.add(BenchmarkCase(
+    'execution.navigation-live-call-drain',
+    'execution',
+    () async {
+      final previousRunner = LiveAsyncCallSupport.runner;
+      final releaseLiveCall = Completer<void>();
+      LiveAsyncCallSupport.runner = f.tester.runAsync;
+      try {
+        final liveCall = LiveAsyncCallSupport.run<void>(
+          () => releaseLiveCall.future,
+        );
+        var boundedDrainExpired = false;
+        try {
+          try {
+            await NavigationWaiter(
+              tester: f.tester,
+              context: f.context,
+              navigation: f.session.executor.services.navigation,
+              config: f.session.executor.config,
+            ).waitForNavigation(
+              screen: 'Profile',
+              timeoutMs: 20,
+            );
+          } on EnsembleTestFailure catch (error) {
+            boundedDrainExpired =
+                error.message.contains('bounded live-call drain expired');
+            if (!boundedDrainExpired) rethrow;
+          }
+        } finally {
+          if (!releaseLiveCall.isCompleted) releaseLiveCall.complete();
+          await liveCall;
+        }
+        // Warmups deliberately run outside the measurement zone, so only
+        // assert the behavior here. The catalogue contract test separately
+        // verifies that the measured workload emits its drain span.
+        return boundedDrainExpired;
+      } finally {
+        LiveAsyncCallSupport.runner = previousRunner;
+      }
+    },
+    prepare: () => f.prepareRuntime(mode),
+    cleanup: f.cleanup,
+    quick: true,
+    kind: 'workflow',
+    dimensions: const {'pendingLiveCalls': 1, 'drain': 'bounded-expiry'},
+    verify: (result) => require(
+      result == true,
+      'Navigation did not expire its bounded live-call drain',
+    ),
+  ));
   for (final diagnostic in [false, true]) {
     cases.add(BenchmarkCase(
         'observer.routes-modal.${diagnostic ? 'diagnostic' : 'session'}',
@@ -1601,14 +2306,14 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
           navigator.push<void>(MaterialPageRoute(
               builder: (_) => const Scaffold(
                   body: Text('Second route', key: ValueKey('second_route')))));
-          await f.tester.pumpAndSettle();
+          await settleBenchmarkFixture(f.tester);
           unawaited(showDialog<void>(
               context:
                   f.tester.element(find.byKey(const ValueKey('second_route'))),
               builder: (_) => const AlertDialog(
                   content:
                       Text('Modal target', key: ValueKey('modal_target')))));
-          await f.tester.pumpAndSettle();
+          await settleBenchmarkFixture(f.tester);
         },
         cleanup: f.cleanup,
         dimensions: {'routes': 2, 'modal': true, 'nodes': 40},
@@ -1791,7 +2496,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
         result: fixtureResults(1000)));
     return true;
   }, prepare: () async {
-    final db = File('${f.root.path}/report/ensemble_test_history.db');
+    final db = File('${f.root.path}/report/ensemble_test.db');
     if (db.existsSync()) db.deleteSync();
     await f.tester.runAsync(() async {
       for (var i = 0; i < 10; i++)
@@ -1865,7 +2570,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
                     key: const ValueKey('target'),
                     controller: f.controller,
                     obscureText: true))));
-        await f.tester.pumpAndSettle();
+        await settleBenchmarkFixture(f.tester);
       },
       cleanup: f.cleanup,
       dimensions: {'secureField': true},
@@ -1882,6 +2587,49 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       }));
   checkCatalogue(cases);
   return cases;
+}
+
+ExecutionPlan _kernelDispatchBenchmarkPlan() {
+  const operations = 100;
+  final nodes = <String, PlanNode>{};
+  for (var index = 0; index < operations; index++) {
+    final id = 'operation_$index';
+    nodes[id] = OperationNode(
+      id,
+      TestOperation(
+        id: id,
+        name: 'noop',
+        kind: OperationKind.interaction,
+        handlerKey: 'noop',
+        input: const {},
+        source: const SourceLocation('benchmark', 'step'),
+      ),
+      index + 1 == operations ? 'end' : 'operation_${index + 1}',
+    );
+  }
+  nodes['end'] = const EndNode('end');
+  return ExecutionPlan(
+      id: 'kernel_dispatch', start: 'operation_0', nodes: nodes);
+}
+
+final class _KernelBenchmarkRuntime implements TestRuntime {
+  @override
+  final RuntimeCapabilities capabilities = RuntimeCapabilities(const {'noop'});
+
+  @override
+  Future<RuntimeView> observe(ObservationRequest request) async => RuntimeView(
+        revision: 0,
+        level: request.level,
+        target: request.target,
+        targetVisible: true,
+      );
+
+  @override
+  Future<OperationResult> execute(TestOperation operation) async =>
+      const OperationResult.success();
+
+  @override
+  Future<void> close() async {}
 }
 
 // Setup for the contrast component deliberately occurs outside measured work.
@@ -1953,9 +2701,6 @@ Map<String, dynamic> stepArgs(String name) {
     case 'setStorage':
     case 'removeStorage':
       return {'key': 'key', 'value': true};
-    case 'expectScriptResult':
-    case 'runScript':
-      return {'script': r'${1 + 1}', 'equals': 2};
     case 'trigger':
       return {'id': 'target', 'action': 'onTap'};
     case 'openScreen':

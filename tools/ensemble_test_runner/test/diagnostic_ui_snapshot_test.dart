@@ -13,16 +13,94 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/failure_observer_capture.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:ensemble_test_runner/runner/step_screenshot_artifact_writer.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
+import 'package:ensemble_test_runner/session/observation/observer_json.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'test_event_loop.dart';
 
 void main() {
+  testWidgets('best-effort snapshot keeps screen data for paired evidence',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: Text('capture target'))),
+    );
+
+    final snapshot = captureDiagnosticUiSnapshotBestEffort(
+      tester: tester,
+      assertions: AssertionEngine(tester: tester),
+    );
+
+    expect(snapshot, isNotNull);
+    expect(
+      _flatten(snapshot!.observation.elements).any(
+        (element) => element.text == 'capture target',
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets('shared frame publication keeps its same-step Observer pair',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: Text('paired screenshot'))),
+    );
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'screenshot_pair', steps: []),
+      config: const EnsembleTestConfig(
+        screenshots: ScreenshotConfig(enabled: true),
+      ),
+    );
+    final image = await _solidImage();
+    addTearDown(image.dispose);
+    final snapshot = captureDiagnosticUiSnapshotBestEffort(
+      tester: tester,
+      assertions: AssertionEngine(tester: tester, context: context),
+    );
+    final step = const TestStep(type: 'tap', args: {'id': 'target'});
+    const device = TestDeviceTarget(
+      id: 'android',
+      platform: 'android',
+      model: 'Pixel 8',
+    );
+    const highlight = ScreenshotHighlight(
+      kind: 'action',
+      left: 10,
+      top: 20,
+      width: 30,
+      height: 40,
+    );
+
+    writeStepScreenshotArtifacts(
+      tester: tester,
+      context: context,
+      step: step,
+      stepIndex: 3,
+      image: image,
+      device: device,
+      highlight: highlight,
+      observerSnapshot: snapshot,
+    );
+
+    final frame = context.runtime.screenshotSheetFrames.single;
+    expect(frame.stepIndex, 3);
+    expect(frame.label, '4. tap(target)');
+    expect(frame.image, same(image));
+    expect(frame.deviceId, 'android');
+    expect(frame.highlight, highlight);
+    final observer = context.runtime.stepObservers.single;
+    expect(observer.stepIndex, 3);
+    expect(observer.elements, isNotEmpty);
+    expect(observer.observationJson['stepIndex'], 3);
+    expect(observer.observationJson['elements'], observer.elements);
+  });
+
   testWidgets('diagnostic screen label follows the visible route',
       (tester) async {
     final navigatorKey = GlobalKey<NavigatorState>();
@@ -47,7 +125,7 @@ void main() {
         builder: (_) => const Scaffold(body: Text('visible screen')),
       ),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilIdle(tester);
 
     final observation = captureDiagnosticUiSnapshot(
       tester: tester,
@@ -204,7 +282,7 @@ void main() {
     expect(texts.single.state.visible, isTrue);
     expect(texts.single.locatorWarning, isNull);
 
-    final reportTree = observationElementsTreeForReport(observation);
+    final reportTree = observerElementsToJson(observation);
     final textNode = reportTree
         .expand((node) => _flattenReportNodes(node))
         .singleWhere((node) => node['title'] == 'Network device 3');
@@ -238,8 +316,7 @@ void main() {
         ...observation.elements,
       ],
     );
-    final withOffscreenTree =
-        observationElementsTreeForReport(withOffscreenNode);
+    final withOffscreenTree = observerElementsToJson(withOffscreenNode);
     final shiftedTextNode = withOffscreenTree
         .expand((node) => _flattenReportNodes(node))
         .singleWhere((node) => node['title'] == 'Network device 3');
@@ -290,7 +367,7 @@ void main() {
       expect(buttonBuilds, before);
 
       await tester.tap(find.byKey(const ValueKey('go_button')));
-      await tester.pumpAndSettle();
+      await pumpUntilIdle(tester);
       // If ModalRoute.of subscribed the button subtree, isCurrent flipping
       // would rebuild it during the push. Diagnostic must not do that.
       expect(
@@ -378,7 +455,7 @@ void main() {
       expect(button.suggestedLocator?.label, 'Netwerk');
       expect(button.suggestedLocator?.role, 'button');
 
-      final tree = observationElementsTreeForReport(snap.observation);
+      final tree = observerElementsToJson(snap.observation);
       final node = tree.firstWhere((e) => e['type'] == 'button');
       expect(node['locator'], {'label': 'Netwerk', 'role': 'button'});
       expect(node.containsKey('selector'), isFalse);

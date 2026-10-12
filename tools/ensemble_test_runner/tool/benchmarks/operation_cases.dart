@@ -7,6 +7,7 @@ const operationCases = <String, String>{
   'assertion.expectApiCalled': 'assertion.api-count.10',
   'diagnostic.writeAppConsoleLog': 'diagnostic.console.10',
   'artifact.complete': 'artifact.transport.1024',
+  'artifact.createScreenshotArchive': 'artifact.archive.4m',
   'artifact.emitArtifact': 'artifact.transport.1024',
   'artifact.ensembleTestArtifactManifestBatches': 'artifact.transport.1024',
   'artifact.materializeTransportedArtifacts': 'artifact.transport.1024',
@@ -36,34 +37,33 @@ const operationCases = <String, String>{
   'diagnostic.writeDumpTreeLogFile': 'diagnostic.dump',
   'diagnostic.writePerformanceLog': 'diagnostic.performance-log',
   'diagnostic.writeStorageLogFile': 'workflow.capture.beforeAction',
-  'discovery.findTestYamlAssets': 'worker.pipeline.1.success',
+  'discovery.findTestAssets': 'worker.pipeline.1.success',
   'discovery.loadTestConfig': 'worker.pipeline.1.success',
-  'execution.actionDispatch': 'workflow.capture.beforeAction',
-  'execution.controlFlow': 'workflow.capture.beforeAction',
   'execution.enterText': 'step.enterText',
+  'execution.navigationLiveCallDrain': 'execution.navigation-live-call-drain',
+  'execution.operationRuntime': 'session.runtime-operation',
   'locator.resolveFinder': 'session.snapshot-target',
   'execution.settle': 'step.openScreen',
   'execution.settleAfterAction': 'workflow.capture.beforeAction',
-  'execution.tap': 'workflow.capture.beforeAction',
-  'execution.tapFinder': 'session.snapshot-target',
+  'execution.tap': 'workflow.trigger.tap',
+  'execution.tapFinder': 'workflow.capture.finderTap',
   'execution.waitFor': 'step.waitFor',
   'execution.waitForApi': 'step.waitForApi',
   'execution.waitForGone': 'step.waitForGone',
   'execution.waitForNavigation': 'screenshot.navigation-pairing',
   'execution.waitForTextContains': 'execution.text-contains',
-  'execution.yamlDispatch': 'workflow.capture.beforeAction',
   'history.pruneOldRuns': 'history.append',
   'history.recordCompletedRun': 'history.append',
   'lifecycle.applyInPlaceSetup': 'workflow.capture.beforeAction',
   'lifecycle.applyViewport': 'workflow.standalone',
-  'lifecycle.applyYamlTestStorageBootstrap': 'workflow.standalone',
+  'lifecycle.applyTestStorageBootstrap': 'workflow.standalone',
   'lifecycle.bootstrapRuntime': 'workflow.standalone',
   'lifecycle.buildConfig': 'workflow.standalone',
   'lifecycle.capture': 'workflow.standalone',
-  'lifecycle.captureKeychainStorage': 'workflow.standalone',
+  'lifecycle.captureKeychainStorage': 'workflow.standalone-storage',
   'lifecycle.capturePublicStorage': 'workflow.capture.beforeAction',
-  'lifecycle.captureSecureStorage': 'workflow.standalone',
-  'lifecycle.diffStorage': 'workflow.standalone',
+  'lifecycle.captureSecureStorage': 'workflow.standalone-storage',
+  'lifecycle.diffStorage': 'workflow.standalone-storage',
   'lifecycle.loadScreen': 'workflow.standalone',
   'lifecycle.restoreOnto': 'workflow.standalone',
   'lifecycle.restorePreSuiteStorage': 'workflow.standalone',
@@ -78,7 +78,7 @@ const operationCases = <String, String>{
   'mock.resolveFile': 'mock.extends-merge',
   'observer.absorbFormFieldLabels': 'observer.session.40.full',
   'observer.buildObservedElementTree': 'observer.session.40.full',
-  'observer.captureDiagnosticUiSnapshot': 'observer.diagnostic.40',
+  'observer.captureDiagnosticUiSnapshot': 'observer.diagnostic.unique.40',
   'observer.captureStepObserverBestEffort': 'observer.step-artifact',
   'observer.describeElement': 'observer.session.40.full',
   'observer.dropRedundantNestedObserveLeaves': 'observer.session.40.full',
@@ -92,7 +92,7 @@ const operationCases = <String, String>{
   'observer.rebindHandles': 'observer.session.40.full',
   'observer.syncRevisionAfterMutation': 'workflow.capture.beforeAction',
   'parser.parseConfigString': 'parser.config',
-  'parser.parseString': 'planner.suite.10',
+  'parser.parseString': 'parser.malformed',
   'planner.applySelection': 'planner.selection.10',
   'planner.buildFromResolvedAssets': 'planner.suite.10',
   'planner.parseDefinitionsFromAsset': 'planner.suite.10',
@@ -108,16 +108,14 @@ const operationCases = <String, String>{
   'report.formatSummary': 'report.console.10',
   'report.optimize': 'report.serialize.10',
   'report.write': 'report.html.10',
-  'report.writeResults': 'report.html.10',
-  'report.writeResultsOnly': 'worker.pipeline.2.success',
   'screenshot.addDeviceFrame': 'screenshot.frame.ios.fallback',
   'screenshot.areVisibleLottiesReady': 'screenshot.lottie.ready',
-  'screenshot.captureAutomaticScreenshotForStep': 'workflow.standalone',
+  'screenshot.captureAutomaticScreenshotForStep':
+      'workflow.standalone-screenshots',
   'screenshot.captureScreenshotImage': 'screenshot.encode.1',
   'screenshot.captureWaitForNavigationScreenshot':
       'screenshot.navigation-pairing',
   'screenshot.completeRun': 'workflow.capture.beforeAction',
-  'screenshot.compressedReportImage': 'screenshot.frame.ios.fallback',
   'screenshot.dedupedImageFileName': 'screenshot.encode.1',
   'screenshot.encodeFrameImage': 'screenshot.encode.1',
   'screenshot.encodeHostWebP': 'screenshot.host.optimize',
@@ -139,12 +137,12 @@ const operationCases = <String, String>{
   'session.captureArtifact': 'session.capture-artifact',
   'session.close': 'workflow.capture.beforeAction',
   'session.observe': 'observer.session.40.full',
-  'session.waitFor': 'step.wait',
+  'session.waitOperation': 'step.waitFor',
   'support_service.isReady': 'support_service.startup',
   'support_service.start': 'support_service.startup',
-  'support_service.startAll': 'workflow.capture.beforeAction',
+  'support_service.startAll': 'support_service.startup',
   'support_service.stop': 'support_service.startup',
-  'support_service.stopAll': 'workflow.capture.beforeAction',
+  'support_service.stopAll': 'support_service.startup',
   'support_service.waitUntilReady': 'support_service.startup',
   'tools.build': 'tools.schema',
   'tools.buildConfig': 'tools.config-schema',
@@ -159,13 +157,14 @@ const operationCases = <String, String>{
   'worker.runFlutterTestProcess': 'worker.pipeline.1.success',
   'worker.runParallelFlutterTests': 'worker.pipeline.1.success',
   'workflow.attachPerTestDebugArtifacts': 'workflow.standalone',
+  'workflow.attachLogArtifacts': 'workflow.standalone',
   'workflow.captureHostStepReportArtifactsSafely':
-      'workflow.capture.beforeAction',
+      'workflow.capture.afterCondition',
   'workflow.captureHostStepScreenshotSafely': 'workflow.capture.beforeAction',
-  'workflow.captureScreenArtifacts': 'workflow.standalone',
-  'workflow.captureStepReportArtifacts': 'workflow.capture.beforeAction',
+  'workflow.captureScreenArtifacts': 'workflow.performance-artifacts',
+  'workflow.captureStepReportArtifacts': 'workflow.capture.afterCondition',
   'workflow.executeSteps': 'workflow.standalone',
-  'workflow.recordStorageStepDiff': 'workflow.standalone',
+  'workflow.recordStorageStepDiff': 'workflow.standalone-storage',
   'workflow.runApplicationTestPlanIsolated': 'workflow.capture.beforeAction',
   'workflow.runHostAttempt': 'workflow.capture.beforeAction',
   'workflow.runHostTestWithRetries': 'workflow.capture.beforeAction',
@@ -180,8 +179,17 @@ void checkInstrumentedOperations(Directory package) {
   for (final file
       in Directory('${package.path}/lib').listSync(recursive: true)) {
     if (file is! File || !file.path.endsWith('.dart')) continue;
-    for (final match in pattern.allMatches(file.readAsStringSync())) {
+    final source = file.readAsStringSync();
+    for (final match in pattern.allMatches(source)) {
       found.add('${match[1]}.${match[2]}');
+    }
+    // WebP encoding shares one instrumented implementation between the host
+    // optimizer and screenshot contact sheet. Its operation name is supplied
+    // by call sites, so collect those concrete names as well as literal spans.
+    for (final match in RegExp(
+      r"encodePngAsWebp\([\s\S]*?benchmarkOperation:\s*'([^']+)'",
+    ).allMatches(source)) {
+      found.add('screenshot.${match[1]}');
     }
   }
   final missing = found.difference(operationCases.keys.toSet());

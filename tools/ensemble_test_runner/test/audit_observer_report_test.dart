@@ -1,10 +1,75 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
+import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  test('observer audit reads the current report from the SQLite database',
+      () async {
+    final temp = await Directory.systemTemp.createTemp('observer-audit-db-');
+    addTearDown(() => temp.delete(recursive: true));
+    sqfliteFfiInit();
+    final reportDb = await databaseFactoryFfi.openDatabase(
+      p.join(temp.path, 'ensemble_test.db'),
+    );
+    await reportDb.execute('''
+CREATE TABLE test_results (
+  id INTEGER PRIMARY KEY,
+  record_type TEXT NOT NULL,
+  report_data BLOB
+)
+''');
+    final report = ReportJsonOptimizer.optimize(_referenceReport());
+    await reportDb.insert('test_results', {
+      'id': 1,
+      'record_type': 'run',
+      'report_data': Uint8List.fromList(
+        gzip.encode(utf8.encode(jsonEncode(report))),
+      ),
+    });
+    await reportDb.close();
+
+    final result = await _runAudit(File(p.join(temp.path, 'ensemble_test.db')));
+    expect(result.exitCode, 0, reason: '${result.stderr}\n${result.stdout}');
+    final audit = jsonDecode(result.stdout as String) as Map<String, dynamic>;
+    expect((audit['counts'] as Map<String, dynamic>)['errors'], 0);
+  });
+
+  test('observer audit reads screenshots from the report archive', () async {
+    final temp = await Directory.systemTemp.createTemp('observer-audit-zip-');
+    addTearDown(() => temp.delete(recursive: true));
+    final report = File(p.join(temp.path, 'results.json'));
+    final data = _referenceReport(includeForeignContent: false);
+    final steps = ((data['tests'] as List).single as Map)['steps'] as List;
+    (steps.first as Map<String, dynamic>)['screenshots'] = [
+      {'href': 'screenshots.zip#screenshots/screen.webp'},
+    ];
+    report.writeAsStringSync(jsonEncode(data));
+    final screenshot = img.encodeWebP(img.Image(width: 20, height: 30));
+    final archive = Archive()
+      ..addFile(ArchiveFile.bytes('screenshots/screen.webp', screenshot));
+    File(p.join(temp.path, 'screenshots.zip'))
+        .writeAsBytesSync(ZipEncoder().encodeBytes(archive, level: 0));
+
+    final result = await _runAudit(report);
+    expect(result.exitCode, 0, reason: '${result.stderr}\n${result.stdout}');
+    final audit = jsonDecode(result.stdout as String) as Map<String, dynamic>;
+    final findings = audit['findings'] as List<dynamic>;
+    expect(
+      findings.any((value) =>
+          (value as Map<String, dynamic>)['code'] ==
+          'report.screenshot.file_missing'),
+      isFalse,
+    );
+    expect((audit['counts'] as Map<String, dynamic>)['screenshots'], 1);
+  });
+
   test('observer audit distinguishes valid scroll content from foreign content',
       () async {
     final temp = await Directory.systemTemp.createTemp('observer-audit-test-');

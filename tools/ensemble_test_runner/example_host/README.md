@@ -56,7 +56,7 @@ flutter pub get
 # Host-side widget tests (no simulator required).
 dart run ensemble_test_runner:ensemble_test \
   --tests-dir=tests \
-  --test-entry=test/application_yaml_tests.dart \
+  --test-entry=test/application_tests.dart \
   --mode=widget
 ```
 
@@ -68,7 +68,7 @@ host (`hostLogin`, `hostSession`) and Ensemble shop (`getCatalog`,
 report tabs are populated.
 
 Integration mode uses the same YAML and `--test-entry`. The CLI passes
-`--dart-define=ensembleTestExecutionMode=integration`; `runApplicationYamlTests`
+`--dart-define=ensembleTestExecutionMode=integration`; `runApplicationTests`
 selects the integration binding from that define. On device, native plugins
 (`device_info_plus`, sqflite, path_provider) stay real — widget-test
 MethodChannel mocks are not installed.
@@ -76,7 +76,7 @@ MethodChannel mocks are not installed.
 ```bash
 dart run ensemble_test_runner:ensemble_test \
   --tests-dir=tests \
-  --test-entry=test/application_yaml_tests.dart \
+  --test-entry=test/application_tests.dart \
   --mode=integration
 ```
 

@@ -1,27 +1,21 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
-import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:ensemble_test_runner/runner/webp_encoder.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
-import 'package:image/image.dart' as img;
+import 'package:ensemble_test_runner/src/integrations/device_preview/device_preview_adapter.dart';
 import 'package:path/path.dart' as p;
 
 const _maxReportScreenshotWidth = 360;
-const _reportScreenshotJpegQuality = 82;
-const _reportScreenshotWebPQuality = 82;
-
-String? _cachedCwebpPath;
-bool _didResolveCwebpPath = false;
 
 /// Encodes each frame for the HTML report and writes a `frames.json` manifest.
 ///
@@ -153,30 +147,6 @@ Future<String?> writeScreenshotFrames({
   });
 }
 
-/// @Deprecated Use [writeScreenshotFrames]. Kept as a thin alias for call sites.
-Future<String?> writeScreenshotContactSheet({
-  required String testId,
-  required ScreenshotConfig config,
-  required List<ScreenshotSheetFrame> frames,
-  required TestStatus status,
-  required int durationMs,
-  int? failedStepIndex,
-  String? failedStepLabel,
-  String? failureMessage,
-  String? failedDeviceId,
-}) {
-  return writeScreenshotFrames(
-    testId: testId,
-    config: config,
-    frames: frames,
-    status: status,
-    failedStepIndex: failedStepIndex,
-    failedStepLabel: failedStepLabel,
-    failureMessage: failureMessage,
-    failedDeviceId: failedDeviceId,
-  );
-}
-
 DeviceInfo _deviceForFrame(
   ScreenshotSheetFrame frame,
   DeviceInfo fallback,
@@ -215,179 +185,26 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
     if (bytes == null) {
       throw EnsembleTestFailure('Failed to encode screenshot.');
     }
-    return _compressedReportImage(bytes);
-  });
-}
-
-Future<EncodedScreenshotImage> _compressedReportImage(
-    Uint8List pngBytes) async {
-  return await RunnerBenchmark.async('screenshot', 'compressedReportImage',
-      () async {
-    if (usesDeviceArtifactTransport) {
-      return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-    }
-    try {
-      final decoded = img.decodePng(pngBytes);
-      if (decoded == null) {
-        return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-      }
-
-      final resized = decoded.width > _maxReportScreenshotWidth
-          ? img.copyResize(
-              decoded,
-              width: _maxReportScreenshotWidth,
-              interpolation: img.Interpolation.average,
-            )
-          : decoded;
-
-      final background = img.Image(
-          width: resized.width, height: resized.height, numChannels: 3);
-      img.fill(background, color: img.ColorRgb8(10, 17, 31));
-      img.compositeImage(background, resized);
-
-      final webPInputBytes = Uint8List.fromList(
-        img.encodePng(background, level: 1),
-      );
-      final webPBytes = await _encodeWebP(webPInputBytes);
-      if (webPBytes != null) {
-        return EncodedScreenshotImage(
-          bytes: webPBytes,
-          extension: 'webp',
+    return encodePngAsWebp(
+      bytes,
+      benchmarkOperation: 'encodeWebP',
+      resizeWidth: _maxReportScreenshotWidth,
+      blendAlpha: '0x0a111f',
+    ).then((webPBytes) {
+      if (webPBytes == null) {
+        throw EnsembleTestFailure(
+          'Could not encode screenshot as WebP. Ensure the runner WebP encoder is available.',
         );
       }
-
-      final jpgBytes = Uint8List.fromList(
-        img.encodeJpg(
-          background,
-          quality: _reportScreenshotJpegQuality,
-          chroma: img.JpegChroma.yuv420,
-        ),
-      );
-      final optimizedPngBytes = Uint8List.fromList(
-        img.encodePng(background, level: 6),
-      );
-      final candidates = <EncodedScreenshotImage>[
-        EncodedScreenshotImage(
-          bytes: jpgBytes,
-          extension: 'jpg',
-        ),
-        EncodedScreenshotImage(
-          bytes: optimizedPngBytes,
-          extension: 'png',
-        ),
-      ];
-      candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
-      return candidates.first;
-    } catch (_) {
-      return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-    }
+      return EncodedScreenshotImage(bytes: webPBytes, extension: 'webp');
+    });
   });
 }
 
 String _mimeTypeForExtension(String extension) => switch (extension) {
-      'png' => 'image/png',
-      'jpg' || 'jpeg' => 'image/jpeg',
       'webp' => 'image/webp',
       _ => 'application/octet-stream',
     };
-
-Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
-  return await RunnerBenchmark.async('screenshot', 'encodeWebP', () async {
-    if (RunnerBenchmark.collector?.disabledExecutables.contains('cwebp') ==
-        true) {
-      RunnerBenchmark.dimension('codecFallback', 'controlled-unavailable-webp');
-      return null;
-    }
-    final cwebpPath = await _resolveCwebpPath();
-    if (cwebpPath == null) return null;
-
-    final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
-    try {
-      final input = File(p.join(tempDir.path, 'input.png'));
-      final output = File(p.join(tempDir.path, 'output.webp'));
-      input.writeAsBytesSync(pngBytes);
-
-      final result = await Process.run(cwebpPath, [
-        '-quiet',
-        '-q',
-        '$_reportScreenshotWebPQuality',
-        '-m',
-        '4',
-        '-metadata',
-        'none',
-        input.path,
-        '-o',
-        output.path,
-      ]);
-      if (result.exitCode != 0 || !output.existsSync()) {
-        return null;
-      }
-      return output.readAsBytesSync();
-    } catch (_) {
-      return null;
-    } finally {
-      try {
-        tempDir.deleteSync(recursive: true);
-      } catch (_) {}
-    }
-  });
-}
-
-Future<String?> _resolveCwebpPath() async {
-  if (_didResolveCwebpPath) return _cachedCwebpPath;
-  _didResolveCwebpPath = true;
-
-  final packageConfig = File(
-    p.join(Directory.current.path, '.dart_tool', 'package_config.json'),
-  );
-  if (!packageConfig.existsSync()) return null;
-
-  final packageConfigJson =
-      jsonDecode(packageConfig.readAsStringSync()) as Map<String, dynamic>;
-  final packages = packageConfigJson['packages'];
-  if (packages is! List) return null;
-
-  String? webpRootUri;
-  for (final package in packages) {
-    if (package is Map<String, dynamic> && package['name'] == 'webp') {
-      webpRootUri = package['rootUri'] as String?;
-      break;
-    }
-  }
-  if (webpRootUri == null) return null;
-
-  final packageRoot = p.normalize(
-    p.join(
-      packageConfig.parent.path,
-      p.fromUri(Uri.parse(webpRootUri)),
-    ),
-  );
-  final architecture = _webPArchitecture();
-  if (architecture == null) return null;
-
-  final executable = Platform.isWindows ? 'cwebp.exe' : 'cwebp';
-  final cwebp = File(p.join(packageRoot, architecture, executable));
-  if (!cwebp.existsSync()) return null;
-  _cachedCwebpPath = cwebp.path;
-  return _cachedCwebpPath;
-}
-
-String? _webPArchitecture() {
-  switch (Abi.current()) {
-    case Abi.macosArm64:
-      return 'mac-arm64';
-    case Abi.macosX64:
-      return 'mac-x86-64';
-    case Abi.linuxArm64:
-      return 'linux-aarch64';
-    case Abi.linuxX64:
-      return 'linux-x86-64';
-    case Abi.windowsX64:
-      return 'windows-x64';
-    default:
-      return null;
-  }
-}
 
 String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');

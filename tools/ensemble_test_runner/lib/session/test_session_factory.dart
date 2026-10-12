@@ -70,7 +70,7 @@ class TestSessionConfiguration {
   }
 }
 
-/// Abstract factory for standalone (YAML-independent) sessions.
+/// Abstract factory for standalone sessions.
 abstract interface class TestSessionFactory {
   Future<TestExecutionSession> create(TestSessionConfiguration config);
 }

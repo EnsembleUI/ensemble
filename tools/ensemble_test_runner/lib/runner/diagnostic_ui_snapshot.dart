@@ -1,12 +1,10 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
-import 'dart:convert';
-
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
-import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
-import 'package:ensemble_test_runner/session/observation/ui_element.dart';
+import 'package:ensemble_test_runner/session/observation/observation_options.dart';
+import 'package:ensemble_test_runner/session/observation/diagnostic_locators.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,9 +15,11 @@ import 'package:flutter_test/flutter_test.dart';
 class DiagnosticUiSnapshot {
   const DiagnosticUiSnapshot({
     required this.observation,
+    this.detail = ObservationDetailLevel.diagnostic,
   });
 
   final UiObservation observation;
+  final ObservationDetailLevel detail;
 
   String get screenLabel {
     final screen = observation.screen;
@@ -41,10 +41,12 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   required WidgetTester tester,
   required AssertionEngine assertions,
   NavigationTestService? navigation,
+  ObservationDetailLevel detail = ObservationDetailLevel.diagnostic,
 }) {
   return RunnerBenchmark.sync('observer', 'captureDiagnosticUiSnapshot', () {
     RunnerBenchmark.dimension('synchronizationPolicy', 'immediate');
     RunnerBenchmark.dimension('semanticsEnabled', false);
+    RunnerBenchmark.dimension('observationDetail', detail.name);
     final built = buildObservedElementTree(
       tester: tester,
       assertions: assertions,
@@ -54,81 +56,11 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
       useSemantics: false,
       registerRouteDependency: false,
     );
-    final withLocators = mapObservationLocatorTree(
-      elements: built.elements,
-      resolve: ({
-        required element,
-        parentScope,
-        iconOccurrenceAmongSiblings,
-        iconSiblingCount,
-        occurrenceAmongSiblings,
-      }) =>
-          (
-        locator: cheapSuggestedLocator(
-          element,
-          parentScope: parentScope,
-          iconOccurrenceAmongSiblings: iconOccurrenceAmongSiblings,
-          iconSiblingCount: iconSiblingCount,
-          occurrenceAmongSiblings: occurrenceAmongSiblings,
-        ),
-        warning: null,
-      ),
-    );
-    final locatorEntries = <String, List<(UiElement, List<String>)>>{};
-    void collectLocators(List<UiElement> elements, List<String> ancestors) {
-      for (final element in elements) {
-        // Match observationElementsTreeForReport: hidden subtrees do not appear
-        // in the report and therefore must not make a visible locator ambiguous.
-        if (!_includeInObserverReport(element)) continue;
-        final locator = element.suggestedLocator;
-        if (locator != null) {
-          locatorEntries
-              .putIfAbsent(jsonEncode(locator.toJson()), () => [])
-              .add((element, ancestors));
-        }
-        collectLocators(element.children, [...ancestors, element.elementId]);
-      }
-    }
-
-    collectLocators(withLocators, const []);
-    final ambiguousElementIds = <String>{};
-    for (final entries in locatorEntries.values) {
-      for (var i = 0; i < entries.length; i++) {
-        for (var j = i + 1; j < entries.length; j++) {
-          final a = entries[i];
-          final b = entries[j];
-          // Parent and child can legitimately share a locator when Flutter
-          // merges semantics. Separate branches can resolve ambiguously.
-          if (!a.$2.contains(b.$1.elementId) &&
-              !b.$2.contains(a.$1.elementId)) {
-            ambiguousElementIds
-              ..add(a.$1.elementId)
-              ..add(b.$1.elementId);
-          }
-        }
-      }
-    }
-    UiElement markAmbiguities(UiElement element) {
-      final ambiguous = ambiguousElementIds.contains(element.elementId);
-      return element.copyWith(
-        children: [
-          for (final child in element.children) markAmbiguities(child)
-        ],
-        suggestedLocator: ambiguous ? null : element.suggestedLocator,
-        clearSuggestedLocator: ambiguous,
-        locatorWarning: ambiguous
-            ? 'Suggested locator matches multiple observed elements'
-            : element.locatorWarning,
-        clearLocatorWarning: !ambiguous && element.locatorWarning == null,
-      );
-    }
-
-    final verifiedTree = [
-      for (final element in withLocators) markAmbiguities(element)
-    ];
+    final verifiedTree = annotateDiagnosticLocators(built.elements);
     final screen = _screenObservation(navigation, tester);
     final size = tester.view.physicalSize / tester.view.devicePixelRatio;
     return DiagnosticUiSnapshot(
+      detail: detail,
       observation: UiObservation(
         observationId: 'diagnostic',
         revision: 0,
@@ -152,6 +84,26 @@ DiagnosticUiSnapshot captureDiagnosticUiSnapshot({
   });
 }
 
+/// Captures report observation for a frozen screenshot without making the
+/// screenshot itself depend on the diagnostic tree walk succeeding.
+DiagnosticUiSnapshot? captureDiagnosticUiSnapshotBestEffort({
+  required WidgetTester tester,
+  required AssertionEngine assertions,
+  NavigationTestService? navigation,
+  ObservationDetailLevel detail = ObservationDetailLevel.diagnostic,
+}) {
+  try {
+    return captureDiagnosticUiSnapshot(
+      tester: tester,
+      assertions: assertions,
+      navigation: navigation,
+      detail: detail,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
 ScreenObservation _screenObservation(
   NavigationTestService? navigation,
   WidgetTester tester,
@@ -169,6 +121,3 @@ ScreenObservation _screenObservation(
     unknown: false,
   );
 }
-
-bool _includeInObserverReport(UiElement element) =>
-    element.state.visible != false || element.state.offscreen == true;

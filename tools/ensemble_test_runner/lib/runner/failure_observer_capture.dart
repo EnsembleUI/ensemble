@@ -1,7 +1,6 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:ui' as ui;
 
-import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -14,6 +13,7 @@ import 'package:ensemble_test_runner/session/local/local_execution_session.dart'
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/observer_json.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
+import 'package:ensemble_test_runner/src/integrations/device_preview/device_preview_adapter.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -46,7 +46,8 @@ Future<void> captureStepObserverBestEffort({
         navigation: session.services.navigation,
       );
       final device = ctx.testCase.deviceTarget;
-      final elements = observationElementsTreeForReport(snap.observation);
+      final reportTree = buildObserverReportTree(snap.observation);
+      final elements = reportTree.elements;
       final viewport = snap.observation.viewport?.toJson();
       final observationJson = observerPayloadToJson(
         stepIndex: stepIndex,
@@ -59,6 +60,7 @@ Future<void> captureStepObserverBestEffort({
         tester: executor.tester,
         image: frame.image,
         device: device,
+        reportTree: reportTree,
       );
       ctx.runtime.upsertStepObserver(
         StepObserverArtifact(
@@ -99,7 +101,8 @@ void upsertStepObserverFromSnapshot({
   if (frame == null) return;
   try {
     final device = ctx.testCase.deviceTarget;
-    final elements = observationElementsTreeForReport(snap.observation);
+    final reportTree = buildObserverReportTree(snap.observation);
+    final elements = reportTree.elements;
     final viewport = snap.observation.viewport?.toJson();
     final observationJson = observerPayloadToJson(
       stepIndex: stepIndex,
@@ -112,6 +115,7 @@ void upsertStepObserverFromSnapshot({
       tester: tester,
       image: frame.image,
       device: device,
+      reportTree: reportTree,
     );
     ctx.runtime.upsertStepObserver(
       StepObserverArtifact(
@@ -149,6 +153,7 @@ List<Map<String, dynamic>> observerOverlaysForReport({
   required WidgetTester tester,
   required ui.Image image,
   TestDeviceTarget? device,
+  ObserverReportTree? reportTree,
 }) {
   return RunnerBenchmark.sync('observer', 'observerOverlaysForReport', () {
     final renderView = tester.binding.renderViews.first;
@@ -162,17 +167,17 @@ List<Map<String, dynamic>> observerOverlaysForReport({
           });
 
     final overlays = <Map<String, dynamic>>[];
-    // Same pre-order indices as [observationElementsTreeForReport] so HTML can
-    // link tree rows ↔ screenshot highlights on hover.
-    var index = 1;
-    void walk(UiElement element) {
-      // Keep indices aligned with observationElementsTreeForReport, which
-      // retains offscreen nodes even when visible=false.
-      if (element.state.visible == false && element.state.offscreen != true) {
-        return;
-      }
-      final myIndex = index++;
-      if (element.state.visible != false && _shouldOverlay(element)) {
+    // Reuse the serialized report index. This avoids a second recursive walk
+    // of the observation tree after report JSON has already been built.
+    final entries =
+        (reportTree ?? buildObserverReportTree(observation)).entries;
+    for (final entry in entries) {
+      final element = entry.element;
+      if (element.state.visible != false &&
+          _shouldOverlay(
+            element,
+            subtreeHasKeyedCardOrToast: entry.subtreeHasKeyedCardOrToast,
+          )) {
         final overlay = _overlayPercent(
           element: element,
           logicalSize: logicalSize,
@@ -182,23 +187,19 @@ List<Map<String, dynamic>> observerOverlaysForReport({
         if (overlay != null) {
           overlays.add({
             ...overlay,
-            'index': myIndex,
+            'index': entry.index,
           });
         }
       }
-      for (final child in element.children) {
-        walk(child);
-      }
-    }
-
-    for (final root in observation.elements) {
-      walk(root);
     }
     return overlays;
   });
 }
 
-bool _shouldOverlay(UiElement element) {
+bool _shouldOverlay(
+  UiElement element, {
+  required bool subtreeHasKeyedCardOrToast,
+}) {
   if (element.state.visible == false) return false;
   final bounds = element.bounds;
   if (bounds == null) return false;
@@ -211,8 +212,7 @@ bool _shouldOverlay(UiElement element) {
   // Skip type-only parents when a *keyed card/toast* descendant is the real
   // target (wrapper chrome beside `id=device_card`). Keyed CTA buttons inside
   // NotificationCard must not suppress the banner chrome overlay.
-  if (!_elementHasIdSelector(element) &&
-      _subtreeHasKeyedCardOrToast(element.children)) {
+  if (!_elementHasIdSelector(element) && subtreeHasKeyedCardOrToast) {
     return false;
   }
   return true;
@@ -224,17 +224,6 @@ bool _elementHasIdSelector(UiElement element) {
   if (sid != null && sid.isNotEmpty) return true;
   final tid = element.testId?.trim();
   return tid != null && tid.isNotEmpty;
-}
-
-bool _subtreeHasKeyedCardOrToast(List<UiElement> elements) {
-  for (final element in elements) {
-    if (_elementHasIdSelector(element)) {
-      final type = (element.type ?? '').toLowerCase();
-      if (type == 'card' || type == 'toast') return true;
-    }
-    if (_subtreeHasKeyedCardOrToast(element.children)) return true;
-  }
-  return false;
 }
 
 Map<String, dynamic>? _overlayPercent({
@@ -294,16 +283,3 @@ Map<String, dynamic>? _overlayPercent({
       'type': type,
   };
 }
-
-/// @nodoc Legacy report name retained for callers. Serialization now lives in
-/// the Observer layer so report consumers receive the already-built payload.
-List<Map<String, dynamic>> observationElementsTreeForReport(
-  UiObservation observation,
-) =>
-    observerElementsToJson(observation);
-
-/// @nodoc Legacy alias.
-List<Map<String, dynamic>> flattenObservationElementsForReport(
-  UiObservation observation,
-) =>
-    observerElementsToJson(observation);

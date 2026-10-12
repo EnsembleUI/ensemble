@@ -7,36 +7,54 @@ import 'dart:math';
 import 'package:ensemble_test_runner/application/application_test_types.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/execution/device_discovery.dart';
-import 'package:ensemble_test_runner/execution/device_selector.dart';
 import 'package:ensemble_test_runner/execution/execution_backend.dart';
 import 'package:ensemble_test_runner/execution/host_address.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
+import 'package:ensemble_test_runner/cli/cli_process_output.dart';
+import 'package:ensemble_test_runner/cli/cli_report_coordinator.dart';
+import 'package:ensemble_test_runner/cli/cli_service_overrides.dart';
+import 'package:ensemble_test_runner/cli/cli_test_selection.dart';
+import 'package:ensemble_test_runner/cli/cli_compiled_plan_batch.dart';
+import 'package:ensemble_test_runner/cli/cli_argument_options.dart';
+import 'package:ensemble_test_runner/cli/cli_test_output_presenter.dart';
+import 'package:ensemble_test_runner/cli/cli_worker_progress_output.dart';
+import 'package:ensemble_test_runner/cli/cli_run_artifact_lock.dart';
+import 'package:ensemble_test_runner/cli/cli_worker_workspace.dart';
+import 'package:ensemble_test_runner/cli/process_lifecycle.dart';
+import 'package:ensemble_test_runner/cli/worker_process_failure.dart';
+import 'package:ensemble_test_runner/cli/cli_app_console_log.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
-import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
+import 'package:ensemble_test_runner/cli/flutter_test_command.dart'
+    as flutter_test_command;
+import 'package:ensemble_test_runner/cli/cli_shard_planner.dart'
+    as shard_planner;
+import 'package:ensemble_test_runner/cli/app_patcher.dart';
+import 'package:ensemble_test_runner/cli/test_timer_rewriter.dart';
+import 'package:ensemble_test_runner/cli/flutter_command_resolver.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
-import 'package:ensemble_test_runner/discovery/device_matrix.dart';
 import 'package:ensemble_test_runner/discovery/test_suite_source.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
-import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
 import 'package:ensemble_test_runner/reporters/atomic_file.dart';
-import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
-import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
+import 'package:ensemble_test_runner/reporters/console_test_case.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/host_screenshot_optimizer.dart';
 import 'package:ensemble_test_runner/src/worker_capacity.dart';
+import 'package:ensemble_test_runner/src/cli/process_interruption_watch.dart';
+import 'package:ensemble_test_runner/src/core/async_cleanup_stack.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
-import 'package:yaml/yaml.dart';
 
-const _maxAppConsoleLogBytes = 5 * 1024 * 1024;
-final _appConsoleLogBytes = <String, int>{};
-final _disabledAppConsoleLogs = <String>{};
+part 'ensemble_test_cli_worker_support.dart';
+part 'ensemble_test_cli_run.dart';
+part 'ensemble_test_cli_workers.dart';
+part 'ensemble_test_cli_process.dart';
+part 'ensemble_test_cli_device_support.dart';
+
 String? _cachedSuiteEncryptionKey;
 
-String _suiteEncryptionKey(List<String> arguments) {
+String _suiteEncryptionKey() {
   final existing = _cachedSuiteEncryptionKey;
   if (existing != null) return existing;
   const alphabet =
@@ -49,7 +67,7 @@ String _suiteEncryptionKey(List<String> arguments) {
   return _cachedSuiteEncryptionKey = key;
 }
 
-/// Runs declarative YAML tests in an Ensemble app.
+/// Runs declarative tests in an Ensemble app.
 ///
 /// The host app must list `ensemble_test_runner` in `dev_dependencies`.
 ///
@@ -60,7 +78,7 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --doctor           Validate test setup without running Flutter tests
 ///   --fix             With --doctor, raise iOS deployment target permanently
 ///   --inspect-app      Print app metadata JSON for test generation
-///   --validate-only    Validate YAML tests without running Flutter tests
+///   --validate-only    Validate declarative tests without running Flutter tests
 ///   --scaffold-test=<id> Create a starter test file
 ///   --report=json      Print JSON run results instead of the boxed report
 ///   --report-file=<path> Write JSON run results to a file
@@ -79,20 +97,36 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
-Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
+///   --plan-batch-file=<path>  Opt-in compiled plan hand-off for workers
+///   --help             Show this help without inspecting or changing an app
+Future<void> runEnsembleTestsCli(List<String> arguments) async {
+  if (arguments.contains('--help') || arguments.contains('-h')) {
+    stdout.writeln(_cliHelp);
+    return;
+  }
   final verbose = isVerboseCli(arguments);
   final quiet = arguments.contains('--quiet');
-  final reportMode = _resolveReportMode(arguments);
+  final reportMode = CliArgumentOptions.reportMode(arguments);
   final jsonReport = reportMode == 'json';
   final junitReport = reportMode == 'junit';
   final machineReport = jsonReport || junitReport;
   final streamLiveOutput = !quiet && !machineReport;
-  final reportFile = _resolveReportFile(arguments);
-  final appDir = _resolveAppDir(arguments);
-  final timeoutSeconds = _resolveTimeoutSeconds(arguments);
-  final jobs = _resolveJobsOverride(arguments);
-  final testsDirOptions = _optionValues(arguments, '--tests-dir');
-  final testEntryOptions = _optionValues(arguments, '--test-entry');
+  final reportFile = CliArgumentOptions.reportFile(arguments);
+  final appDir = CliArgumentOptions.appDirectory(arguments);
+  final reportCoordinator = CliReportCoordinator(appDir);
+  final workerWorkspace = CliWorkerWorkspace(appDir);
+  final ownsFlutterKernelCache =
+      flutter_test_command.isRunnerPackageRoot(Directory(appDir));
+  try {
+    flutter_test_command.validatePlanBatchFile(arguments);
+  } on StateError catch (error) {
+    stderr.writeln(error.message);
+    exit(2);
+  }
+  final timeoutSeconds = CliArgumentOptions.timeoutSeconds(arguments);
+  final jobs = CliArgumentOptions.jobsOverride(arguments);
+  final testsDirOptions = CliTestSelection.values(arguments, '--tests-dir');
+  final testEntryOptions = CliTestSelection.values(arguments, '--test-entry');
   if (testsDirOptions.length > 1 || testEntryOptions.length > 1) {
     stderr.writeln('--tests-dir and --test-entry may each be specified once.');
     exit(2);
@@ -109,9 +143,9 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     );
     exit(2);
   }
-  late final YamlTestAppPatcher patcher;
+  late final TestAppPatcher patcher;
   try {
-    patcher = YamlTestAppPatcher(
+    patcher = TestAppPatcher(
       appDir,
       testsDirRelative:
           explicitTestsDir ?? (testEntry == null ? null : 'tests'),
@@ -178,7 +212,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     }
     ExecutionMode? modeOverride;
     try {
-      if (_optionValues(arguments, '--mode').isNotEmpty) {
+      if (CliTestSelection.values(arguments, '--mode').isNotEmpty) {
         modeOverride = _resolveExecutionMode(
           arguments,
           ExecutionMode.widget,
@@ -265,7 +299,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         : TestApplicationLaunchKind.standaloneEnsemble,
   );
 
-  if (!patcher.hasTestYamlOnDisk) {
+  if (!patcher.hasTestsOnDisk) {
     stderr.writeln(
       'No declarative tests found. Add *.test.yaml files under '
       '$testsDirRelative/',
@@ -276,9 +310,10 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   late final ExecutionMode executionMode;
   late EnsembleTestConfig suiteConfig;
   try {
-    suiteConfig = _readTestsConfigStrict(patcher.testsDirPath!);
-    executionMode = _resolveExecutionMode(arguments, suiteConfig.mode);
-    _validateExecutionModeOptions(
+    suiteConfig = shard_planner.readCliTestsConfigStrict(patcher.testsDirPath!);
+    executionMode =
+        CliArgumentOptions.executionMode(arguments, suiteConfig.mode);
+    CliArgumentOptions.validateExecutionModeOptions(
       arguments,
       mode: executionMode,
       config: suiteConfig,
@@ -296,7 +331,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     integrationDevice = await executionBackend.selectDevice(arguments);
     if (integrationDevice != null) {
       _validatePlatformProject(appDir, integrationDevice.platform);
-      suiteConfig = _applyIntegrationDeviceMatrix(
+      suiteConfig = shard_planner.applyCliIntegrationDeviceMatrix(
         suiteConfig,
         platform: integrationDevice.platform,
         arguments: arguments,
@@ -318,7 +353,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     exit(2);
   }
 
-  final artifactLock = _RunArtifactLock(appDir);
+  final artifactLock = CliRunArtifactLock(appDir);
   if (!artifactLock.acquire()) {
     stderr.writeln(
       'Another Ensemble test run is already using the app artifact directory. '
@@ -327,2011 +362,78 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     exit(3);
   }
 
-  var exitCode = 0;
-  TestServiceManager? hostServices;
-  final reversedPorts = <int>[];
-  try {
-    _writeStatus(
-      'Preparing Ensemble YAML tests...',
-      quiet: quiet,
-      machineReport: machineReport,
-    );
-    patcher.enable(
-      mode: executionBackend.mode,
-      targetPlatform: integrationDevice?.platform,
-    );
-
-    if (patcher.pubspecChanged) {
-      _writeStatus(
-        'Resolving Flutter dependencies...',
-        quiet: quiet,
-        machineReport: machineReport,
-      );
-      final pubGet = await _runProcess(
-        'flutter',
-        ['pub', 'get', '--suppress-analytics'],
-        workingDirectory: appDir,
-      );
-      if (pubGet.exitCode != 0 || verbose) {
-        _writeProcessStreams(pubGet);
-      }
-      if (pubGet.exitCode != 0) {
-        exitCode = 2;
-        return;
-      }
-    }
-
-    _writeStatus(
-      'Running Ensemble YAML tests...',
-      quiet: quiet,
-      machineReport: machineReport,
-    );
-
-    _cleanParallelRunArtifacts(appDir);
-
-    if (!machineReport) {
-      try {
-        await _withHtmlReport(
-          appDir,
-          const EnsembleTestRunResult(results: []),
-          wallTimeMs: 0,
-          isSuiteRunning: true,
-        );
-      } catch (_) {}
-    }
-    final runSerial = !executionBackend.supportsParallel || jobs == 1;
-    final serialWorkingDirectory = runSerial && patcher.hasTimerRewrites
-        ? _prepareWorkerDirectory(appDir, 0, patcher)
-        : appDir;
-    final serialServiceOverrides = runSerial
-        ? await _resolveServiceOverrides(
-            patcher: patcher,
-            usedPorts: <int>{},
-          )
-        : null;
-    var effectiveServiceOverrides =
-        serialServiceOverrides ?? const <String, dynamic>{};
-    if (executionBackend.hostOwnsServices) {
-      final hostAddress = await resolveIntegrationHostAddress(
-        platform: integrationDevice!.platform,
-        emulator: integrationDevice.isVirtual,
-        explicitHostAddress: () {
-          final hosts = _optionValues(arguments, '--host-address');
-          return hosts.isEmpty ? null : hosts.single;
-        }(),
-      );
-      if (hostAddress != null) {
-        effectiveServiceOverrides = _rewriteServiceOverridesForHost(
-          effectiveServiceOverrides,
-          suiteConfig.services,
-          hostAddress,
-        );
-      }
-      final resolvedServices = _resolvedHostServices(
-        suiteConfig.services,
-        effectiveServiceOverrides,
-        appDir: appDir,
-      );
-      hostServices = TestServiceManager(
-        resolvedServices,
-        artifactRoot: _artifactRootPath(appDir),
-      );
-      await hostServices.startAll();
-      if (integrationDevice.platform == 'android') {
-        for (final service in resolvedServices) {
-          final uri = service.url == null ? null : Uri.tryParse(service.url!);
-          if (uri == null || !uri.hasPort) continue;
-          await _addAdbReverse(integrationDevice.id, uri.port);
-          reversedPorts.add(uri.port);
-        }
-        await _clearAdbLogcat(integrationDevice.id);
-      }
-    }
-    final testRun = runSerial
-        ? await _runFlutterTestProcess(
-            'flutter',
-            _buildFlutterTestArgs(
-              arguments,
-              reportMode: reportMode,
-              reportFile: executionMode == ExecutionMode.integration
-                  ? null
-                  : reportFile,
-              timeoutSeconds: timeoutSeconds,
-              verbose: verbose,
-              testEntryRelativePath: patcher.activeEntryRelativePath,
-              testsAssetPrefix: suiteSource.testsAssetPrefix,
-              physicalDevice: integrationDevice,
-              hostOwnsServices: executionBackend.hostOwnsServices,
-              appLogPath: patcher.hasTimerRewrites
-                  ? _appConsoleLogFile(appDir)
-                  : _appConsoleLogPath(),
-              appLogDisplayPath:
-                  patcher.hasTimerRewrites ? _appConsoleLogPath() : null,
-              artifactRoot:
-                  patcher.hasTimerRewrites ? _artifactRootPath(appDir) : null,
-              serviceOverrides: effectiveServiceOverrides.isEmpty
-                  ? null
-                  : effectiveServiceOverrides,
-            ),
-            workingDirectory: serialWorkingDirectory,
-            streamOutput: streamLiveOutput,
-            verbose: verbose,
-            appLogFile: _appConsoleLogFile(appDir),
-          )
-        : await _runParallelFlutterTests(
-            arguments,
-            appDir: appDir,
-            patcher: patcher,
-            jobs: jobs,
-            reportMode: reportMode,
-            reportFile: reportFile,
-            timeoutSeconds: timeoutSeconds,
-            quiet: quiet,
-            machineReport: machineReport,
-          );
-
-    if (executionMode == ExecutionMode.integration) {
-      var transport = await materializeTransportedArtifacts(
-        artifactRoot: _artifactRootPath(appDir),
-        output: '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}',
-      );
-      if (!transport.complete && integrationDevice?.platform == 'android') {
-        final logcat = await _readAdbLogcat(integrationDevice!.id);
-        if (logcat.contains(ensembleTestArtifactProtocolPrefix)) {
-          transport = await materializeTransportedArtifacts(
-            artifactRoot: _artifactRootPath(appDir),
-            output: logcat,
-          );
-        }
-      }
-      if (!transport.complete) {
-        stderr.writeln(
-          transport.error ?? 'Integration artifact transport was incomplete.',
-        );
-        if (transport.receivedPaths.isNotEmpty) {
-          stderr.writeln(
-            'Kept ${transport.receivedPaths.length} valid artifact(s) that '
-            'arrived before the failure.',
-          );
-        }
-        if (!verbose) {
-          _writeProcessStreams(testRun);
-        }
-        exitCode = 3;
-        return;
-      }
-      await optimizeTransportedScreenshotsForHost(_artifactRootPath(appDir));
-    }
-
-    if (testRun.exitCode != 0 && !verbose) {
-      final output = '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}';
-      final rawJson = extractJsonReport(output);
-      final json = jsonReport ? rawJson : '';
-      final junit = junitReport ? extractJunitReport(output) : '';
-      final report = machineReport
-          ? ''
-          : extractSuiteReport(
-              output,
-              includeScreenTracker: !streamLiveOutput,
-            );
-      final knownFailure = extractKnownFailure(output);
-      if (junit.isNotEmpty) {
-        stdout.writeln(junit);
-      } else if (json.isNotEmpty) {
-        stdout.writeln(json);
-      } else if (report.isNotEmpty) {
-        stdout.write(report);
-        if (!report.endsWith('\n')) stdout.writeln();
-      } else if (knownFailure.isNotEmpty) {
-        stderr.writeln(knownFailure);
-      } else {
-        _writeProcessStreams(testRun);
-      }
-    } else if (!verbose && testRun.exitCode != 0) {
-      _writeProcessStreams(testRun);
-    } else if (verbose) {
-      // Output was already streamed live.
-    } else {
-      final out = testRun.stdout?.toString() ?? '';
-      final rawJson = extractJsonReport(out);
-      final json = jsonReport ? rawJson : '';
-      final junit = junitReport ? extractJunitReport(out) : '';
-      final report = junit.isNotEmpty
-          ? junit
-          : json.isNotEmpty
-              ? json
-              : extractSuiteReport(
-                  out,
-                  includeScreenTracker: !streamLiveOutput,
-                );
-      if (report.isNotEmpty) {
-        stdout.write(report);
-        if (!report.endsWith('\n')) stdout.writeln();
-      } else {
-        _writeProcessStreams(testRun);
-      }
-      final err = testRun.stderr?.toString() ?? '';
-      if (err.isNotEmpty && !isBenignFlutterTestStderr(err)) {
-        stderr.write(err);
-      }
-    }
-
-    final machineResult = _runResultFromProcessOutput(
-      testRun,
-      artifactRoot: _artifactRootPath(appDir),
-    );
-    if (runSerial && machineResult != null) {
-      if (machineReport) {
-        await _recordHistory(appDir, machineResult);
-      } else {
-        await _withHtmlReport(appDir, machineResult);
-      }
-      if (executionMode == ExecutionMode.integration && reportFile != null) {
-        AtomicFile.writeStringSync(
-          File(reportFile),
-          junitReport
-              ? _junitReportForCli(machineResult)
-              : json.encode(machineResult.toJson()),
-        );
-      }
-    }
-    exitCode = machineResult == null
-        ? (executionMode == ExecutionMode.integration
-            ? 3
-            : (testRun.exitCode == 0 ? 0 : 1))
-        : (machineResult.failedCount == 0 ? 0 : 1);
-  } on StateError catch (error) {
-    stderr.writeln(error.message);
-    exitCode = 3;
-  } catch (error, stackTrace) {
-    stderr.writeln('Ensemble test runner infrastructure failure: $error');
-    if (verbose) stderr.writeln(stackTrace);
-    exitCode = 3;
-  } finally {
-    if (executionMode == ExecutionMode.integration &&
-        integrationDevice?.platform == 'android') {
-      for (final port in reversedPorts.reversed) {
-        await _removeAdbReverse(integrationDevice!.id, port);
-      }
-    }
-    await hostServices?.stopAll();
-    // Serial timer-rewrite runs also use a worker sandbox; always drop leftovers.
-    _cleanWorkerDirectories(appDir);
-    patcher.restore();
-    artifactLock.release();
-    exit(exitCode);
-  }
-}
-
-List<String> _selectionDartDefines(List<String> arguments) {
-  final values = {
-    'ensembleTestId': _optionValues(arguments, '--id'),
-    'ensembleTestFeature': _optionValues(arguments, '--feature'),
-    'ensembleTestProfile': _optionValues(arguments, '--profile'),
-    'ensembleTestTag': _optionValues(arguments, '--tag'),
-    'ensembleTestPath': _optionValues(arguments, '--path'),
-    'ensembleTestDevice': _optionValues(arguments, '--device'),
-  };
-  return [
-    for (final entry in values.entries)
-      if (entry.value.isNotEmpty)
-        '--dart-define=${entry.key}=${entry.value.join(',')}',
-  ];
-}
-
-List<String> _buildFlutterTestArgs(
-  List<String> arguments, {
-  required String? reportMode,
-  required String? reportFile,
-  required int? timeoutSeconds,
-  required bool verbose,
-  List<String> shardPaths = const [],
-  List<String> shardIds = const [],
-  int? workerIndex,
-  String? progressFile,
-  String? appLogPath,
-  String? appLogDisplayPath,
-  String? artifactRoot,
-  Map<String, dynamic>? serviceOverrides,
-  String artifactDisplayRoot = 'build/ensemble_test_runner',
-  String testEntryRelativePath = YamlTestAppPatcher.testEntryRelativePath,
-  FlutterDevice? physicalDevice,
-  bool hostOwnsServices = false,
-  String? testsAssetPrefix,
-}) {
-  return [
-    'test',
-    testEntryRelativePath,
-    '--no-pub',
-    if (physicalDevice != null) ...['-d', physicalDevice.id],
-    if (hostOwnsServices) '--dart-define=ensembleTestHostOwnsServices=true',
-    if (testsAssetPrefix != null)
-      '--dart-define=ensembleTestTestsAssetPrefix=${testsAssetPrefix.endsWith('/') ? testsAssetPrefix : '$testsAssetPrefix/'}',
-    if (physicalDevice != null)
-      '--dart-define=ensembleTestExecutionMode=integration',
-    if (arguments.contains('--reset-device-storage'))
-      '--dart-define=ensembleTestResetDeviceStorage=true',
-    if (arguments.contains('--allow-device-storage-mutation'))
-      '--dart-define=ensembleTestAllowDeviceStorageMutation=true',
-    if (physicalDevice != null && !physicalDevice.isVirtual)
-      '--dart-define=ensembleTestDeviceIsPhysical=true',
-    '--dart-define=ensembleTestEncryptionKey=${_suiteEncryptionKey(arguments)}',
-    if (physicalDevice != null) ...[
-      '--dart-define=ensembleTestPhysicalDeviceId=${physicalDevice.id}',
-      '--dart-define=ensembleTestPhysicalPlatform=${physicalDevice.platform}',
-      '--dart-define=ensembleTestPhysicalDeviceName=${physicalDevice.name}',
-    ],
-    if (reportMode != null) '--dart-define=ensembleTestReport=$reportMode',
-    '--dart-define=ensembleTestEmitJsonReport=true',
-    if (reportFile != null) '--dart-define=ensembleTestReportFile=$reportFile',
-    if (timeoutSeconds != null)
-      '--dart-define=ensembleTestTimeoutSeconds=$timeoutSeconds',
-    if (workerIndex != null) ...[
-      '--dart-define=ensembleTestWorkerIndex=$workerIndex',
-      '--dart-define=ensembleTestWorkerSuffix=worker${workerIndex + 1}',
-    ],
-    if (progressFile != null)
-      '--dart-define=ensembleTestProgressFile=$progressFile',
-    if (appLogPath != null) '--dart-define=ensembleTestAppLogFile=$appLogPath',
-    if (appLogDisplayPath != null)
-      '--dart-define=ensembleTestAppLogDisplayFile=$appLogDisplayPath',
-    if (artifactRoot != null)
-      '--dart-define=ensembleTestArtifactRoot=$artifactRoot',
-    if (serviceOverrides != null && serviceOverrides.isNotEmpty)
-      '--dart-define=ensembleTestServiceOverrides=${json.encode(serviceOverrides)}',
-    '--dart-define=ensembleTestArtifactDisplayRoot=$artifactDisplayRoot',
-    ..._inputDartDefines(arguments),
-    ..._selectionDartDefines(arguments),
-    if (shardPaths.isNotEmpty)
-      '--dart-define=ensembleTestShardPath=${shardPaths.join(',')}',
-    if (shardIds.isNotEmpty)
-      '--dart-define=ensembleTestShardId=${shardIds.join(',')}',
-    '--reporter',
-    verbose ? 'expanded' : 'silent',
-    ...flutterTestArguments(arguments),
-  ];
-}
-
-/// Test hook for integration backend command construction.
-List<String> buildIntegrationFlutterTestArgsForTest({
-  required String deviceId,
-  required String deviceName,
-  required String targetPlatform,
-}) =>
-    _buildFlutterTestArgs(
-      const [],
-      reportMode: null,
-      reportFile: null,
-      timeoutSeconds: null,
-      verbose: false,
-      testEntryRelativePath:
-          YamlTestAppPatcher.integrationTestEntryRelativePath,
-      physicalDevice: FlutterDevice(
-        id: deviceId,
-        name: deviceName,
-        targetPlatform: targetPlatform,
-        emulator: true,
-      ),
-      hostOwnsServices: true,
-    );
-
-Map<String, dynamic> _rewriteServiceOverridesForHost(
-  Map<String, dynamic> overrides,
-  List<TestServiceConfig> services,
-  String hostAddress,
-) {
-  final rewritten = Map<String, dynamic>.from(overrides);
-  for (final service in services) {
-    final existing = rewritten[service.name];
-    final map = existing is Map
-        ? Map<String, dynamic>.from(existing)
-        : <String, dynamic>{};
-    final url = map['url']?.toString() ?? service.url;
-    final ready = service.readyUrl;
-    final newUrl = rewriteServiceUrlForDevice(url, hostAddress);
-    if (newUrl != null) map['url'] = newUrl;
-    // readyUrl is on the config object; override maps only carry url/env.
-    rewritten[service.name] = map;
-    // Also rewrite ready checks that use loopback by embedding in url map.
-    if (ready != null) {
-      final rewrittenReady = rewriteServiceUrlForDevice(ready, hostAddress);
-      if (rewrittenReady != null && rewrittenReady != ready) {
-        map['readyUrl'] = rewrittenReady;
-      }
-    }
-  }
-  return rewritten;
-}
-
-Future<Map<String, dynamic>> _resolveServiceOverrides({
-  required YamlTestAppPatcher patcher,
-  required Set<int> usedPorts,
-  int preferredOffset = 0,
-}) async {
-  final testsDir = patcher.testsDirPath;
-  if (testsDir == null) return const {};
-  final configFile = File(p.join(testsDir, 'config.yaml'));
-  if (!configFile.existsSync()) return const {};
-
-  final config = EnsembleTestParser.parseConfigString(
-    configFile.readAsStringSync(),
-    sourcePath: configFile.path,
-  );
-  if (config.services.isEmpty) return const {};
-
-  final overrides = <String, dynamic>{};
-  for (final service in config.services) {
-    final resolvedUrl = await _allocateServiceUrl(
-      service.url,
-      usedPorts: usedPorts,
-      preferredOffset: preferredOffset,
-    );
-    if (resolvedUrl == null) continue;
-    final uri = Uri.parse(resolvedUrl);
-    overrides[service.name] = {
-      'url': resolvedUrl,
-      'environment': {
-        'PORT': '${uri.port}',
-      },
-    };
-  }
-  return overrides;
-}
-
-Future<String?> _allocateServiceUrl(
-  String? configuredUrl, {
-  required Set<int> usedPorts,
-  required int preferredOffset,
-}) async {
-  final baseUri = _serviceBaseUri(configuredUrl);
-  if (baseUri == null) return null;
-  final configuredPort = baseUri.hasPort ? baseUri.port : null;
-  final preferredPort =
-      configuredPort == null ? null : configuredPort + preferredOffset;
-  final port = await _allocateTcpPort(
-    preferredPort: preferredPort,
-    usedPorts: usedPorts,
-  );
-  return baseUri.replace(port: port).toString();
-}
-
-Uri? _serviceBaseUri(String? configuredUrl) {
-  if (configuredUrl == null || configuredUrl.trim().isEmpty) {
-    return Uri.parse('http://127.0.0.1');
-  }
-  final uri = Uri.tryParse(configuredUrl.trim());
-  if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
-  return uri;
-}
-
-Future<int> _allocateTcpPort({
-  required int? preferredPort,
-  required Set<int> usedPorts,
-}) async {
-  if (preferredPort != null &&
-      preferredPort > 0 &&
-      !usedPorts.contains(preferredPort) &&
-      await _isTcpPortAvailable(preferredPort)) {
-    usedPorts.add(preferredPort);
-    return preferredPort;
-  }
-
-  while (true) {
-    final socket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
-    final port = socket.port;
-    await socket.close();
-    if (usedPorts.add(port)) return port;
-  }
-}
-
-Future<bool> _isTcpPortAvailable(int port) async {
-  try {
-    final socket = await ServerSocket.bind(InternetAddress.anyIPv4, port);
-    await socket.close();
-    return true;
-  } on SocketException {
-    return false;
-  }
-}
-
-Future<ProcessResult> _runParallelFlutterTests(
-  List<String> arguments, {
-  required String appDir,
-  required YamlTestAppPatcher patcher,
-  required int? jobs,
-  required String? reportMode,
-  required String? reportFile,
-  required int? timeoutSeconds,
-  required bool quiet,
-  required bool machineReport,
-}) async {
-  return await RunnerBenchmark.async('worker', 'runParallelFlutterTests',
-      () async {
-    final testFiles = await _testFilesForSharding(
-      appDir,
-      patcher,
-      arguments: arguments,
-    );
-    final allFiles = [
-      ...testFiles.parallel.map((file) => file.id),
-      ...testFiles.serial,
-    ];
-    if (allFiles.length < 2) {
-      return _runSingleFlutterTestProcess(
-        arguments,
-        appDir: appDir,
-        patcher: patcher,
-        reportMode: reportMode,
-        reportFile: reportFile,
-        timeoutSeconds: timeoutSeconds,
-      );
-    }
-
-    final requestedJobs = jobs ?? _autoWorkerCount(allFiles.length);
-    final hasParallelFiles = testFiles.parallel.isNotEmpty;
-    final hasSerialFiles = testFiles.serial.isNotEmpty;
-    final totalJobCount = requestedJobs.clamp(1, allFiles.length);
-    final serialLaneCount = hasSerialFiles ? 1 : 0;
-    final parallelLaneBudget = totalJobCount - serialLaneCount;
-    final parallelWorkerCount = hasParallelFiles
-        ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
-        : 0;
-    if (parallelWorkerCount <= 1 && !hasSerialFiles) {
-      return _runSingleFlutterTestProcess(
-        arguments,
-        appDir: appDir,
-        patcher: patcher,
-        reportMode: reportMode,
-        reportFile: reportFile,
-        timeoutSeconds: timeoutSeconds,
-      );
-    }
-    final shards = _balancedShards(testFiles.parallel, parallelWorkerCount);
-
-    _writeStatus(
-      'Running ${allFiles.length} test runs with $totalJobCount workers...',
-      quiet: quiet,
-      machineReport: machineReport,
-    );
-
-    final elapsed = Stopwatch()..start();
-    final artifactRoot = _artifactRootPath(appDir);
-    final futures = <Future<ProcessResult>>[];
-    final workerReportFiles = <String>[];
-    final workerProgressFiles = <String>[];
-    final showProgress = !quiet && !machineReport;
-    final usedServicePorts = <int>{};
-    for (var i = 0; i < parallelWorkerCount; i++) {
-      final shard = shards[i];
-      if (shard.isEmpty) continue;
-      final shardPaths = shard.expand((file) => file.paths).toSet().toList();
-      final shardIds = shard.map((file) => file.id).toList();
-      final workerReportFile = _workerReportFile(appDir, i);
-      final workerProgressFile = _workerProgressFile(appDir, i);
-      _deleteIfExists(workerReportFile);
-      _deleteIfExists(workerProgressFile);
-      workerReportFiles.add(workerReportFile);
-      workerProgressFiles.add(workerProgressFile);
-      final workerDirectory = _prepareWorkerDirectory(appDir, i, patcher);
-      final serviceOverrides = await _resolveServiceOverrides(
-        patcher: patcher,
-        preferredOffset: i,
-        usedPorts: usedServicePorts,
-      );
-      futures.add(
-        _runFlutterTestProcess(
-          'flutter',
-          _buildFlutterTestArgs(
-            arguments,
-            reportMode: 'json',
-            reportFile: workerReportFile,
-            timeoutSeconds: timeoutSeconds,
-            verbose: false,
-            shardPaths: shardPaths,
-            shardIds: shardIds,
-            workerIndex: i,
-            progressFile: showProgress ? workerProgressFile : null,
-            appLogPath: _appConsoleLogFile(appDir, workerIndex: i),
-            appLogDisplayPath: _appConsoleLogPath(workerIndex: i),
-            artifactRoot: artifactRoot,
-            serviceOverrides: serviceOverrides,
-            testEntryRelativePath: patcher.activeEntryRelativePath,
-            testsAssetPrefix: patcher.testsDirRelative,
-          ),
-          workingDirectory: workerDirectory,
-          streamOutput: false,
-          verbose: false,
-          appLogFile: _appConsoleLogFile(workerDirectory, workerIndex: i),
-        ),
-      );
-    }
-
-    if (hasSerialFiles) {
-      final serialWorkerIndex = parallelWorkerCount;
-      final workerReportFile = _workerReportFile(appDir, serialWorkerIndex);
-      final workerProgressFile = _workerProgressFile(appDir, serialWorkerIndex);
-      _deleteIfExists(workerReportFile);
-      _deleteIfExists(workerProgressFile);
-      workerReportFiles.add(workerReportFile);
-      workerProgressFiles.add(workerProgressFile);
-      final workerDirectory =
-          _prepareWorkerDirectory(appDir, serialWorkerIndex, patcher);
-      final serviceOverrides = await _resolveServiceOverrides(
-        patcher: patcher,
-        preferredOffset: serialWorkerIndex,
-        usedPorts: usedServicePorts,
-      );
-      futures.add(
-        _runFlutterTestProcess(
-          'flutter',
-          _buildFlutterTestArgs(
-            arguments,
-            reportMode: 'json',
-            reportFile: workerReportFile,
-            timeoutSeconds: timeoutSeconds,
-            verbose: false,
-            shardPaths: testFiles.serial,
-            workerIndex: serialWorkerIndex,
-            progressFile: showProgress ? workerProgressFile : null,
-            appLogPath: _appConsoleLogFile(
-              appDir,
-              workerIndex: serialWorkerIndex,
-            ),
-            appLogDisplayPath: _appConsoleLogPath(
-              workerIndex: serialWorkerIndex,
-            ),
-            artifactRoot: artifactRoot,
-            serviceOverrides: serviceOverrides,
-            testEntryRelativePath: patcher.activeEntryRelativePath,
-            testsAssetPrefix: patcher.testsDirRelative,
-          ),
-          workingDirectory: workerDirectory,
-          streamOutput: false,
-          verbose: false,
-          appLogFile: _appConsoleLogFile(
-            workerDirectory,
-            workerIndex: serialWorkerIndex,
-          ),
-        ),
-      );
-    }
-
-    var runDone = false;
-    final progressPoller = showProgress
-        ? _pollWorkerProgress(
-            workerProgressFiles,
-            isDone: () => runDone,
-          )
-        : Future<void>.value();
-    final workerResults = await Future.wait(futures);
-    runDone = true;
-    await progressPoller;
-    // Live ✓/✗ streaming is done — progress files have finished their job.
-    _deleteArtifactSubdir(appDir, 'worker_progress');
-
+  if (ownsFlutterKernelCache) {
     try {
-      for (var i = 0; i < workerReportFiles.length; i++) {
-        _copyWorkerArtifacts(appDir, i);
-      }
-    } finally {
-      // Worker sandboxes only exist to isolate Flutter build/ output and timer
-      // rewrites. Artifacts are copied above; drop the trees so they do not keep
-      // multi‑GB compile caches around after the run.
-      _cleanWorkerDirectories(appDir);
+      // Reclaim cache left by an interrupted runner invocation before creating
+      // more build artifacts. App-owned build caches are never pruned here.
+      flutter_test_command.pruneFlutterTestKernelCache(Directory(appDir));
+    } catch (_) {
+      // Cache maintenance is best effort and must not strand the run lock.
     }
-    var merged = _mergeWorkerReports(
-      workerResults,
-      reportFiles: workerReportFiles,
-      appDir: appDir,
-    );
-    // Shard JSONs are merged into memory — drop per-worker report files.
-    _deleteArtifactSubdir(appDir, 'worker_reports');
-    merged = _mergeParallelSuiteArtifacts(merged);
-    merged = await _withHtmlReport(
-      appDir,
-      merged,
-      wallTimeMs: elapsed.elapsedMilliseconds,
-    );
-    _writeHistoricalDurations(
-      appDir,
-      merged,
-      testsDirRelative: patcher.testsDirRelative,
-      includeCurrentRun: !_hasSelection(arguments),
-    );
-    final output = StringBuffer();
-    if (reportMode == 'json') {
-      output.writeln(json.encode(merged.toJson()));
-    } else if (reportMode == 'junit') {
-      output.writeln(_junitReportForCli(merged));
-    } else {
-      output.write(
-        _formatCliSummary(
-          merged,
-          testFile: '${patcher.testsDirRelative}/*.test.yaml',
-          wallTimeMs: elapsed.elapsedMilliseconds,
-        ),
-      );
-    }
-    if (reportFile != null) {
-      AtomicFile.writeStringSync(
-        File(reportFile),
-        reportMode == 'junit'
-            ? _junitReportForCli(merged)
-            : json.encode(merged.toJson()),
-      );
-    }
-
-    final stderr = StringBuffer();
-    if (merged.failedCount > 0) {
-      for (var i = 0; i < workerResults.length; i++) {
-        final result = workerResults[i];
-        if (result.exitCode != 0) {
-          stderr.writeln(
-            'A test process failed with exit code ${result.exitCode}.',
-          );
-          final known = extractKnownFailure(
-            '${result.stdout ?? ''}\n${result.stderr ?? ''}',
-          );
-          if (known.isNotEmpty) stderr.writeln(known);
-        }
-        final err = result.stderr?.toString() ?? '';
-        if (err.isNotEmpty && !isBenignFlutterTestStderr(err)) {
-          stderr.writeln(err.trimRight());
-        }
-      }
-    }
-
-    final exitCode = merged.failedCount > 0 ? 1 : 0;
-    return ProcessResult(
-      0,
-      exitCode,
-      output.toString(),
-      stderr.toString(),
-    );
-  });
-}
-
-Future<ProcessResult> _runSingleFlutterTestProcess(
-  List<String> arguments, {
-  required String appDir,
-  required YamlTestAppPatcher patcher,
-  required String? reportMode,
-  required String? reportFile,
-  required int? timeoutSeconds,
-}) async {
-  final useWorker = patcher.hasTimerRewrites;
-  final workingDirectory =
-      useWorker ? _prepareWorkerDirectory(appDir, 0, patcher) : appDir;
-  final serviceOverrides = await _resolveServiceOverrides(
+  }
+  await _executeCliRun(
+    arguments: arguments,
+    appDir: appDir,
     patcher: patcher,
-    usedPorts: <int>{},
-  );
-  return _runFlutterTestProcess(
-    'flutter',
-    _buildFlutterTestArgs(
-      arguments,
-      reportMode: reportMode,
-      reportFile: reportFile,
-      timeoutSeconds: timeoutSeconds,
-      verbose: false,
-      appLogPath: useWorker ? _appConsoleLogFile(appDir) : _appConsoleLogPath(),
-      appLogDisplayPath: useWorker ? _appConsoleLogPath() : null,
-      artifactRoot: useWorker ? _artifactRootPath(appDir) : null,
-      serviceOverrides: serviceOverrides,
-      testEntryRelativePath: patcher.activeEntryRelativePath,
-      testsAssetPrefix: patcher.testsDirRelative,
-    ),
-    workingDirectory: workingDirectory,
-    streamOutput: false,
-    verbose: false,
-    appLogFile: _appConsoleLogFile(appDir),
+    artifactLock: artifactLock,
+    pruneKernelCache: ownsFlutterKernelCache,
+    verbose: verbose,
+    quiet: quiet,
+    machineReport: machineReport,
+    jsonReport: jsonReport,
+    junitReport: junitReport,
+    streamLiveOutput: streamLiveOutput,
+    reportMode: reportMode,
+    reportFile: reportFile,
+    timeoutSeconds: timeoutSeconds,
+    jobs: jobs,
+    suiteConfig: suiteConfig,
+    executionMode: executionMode,
+    executionBackend: executionBackend,
+    integrationDevice: integrationDevice,
+    suiteSource: suiteSource,
+    reportCoordinator: reportCoordinator,
+    workerWorkspace: workerWorkspace,
   );
 }
 
-/// Returns the expanded run ids assigned to each parallel worker.
-///
-/// This is intentionally a small test hook for the CLI sharding planner. The
-/// production runner uses the same private `_testFilesForSharding` and
-/// `_balancedShards` path before launching Flutter worker processes.
-Future<List<List<String>>> planShardRunIdsForTest({
-  required String appDir,
-  List<String> arguments = const [],
-  int? jobs,
-}) async {
-  return await RunnerBenchmark.async('worker', 'planShardRunIdsForTest',
-      () async {
-    final testFiles = await _testFilesForSharding(
-      appDir,
-      YamlTestAppPatcher(appDir),
-      arguments: arguments,
-    );
-    final allRuns = [
-      ...testFiles.parallel.map((file) => file.id),
-      ...testFiles.serial,
-    ];
-    if (allRuns.isEmpty) return const [];
-    if (allRuns.length < 2) return [allRuns];
-
-    final requestedJobs = jobs ?? _autoWorkerCount(allRuns.length);
-    final totalJobCount = requestedJobs.clamp(1, allRuns.length);
-    final serialLaneCount = testFiles.serial.isNotEmpty ? 1 : 0;
-    final parallelLaneBudget = totalJobCount - serialLaneCount;
-    final parallelWorkerCount = testFiles.parallel.isNotEmpty
-        ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
-        : 0;
-
-    final result = <List<String>>[
-      for (final shard in _balancedShards(
-        testFiles.parallel,
-        parallelWorkerCount,
-      ))
-        [for (final file in shard) file.id],
-    ];
-    if (testFiles.serial.isNotEmpty) {
-      result.add(testFiles.serial);
-    }
-    return result.where((shard) => shard.isNotEmpty).toList();
-  });
-}
-
-String _workerReportFile(String appDir, int workerIndex) {
-  return p.join(
-    appDir,
-    'build',
-    'ensemble_test_runner',
-    'worker_reports',
-    'worker${workerIndex + 1}.json',
-  );
-}
-
-/// Drops legacy suite-level apiCalls/storage/appLogs links; those artifacts are
-/// now attached per test (and copied from workers as `{testId}_*.json/.log`).
-EnsembleTestRunResult _mergeParallelSuiteArtifacts(
-  EnsembleTestRunResult result,
-) {
-  final logs = result.suiteLogs
-      .where(
-        (log) =>
-            !log.startsWith('apiCalls:') &&
-            !log.startsWith('storage:') &&
-            !log.startsWith('storage[') &&
-            !log.startsWith('appLogs:'),
-      )
-      .toList();
-
-  return EnsembleTestRunResult(
-    results: result.results,
-    suiteLogs: logs,
-    metadata: result.metadata,
-  );
-}
-
-void _cleanParallelRunArtifacts(String appDir) {
-  final root = Directory(p.join(appDir, 'build', 'ensemble_test_runner'));
-  for (final name in const [
-    'logs',
-    'diagnostics',
-    'frames',
-    // Legacy pre-rename location for `*_frames.json` manifests.
-    'screenshots',
-    'worker_progress',
-    'worker_reports',
-  ]) {
-    final directory = Directory(p.join(root.path, name));
-    if (directory.existsSync()) directory.deleteSync(recursive: true);
-  }
-  final reportScreenshots =
-      Directory(p.join(root.path, 'report', 'screenshots'));
-  if (reportScreenshots.existsSync()) {
-    reportScreenshots.deleteSync(recursive: true);
-  }
-}
-
-/// Deletes one subdirectory under `build/ensemble_test_runner/` when its job
-/// is finished (progress after live polling, reports after merge).
-void _deleteArtifactSubdir(String appDir, String name) {
-  final directory = Directory(
-    p.join(appDir, 'build', 'ensemble_test_runner', name),
-  );
-  if (directory.existsSync()) {
-    directory.deleteSync(recursive: true);
-  }
-}
-
-/// Deletes `build/ensemble_test_runner/workers/` after a run.
-///
-/// Worker directories are disposable sandboxes (symlinked sources + per-worker
-/// Flutter `build/` caches). Suite artifacts are copied out first; keeping the
-/// trees only wastes disk.
-void _cleanWorkerDirectories(String appDir) {
-  final directory = Directory(
-    p.join(appDir, 'build', 'ensemble_test_runner', 'workers'),
-  );
-  if (directory.existsSync()) {
-    directory.deleteSync(recursive: true);
-  }
-}
-
-String _workerProgressFile(String appDir, int workerIndex) {
-  return p.join(
-    appDir,
-    'build',
-    'ensemble_test_runner',
-    'worker_progress',
-    'worker${workerIndex + 1}.jsonl',
-  );
-}
-
-/// Prevents two CLI invocations from sharing and overwriting suite artifacts.
-/// Worker processes within one invocation do not use this lock; they write to
-/// the same coordinated artifact root by design.
-final class _RunArtifactLock {
-  _RunArtifactLock(String appDir)
-      : _file = File(
-          p.join(appDir, 'build', 'ensemble_test_runner', '.run.lock'),
-        );
-
-  final File _file;
-  bool _acquired = false;
-
-  bool acquire() {
-    try {
-      return _create();
-    } on PathExistsException {
-      if (!_removeStaleLock()) return false;
-      try {
-        return _create();
-      } on FileSystemException {
-        return false;
-      }
-    } on FileSystemException {
-      return false;
-    }
-  }
-
-  bool _create() {
-    _file.parent.createSync(recursive: true);
-    _file.createSync(exclusive: true);
-    _file.writeAsStringSync(
-      'pid=$pid\nstartedAt=${DateTime.now().toUtc().toIso8601String()}\n',
-      flush: true,
-    );
-    _acquired = true;
-    return true;
-  }
-
-  bool _removeStaleLock() {
-    try {
-      final contents = _file.readAsStringSync();
-      final match =
-          RegExp(r'^pid=(\d+)$', multiLine: true).firstMatch(contents);
-      final ownerPid = int.tryParse(match?.group(1) ?? '');
-      if (ownerPid == null) {
-        final age = DateTime.now().difference(_file.statSync().modified);
-        if (age < const Duration(seconds: 30)) return false;
-      } else if (_isProcessAlive(ownerPid)) {
-        return false;
-      }
-      _file.deleteSync();
-      return true;
-    } on FileSystemException {
-      return false;
-    }
-  }
-
-  bool _isProcessAlive(int processId) {
-    final result = Process.runSync('kill', ['-0', '$processId']);
-    return result.exitCode == 0;
-  }
-
-  void release() {
-    if (!_acquired) return;
-    try {
-      _file.deleteSync();
-    } on FileSystemException {
-      // Cleanup must not hide the test result.
-    }
-    _acquired = false;
-  }
-}
-
-String _appConsoleLogPath({int? workerIndex}) {
-  final name = workerIndex == null
-      ? 'app_console.log'
-      : 'app_console_${workerIndex + 1}.log';
-  return p.join('build', 'ensemble_test_runner', 'logs', name);
-}
-
-String _appConsoleLogFile(String appDir, {int? workerIndex}) {
-  return p.join(appDir, _appConsoleLogPath(workerIndex: workerIndex));
-}
-
-String _artifactRootPath(String appDir) {
-  return p.join(appDir, 'build', 'ensemble_test_runner');
-}
-
-Future<void> _pollWorkerProgress(
-  List<String> progressFiles, {
-  required bool Function() isDone,
-}) async {
-  final seenLines = <String, int>{
-    for (final file in progressFiles) file: 0,
-  };
-
-  while (!isDone()) {
-    _drainWorkerProgress(progressFiles, seenLines);
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-  }
-  _drainWorkerProgress(progressFiles, seenLines);
-}
-
-void _drainWorkerProgress(
-  List<String> progressFiles,
-  Map<String, int> seenLines,
-) {
-  for (var i = 0; i < progressFiles.length; i++) {
-    final path = progressFiles[i];
-    final file = File(path);
-    if (!file.existsSync()) continue;
-    final lines =
-        file.readAsLinesSync().where((line) => line.trim().isNotEmpty).toList();
-    final seen = seenLines[path] ?? 0;
-    if (seen >= lines.length) continue;
-    for (final line in lines.skip(seen)) {
-      final event = _decodeProgressEvent(line);
-      if (event == null) continue;
-      stderr.writeln(_formatProgressEvent(event));
-    }
-    seenLines[path] = lines.length;
-  }
-}
-
-Map<String, dynamic>? _decodeProgressEvent(String line) {
-  try {
-    final decoded = json.decode(line);
-    return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-String _formatProgressEvent(Map<String, dynamic> event) {
-  final status = event['status'] == 'passed' ? '✓' : '✗';
-  final testId = event['testId']?.toString() ?? '(unknown)';
-  final durationMs =
-      event['durationMs'] is int ? event['durationMs'] as int : 0;
-  final message = event['message']?.toString();
-  final attempts = event['attempts'] is int ? event['attempts'] as int : 1;
-  final retry = event['retry'] is int ? event['retry'] as int : 0;
-  final retryText = attempts > 1 ? ' · attempt $attempts/${retry + 1}' : '';
-  final suffix = message == null || message.isEmpty
-      ? ''
-      : ': ${_singleLine(message, maxLength: 120)}';
-  return '$status ${_baseTestId(testId)} (${_formatDuration(durationMs)})$retryText$suffix';
-}
-
-String _formatDuration(int durationMs) {
-  if (durationMs < 1000) return '${durationMs}ms';
-  return '${(durationMs / 1000).toStringAsFixed(1)}s';
-}
-
-String _singleLine(String value, {required int maxLength}) {
-  final single = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-  if (single.length <= maxLength) return single;
-  return '${single.substring(0, maxLength - 1)}…';
-}
-
-void _deleteIfExists(String path) {
-  final file = File(path);
-  if (file.existsSync()) file.deleteSync();
-}
-
-String _prepareWorkerDirectory(
-  String appDir,
-  int workerIndex,
-  YamlTestAppPatcher patcher,
-) {
-  final workerDir = Directory(_workerDirectory(appDir, workerIndex));
-  workerDir.createSync(recursive: true);
-
-  final sourceNames = <String>{};
-  for (final entity in Directory(appDir).listSync(followLinks: false)) {
-    final name = p.basename(entity.path);
-    if (name == 'build' || name == '.git' || name == '.dart_tool') continue;
-    sourceNames.add(name);
-    _replaceWithLink(
-      p.join(workerDir.path, name),
-      entity.absolute.path,
-    );
-  }
-
-  for (final entity in workerDir.listSync(followLinks: false)) {
-    final name = p.basename(entity.path);
-    if (name == 'build' || name == '.dart_tool' || sourceNames.contains(name)) {
-      continue;
-    }
-    entity.deleteSync(recursive: true);
-  }
-
-  final sourceDartTool = Directory(p.join(appDir, '.dart_tool'));
-  final workerDartTool = Directory(p.join(workerDir.path, '.dart_tool'))
-    ..createSync();
-  for (final fileName in const [
-    'package_config.json',
-    'package_graph.json',
-    'version',
-  ]) {
-    final source = File(p.join(sourceDartTool.path, fileName));
-    if (source.existsSync()) {
-      source.copySync(p.join(workerDartTool.path, fileName));
-    }
-  }
-  _materializeWorkerPathConfiguration(workerDir.path, appDir);
-  _materializeTimerRewriteScreens(workerDir.path, appDir, patcher);
-  patcher.rewriteTimersIn(workerDir.path);
-  return workerDir.path;
-}
-
-/// Worker sandboxes live below the application's build directory, so relative
-/// path dependencies from the application's pubspec no longer point at their
-/// original packages. Materialize the two pubspec files with absolute paths
-/// and make package_config root URIs absolute before invoking Flutter.
-void _materializeWorkerPathConfiguration(String workerDir, String appDir) {
-  for (final fileName in const ['pubspec.yaml', 'pubspec_overrides.yaml']) {
-    final source = File(p.join(appDir, fileName));
-    if (!source.existsSync()) continue;
-    final target = File(p.join(workerDir, fileName));
-    _deleteEntityIfExists(target.path);
-    target.writeAsStringSync(
-      _absolutizeYamlPathEntries(source.readAsStringSync(), appDir),
-    );
-  }
-
-  final packageConfig = File(
-    p.join(workerDir, '.dart_tool', 'package_config.json'),
-  );
-  if (!packageConfig.existsSync()) return;
-  final dynamic decoded = json.decode(packageConfig.readAsStringSync());
-  if (decoded is! Map<String, dynamic> || decoded['packages'] is! List) return;
-  final sourceConfigDir = p.join(appDir, '.dart_tool');
-  for (final dynamic rawPackage in decoded['packages'] as List) {
-    if (rawPackage is! Map<String, dynamic>) continue;
-    final rootUri = rawPackage['rootUri'];
-    if (rootUri is! String) continue;
-    final uri = Uri.parse(rootUri);
-    if (uri.isAbsolute) continue;
-    final resolvedRoot = p.normalize(
-      p.join(sourceConfigDir, p.fromUri(uri)),
-    );
-    final packageRoot =
-        p.equals(resolvedRoot, p.normalize(appDir)) ? workerDir : resolvedRoot;
-    rawPackage['rootUri'] = Directory(packageRoot).absolute.uri.toString();
-  }
-  packageConfig.writeAsStringSync(json.encode(decoded));
-}
-
-String _absolutizeYamlPathEntries(String contents, String sourceDirectory) {
-  final pathEntry = RegExp(r'^(\s*path:\s*)([^#]+?)(\s*(?:#.*)?)$');
-  return contents.split('\n').map((line) {
-    final match = pathEntry.firstMatch(line);
-    if (match == null) return line;
-    var value = match.group(2)!.trim();
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.substring(1, value.length - 1);
-    }
-    if (p.isAbsolute(value)) return line;
-    final absolute = p.normalize(p.join(sourceDirectory, value));
-    return '${match.group(1)}${json.encode(absolute)}${match.group(3)}';
-  }).join('\n');
-}
-
-void _materializeTimerRewriteScreens(
-  String workerDir,
-  String appDir,
-  YamlTestAppPatcher patcher,
-) {
-  if (!patcher.hasTimerRewrites) return;
-  final testsDir = patcher.testsDirRelative;
-  if (testsDir == null) return;
-  final appRootRelative = p.dirname(_withoutTrailingSlash(testsDir));
-  final screensRelative = p.join(appRootRelative, 'screens');
-  final sourceScreens = Directory(p.join(appDir, screensRelative));
-  if (!sourceScreens.existsSync()) return;
-  _materializeCopiedSubtree(
-    workerDir: workerDir,
-    sourceRoot: appDir,
-    relativePath: screensRelative,
-  );
-}
-
-String _withoutTrailingSlash(String path) {
-  final normalized = path.replaceAll('\\', '/');
-  return normalized.endsWith('/')
-      ? normalized.substring(0, normalized.length - 1)
-      : normalized;
-}
-
-void _materializeCopiedSubtree({
-  required String workerDir,
-  required String sourceRoot,
-  required String relativePath,
-}) {
-  final segments = p.split(relativePath.replaceAll('\\', '/'));
-  var sourceParent = Directory(sourceRoot);
-  var targetParent = Directory(workerDir);
-  for (var i = 0; i < segments.length; i++) {
-    final segment = segments[i];
-    final source = Directory(p.join(sourceParent.path, segment));
-    final targetPath = p.join(targetParent.path, segment);
-    final isLeaf = i == segments.length - 1;
-    if (isLeaf) {
-      _replaceWithDirectoryCopy(targetPath, source);
-      return;
-    }
-    _replaceWithOverlayDirectory(
-      targetPath,
-      source,
-      skipChildName: segments[i + 1],
-    );
-    sourceParent = source;
-    targetParent = Directory(targetPath);
-  }
-}
-
-void _replaceWithOverlayDirectory(
-  String path,
-  Directory source, {
-  required String skipChildName,
-}) {
-  _deleteEntityIfExists(path);
-  final target = Directory(path)..createSync(recursive: true);
-  for (final entity in source.listSync(followLinks: false)) {
-    final name = p.basename(entity.path);
-    if (name == skipChildName) continue;
-    _replaceWithLink(p.join(target.path, name), entity.absolute.path);
-  }
-}
-
-void _replaceWithDirectoryCopy(String path, Directory source) {
-  _deleteEntityIfExists(path);
-  final target = Directory(path)..createSync(recursive: true);
-  _copyDirectoryContents(source, target);
-}
-
-void _replaceWithLink(String path, String target) {
-  _deleteEntityIfExists(path);
-  Link(path).createSync(target);
-}
-
-void _deleteEntityIfExists(String path) {
-  final existing = FileSystemEntity.typeSync(path, followLinks: false);
-  if (existing != FileSystemEntityType.notFound) {
-    FileSystemEntity entity;
-    if (existing == FileSystemEntityType.directory) {
-      entity = Directory(path);
-    } else if (existing == FileSystemEntityType.link) {
-      entity = Link(path);
-    } else {
-      entity = File(path);
-    }
-    entity.deleteSync(recursive: true);
-  }
-}
-
-String _workerDirectory(String appDir, int workerIndex) {
-  return p.join(
-    appDir,
-    'build',
-    'ensemble_test_runner',
-    'workers',
-    'worker${workerIndex + 1}',
-  );
-}
-
-void _copyWorkerArtifacts(String appDir, int workerIndex) {
-  final source = Directory(
-    p.join(
-      _workerDirectory(appDir, workerIndex),
-      'build',
-      'ensemble_test_runner',
-    ),
-  );
-  if (!source.existsSync()) return;
-  final target = Directory(p.join(appDir, 'build', 'ensemble_test_runner'));
-  target.createSync(recursive: true);
-  _copyDirectoryContents(source, target);
-}
-
-void _copyDirectoryContents(Directory source, Directory target) {
-  for (final entity in source.listSync(recursive: false, followLinks: false)) {
-    final destination = p.join(target.path, p.basename(entity.path));
-    if (entity is Directory) {
-      final destinationDir = Directory(destination)
-        ..createSync(recursive: true);
-      _copyDirectoryContents(entity, destinationDir);
-    } else if (entity is File) {
-      entity.copySync(destination);
-    }
-  }
-}
-
-Future<_ShardedTestFiles> _testFilesForSharding(
-  String appDir,
-  YamlTestAppPatcher patcher, {
-  List<String> arguments = const [],
-}) async {
-  final testsDir = patcher.testsDirPath;
-  if (testsDir == null) return const _ShardedTestFiles();
-  final historicalDurations = _loadHistoricalDurations(appDir);
-  final parallel = <_ShardableTestFile>[];
-  final serial = <String>[];
-  final config = _readTestsConfig(testsDir);
-  final effectiveConfig = config == null
-      ? null
-      : _applyShardDeviceFilter(
-          config,
-          _optionValueSet(arguments, '--device'),
-        );
-  final files = Directory(testsDir)
-      .listSync(recursive: true)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.test.yaml'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
-  final docsByPath = <String, YamlMap?>{};
-  final pathById = <String, String>{};
-  final referencedSessionIds = <String>{};
-  final hasShardSelection = _hasShardSelection(arguments);
-  for (final file in files) {
-    final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
-    final doc = _readTestYamlMap(file);
-    docsByPath[relative] = doc;
-    final id = doc?['id']?.toString();
-    if (id != null && id.isNotEmpty) {
-      pathById[id] = relative;
-    }
-    final session = doc?['session']?.toString();
-    if (session != null && session.isNotEmpty) {
-      referencedSessionIds.add(session);
-    }
-  }
-
-  final sessionProducerPaths = <String>{
-    for (final id in referencedSessionIds)
-      if (pathById[id] != null) pathById[id]!,
-  };
-
-  for (final file in files) {
-    final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
-    final doc = docsByPath[relative];
-    if (!_matchesShardSelection(
-      relative,
-      doc,
-      arguments,
-      config: effectiveConfig,
-    )) {
-      continue;
-    }
-    if (_isParallelTestFile(file, doc: doc) &&
-        (hasShardSelection || !sessionProducerPaths.contains(relative))) {
-      final definitions = _expandedShardDefinitionsForFile(
-        doc: doc,
-        relativePath: relative,
-        config: effectiveConfig,
-        arguments: arguments,
-      );
-      final fileEstimate = _estimateTestFileDurationMs(
-        file,
-        relative,
-        historicalDurations,
-      );
-      final fallbackEstimate =
-          (fileEstimate / definitions.length.clamp(1, 1000000)).round();
-      for (final definition in definitions) {
-        parallel.add(
-          _ShardableTestFile(
-            path: relative,
-            paths: _shardPathsForDefinition(
-              definition,
-              relative,
-              pathById,
-            ),
-            id: definition.id,
-            estimatedDurationMs:
-                historicalDurations.testDuration(definition.id) ??
-                    fallbackEstimate,
-          ),
-        );
-      }
-    } else if (!hasShardSelection &&
-        sessionProducerPaths.contains(relative) &&
-        _isParallelTestFile(file, doc: doc)) {
-      // Session producers are selected automatically by each shard that needs
-      // them. Running them as standalone files would waste a worker lane.
-      continue;
-    } else {
-      serial.add(relative);
-    }
-  }
-  return _ShardedTestFiles(parallel: parallel, serial: serial);
-}
-
-List<String> _shardPathsForDefinition(
-  _ExpandedShardDefinition definition,
-  String relativePath,
-  Map<String, String> pathById,
-) {
-  final paths = <String>{relativePath};
-  final session = definition.session;
-  if (session != null && session.isNotEmpty) {
-    final sessionPath = pathById[_rootExpandedId(session)];
-    if (sessionPath != null) paths.add(sessionPath);
-  }
-  return paths.toList();
-}
-
-String _rootExpandedId(String id) {
-  final bracket = id.indexOf('[');
-  return bracket == -1 ? id : id.substring(0, bracket);
-}
-
-List<_ExpandedShardDefinition> _expandedShardDefinitionsForFile({
-  required YamlMap? doc,
-  required String relativePath,
-  required EnsembleTestConfig? config,
-  required List<String> arguments,
-}) {
-  if (doc == null) return const [];
-  final baseId = doc['id']?.toString();
-  if (baseId == null || baseId.isEmpty) return const [];
-  final effectiveConfig = config ?? const EnsembleTestConfig();
-  final scenarios = _scenarioIds(doc);
-  final profileNames = _profileNamesForShard(
-    doc,
-    config: effectiveConfig,
-  );
-  final multiProfile = profileNames.length > 1;
-  final devices = effectiveConfig.devices;
-  final multiDevice = devices.length > 1;
-  final session = doc['session']?.toString();
-
-  final definitions = <_ExpandedShardDefinition>[];
-  final scenarioIds = scenarios.isEmpty ? const [null] : scenarios;
-  final profiles = profileNames.isEmpty ? const [null] : profileNames;
-  final deviceIds = devices.isEmpty
-      ? const [null]
-      : devices.map((device) => device.id).toList(growable: false);
-
-  for (final scenarioId in scenarioIds) {
-    final scenarioRunId = scenarioId == null ? baseId : '$baseId[$scenarioId]';
-    for (final profile in profiles) {
-      final profileRunId = multiProfile && profile != null
-          ? '$scenarioRunId[$profile]'
-          : scenarioRunId;
-      final profileSession = multiProfile && profile != null && session != null
-          ? '$session[$profile]'
-          : session;
-      for (final deviceId in deviceIds) {
-        definitions.add(
-          _ExpandedShardDefinition(
-            id: multiDevice && deviceId != null
-                ? '$profileRunId[$deviceId]'
-                : profileRunId,
-            assetPath: relativePath,
-            feature: doc['feature']?.toString(),
-            tags: _yamlStringList(doc['tags']),
-            profile: profile,
-            deviceId: deviceId,
-            session: multiDevice && deviceId != null && profileSession != null
-                ? '$profileSession[$deviceId]'
-                : profileSession,
-          ),
-        );
-      }
-    }
-  }
-
-  return definitions
-      .where(
-        (definition) => _matchesExpandedShardSelection(
-          definition,
-          arguments,
-          config: config,
-        ),
-      )
-      .toList();
-}
-
-bool _matchesExpandedShardSelection(
-  _ExpandedShardDefinition definition,
-  List<String> arguments, {
-  EnsembleTestConfig? config,
-}) {
-  final ids = _optionValueSet(arguments, '--id');
-  final features = _optionValueSet(arguments, '--feature');
-  final profiles = _expandedProfileSelections(
-    _optionValueSet(arguments, '--profile'),
-    config,
-  );
-  final tags = _optionValueSet(arguments, '--tag');
-  final paths = _optionValueSet(arguments, '--path');
-  final devices = _optionValueSet(arguments, '--device');
-
-  if (devices.isNotEmpty) {
-    final deviceId = definition.deviceId;
-    if (deviceId == null || !devices.contains(deviceId)) return false;
-  }
-  if (ids.isNotEmpty &&
-      !ids.any(
-          (id) => definition.id == id || definition.id.startsWith('$id['))) {
-    return false;
-  }
-  if (features.isNotEmpty && !features.contains(definition.feature)) {
-    return false;
-  }
-  if (profiles.isNotEmpty) {
-    final profile = definition.profile;
-    if (profile == null || !profiles.contains(profile)) return false;
-  }
-  if (tags.isNotEmpty && !definition.tags.any(tags.contains)) return false;
-  if (paths.isNotEmpty &&
-      !paths.any((path) => definition.assetPath.contains(path))) {
-    return false;
-  }
-  return true;
-}
-
-List<String> _profileNamesForShard(
-  YamlMap doc, {
-  required EnsembleTestConfig config,
-}) {
-  final selectors = _yamlStringList(doc['profiles']);
-  final effectiveSelectors = selectors.isEmpty && config.defaultProfile != null
-      ? [config.defaultProfile!]
-      : selectors;
-  final names = <String>[];
-  for (final selector in effectiveSelectors) {
-    final group = config.profileGroups[selector];
-    if (group != null) {
-      names.addAll(group);
-    } else {
-      names.add(selector);
-    }
-  }
-  return names;
-}
-
-bool _hasShardSelection(List<String> arguments) {
-  return _optionValueSet(arguments, '--id').isNotEmpty ||
-      _optionValueSet(arguments, '--feature').isNotEmpty ||
-      _optionValueSet(arguments, '--profile').isNotEmpty ||
-      _optionValueSet(arguments, '--tag').isNotEmpty ||
-      _optionValueSet(arguments, '--path').isNotEmpty;
-}
-
-bool _matchesShardSelection(
-  String relativePath,
-  YamlMap? doc,
-  List<String> arguments, {
-  EnsembleTestConfig? config,
-}) {
-  final ids = _optionValueSet(arguments, '--id');
-  final features = _optionValueSet(arguments, '--feature');
-  final profiles = _expandedProfileSelections(
-    _optionValueSet(arguments, '--profile'),
-    config,
-  );
-  final tags = _optionValueSet(arguments, '--tag');
-  final paths = _optionValueSet(arguments, '--path');
-  if (ids.isEmpty &&
-      features.isEmpty &&
-      profiles.isEmpty &&
-      tags.isEmpty &&
-      paths.isEmpty) {
-    return true;
-  }
-  if (paths.any(relativePath.contains)) return true;
-  if (doc == null) return false;
-
-  final id = doc['id']?.toString();
-  if (id != null &&
-      ids.any((selected) => id == selected || selected.startsWith('$id['))) {
-    return true;
-  }
-  if (_scenarioIds(doc).any(ids.contains)) return true;
-
-  final feature = doc['feature']?.toString();
-  if (feature != null && features.contains(feature)) return true;
-
-  if (_matchesProfileShardSelection(doc, profiles, config)) return true;
-
-  final docTags = _yamlStringList(doc['tags']);
-  if (docTags.any(tags.contains)) return true;
-
-  return false;
-}
-
-EnsembleTestConfig? _readTestsConfig(String testsDir) {
-  final configFile = File(p.join(testsDir, 'config.yaml'));
-  if (!configFile.existsSync()) return null;
-  try {
-    return EnsembleTestParser.parseConfigString(
-      configFile.readAsStringSync(),
-      sourcePath: configFile.path,
-    );
-  } catch (_) {
-    return null;
-  }
-}
-
-EnsembleTestConfig _readTestsConfigStrict(String testsDir) {
-  final configFile = File(p.join(testsDir, 'config.yaml'));
-  if (!configFile.existsSync()) return const EnsembleTestConfig();
-  return EnsembleTestParser.parseConfigString(
-    configFile.readAsStringSync(),
-    sourcePath: configFile.path,
-  );
-}
-
-EnsembleTestConfig _applyShardDeviceFilter(
-  EnsembleTestConfig config,
-  Set<String> selectedIds,
-) {
-  if (selectedIds.isEmpty || config.devices.isEmpty) return config;
-  return config.copyWith(
-    devices: [
-      for (final device in config.devices)
-        if (selectedIds.contains(device.id)) device,
-    ],
-  );
-}
-
-EnsembleTestConfig _applyIntegrationDeviceMatrix(
-  EnsembleTestConfig config, {
-  required String platform,
-  required List<String> arguments,
-  required bool quiet,
-}) {
-  if (config.devices.isEmpty && _optionValues(arguments, '--device').isEmpty) {
-    return config;
-  }
-  final matrix = resolveIntegrationDeviceMatrix(
-    config,
-    platform: platform,
-    selectedIds: _optionValueSet(arguments, '--device'),
-  );
-  for (final warning in matrix.warnings) {
-    if (!quiet) stderr.writeln(warning);
-  }
-  return matrix.config;
-}
-
-bool _matchesProfileShardSelection(
-  YamlMap doc,
-  Set<String> selectedProfiles,
-  EnsembleTestConfig? config,
-) {
-  if (selectedProfiles.isEmpty) return false;
-  if (config == null) return true;
-  final selectors = _yamlStringList(doc['profiles']);
-  final effectiveSelectors = selectors.isEmpty && config.defaultProfile != null
-      ? [config.defaultProfile!]
-      : selectors;
-  if (effectiveSelectors.isEmpty) return false;
-  final expandedProfiles = <String>{};
-  for (final selector in effectiveSelectors) {
-    final group = config.profileGroups[selector];
-    if (group != null) {
-      expandedProfiles.addAll(group);
-    } else {
-      expandedProfiles.add(selector);
-    }
-  }
-  return expandedProfiles.any(selectedProfiles.contains);
-}
-
-Set<String> _expandedProfileSelections(
-  Set<String> selectedProfiles,
-  EnsembleTestConfig? config,
-) {
-  if (selectedProfiles.isEmpty || config == null) return selectedProfiles;
-  final expanded = <String>{};
-  for (final profile in selectedProfiles) {
-    expanded.add(profile);
-    final group = config.profileGroups[profile];
-    if (group != null) expanded.addAll(group);
-  }
-  return expanded;
-}
-
-List<String> _scenarioIds(YamlMap doc) {
-  final scenarios = doc['scenarios'];
-  if (scenarios is! YamlList) return const [];
-  return [
-    for (final scenario in scenarios)
-      if (scenario is YamlMap && scenario['id'] != null)
-        scenario['id'].toString(),
-  ];
-}
-
-List<String> _yamlStringList(dynamic value) {
-  if (value is YamlList) {
-    return [
-      for (final item in value)
-        if (item != null) item.toString()
-    ];
-  }
-  if (value is List) {
-    return [
-      for (final item in value)
-        if (item != null) item.toString()
-    ];
-  }
-  if (value is String && value.trim().isNotEmpty) {
-    return [value.trim()];
-  }
-  return const [];
-}
-
-YamlMap? _readTestYamlMap(File file) {
-  try {
-    final doc = loadYaml(file.readAsStringSync());
-    return doc is YamlMap ? doc : null;
-  } catch (_) {
-    // Let the real parser report invalid YAML with source context.
-  }
-  return null;
-}
-
-bool _isParallelTestFile(File file, {YamlMap? doc}) {
-  doc ??= _readTestYamlMap(file);
-  if (doc != null && doc['parallel'] == false) return false;
-  return true;
-}
-
-class _ShardedTestFiles {
-  final List<_ShardableTestFile> parallel;
-  final List<String> serial;
-
-  const _ShardedTestFiles({
-    this.parallel = const [],
-    this.serial = const [],
-  });
-}
-
-class _ShardableTestFile {
-  final String path;
-  final List<String> paths;
-  final String id;
-  final int estimatedDurationMs;
-
-  const _ShardableTestFile({
-    required this.path,
-    required this.paths,
-    required this.id,
-    required this.estimatedDurationMs,
-  });
-}
-
-class _ExpandedShardDefinition {
-  final String id;
-  final String assetPath;
-  final String? feature;
-  final List<String> tags;
-  final String? profile;
-  final String? deviceId;
-  final String? session;
-
-  const _ExpandedShardDefinition({
-    required this.id,
-    required this.assetPath,
-    required this.feature,
-    required this.tags,
-    required this.profile,
-    required this.deviceId,
-    required this.session,
-  });
-}
-
-List<List<_ShardableTestFile>> _balancedShards(
-  List<_ShardableTestFile> files,
-  int workerCount,
-) {
-  return RunnerBenchmark.sync('worker', 'balancedShards', () {
-    if (workerCount <= 0) return const [];
-    final shards = List.generate(workerCount, (_) => <_ShardableTestFile>[]);
-    final shardDurations = List.filled(workerCount, 0);
-    final sorted = [...files]..sort((a, b) {
-        final byDuration =
-            b.estimatedDurationMs.compareTo(a.estimatedDurationMs);
-        if (byDuration != 0) return byDuration;
-        final byPath = a.path.compareTo(b.path);
-        return byPath != 0 ? byPath : a.id.compareTo(b.id);
-      });
-
-    for (final file in sorted) {
-      var target = 0;
-      for (var i = 1; i < shardDurations.length; i++) {
-        if (shardDurations[i] < shardDurations[target]) target = i;
-      }
-      shards[target].add(file);
-      shardDurations[target] += file.estimatedDurationMs;
-    }
-    return shards;
-  });
-}
-
-int _autoWorkerCount(int fileCount) {
-  return calculateAutomaticWorkerCount(
-    testCount: fileCount,
-    logicalProcessorCount: Platform.numberOfProcessors,
-    totalMemoryBytes: detectTotalMemoryBytes(),
-  );
-}
-
-int _estimateTestFileDurationMs(
-  File file,
-  String relativePath,
-  _HistoricalDurations historicalDurations,
-) {
-  final historical = historicalDurations.fileDuration(relativePath);
-  if (historical != null && historical > 0) return historical;
-
-  try {
-    final doc = loadYaml(file.readAsStringSync());
-    if (doc is! YamlMap) return 30000;
-    final steps = doc['steps'];
-    var estimate = doc['startScreen'] == 'Login' ? 18000 : 6000;
-    if (doc['session'] != null) estimate += 4000;
-    if (steps is YamlList) {
-      for (final step in steps) {
-        estimate += _estimateStepDurationMs(step);
-      }
-    }
-    return estimate.clamp(10000, 180000);
-  } catch (_) {
-    return 30000;
-  }
-}
-
-int _estimateStepDurationMs(dynamic step) {
-  if (step is! YamlMap || step.isEmpty) return 1000;
-  final type = step.keys.first.toString();
-  return switch (type) {
-    'waitForNavigation' => 7000,
-    'waitForApi' => 6000,
-    'waitFor' => 4000,
-    'settle' => 2500,
-    'tap' || 'toggle' || 'enterText' || 'goBack' => 1200,
-    'expectVisible' || 'expectText' || 'expectNotVisible' => 700,
-    _ => 1500,
-  };
-}
-
-_HistoricalDurations _loadHistoricalDurations(String appDir) {
-  final file = File(_durationCachePath(appDir));
-  if (!file.existsSync()) return const _HistoricalDurations();
-  try {
-    final decoded = json.decode(file.readAsStringSync());
-    if (decoded is! Map) return const _HistoricalDurations();
-    final files = decoded['files'];
-    final tests = decoded['tests'];
-    return _HistoricalDurations(
-      files: {
-        if (files is Map)
-          for (final entry in files.entries)
-            if (entry.value is int) entry.key.toString(): entry.value as int,
-      },
-      tests: {
-        if (tests is Map)
-          for (final entry in tests.entries)
-            if (entry.value is int) entry.key.toString(): entry.value as int,
-      },
-    );
-  } catch (_) {
-    return const _HistoricalDurations();
-  }
-}
-
-void _writeHistoricalDurations(
-  String appDir,
-  EnsembleTestRunResult result, {
-  required String? testsDirRelative,
-  required bool includeCurrentRun,
-}) {
-  final previousDurations = _loadHistoricalDurations(appDir);
-  final existingPaths = _existingTestAssetPaths(appDir, testsDirRelative);
-  final fileDurations = <String, int>{
-    for (final entry in previousDurations.files.entries)
-      if (existingPaths == null || existingPaths.contains(entry.key))
-        entry.key: entry.value,
-  };
-  final testDurations = <String, int>{...previousDurations.tests};
-
-  if (includeCurrentRun) {
-    final currentFileDurations = <String, int>{};
-    for (final test in result.results) {
-      if (test.durationMs <= 0) continue;
-      final path = _assetPathFromTestId(test.testId);
-      if (path == null) continue;
-      currentFileDurations[path] =
-          (currentFileDurations[path] ?? 0) + test.durationMs;
-      testDurations[_testIdWithoutAssetPath(test.testId)] = test.durationMs;
-    }
-    fileDurations.addAll(currentFileDurations);
-  }
-
-  final file = File(_durationCachePath(appDir));
-  AtomicFile.writeStringSync(
-    file,
-    const JsonEncoder.withIndent('  ').convert({
-      'updatedAt': DateTime.now().toIso8601String(),
-      'files': fileDurations,
-      'tests': testDurations,
-    }),
-  );
-}
-
-class _HistoricalDurations {
-  final Map<String, int> files;
-  final Map<String, int> tests;
-
-  const _HistoricalDurations({
-    this.files = const {},
-    this.tests = const {},
-  });
-
-  int? fileDuration(String path) => files[path];
-
-  int? testDuration(String id) => tests[id];
-}
-
-Set<String>? _existingTestAssetPaths(String appDir, String? testsDirRelative) {
-  if (testsDirRelative == null) return null;
-  final testsDir = Directory(p.join(appDir, testsDirRelative));
-  if (!testsDir.existsSync()) return null;
-  return testsDir
-      .listSync(recursive: true, followLinks: false)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.test.yaml'))
-      .map((file) => p.relative(file.path, from: appDir).replaceAll('\\', '/'))
-      .toSet();
-}
-
-String _durationCachePath(String appDir) {
-  return p.join(appDir, 'build', 'ensemble_test_runner', 'test_durations.json');
-}
-
-String? _assetPathFromTestId(String testId) {
-  final start = testId.lastIndexOf('  (');
-  if (start == -1 || !testId.endsWith(')')) return null;
-  return testId.substring(start + 3, testId.length - 1);
-}
-
-String _testIdWithoutAssetPath(String testId) {
-  final start = testId.lastIndexOf('  (');
-  return start == -1 ? testId : testId.substring(0, start);
-}
-
-bool _hasSelection(List<String> arguments) {
-  const selectionOptions = {
-    '--id',
-    '--feature',
-    '--profile',
-    '--tag',
-    '--path',
-    '--device',
-  };
-  return selectionOptions.any(
-    (option) => _optionValueSet(arguments, option).isNotEmpty,
-  );
-}
+const _cliHelp = '''Ensemble Test Runner
+
+Usage: ensemble test [options]
+
+Options:
+  --app-dir=<path>       App directory (default: current directory)
+  --tests-dir=<path>     Test suite directory relative to the app root
+  --test-entry=<path>    Application-owned Flutter test entry point
+  --doctor               Validate test setup without running tests
+  --fix                  With --doctor, raise iOS deployment target
+  --inspect-app          Print app metadata JSON
+  --validate-only        Validate tests without running Flutter tests
+  --scaffold-test=<id>   Create a starter test file
+  --report=json|junit    Print machine-readable results
+  --report-file=<path>   Write JSON run results to a file
+  --id=<id>              Run matching test id(s); repeatable
+  --feature=<name>       Run matching feature(s); repeatable
+  --profile=<name>       Run matching profile(s); repeatable
+  --tag=<tag>            Run matching tag(s); repeatable
+  --path=<path>          Run matching test asset path(s); repeatable
+  --device=<id>          Run only these suite device id(s); repeatable
+  --mode=widget|integration
+  --device-id=<id>       Flutter target id for integration mode
+  --host-address=<ip>    LAN address for physical iOS host services
+  --input key=value      Provide a test input; repeatable
+  --jobs=<n|auto>        Concurrent workers (default: adaptive; 1 disables)
+  --timeout=<duration>   Suite timeout, e.g. 30s, 5m, 1h
+  --verbose              Full Flutter command output
+  --help, -h             Show this help
+''';
 
 EnsembleTestRunResult _mergeWorkerReports(
   List<ProcessResult> results, {
   required List<String> reportFiles,
+  List<List<String>> expectedWorkerTestIds = const [],
   required String appDir,
+  List<String> orderedOutputs = const [],
 }) {
   return RunnerBenchmark.sync('worker', 'mergeWorkerReports', () {
     final mergedResults = <EnsembleSingleTestResult>[];
@@ -2341,26 +443,60 @@ EnsembleTestRunResult _mergeWorkerReports(
 
     for (var i = 0; i < results.length; i++) {
       final result = results[i];
-      final output = '${result.stdout ?? ''}\n${result.stderr ?? ''}';
+      final processOutput = '${result.stdout ?? ''}\n${result.stderr ?? ''}';
+      final output =
+          i < orderedOutputs.length ? orderedOutputs[i] : processOutput;
       final reportFile = i < reportFiles.length ? File(reportFiles[i]) : null;
       final rawJson = reportFile != null && reportFile.existsSync()
           ? reportFile.readAsStringSync()
-          : extractJsonReport(output);
+          : extractJsonReport(processOutput);
       if (rawJson.isEmpty) {
         final workerOutputFile = _writeWorkerOutputLog(appDir, i, output);
-        mergedResults.add(
-          EnsembleSingleTestResult.failed(
-            testId: 'test-process-${result.pid}',
-            durationMs: 0,
-            error: 'A test process did not emit an Ensemble JSON report'
-                '${workerOutputFile == null ? '' : '. See $workerOutputFile'}',
+        final workerFailures = workerProcessFailureResults(
+          result,
+          workerIndex: i,
+          outputFile: workerOutputFile,
+          expectedTestIds: i < expectedWorkerTestIds.length
+              ? expectedWorkerTestIds[i]
+              : const [],
+        );
+        mergedResults.addAll(workerFailures.isNotEmpty
+            ? workerFailures
+            : [
+                EnsembleSingleTestResult.failed(
+                  testId: 'test-process-${result.pid}',
+                  durationMs: 0,
+                  message: 'A test process did not emit an Ensemble JSON report'
+                      '${workerOutputFile == null ? '' : '. See $workerOutputFile'}',
+                  failure: TestFailureDetails(
+                    kind: TestFailureKind.incompleteExecution,
+                    message:
+                        'A test process did not emit an Ensemble JSON report',
+                    phase: 'worker',
+                  ),
+                )
+              ]);
+        continue;
+      }
+
+      late final EnsembleTestRunResult workerRun;
+      try {
+        final decoded = json.decode(rawJson) as Map<String, dynamic>;
+        workerRun = _runResultFromJson(decoded);
+      } catch (error) {
+        final workerOutputFile = _writeWorkerOutputLog(appDir, i, output);
+        mergedResults.addAll(
+          workerReportDecodeFailureResults(
+            workerIndex: i,
+            error: error,
+            expectedTestIds: i < expectedWorkerTestIds.length
+                ? expectedWorkerTestIds[i]
+                : const [],
+            outputFile: workerOutputFile,
           ),
         );
         continue;
       }
-
-      final decoded = json.decode(rawJson) as Map<String, dynamic>;
-      final workerRun = _runResultFromJson(decoded);
       metadata.addAll(workerRun.metadata);
       suiteLogs.addAll(workerRun.suiteLogs);
       for (final test in workerRun.results) {
@@ -2371,6 +507,17 @@ EnsembleTestRunResult _mergeWorkerReports(
         }
         mergedResults.add(test);
       }
+      final workerFailures = workerProcessFailureResults(
+        result,
+        workerIndex: i,
+        reportHasFailures: workerRun.failedCount > 0,
+        reportHasResults: workerRun.results.isNotEmpty,
+        expectedTestIds: i < expectedWorkerTestIds.length
+            ? expectedWorkerTestIds[i]
+            : const [],
+        reportedTestIds: workerRun.results.map((test) => test.testId),
+      );
+      mergedResults.addAll(workerFailures);
     }
 
     return EnsembleTestRunResult(
@@ -2397,97 +544,13 @@ String? _writeWorkerOutputLog(String appDir, int workerIndex, String output) {
   return p.relative(file.path, from: appDir).replaceAll('\\', '/');
 }
 
-Future<EnsembleTestRunResult> _withHtmlReport(
-  String appDir,
-  EnsembleTestRunResult result, {
-  int? wallTimeMs,
-  bool isSuiteRunning = false,
-}) async {
-  final reporter = HtmlTestReporter();
-  final artifactRoot = _artifactRootPath(appDir);
-  final displayRoot =
-      p.join('build', 'ensemble_test_runner').replaceAll('\\', '/');
-  final htmlPath =
-      p.join(displayRoot, 'report', 'index.html').replaceAll('\\', '/');
-  final resultsPath =
-      p.join(displayRoot, 'report', 'results.json.gz').replaceAll('\\', '/');
-  final historyPath = p
-      .join(displayRoot, 'report', EnsembleTestHistoryStore.fileName)
-      .replaceAll('\\', '/');
-  var historyRecorded = false;
-
-  if (isSuiteRunning) {
-    reporter.write(
-      result,
-      artifactRoot: artifactRoot,
-      displayRoot: displayRoot,
-      wallTimeMs: wallTimeMs,
-      isSuiteRunning: true,
-    );
-  } else {
-    historyRecorded =
-        await _recordHistory(appDir, result, wallTimeMs: wallTimeMs);
-    if (historyRecorded &&
-        !result.suiteLogs.any((log) => log.startsWith('history:'))) {
-      result = EnsembleTestRunResult(
-        results: result.results,
-        suiteLogs: [...result.suiteLogs, 'history: $historyPath'],
-        metadata: result.metadata,
-      );
-    }
-    // Shell was written at suite start; only refresh the results DB.
-    reporter.writeResultsOnly(
-      result,
-      artifactRoot: artifactRoot,
-      displayRoot: displayRoot,
-      wallTimeMs: wallTimeMs,
-    );
-  }
-
-  var suiteLogs = result.suiteLogs;
-  if (!suiteLogs.any((log) => log.startsWith('htmlReport:'))) {
-    suiteLogs = [...suiteLogs, 'htmlReport: $htmlPath'];
-  }
-  if (!suiteLogs.any((log) => log.startsWith('results:'))) {
-    suiteLogs = [...suiteLogs, 'results: $resultsPath'];
-  }
-  if (identical(suiteLogs, result.suiteLogs)) {
-    return result;
-  }
-  return EnsembleTestRunResult(
-    results: result.results,
-    suiteLogs: suiteLogs,
-    metadata: result.metadata,
-  );
-}
-
-Future<bool> _recordHistory(
-  String appDir,
-  EnsembleTestRunResult result, {
-  int? wallTimeMs,
-}) async {
-  try {
-    await EnsembleTestHistoryStore.recordCompletedRun(
-      appDir: appDir,
-      artifactRoot: _artifactRootPath(appDir),
-      result: result,
-      wallTimeMs: wallTimeMs,
-    );
-    return true;
-  } catch (_) {
-    // History is a convenience artifact; it must not change test outcome.
-    stderr.writeln('Warning: could not write the test history database.');
-    return false;
-  }
-}
-
 String _formatCliSummary(
   EnsembleTestRunResult result, {
   String? testFile,
   int? wallTimeMs,
 }) {
   final buffer = StringBuffer();
-  buffer.writeln('┌─ Ensemble YAML tests ─────────────────────────────');
+  buffer.writeln('┌─ Ensemble tests ─────────────────────────────');
   if (testFile != null) {
     buffer.writeln('│  $testFile');
   }
@@ -2501,7 +564,11 @@ String _formatCliSummary(
 
   for (var i = 0; i < result.results.length; i++) {
     if (i > 0) buffer.writeln('│');
-    _writeCliTestCase(buffer, result.results[i]);
+    writeConsoleTestCase(
+      buffer,
+      result.results[i],
+      includeFailureKind: false,
+    );
   }
 
   final suiteArtifacts = durableArtifactLogs(result.suiteLogs).toList();
@@ -2521,553 +588,37 @@ String _formatCliSummary(
   return buffer.toString();
 }
 
-void _writeCliTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
-  final icon = r.status == TestStatus.passed ? '✓' : '✗';
-  buffer.writeln('│  $icon ${r.testId} (${r.durationMs}ms)');
-  if (r.attempts > 1) {
-    buffer.writeln('│     attempts: ${r.attempts}/${r.retry + 1}');
-  }
-
-  final report = r.report;
-  if (report != null) {
-    if (report.session != null) {
-      buffer.writeln('│     session: ${report.session}');
-    }
-    if (report.startScreen != null) {
-      buffer.writeln('│     start: ${report.startScreen}');
-    }
-    if (report.endScreen != null && report.endScreen != report.startScreen) {
-      buffer.writeln('│     end:   ${report.endScreen}');
-    }
-    if (report.screensVisited.length > 1) {
-      buffer.writeln('│     flow:  ${report.screensVisited.join(' → ')}');
-    }
-    if (report.stepsOutline.isNotEmpty) {
-      buffer.writeln('│     steps (${report.stepsOutline.length}):');
-      var i = 0;
-      for (final line in stepOutlineDisplayLines(
-        stepsOutline: report.stepsOutline,
-        stepDurationsMs: report.stepDurationsMs,
-        failedStepIndex:
-            r.status == TestStatus.failed ? r.failedStepIndex : null,
-      )) {
-        final prefix = line.failed ? '>>' : '  ';
-        buffer.writeln('│       $prefix ${i + 1}. ${line.text}');
-        i++;
-      }
-    }
-  }
-
-  if (r.status == TestStatus.failed && r.message != null) {
-    buffer.writeln('│     error: ${r.message}');
-  }
-
-  final artifacts = durableArtifactLogs(r.logs).toList();
-  if (artifacts.isNotEmpty) {
-    buffer.writeln('│     artifacts:');
-    for (final log in artifacts) {
-      buffer.writeln('│          $log');
-    }
-  }
-}
-
 String _baseTestId(String value) {
   final index = value.indexOf('  (');
   return index == -1 ? value : value.substring(0, index);
 }
 
-EnsembleTestRunResult? _runResultFromProcessOutput(
-  ProcessResult result, {
-  String? artifactRoot,
-}) {
-  final fromFile =
-      artifactRoot == null ? '' : _readTransportedMachineResult(artifactRoot);
-  final fromStdout =
-      extractJsonReport('${result.stdout ?? ''}\n${result.stderr ?? ''}');
-  final rawJson = fromFile.isNotEmpty ? fromFile : fromStdout;
-  if (rawJson.isEmpty) return null;
-  try {
-    final decoded = json.decode(rawJson);
-    if (decoded is Map<String, dynamic>) {
-      return _runResultFromJson(decoded);
-    }
-  } catch (_) {
-    // Ignore malformed subprocess report and fall back to process exit code.
-  }
-  return null;
-}
-
-String _readTransportedMachineResult(String artifactRoot) {
-  final file = File(
-    p.join(artifactRoot, ensembleTestMachineResultRelativePath),
-  );
-  if (!file.existsSync()) return '';
-  try {
-    return file.readAsStringSync();
-  } catch (_) {
-    return '';
-  }
-}
-
-EnsembleTestRunResult _runResultFromJson(Map<String, dynamic> json) {
-  final results = (json['results'] as List<dynamic>? ?? const [])
-      .whereType<Map<String, dynamic>>()
-      .map(_singleResultFromJson)
-      .toList();
-  final suiteLogs = (json['suiteLogs'] as List<dynamic>? ?? const [])
-      .map((value) => value.toString())
-      .toList();
-  final metadata = json['metadata'] is Map
-      ? Map<String, dynamic>.from(json['metadata'] as Map)
-      : const <String, dynamic>{};
-  return EnsembleTestRunResult(
-    results: results,
-    suiteLogs: suiteLogs,
-    metadata: metadata,
-  );
-}
-
-EnsembleSingleTestResult _singleResultFromJson(Map<String, dynamic> json) {
-  return EnsembleSingleTestResult.fromJson(json);
-}
-
-String _junitReportForCli(EnsembleTestRunResult result) {
-  final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
-  final buffer = StringBuffer()
-    ..writeln(
-      '<testsuite name="ensemble_yaml_tests" tests="${result.results.length}" '
-      'failures="${result.failedCount}" time="${(totalMs / 1000).toStringAsFixed(3)}">',
-    );
-  for (final r in result.results) {
-    buffer.writeln(
-      '  <testcase name="${_xmlEscape(r.testId)}" '
-      'time="${(r.durationMs / 1000).toStringAsFixed(3)}">',
-    );
-    if (r.status == TestStatus.failed) {
-      buffer
-        ..writeln(
-          '    <failure message="${_xmlEscape(r.message ?? 'failed')}">',
-        )
-        ..writeln(_xmlEscape(r.stackTrace ?? r.message ?? 'failed'))
-        ..writeln('    </failure>');
-    }
-    buffer.writeln('  </testcase>');
-  }
-  buffer.writeln('</testsuite>');
-  return buffer.toString();
-}
-
-String _xmlEscape(String value) {
-  return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&apos;');
-}
-
-List<String> _inputDartDefines(List<String> arguments) {
-  final inputs = _inputValues(arguments);
-  if (inputs.isEmpty) return const [];
-  final encoded = base64Url.encode(utf8.encode(jsonEncode(inputs)));
-  return ['--dart-define=ensembleTestInputs=$encoded'];
-}
-
-Map<String, dynamic> _inputValues(List<String> arguments) {
-  final inputs = <String, dynamic>{};
-  for (var i = 0; i < arguments.length; i++) {
-    final arg = arguments[i];
-    String? raw;
-    if (arg == '--input') {
-      if (i + 1 >= arguments.length) {
-        throw StateError('--input requires key=value');
-      }
-      raw = arguments[++i];
-    } else if (arg.startsWith('--input=')) {
-      raw = arg.substring('--input='.length);
-    }
-    if (raw == null) continue;
-
-    final separator = raw.indexOf('=');
-    if (separator <= 0) {
-      throw StateError('Invalid --input "$raw". Use --input key=value.');
-    }
-    final key = raw.substring(0, separator).trim();
-    if (key.isEmpty) {
-      throw StateError('Invalid --input "$raw". Input key cannot be empty.');
-    }
-    inputs[key] = _parseInputValue(raw.substring(separator + 1));
-  }
-  return inputs;
-}
-
-dynamic _parseInputValue(String value) {
-  final trimmed = value.trim();
-  if (trimmed == 'true') return true;
-  if (trimmed == 'false') return false;
-  final intValue = int.tryParse(trimmed);
-  if (intValue != null) return intValue;
-  final doubleValue = double.tryParse(trimmed);
-  if (doubleValue != null) return doubleValue;
-  return value;
-}
-
-List<String> _optionValues(List<String> arguments, String name) {
-  return arguments
-      .where((arg) => arg.startsWith('$name='))
-      .map((arg) => arg.substring(name.length + 1))
-      .where((value) => value.isNotEmpty)
-      .toList();
-}
-
-Set<String> _optionValueSet(List<String> arguments, String name) {
-  return {
-    for (final value in _optionValues(arguments, name))
-      for (final part in value.split(','))
-        if (part.trim().isNotEmpty) part.trim(),
-  };
-}
-
-Future<ProcessResult> _runFlutterTestProcess(
-  String executable,
-  List<String> arguments, {
-  required String workingDirectory,
-  required bool streamOutput,
-  required bool verbose,
-  String? appLogFile,
-}) async {
-  return await RunnerBenchmark.async('worker', 'runFlutterTestProcess',
-      () async {
-    final process = await Process.start(
-      RunnerBenchmark.collector?.executables[executable] ?? executable,
-      arguments,
-      workingDirectory: workingDirectory,
-      runInShell: false,
-    );
-    final benchmarkBootstrap = RunnerBenchmark.pending(
-        'process_bootstrap', 'flutterUntilWorkloadReady');
-    RunnerBenchmark.dimension('childProcessId', process.pid);
-    RunnerBenchmark.dimension('workingDirectory', workingDirectory);
-    final stdoutBuffer = StringBuffer();
-    final stderrBuffer = StringBuffer();
-    final liveFilter = LiveFlutterTestOutputFilter();
-    final elapsed = Stopwatch()..start();
-    var lastLiveOutput = DateTime.now();
-    Timer? heartbeat;
-    final appLog = _openAppConsoleLog(appLogFile);
-
-    if (streamOutput && !verbose) {
-      heartbeat = Timer.periodic(const Duration(seconds: 10), (_) {
-        final idleFor = DateTime.now().difference(lastLiveOutput);
-        if (idleFor.inSeconds >= 10) {
-          stderr.writeln(
-            'Still running Flutter tests (${elapsed.elapsed.inSeconds}s)...',
-          );
-        }
-      });
-    }
-
-    try {
-      final stdoutDone = process.stdout
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
-        stdoutBuffer.writeln(line);
-        if (line.contains('ENSEMBLE_BENCHMARK_WORKLOAD_READY')) {
-          benchmarkBootstrap?.finish();
-          RunnerBenchmark.dimension(
-              'bootstrapToReadyUs', elapsed.elapsedMicroseconds);
-        }
-        if (!_isArtifactProtocolLine(line)) {
-          _appendAppConsoleLogLine(appLog, 'stdout', line);
-        }
-        if (_isArtifactProtocolLine(line)) {
-          return;
-        }
-        if (verbose) {
-          stdout.writeln(line);
-        } else if (streamOutput && _isIntegrationProgressLine(line)) {
-          lastLiveOutput = DateTime.now();
-          stderr.writeln(_formatIntegrationProgressLine(line));
-        } else if (streamOutput && liveFilter.shouldEmit(line)) {
-          lastLiveOutput = DateTime.now();
-          stderr.writeln(line);
-        }
-      }).asFuture<void>();
-
-      final stderrDone = process.stderr
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen((line) {
-        stderrBuffer.writeln(line);
-        _appendAppConsoleLogLine(appLog, 'stderr', line);
-        if (verbose) {
-          stderr.writeln(line);
-        }
-      }).asFuture<void>();
-
-      final exitCode = await process.exitCode;
-      await Future.wait([stdoutDone, stderrDone]);
-      return ProcessResult(
-        process.pid,
-        exitCode,
-        stdoutBuffer.toString(),
-        stderrBuffer.toString(),
-      );
-    } finally {
-      if (benchmarkBootstrap?.span.endUs == null) {
-        benchmarkBootstrap?.span.outcome = 'workload-not-ready';
-        benchmarkBootstrap?.finish();
-      }
-      heartbeat?.cancel();
-    }
-  });
-}
-
-bool _isArtifactProtocolLine(String line) =>
-    line.contains(ensembleTestArtifactProtocolPrefix);
-
-bool _isIntegrationProgressLine(String line) =>
-    line.contains(ensembleTestProgressProtocolPrefix);
-
-String _formatIntegrationProgressLine(String line) {
-  final marker = line.indexOf(ensembleTestProgressProtocolPrefix);
-  if (marker < 0) return line;
-  final raw =
-      line.substring(marker + ensembleTestProgressProtocolPrefix.length);
-  try {
-    final dynamic decoded = json.decode(_jsonRecordFromLine(raw));
-    if (decoded is Map) {
-      final status = decoded['status']?.toString() ?? 'finished';
-      final id = decoded['testId']?.toString() ?? '(unknown)';
-      final duration = decoded['durationMs'];
-      return '[$status] $id${duration is int ? ' (${duration}ms)' : ''}';
-    }
-  } catch (_) {}
-  return line;
-}
-
-String _jsonRecordFromLine(String raw) {
-  final end = raw.lastIndexOf('}');
-  return end < 0 ? raw.trim() : raw.substring(0, end + 1);
-}
-
-/// Test hook for the device-to-host artifact protocol.
-Future<void> materializeTransportedArtifactsForTest(
-  String appDir,
-  String output,
-) async {
-  final result = await materializeTransportedArtifacts(
-    artifactRoot: _artifactRootPath(appDir),
-    output: output,
-  );
-  if (!result.complete) {
-    throw StateError(result.error ?? 'Incomplete artifact transport.');
-  }
-}
-
-File? _openAppConsoleLog(String? path) {
-  if (path == null) return null;
-  final file = File(path);
-  try {
-    file.parent.createSync(recursive: true);
-    final header = 'createdAt: ${DateTime.now().toIso8601String()}\n';
-    file.writeAsStringSync(header);
-    _appConsoleLogBytes[file.path] = utf8.encode(header).length;
-    _disabledAppConsoleLogs.remove(file.path);
-    return file;
-  } on FileSystemException {
-    return null;
-  }
-}
-
-void _appendAppConsoleLogLine(File? file, String stream, String line) {
-  if (file == null || !_isAppConsoleLogLine(line)) return;
-  final path = file.path;
-  if (_disabledAppConsoleLogs.contains(path)) return;
-
-  final entry = '[$stream] $line\n';
-  final bytes = utf8.encode(entry).length;
-  final currentBytes = _appConsoleLogBytes[path] ?? file.lengthSync();
-  if (currentBytes + bytes > _maxAppConsoleLogBytes) {
-    _writeFinalAppConsoleLogLine(
-      file,
-      '[runner] app console log truncated at '
-      '${(_maxAppConsoleLogBytes / (1024 * 1024)).toStringAsFixed(0)} MB\n',
-    );
-    _disabledAppConsoleLogs.add(path);
-    return;
-  }
-
-  try {
-    file.writeAsStringSync(entry, mode: FileMode.append);
-    _appConsoleLogBytes[path] = currentBytes + bytes;
-  } on FileSystemException {
-    _disabledAppConsoleLogs.add(path);
-  }
-}
-
-void _writeFinalAppConsoleLogLine(File file, String line) {
-  try {
-    file.writeAsStringSync(line, mode: FileMode.append);
-    _appConsoleLogBytes[file.path] =
-        (_appConsoleLogBytes[file.path] ?? 0) + utf8.encode(line).length;
-  } on FileSystemException {
-    // Log files are diagnostic artifacts. They must not crash the test run.
-  }
-}
-
-bool _isAppConsoleLogLine(String line) {
-  return !line.startsWith(jsonReportPrefix) &&
-      !line.startsWith(junitReportPrefix);
-}
-
-Future<ProcessResult> _runProcess(
-  String executable,
-  List<String> arguments, {
-  required String workingDirectory,
-}) {
-  return Process.run(
-    executable,
-    arguments,
-    workingDirectory: workingDirectory,
-    runInShell: false,
-  );
-}
-
-String _resolveAppDir(List<String> arguments) {
-  for (final arg in arguments) {
-    if (arg.startsWith('--app-dir=')) {
-      return arg.substring('--app-dir='.length);
-    }
-  }
-  return Directory.current.path;
-}
-
-String? _resolveReportMode(List<String> arguments) {
-  for (final arg in arguments) {
-    if (arg == '--report=json') return 'json';
-    if (arg == '--report=junit') return 'junit';
-  }
-  return null;
-}
-
-String? _resolveReportFile(List<String> arguments) {
-  for (final arg in arguments) {
-    if (arg.startsWith('--report-file=')) {
-      return File(arg.substring('--report-file='.length)).absolute.path;
-    }
-  }
-  return null;
-}
-
-int? _resolveTimeoutSeconds(List<String> arguments) {
-  String? value;
-  for (final arg in arguments) {
-    if (arg.startsWith('--timeout=')) {
-      value = arg.substring('--timeout='.length);
-    }
-  }
-  if (value == null || value.isEmpty) return null;
-
-  final match = RegExp(r'^(\d+)(ms|s|m|h)?$').firstMatch(value);
-  if (match == null) {
-    stderr.writeln(
-      'Invalid --timeout value "$value". Use a duration like 30s, 5m, or 1h.',
-    );
-    exit(2);
-  }
-
-  final amount = int.parse(match.group(1)!);
-  final unit = match.group(2) ?? 's';
-  final seconds = switch (unit) {
-    'ms' => (amount / 1000).ceil(),
-    's' => amount,
-    'm' => amount * 60,
-    'h' => amount * 60 * 60,
-    _ => amount,
-  };
-  if (seconds <= 0) {
-    stderr.writeln('--timeout must be greater than zero.');
-    exit(2);
-  }
-  return seconds;
-}
-
-int? _resolveJobsOverride(List<String> arguments) {
-  String? value;
-  for (final arg in arguments) {
-    if (arg.startsWith('--jobs=')) {
-      value = arg.substring('--jobs='.length);
-    }
-  }
-  if (value == null || value.isEmpty || value == 'auto') return null;
-  final jobs = int.tryParse(value);
-  if (jobs == null || jobs <= 0) {
-    stderr.writeln(
-      'Invalid --jobs value "$value". Use a positive integer, auto, or 1 to disable parallelism.',
-    );
-    exit(2);
-  }
-  return jobs;
-}
-
 ExecutionMode _resolveExecutionMode(
   List<String> arguments,
   ExecutionMode configured,
-) {
-  final values = _optionValues(arguments, '--mode');
-  if (values.length > 1) {
-    throw StateError('--mode may be specified only once.');
-  }
-  if (values.isEmpty) return configured;
-  return switch (values.single) {
-    'widget' => ExecutionMode.widget,
-    'integration' => ExecutionMode.integration,
-    _ => throw StateError(
-        'Invalid --mode="${values.single}". Use widget or integration.',
-      ),
-  };
-}
+) =>
+    CliArgumentOptions.executionMode(arguments, configured);
 
 /// Test hook for CLI precedence without launching a subprocess.
 ExecutionMode resolveExecutionModeForTest(
   List<String> arguments,
   ExecutionMode configured,
 ) =>
-    _resolveExecutionMode(arguments, configured);
+    CliArgumentOptions.executionMode(arguments, configured);
 
-void _validateExecutionModeOptions(
-  List<String> arguments, {
-  required ExecutionMode mode,
-  required EnsembleTestConfig config,
-  required int? jobs,
-}) {
-  final deviceIds = _optionValues(arguments, '--device-id');
-  if (deviceIds.length > 1) {
-    throw StateError('--device-id may be specified only once.');
-  }
-  if (mode == ExecutionMode.widget) {
-    if (deviceIds.isNotEmpty) {
-      throw StateError('--device-id is only valid with --mode=integration.');
-    }
-    return;
-  }
-  // [config.devices] is allowed; it is filtered after target selection.
-  final jobsWasSpecified =
-      arguments.any((argument) => argument.startsWith('--jobs='));
-  if (jobsWasSpecified && jobs != 1) {
-    throw StateError(
-      'Integration mode is serial. Omit --jobs or use --jobs=1.',
+/// Test hook for validating worker report recovery without launching Flutter.
+EnsembleTestRunResult mergeWorkerReportsForTest({
+  required List<ProcessResult> results,
+  required List<String> reportFiles,
+  required List<List<String>> expectedWorkerTestIds,
+  required String appDir,
+}) =>
+    _mergeWorkerReports(
+      results,
+      reportFiles: reportFiles,
+      expectedWorkerTestIds: expectedWorkerTestIds,
+      appDir: appDir,
     );
-  }
-  if (config.devices.isEmpty &&
-      _optionValues(arguments, '--device').isNotEmpty) {
-    throw StateError(
-      '`--device` was set but tests/config.yaml has no devices.',
-    );
-  }
-}
 
 /// Test hook for execution-mode option compatibility.
 void validateExecutionModeOptionsForTest(
@@ -3076,7 +627,7 @@ void validateExecutionModeOptionsForTest(
   required EnsembleTestConfig config,
   int? jobs,
 }) =>
-    _validateExecutionModeOptions(
+    CliArgumentOptions.validateExecutionModeOptions(
       arguments,
       mode: mode,
       config: config,
@@ -3088,142 +639,10 @@ String selectIntegrationDeviceIdForTest(
   String machineJson, {
   String? requestedId,
 }) =>
-    selectIntegrationDeviceId(
-      machineJson: machineJson,
+    CliArgumentOptions.selectIntegrationDeviceId(
+      machineJson,
       requestedId: requestedId,
     );
-
-void _validatePlatformProject(String appDir, String platform) {
-  final requiredPath = platform == 'android'
-      ? p.join(appDir, 'android', 'app')
-      : p.join(appDir, 'ios', 'Runner.xcodeproj', 'project.pbxproj');
-  final exists = platform == 'android'
-      ? Directory(requiredPath).existsSync()
-      : File(requiredPath).existsSync();
-  if (exists) return;
-  throw StateError(
-    'The $platform application project is incomplete. From the app root run:\n'
-    '  flutter create --platforms=$platform .',
-  );
-}
-
-List<TestServiceConfig> _resolvedHostServices(
-  List<TestServiceConfig> services,
-  Map<String, dynamic> overrides, {
-  required String appDir,
-}) {
-  return [
-    for (final service in services)
-      (() {
-        final raw = overrides[service.name];
-        final override = raw is Map
-            ? Map<String, dynamic>.from(raw)
-            : const <String, dynamic>{};
-        final rawEnvironment = override['environment'];
-        final overrideEnvironment = rawEnvironment is Map
-            ? rawEnvironment.map(
-                (key, value) => MapEntry(key.toString(), value.toString()),
-              )
-            : const <String, String>{};
-        final workingDirectory = service.workingDirectory;
-        return TestServiceConfig(
-          name: service.name,
-          command: service.command,
-          url: override['url']?.toString() ?? service.url,
-          arguments: service.arguments,
-          workingDirectory: workingDirectory == null
-              ? appDir
-              : (p.isAbsolute(workingDirectory)
-                  ? workingDirectory
-                  : p.join(appDir, workingDirectory)),
-          environment: {...service.environment, ...overrideEnvironment},
-          readyUrl: override['readyUrl']?.toString() ?? service.readyUrl,
-          readyTimeoutMs: service.readyTimeoutMs,
-        );
-      })(),
-  ];
-}
-
-Future<void> _addAdbReverse(String deviceId, int port) async {
-  final result = await Process.run(
-    'adb',
-    ['-s', deviceId, 'reverse', 'tcp:$port', 'tcp:$port'],
-  );
-  if (result.exitCode != 0) {
-    throw StateError(
-      'Failed to route host service port $port to Android device $deviceId: '
-      '${result.stderr.toString().trim()}',
-    );
-  }
-}
-
-Future<void> _removeAdbReverse(String deviceId, int port) async {
-  try {
-    await Process.run(
-      'adb',
-      ['-s', deviceId, 'reverse', '--remove', 'tcp:$port'],
-    );
-  } catch (_) {
-    // Best-effort cleanup must not hide the suite result.
-  }
-}
-
-Future<void> _clearAdbLogcat(String deviceId) async {
-  try {
-    await Process.run('adb', ['-s', deviceId, 'logcat', '-c']);
-  } catch (_) {
-    // Clearing is best-effort; transport can still scrape a noisy buffer.
-  }
-}
-
-Future<String> _readAdbLogcat(String deviceId) async {
-  try {
-    final result = await Process.run(
-      'adb',
-      ['-s', deviceId, 'logcat', '-d', '-v', 'brief'],
-    );
-    return '${result.stdout ?? ''}\n${result.stderr ?? ''}';
-  } catch (_) {
-    return '';
-  }
-}
-
-void _writeStatus(
-  String message, {
-  required bool quiet,
-  required bool machineReport,
-}) {
-  if (quiet || machineReport) return;
-  stderr.writeln(message);
-}
-
-void _writeProcessStreams(
-  ProcessResult result, {
-  bool toStderr = false,
-}) {
-  final out = _withoutArtifactProtocolLines(result.stdout?.toString() ?? '');
-  final err = _withoutArtifactProtocolLines(result.stderr?.toString() ?? '');
-  if (out.isNotEmpty) {
-    if (toStderr) {
-      stderr.write(out);
-    } else {
-      stdout.write(out);
-    }
-  }
-  if (err.isNotEmpty) stderr.write(err);
-}
-
-String _withoutArtifactProtocolLines(String output) {
-  if (output.isEmpty) return output;
-  final kept = const LineSplitter()
-      .convert(output)
-      .where((line) => !_isArtifactProtocolLine(line))
-      .toList();
-  if (kept.isEmpty) return '';
-  final buffer = StringBuffer(kept.join('\n'));
-  if (output.endsWith('\n')) buffer.writeln();
-  return buffer.toString();
-}
 
 /// Internal benchmark adapter to the actual CLI worker launch/merge pipeline.
 /// It cannot be used without an active standalone benchmark collector.
@@ -3239,13 +658,19 @@ Future<ProcessResult> runRunnerWorkersForBenchmark({
   return _runParallelFlutterTests(
     const [],
     appDir: appDir,
-    patcher: YamlTestAppPatcher(appDir,
+    flutterExecutable: resolveFlutterExecutable(appDir),
+    patcher: TestAppPatcher(appDir,
         testsDirRelative: testsDir, testEntryRelativePath: testEntry),
+    timerRewritePlan: TestTimerRewritePlan.forApp(
+      appDir: appDir,
+      testsDirRelative: testsDir,
+    ),
     jobs: workers,
     reportMode: 'json',
     reportFile: p.join(appDir, 'merged.json'),
     timeoutSeconds: 120,
     quiet: true,
     machineReport: true,
+    suiteConfig: const EnsembleTestConfig(),
   );
 }

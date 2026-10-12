@@ -5,6 +5,7 @@ import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:ensemble_test_runner/runner/test_session.dart';
 import 'package:flutter/widgets.dart';
 
 class EnsembleTestContext {
@@ -13,6 +14,7 @@ class EnsembleTestContext {
   final TestApiProviderOverlay apiOverlay;
   final TestLogger logger;
   final EnsembleTestSetup setup;
+  final NavigationFlowRecorder navigationFlow;
 
   /// Runtime env overrides applied via [setEnv] steps.
   final Map<String, dynamic> envOverrides = {};
@@ -25,16 +27,20 @@ class EnsembleTestContext {
     required this.apiOverlay,
     required this.logger,
     required this.setup,
-  });
+    NavigationFlowRecorder? navigationFlow,
+  }) : navigationFlow = navigationFlow ?? NavigationFlowRecorder();
 
   factory EnsembleTestContext.fromTestCase(
     EnsembleTestCase testCase, {
     EnsembleTestConfig config = const EnsembleTestConfig(),
+    NavigationFlowRecorder? navigationFlow,
+    TestApiProviderOverlay? apiOverlay,
   }) {
     final logger = TestLogger();
-    final apiOverlay = TestApiProviderOverlay(
-      mocks: Map<String, MockAPIResponse>.from(testCase.mocks.apis),
-    );
+    final overlay = apiOverlay ??
+        TestApiProviderOverlay(
+          mocks: Map<String, MockAPIResponse>.from(testCase.mocks.apis),
+        );
 
     final storage = testCase.initialState['storage'];
     final secureStorage = testCase.initialState['secureStorage'];
@@ -58,11 +64,12 @@ class EnsembleTestContext {
     final ctx = EnsembleTestContext(
       testCase: testCase,
       config: config,
-      apiOverlay: apiOverlay,
+      apiOverlay: overlay,
       logger: logger,
       setup: setup,
+      navigationFlow: navigationFlow,
     );
-    apiOverlay.stepIndexProvider = () => ctx.runtime.currentStepIndex;
+    overlay.stepIndexProvider = () => ctx.runtime.currentStepIndex;
     ctx.envOverrides.addAll(envMap);
     ctx.runtime.locale = _localeFromEnv(envMap['APP_LOCALE']);
     return ctx;

@@ -1,5 +1,6 @@
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
+
+enum ActionStatus { succeeded, failed, timedOut, cancelled }
 
 /// Result of [TestExecutionSession.act].
 class ActionResult {

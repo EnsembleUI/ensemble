@@ -1,10 +1,10 @@
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 
 /// Simple in-memory logger for test runs.
 class TestLogger {
-  static const _artifactSuffix = String.fromEnvironment(
-    'ensembleTestWorkerSuffix',
-  );
+  static final _artifactSuffix =
+      RunnerRuntimeConfiguration.current.string('ensembleTestWorkerSuffix');
 
   final List<String> logs = [];
 

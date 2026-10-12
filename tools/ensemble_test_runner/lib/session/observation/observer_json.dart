@@ -2,7 +2,7 @@ import 'package:ensemble_test_runner/session/observation/observer_action_example
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 
-/// Root agent payload. Report-only screenshot overlays are deliberately kept
+/// Root observer payload. Report-only screenshot overlays are deliberately kept
 /// outside this object so consumers get the same Observer JSON directly.
 Map<String, dynamic> observerPayloadToJson({
   required int stepIndex,
@@ -21,44 +21,91 @@ Map<String, dynamic> observerPayloadToJson({
       'elements': elements,
     };
 
-/// Canonical agent-facing element tree produced from an Observer snapshot.
+/// Canonical consumer-facing element tree produced from an Observer snapshot.
 /// The HTML report renders and copies this data; it does not create it.
 List<Map<String, dynamic>> observerElementsToJson(UiObservation observation) {
+  return buildObserverReportTree(observation).elements;
+}
+
+/// The serialized report tree plus its indexed live elements.
+///
+/// Report serialization and screenshot overlays are produced in the same
+/// snapshot turn. Keeping the indexed entries lets the overlay path reuse the
+/// already filtered tree instead of walking every [UiElement] a second time.
+final class ObserverReportTree {
+  const ObserverReportTree({required this.elements, required this.entries});
+
+  final List<Map<String, dynamic>> elements;
+  final List<ObserverReportEntry> entries;
+}
+
+final class ObserverReportEntry {
+  const ObserverReportEntry({
+    required this.index,
+    required this.element,
+    required this.subtreeHasKeyedCardOrToast,
+  });
+
+  final int index;
+  final UiElement element;
+  final bool subtreeHasKeyedCardOrToast;
+}
+
+/// Builds the report representation once for all consumers of one snapshot.
+ObserverReportTree buildObserverReportTree(UiObservation observation) {
   final elements = <Map<String, dynamic>>[];
+  final entries = <ObserverReportEntry>[];
   var index = 1;
 
-  Map<String, dynamic>? build(UiElement element) {
+  ({Map<String, dynamic> json, bool subtree})? build(UiElement element) {
     if (element.state.visible == false && element.state.offscreen != true) {
       return null;
     }
     final elementIndex = index++;
+    final entryPosition = entries.length;
+    // Reserve the pre-order position before descending so indexes remain
+    // stable even when children are recursively serialized.
+    entries.add(ObserverReportEntry(
+      index: elementIndex,
+      element: element,
+      subtreeHasKeyedCardOrToast: false,
+    ));
     final children = <Map<String, dynamic>>[];
+    var subtreeHasKeyedCardOrToast = false;
     for (final child in element.children) {
-      final childJson = build(child);
-      if (childJson != null) children.add(childJson);
+      final childResult = build(child);
+      if (childResult != null) children.add(childResult.json);
+      if (childResult?.subtree == true) {
+        subtreeHasKeyedCardOrToast = true;
+      }
     }
-    return _elementToJson(elementIndex, element, children);
+    final hasUsableId =
+        (element.suggestedLocator?.id?.trim().isNotEmpty ?? false) ||
+            (element.testId?.trim().isNotEmpty ?? false);
+    final type = (element.type ?? '').toLowerCase();
+    if (hasUsableId && (type == 'card' || type == 'toast')) {
+      subtreeHasKeyedCardOrToast = true;
+    }
+    entries[entryPosition] = ObserverReportEntry(
+      index: elementIndex,
+      element: element,
+      subtreeHasKeyedCardOrToast: subtreeHasKeyedCardOrToast,
+    );
+    return (
+      json: _elementToJson(elementIndex, element, children),
+      subtree: subtreeHasKeyedCardOrToast,
+    );
   }
 
   for (final element in observation.elements) {
     final node = build(element);
-    if (node != null) elements.add(node);
+    if (node != null) elements.add(node.json);
   }
-  return elements;
+  return ObserverReportTree(
+    elements: List.unmodifiable(elements),
+    entries: List.unmodifiable(entries),
+  );
 }
-
-/// @nodoc Legacy report name retained for callers while the Observer JSON
-/// serializer is adopted throughout the runner.
-List<Map<String, dynamic>> observationElementsTreeForReport(
-  UiObservation observation,
-) =>
-    observerElementsToJson(observation);
-
-/// @nodoc Legacy alias.
-List<Map<String, dynamic>> flattenObservationElementsForReport(
-  UiObservation observation,
-) =>
-    observerElementsToJson(observation);
 
 Map<String, dynamic> _elementToJson(
   int index,
@@ -91,6 +138,10 @@ Map<String, dynamic> _elementToJson(
 
   return {
     'index': index,
+    // `elementId` is the observation-scoped handle. Keep it separate from
+    // the developer locator (`id`) so a locator can never become a snapshot
+    // identity by omission or fallback.
+    'elementId': element.elementId,
     'type': type,
     if (title != null && title.isNotEmpty) 'title': title,
     if (element.testId != null &&
@@ -136,7 +187,8 @@ String? _elementValue(
   }
   if (element.state.secure == true) return null;
   // An empty string is a verified input value, not an unknown value. Keep it
-  // so an agent can distinguish a cleared field from an unobserved value.
+  // so a downstream consumer can distinguish a cleared field from an
+  // unobserved value.
   final text = element.text;
   if (text == null) return null;
   if (text.isNotEmpty && title != null && title.trim() == text.trim()) {

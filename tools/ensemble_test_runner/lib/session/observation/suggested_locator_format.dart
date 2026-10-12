@@ -1,4 +1,4 @@
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 
 /// Compact YAML-mappable form of an [ElementLocator] for observer output.
 ///

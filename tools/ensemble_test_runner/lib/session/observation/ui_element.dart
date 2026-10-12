@@ -2,7 +2,7 @@
 ///
 /// Prefer explicit unknown (`null`) over a misleading boolean when Flutter
 /// cannot establish the property reliably.
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/observation/observer_action_examples.dart';
 
 class UiElementState {
@@ -104,7 +104,7 @@ class UiElement {
   /// Selectable labels for dropdowns (from widget `items`, not the open menu).
   final List<String> options;
 
-  /// Verified YAML-oriented locator for this element, when unique in the tree.
+  /// Verified locator for this element, when unique in the tree.
   final ElementLocator? suggestedLocator;
 
   /// Why [suggestedLocator] is missing (no stable locator / ambiguous).
@@ -187,6 +187,8 @@ class UiElement {
     final optionsRaw = json['options'];
     final locatorRaw = json['suggestedLocator'];
     return UiElement(
+      // Snapshot identity is issued by the observation registry. A locator
+      // describes how to find an element and must never populate this field.
       elementId: json['elementId']?.toString() ?? '',
       testId: json['testId']?.toString() ??
           (locatorRaw is Map ? locatorRaw['id']?.toString() : null),
@@ -227,10 +229,10 @@ class UiElement {
   }
 
   static String? _actionNameFromExample(Object example) {
-    final yaml =
+    final exampleText =
         example is Map ? example['yaml']?.toString() ?? '' : example.toString();
     final match =
-        RegExp(r'^([A-Za-z][A-Za-z0-9]*):').firstMatch(yaml.trimLeft());
+        RegExp(r'^([A-Za-z][A-Za-z0-9]*):').firstMatch(exampleText.trimLeft());
     return match?.group(1);
   }
 

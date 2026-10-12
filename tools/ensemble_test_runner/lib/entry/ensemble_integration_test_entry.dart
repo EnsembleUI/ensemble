@@ -1,20 +1,21 @@
-/// Integration-test entry point for declarative Ensemble YAML suites.
+/// Integration-test entry point for declarative test suites.
 library;
 
-import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
+import 'package:ensemble_test_runner/entry/ensemble_test_entry_common.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:integration_test/integration_test.dart';
+import 'package:ensemble_test_runner/src/runtime/test_execution_binding.dart';
 
-Future<void> runEnsembleIntegrationYamlTests({
+Future<void> runEnsembleIntegrationTests({
   Future<void> Function()? bootstrap,
   Map<String, Function>? externalMethods,
 }) async {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  return registerEnsembleYamlTests(
-    EnsembleYamlTestOptions(
+  ensureExecutionBinding(ExecutionMode.integration);
+  return registerEnsembleTestsInternal(
+    EnsembleTestOptions(
       bootstrap: bootstrap,
       externalMethods: externalMethods,
       mode: ExecutionMode.integration,
     ),
+    const [],
   );
 }

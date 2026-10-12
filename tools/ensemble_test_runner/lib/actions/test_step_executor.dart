@@ -1,22 +1,34 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:async';
-
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/screen_tracker.dart';
-import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
-import 'package:ensemble_test_runner/actions/http_request_action.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
+import 'package:ensemble_test_runner/actions/test_runtime_operation_dispatcher.dart';
+import 'package:ensemble_test_runner/actions/runtime_operation_input.dart';
+import 'package:ensemble_test_runner/actions/scrollable_waiter.dart';
+import 'package:ensemble_test_runner/actions/test_service_expectations.dart';
+import 'package:ensemble_test_runner/actions/test_mock_operations.dart';
+import 'package:ensemble_test_runner/actions/test_step_target_resolver.dart';
+import 'package:ensemble_test_runner/actions/test_step_wait_executor.dart';
+import 'package:ensemble_test_runner/actions/test_step_gesture_operations.dart';
+import 'package:ensemble_test_runner/actions/test_step_runtime.dart';
+import 'package:ensemble_test_runner/actions/test_step_condition_waiter.dart';
+import 'package:ensemble_test_runner/actions/test_step_widget_actions.dart';
+import 'package:ensemble_test_runner/actions/lifecycle_actions.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
-import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
-import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
+import 'package:ensemble_test_runner/src/runtime/operation_registry.dart'
+    show operationRegistry;
+import 'package:ensemble_test_runner/src/core/operation_registry.dart'
+    show OperationDescriptor;
+import 'package:ensemble_test_runner/src/core/operation.dart'
+    show OperationKind, TestOperation;
+import 'package:ensemble_test_runner/src/core/operation_input.dart';
+import 'package:ensemble_test_runner/src/runtime/step_evidence_policy.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,13 +42,144 @@ class TestStepExecutor {
   final ApplicationTestServices services;
   final TestExecutionConfig config;
   EnsembleConfig? _config;
-  FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
-  Finder Function(ElementTarget target, {bool requireInteractive})?
-      resolveTargetFinder;
-  FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
-  FutureOr<void> Function(TestStep step)? onBeforeActionStep;
-  FutureOr<void> Function(TestStep step)? onAfterActionStep;
-
+  late final TestStepRuntime _runtime = TestStepRuntime(
+    tester: tester,
+    context: context,
+    config: config,
+  );
+  Finder Function(
+    ElementTarget target, {
+    bool requireInteractive,
+    bool allowEmpty,
+    bool allowOffscreen,
+  })? resolveTargetFinder;
+  FutureOr<void> Function(TestStep step)? onEvidenceBoundary;
+  FutureOr<void> Function(OperationInput operation, String detail)?
+      onOperationEvidenceBoundary;
+  FutureOr<void> Function(String operationName)?
+      onNamedOperationEvidenceBoundary;
+  late final TestStepTargetResolver _targetResolver = TestStepTargetResolver(
+    assertions: assertions,
+    resolveTargetFinder: () => resolveTargetFinder,
+  );
+  late final ScrollableWaiter _scrollableWaiter = ScrollableWaiter(
+    tester: tester,
+    config: config,
+  );
+  late final TestServiceExpectations _serviceExpectations =
+      TestServiceExpectations(
+    services: services,
+    assertions: assertions,
+    context: context,
+    hasHarness: harness != null,
+  );
+  late final TestStepGestureOperations _gestureOperations =
+      TestStepGestureOperations(
+    finderForInput: finderForOperationInput,
+    finderForId: assertions.finderForId,
+    dragFinder: dragFinderForOperation,
+    emitEvidenceBoundary: _emitOperationInputEvidenceBoundary,
+  );
+  late final TestRuntimeOperationDispatcher _runtimeOperations =
+      TestRuntimeOperationDispatcher(
+    tester: tester,
+    context: context,
+    expectations: _serviceExpectations,
+    applyMocks: _applyMocksOperationInput,
+    assertions: assertions,
+    finderForTargetStep: finderForOperationInput,
+    defaultWaitTimeout: config.defaultWaitTimeout,
+    waitForTextContains: _waitOperations.waitForTextContains,
+    waitForText: (operation, {required timeoutMs}) => _waitFor(
+      id: operation.arguments['id']?.toString(),
+      text: operation.arguments['text']?.toString(),
+      anyOf: _conditionWaiter.stringListArg(operation.arguments['anyOf']),
+      target: operation.arguments['target'] is Map ||
+              operation.arguments['bounds'] is Map
+          ? _targetResolver.targetForInput(operation)
+          : null,
+      timeoutMs: timeoutMs,
+    ),
+    waitForVisible: _waitForVisibleOperationInput,
+    executeLifecycleOperation: executeRegisteredLifecycleInput,
+    harness: harness,
+    settle: _runtime.settle,
+    tapOperation: _tapOperationInput,
+    selectOperation: _selectOperationInput,
+    toggleOperation: _toggleOperationInput,
+    checkOperation: (input) => _setCheckedOperationInput(input, checked: true),
+    uncheckOperation: (input) =>
+        _setCheckedOperationInput(input, checked: false),
+    enterTextOperation: _enterTextOperationInput,
+    clearTextOperation: _clearTextOperationInput,
+    replaceTextOperation: _replaceTextOperationInput,
+    submitTextOperation: _submitTextOperationInput,
+    scrollOperation: _scrollOperationInput,
+    scrollUntilVisibleOperation: _scrollUntilVisibleOperationInput,
+    focusOperation: _focusOperationInput,
+    unfocusOperation: _unfocusOperationInput,
+    dragOperation: _gestureOperations.drag,
+    swipeOperation: _gestureOperations.swipe,
+    pullToRefreshOperation: _gestureOperations.pullToRefresh,
+    doubleTapOperation: _doubleTapOperationInput,
+    longPressOperation: _longPressOperationInput,
+    selectIndexOperation: _selectIndexOperationInput,
+    setSliderOperation: _setSliderOperationInput,
+    chooseDateOperation: _chooseDateTimeOperationInput,
+    chooseTimeOperation: _chooseDateTimeOperationInput,
+  );
+  late final TestStepConditionWaiter _conditionWaiter = TestStepConditionWaiter(
+    assertions: assertions,
+    config: config,
+    runtime: _runtime,
+    context: context,
+    resolveTargetFinder: (target) => resolveTargetFinder?.call(target),
+  );
+  late final TestStepWidgetActions _widgetActions = TestStepWidgetActions(
+    tester: tester,
+    assertions: assertions,
+    config: config,
+    runtime: _runtime,
+    scrollableWaiter: _scrollableWaiter,
+    waitFor: ({
+      TestStep? step,
+      String? id,
+      String? text,
+      List<String> anyOf = const [],
+      ElementTarget? target,
+      required int timeoutMs,
+    }) =>
+        _waitFor(
+      step: step,
+      id: id,
+      text: text,
+      anyOf: anyOf,
+      target: target,
+      timeoutMs: timeoutMs,
+    ),
+    onEvidenceBoundary: _emitEvidenceBoundary,
+  );
+  late final TestStepWaitExecutor _waitOperations = TestStepWaitExecutor(
+    tester: tester,
+    context: context,
+    assertions: assertions,
+    services: services,
+    config: config,
+    runtime: _runtime,
+    conditionWaiter: _conditionWaiter,
+    finderForTargetStep: finderForTargetStep,
+    finderForTarget: (target, {bool requireInteractive = true}) =>
+        _targetResolver.finderForTarget(
+      target,
+      operationName: 'waitForGone',
+      requireInteractive: requireInteractive,
+    ),
+    settleLiveApiWork: _runtime.yieldToLiveApiWork,
+    drainTransientFlutterDiagnostics: _runtime.drainTransientFlutterDiagnostics,
+    onEvidenceBoundary: _emitEvidenceBoundary,
+    onOperationEvidenceBoundary: (operation, detail) =>
+        onOperationEvidenceBoundary?.call(operation, detail),
+  );
   TestStepExecutor({
     required this.tester,
     required this.context,
@@ -47,667 +190,976 @@ class TestStepExecutor {
     TestExecutionConfig? executionConfig,
   })  : _config = config,
         config = executionConfig ?? const TestExecutionConfig();
+  EnsembleTestHarness get requireHarness =>
+      harness ??
+      (throw const UnsupportedApplicationCapability('ensembleHarness'));
 
-  EnsembleTestHarness get requireHarness {
-    final value = harness;
-    if (value == null) {
-      throw const UnsupportedApplicationCapability('ensembleHarness');
-    }
-    return value;
+  Future<bool> executeRegisteredAssertion(
+    TestOperation operation, {
+    required OperationDescriptor descriptor,
+  }) =>
+      _runtimeOperations.executeAssertionOperation(
+        operation,
+        descriptor: descriptor,
+      );
+
+  Future<bool> executeRegisteredInteraction(
+    OperationInput input, {
+    required OperationDescriptor descriptor,
+  }) =>
+      _runtimeOperations.executeOperation(input, descriptor: descriptor);
+
+  Future<void> emitOperationEvidenceBoundary(TestOperation operation) async {
+    if (!StepEvidencePolicy.isConditionStep(operation.operationName)) return;
+    await onOperationEvidenceBoundary?.call(
+      operation,
+      '${StepEvidencePolicy.conditionBoundaryPrefix}${operation.operationName}',
+    );
   }
 
-  Future<void> execute(TestStep step) async {
-    return await RunnerBenchmark.async('execution', 'controlFlow', () async {
-      if (step.type == 'group') {
-        for (final nested in step.nestedSteps) {
-          await execute(nested);
-        }
-        return;
-      }
-      if (step.type == 'repeat') {
-        final times = step.args['times'] as int? ?? 1;
-        for (var i = 0; i < times; i++) {
-          for (final nested in step.nestedSteps) {
-            await execute(nested);
+  /// Publishes a lifecycle boundary without materializing a legacy step.
+  Future<void> emitLifecycleEvidenceBoundary(
+    String operationName, {
+    TestStep? step,
+  }) async {
+    if (step != null) {
+      await onEvidenceBoundary?.call(step);
+      return;
+    }
+    await onNamedOperationEvidenceBoundary?.call(operationName);
+  }
+
+  Future<void> executeWaitOperation(TestOperation operation) {
+    final descriptor = operationRegistry.requireDescriptor(
+      operation,
+      expectedKind: OperationKind.wait,
+    );
+    return executeRegisteredWaitInput(operation, descriptor: descriptor);
+  }
+
+  /// Executes a wait input after its registry descriptor has been selected.
+  Future<void> executeRegisteredWaitInput(
+    OperationInput input, {
+    required OperationDescriptor descriptor,
+  }) =>
+      _waitOperations.executeInput(input, descriptor: descriptor);
+
+  /// Handler identities supported by the authored-step execution route.
+  /// Kept inspectable so registry coverage can be audited in one place.
+  Set<String> get registeredOperationHandlerKeys => Set.unmodifiable({
+        ..._runtimeOperations.registeredHandlerKeys,
+        ..._waitOperations.registeredHandlerKeys,
+      });
+
+  Future<void> _waitForVisibleOperationInput(
+    OperationInput operation, {
+    required int timeoutMs,
+  }) {
+    final target = operation.arguments['target'] is Map ||
+            operation.arguments['bounds'] is Map
+        ? _targetResolver.targetForInput(operation)
+        : null;
+    return _conditionWaiter.waitFor(
+      id: operation.arguments['id']?.toString() ?? target?.testId,
+      text: target?.normalizedLocator?.text,
+      target: target,
+      timeoutMs: timeoutMs,
+      requireHitTestable: false,
+    );
+  }
+
+  Future<void> notifyWaitConditionOperationMatched(
+    TestOperation operation,
+  ) async {
+    await onOperationEvidenceBoundary?.call(operation, operation.name);
+  }
+
+  Future<void> _emitOperationInputEvidenceBoundary(
+    OperationInput input,
+  ) async {
+    if (input is TestStep) {
+      await _emitEvidenceBoundary(input);
+      return;
+    }
+    await onOperationEvidenceBoundary?.call(input, input.operationName);
+  }
+
+  Future<void> _tapOperationInput(OperationInput input) async {
+    Future<void> boundary() async {
+      await _emitOperationInputEvidenceBoundary(input);
+    }
+
+    if (input.arguments['target'] is Map ||
+        input.arguments['bounds'] is Map ||
+        input.arguments['id'] is String) {
+      final target = _targetResolver.targetForInput(input);
+      final locator = target.normalizedLocator;
+      final isSimpleId = locator != null &&
+          locator.id != null &&
+          locator.text == null &&
+          locator.label == null &&
+          locator.role == null &&
+          locator.within == null &&
+          locator.occurrence == null &&
+          locator.bounds == null;
+      final canWaitForLocator = !target.usesSnapshotElement &&
+          target.occurrence == null &&
+          !_locatorHasOccurrence(locator) &&
+          locator != null &&
+          (isSimpleId || input.arguments['timeoutMs'] is int);
+      Finder? resolvedFinder;
+      if (canWaitForLocator && isSimpleId) {
+        final timeout = Duration(
+          milliseconds: input.arguments['timeoutMs'] as int? ??
+              config.defaultWaitTimeout.inMilliseconds,
+        );
+        bool targetExists() => assertions
+            .finderForId(locator.id!, skipOffstage: false)
+            .evaluate()
+            .isNotEmpty;
+
+        // A locator can match an Element before it is actionable (for example
+        // during a route transition). Existence is the wait condition; the
+        // normal tap path then waits for hit testing and handles visibility.
+        if (!targetExists()) {
+          try {
+            await _runtime.waitForCondition(
+              condition: targetExists,
+              timeout: timeout,
+            );
+          } on FlutterError catch (timeoutError) {
+            if (!timeoutError.toString().contains('timed out')) rethrow;
+            throw _tapTargetNotFound(input, target, timeout);
           }
         }
+
+        // IDs in existing apps can be shared by mirrored/offstage controls.
+        // The regular tap path selects the hit-testable match; existence must
+        // not reject the action before that selection and readiness check.
+        await tapForOperation(
+          locator.id!,
+          timeoutMs: input.arguments['timeoutMs'] as int?,
+          onBeforeTap: boundary,
+        );
         return;
-      }
-      if (step.type == 'ifVisible') {
-        var isVisible = false;
+      } else if (canWaitForLocator) {
+        final timeout = Duration(
+          milliseconds: input.arguments['timeoutMs'] as int,
+        );
         try {
-          isVisible = finderForTargetStep(step).evaluate().isNotEmpty;
+          // Preserve the fast path for already-present locators. Only enter
+          // the polling path when resolution reports a genuinely missing
+          // target; ambiguity and other resolution failures remain immediate.
+          resolvedFinder = finderForOperationInput(input);
         } on TestExecutionError catch (error) {
           if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
-        }
-        if (isVisible) {
-          for (final nested in step.nestedSteps) {
-            await execute(nested);
-          }
-        }
-        return;
-      }
-      if (step.type == 'optional') {
-        try {
-          for (final nested in step.nestedSteps) {
-            await execute(nested);
-          }
-        } on EnsembleTestFailure {
-          // Optional may skip a step that cannot be performed (for example, a
-          // missing cookie banner). Framework diagnostics are handled separately
-          // and do not change step outcome.
-        } on TestExecutionError {
-          // Session/dispatcher path may surface structured errors.
-        }
-        return;
-      }
+          final mounted = finderForOperationInput(
+            input,
+            requireInteractive: false,
+            allowEmpty: true,
+          );
+          if (mounted.evaluate().isNotEmpty) rethrow;
 
-      switch (step.type) {
-        case 'mocks':
-          _applyMocks(step.mocks);
-          return;
-        case 'httpRequest':
-          await HttpRequestAction.execute(step.args);
-          return;
-        case 'wait':
-          final durationMs = step.args['durationMs'] as int? ?? 500;
-          // LiveTestWidgetsFlutterBinding: plain delayed is enough. Do not wrap
-          // in tester.runAsync — live HTTP already owns runAsync and nesting
-          // throws "Reentrant call to runAsync() denied".
-          await _liveDelay(Duration(milliseconds: durationMs));
-          await _pump(label: 'wait');
-          return;
-        case 'waitForText':
-          await _waitFor(
-            step: step,
-            text: step.args['text']?.toString(),
-            anyOf: _stringListArg(step.args['anyOf']),
-            target: step.args['target'] is Map
-                ? ElementTarget(
-                    locator: ElementLocator.fromJson(
-                      Map<String, dynamic>.from(step.args['target'] as Map),
-                    ),
-                  )
-                : step.args['bounds'] is Map
-                    ? ElementTarget(
-                        locator: ElementLocator(
-                          bounds: ElementBounds.fromJson(
-                            Map<String, dynamic>.from(
-                              step.args['bounds'] as Map,
-                            ),
-                          ),
-                        ),
-                      )
-                    : step.args['id'] != null
-                        ? ElementTarget(testId: step.args['id'].toString())
-                        : null,
-            timeoutMs: step.args['timeoutMs'] as int? ??
-                config.defaultWaitTimeout.inMilliseconds,
-          );
-          return;
-        case 'waitForGone':
-          await _waitForGone(
-            target: _targetForStep(step),
-            timeoutMs: step.args['timeoutMs'] as int? ??
-                config.defaultWaitTimeout.inMilliseconds,
-          );
-          return;
-        case 'waitForApi':
-          await _waitForApi(
-            name: step.args['name']?.toString(),
-            times: step.args['times'] as int? ?? 1,
-            timeoutMs: step.args['timeoutMs'] as int? ??
-                config.defaultWaitTimeout.inMilliseconds,
-          );
-          return;
-        case 'waitForNavigation':
-          final screen = step.args['screen']?.toString();
-          if (screen == null) {
-            throw EnsembleTestFailure('waitForNavigation requires "screen"');
-          }
-          final navigation = services.navigation;
-          if (navigation != null) {
-            // Prefer history over currentRoute alone: transient screens
-            // (Loading → Status, Home → Devices) are often left during the
-            // previous action's settle before this wait starts.
-            final timeoutMs = step.args['timeoutMs'] as int? ??
-                config.defaultWaitTimeout.inMilliseconds;
-            final stopwatch = Stopwatch()..start();
-            while (stopwatch.elapsedMilliseconds <= timeoutMs) {
-              RunnerBenchmark.count('pollingAttempts', 1);
-              await YamlTestSession.navigationFlow.flushPending();
-              if (navigation.currentRoute == screen ||
-                  navigation.routeHistory.contains(screen)) {
-                return;
-              }
-              await _pump(
-                duration: config.waitPollInterval,
-                label: 'waitForNavigation.history',
-              );
-            }
-            await YamlTestSession.navigationFlow.flushPending();
-            if (navigation.currentRoute == screen ||
-                navigation.routeHistory.contains(screen)) {
-              return;
-            }
-            throw EnsembleTestFailure(
-              'Timed out after ${timeoutMs}ms waiting for route "$screen"',
+          bool targetExists() {
+            final current = finderForOperationInput(
+              input,
+              requireInteractive: false,
+              allowEmpty: true,
             );
+            return current.evaluate().isNotEmpty;
           }
-          await _waitForNavigation(
-            step: step,
-            screen: screen,
-            timeoutMs: step.args['timeoutMs'] as int? ??
-                config.defaultWaitTimeout.inMilliseconds,
-          );
-          return;
-        case 'expectScreen':
-          final screen =
-              step.args['name']?.toString() ?? step.args['screen']?.toString();
-          if (screen == null) {
-            throw EnsembleTestFailure(
-                'expectScreen requires "name" or "screen"');
-          }
-          _expectNavigateTo(screen);
-          return;
-      }
 
-      final canonical = TestStepVocabulary.resolveStepType(step.type);
-      if (canonical != step.type) {
-        return execute(step.withCanonicalType(canonical));
+          try {
+            await _runtime.waitForCondition(
+              condition: targetExists,
+              timeout: timeout,
+            );
+          } on FlutterError catch (timeoutError) {
+            if (!timeoutError.toString().contains('timed out')) rethrow;
+            throw _tapTargetNotFound(input, target, timeout);
+          }
+          resolvedFinder = finderForOperationInput(input);
+        }
       }
-
-      switch (step.type) {
-        case 'openScreen':
-          await _openScreen(step);
-          break;
-        case 'tap':
-          await _tap(
-            _requireId(step),
-            timeoutMs: step.args['timeoutMs'] as int?,
-            step: step,
-          );
-          break;
-        case 'enterText':
-          await _enterText(
-            _requireId(step),
-            step.args['value']?.toString() ?? '',
-            submit: step.args['submit'] == true,
-          );
-          await onAfterActionStep?.call(step);
-          break;
-        case 'clearText':
-          await _clearText(_requireId(step));
-          await onAfterActionStep?.call(step);
-          break;
-        case 'replaceText':
-          await _clearText(_requireId(step));
-          await _enterText(
-            _requireId(step),
-            step.args['value']?.toString() ?? '',
-            submit: step.args['submit'] == true,
-          );
-          await onAfterActionStep?.call(step);
-          break;
-        case 'submitText':
-          await _submitText(_requireId(step));
-          break;
-        case 'select':
-          await _select(_requireId(step), step.args['value']?.toString());
-          break;
-        case 'toggle':
-          await _toggle(_requireId(step));
-          break;
-        case 'waitFor':
-          await _waitFor(
-            step: step,
-            id: step.args['id']?.toString(),
-            text: step.args['text']?.toString(),
-            anyOf: _stringListArg(step.args['anyOf']),
-            timeoutMs: step.args['timeoutMs'] as int? ??
-                config.defaultWaitTimeout.inMilliseconds,
-          );
-          break;
-        case 'pump':
-          await _pump(
-            duration: Duration(
-              milliseconds: step.args['durationMs'] as int? ??
-                  config.waitPollInterval.inMilliseconds,
-            ),
-            label: 'pump',
-          );
-          break;
-        case 'settle':
-          await _settle(
-            timeout: step.args['timeoutMs'] != null
-                ? Duration(milliseconds: step.args['timeoutMs'] as int)
-                : null,
-          );
-          break;
-        case 'scrollUntilVisible':
-          await _scrollUntilVisible(
-            _requireId(step),
-            scrollableId: step.args['scrollableId']?.toString(),
-          );
-          break;
-        case 'expectVisible':
-          assertions.expectVisibleFinder(finderForTargetStep(step));
-          break;
-        case 'expectNotVisible':
-          assertions.expectVisibleFinder(
-            finderForTargetStep(step, requireInteractive: false),
-            visible: false,
-          );
-          break;
-        case 'expectText':
-          final anyOf = _stringListArg(step.args['anyOf']);
-          final text = step.args['text']?.toString();
-          if (anyOf.isNotEmpty) {
-            assertions.expectTextAny(anyOf);
-          } else if (text != null) {
-            assertions.expectText(text);
-          } else {
-            throw EnsembleTestFailure('expectText requires "text" or "anyOf"');
-          }
-          break;
-        case 'expectNoText':
-          final anyOf = _stringListArg(step.args['anyOf']);
-          final text = step.args['text']?.toString();
-          if (anyOf.isNotEmpty) {
-            assertions.expectNoTextAny(anyOf);
-          } else if (text != null) {
-            assertions.expectNoText(text);
-          } else {
-            throw EnsembleTestFailure(
-                'expectNoText requires "text" or "anyOf"');
-          }
-          break;
-        case 'expectEnabled':
-          assertions.expectEnabledFinder(finderForTargetStep(step));
-          break;
-        case 'expectDisabled':
-          assertions.expectEnabledFinder(
-            finderForTargetStep(step),
-            enabled: false,
-          );
-          break;
-        case 'expectValue':
-          assertions.expectValueFinder(
-            finderForTargetStep(step),
-            step.args['equals'],
-            description: targetDescription(step),
-          );
-          break;
-        case 'expectApiCalled':
-          final name = step.args['name']?.toString();
-          if (name == null) {
-            throw EnsembleTestFailure('expectApiCalled requires "name"');
-          }
-          _expectApiCalled(name, step.args['times'] as int? ?? 1);
-          break;
-        case 'expectApiNotCalled':
-          final name = step.args['name']?.toString();
-          if (name == null) {
-            throw EnsembleTestFailure('expectApiNotCalled requires "name"');
-          }
-          _expectApiCalled(name, 0);
-          break;
-        case 'expectCount':
-          final expected = step.args['equals'] as int?;
-          if (expected == null) {
-            throw EnsembleTestFailure('expectCount requires "equals"');
-          }
-          assertions.expectCountFinder(
-            finderForTargetStep(step),
-            expected,
-            description: targetDescription(step),
-          );
-          break;
-        case 'expectNavigateTo':
-          final screen = step.args['screen']?.toString();
-          if (screen == null) {
-            throw EnsembleTestFailure('expectNavigateTo requires "screen"');
-          }
-          _expectNavigateTo(screen);
-          break;
-        case 'expectVisited':
-          final screen = step.args['screen']?.toString();
-          if (screen == null) {
-            throw EnsembleTestFailure('expectVisited requires "screen"');
-          }
-          _expectVisited(screen);
-          break;
-        case 'expectStorage':
-          final key = step.args['key']?.toString();
-          if (key == null) {
-            throw EnsembleTestFailure('expectStorage requires "key"');
-          }
-          _expectStorage(key, step.args['equals']);
-          break;
-        case 'setStorage':
-          final key = step.args['key']?.toString();
-          if (key == null) {
-            throw EnsembleTestFailure('setStorage requires "key"');
-          }
-          await _setStorage(key, step.args['value']);
-          break;
-        case 'setEnv':
-          final key = step.args['key']?.toString();
-          if (key == null) {
-            throw EnsembleTestFailure('setEnv requires "key"');
-          }
-          context.setEnv(key, step.args['value']);
-          break;
-        case 'resetApiCalls':
-          _resetApiCalls();
-          break;
-        case 'logApiCalls':
-          final path = await tester.runAsync(() {
-            return writeApiCallsLog(context);
-          });
-          context.logger.log('apiCalls: $path');
-          break;
-        default:
-          if (await ExtendedStepHandlers.tryExecute(this, step)) {
-            return;
-          }
-          throw EnsembleTestFailure(
-            'Unknown test step: ${step.type}. See STEP_VOCABULARY.md for supported steps.',
-          );
-      }
-    });
+      await tapFinderForOperation(
+        resolvedFinder ?? finderForOperationInput(input),
+        onBeforeTap: boundary,
+      );
+      return;
+    }
+    await tapForOperation(
+      RuntimeOperationInput.requiredTarget(input),
+      timeoutMs: input.arguments['timeoutMs'] as int?,
+      onBeforeTap: boundary,
+    );
   }
 
-  String requireId(TestStep step) => _requireId(step);
+  TestExecutionError _tapTargetNotFound(
+    OperationInput input,
+    ElementTarget target,
+    Duration timeout,
+  ) {
+    final id = target.testId;
+    final message = id == null || id.isEmpty
+        ? 'Timed out after ${timeout.inMilliseconds}ms waiting for target to appear'
+        : 'Timed out after ${timeout.inMilliseconds}ms waiting for id "$id". '
+            '${assertions.widgetIdFailureHint(id)}';
+    return TestExecutionError(
+      code: TestExecutionErrorCode.elementNotFound,
+      message: message,
+      details: {
+        'locator': target.normalizedLocator?.toJson() ??
+            {'operation': input.operationName},
+      },
+    );
+  }
 
+  bool _locatorHasOccurrence(ElementLocator? locator) {
+    var current = locator;
+    while (current != null) {
+      if (current.occurrence != null) return true;
+      current = current.within;
+    }
+    return false;
+  }
+
+  Future<void> _selectOperationInput(OperationInput input) async {
+    final value = input.arguments['value']?.toString();
+    if (value == null || value.isEmpty) {
+      throw EnsembleTestFailure('select requires "value"');
+    }
+    Future<void> boundary() async {
+      await _emitOperationInputEvidenceBoundary(input);
+    }
+
+    if (input.arguments['target'] is Map || input.arguments['bounds'] is Map) {
+      final finder = await _finderForInputWithTimeout(input);
+      await selectFinderForOperation(
+        finder,
+        value,
+        onBeforeSelection: boundary,
+      );
+      return;
+    }
+    await selectForOperation(
+      RuntimeOperationInput.requiredTarget(input),
+      value,
+      timeoutMs: input.arguments['timeoutMs'] as int?,
+      onBeforeSelection: boundary,
+    );
+  }
+
+  Future<Finder> _finderForInputWithTimeout(
+    OperationInput input, {
+    bool useConfiguredDefault = false,
+  }) async {
+    final configuredTimeout = input.arguments['timeoutMs'];
+    final timeoutMs = configuredTimeout is int
+        ? configuredTimeout
+        : useConfiguredDefault
+            ? config.defaultWaitTimeout.inMilliseconds
+            : null;
+    if (timeoutMs == null) return finderForOperationInput(input);
+
+    try {
+      return finderForOperationInput(input);
+    } on TestExecutionError catch (error) {
+      if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
+
+      final mountedFinder = finderForOperationInput(
+        input,
+        requireInteractive: false,
+        allowEmpty: true,
+      );
+      if (mountedFinder.evaluate().isNotEmpty) rethrow;
+
+      bool targetExists() => finderForOperationInput(
+            input,
+            requireInteractive: false,
+            allowEmpty: true,
+          ).evaluate().isNotEmpty;
+      try {
+        await _runtime.waitForCondition(
+          condition: targetExists,
+          timeout: Duration(milliseconds: timeoutMs),
+        );
+      } on FlutterError catch (waitError) {
+        if (!waitError.toString().contains('timed out')) rethrow;
+        throw error;
+      }
+      return finderForOperationInput(input);
+    }
+  }
+
+  Future<void> _toggleOperationInput(OperationInput input) async {
+    final boundary = () => _emitOperationInputEvidenceBoundary(input);
+    if (input.arguments['target'] is Map || input.arguments['bounds'] is Map) {
+      await toggleFinderForOperation(
+        await _finderForInputWithTimeout(input, useConfiguredDefault: true),
+        onBeforeToggle: boundary,
+      );
+      return;
+    }
+    await toggleForOperation(
+      RuntimeOperationInput.requiredTarget(input),
+      timeoutMs: input.arguments['timeoutMs'] as int?,
+      onBeforeToggle: boundary,
+    );
+  }
+
+  Future<void> _setCheckedOperationInput(
+    OperationInput input, {
+    required bool checked,
+  }) async {
+    final finder = await _finderForInputWithTimeout(input);
+    final boundary = () => _emitOperationInputEvidenceBoundary(input);
+    if (checked) {
+      await checkFinderForOperation(finder, onBeforeToggle: boundary);
+    } else {
+      await uncheckFinderForOperation(finder, onBeforeToggle: boundary);
+    }
+  }
+
+  Future<void> _enterTextOperationInput(OperationInput input) async {
+    final value = input.arguments['value']?.toString() ?? '';
+    final beforeText = () => _emitOperationInputEvidenceBoundary(input);
+    if (input.arguments['target'] is Map) {
+      await enterTextFinderForOperation(
+        await _finderForInputWithTimeout(input, useConfiguredDefault: true),
+        value,
+        submit: input.arguments['submit'] == true,
+        onBeforeText: beforeText,
+      );
+      return;
+    }
+    await enterTextForOperation(
+      RuntimeOperationInput.requiredTarget(input),
+      value,
+      submit: input.arguments['submit'] == true,
+      timeoutMs: input.arguments['timeoutMs'] as int?,
+      onBeforeText: beforeText,
+    );
+  }
+
+  Future<void> _clearTextOperationInput(OperationInput input) async {
+    final beforeText = () => _emitOperationInputEvidenceBoundary(input);
+    await editTextFinderForOperation(
+      await _finderForInputWithTimeout(input),
+      '',
+      replace: true,
+      onBeforeText: beforeText,
+    );
+  }
+
+  Future<void> _replaceTextOperationInput(OperationInput input) async {
+    final value = input.arguments['value']?.toString() ?? '';
+    final beforeText = () => _emitOperationInputEvidenceBoundary(input);
+    final structured = input.arguments['target'] is Map;
+    final hasTimeout = input.arguments['timeoutMs'] is int;
+    if (structured || hasTimeout) {
+      final finder = await _finderForInputWithTimeout(input);
+      if (structured) {
+        await editTextFinderForOperation(
+          finder,
+          value,
+          replace: true,
+          submit: input.arguments['submit'] == true,
+          onBeforeText: beforeText,
+        );
+        return;
+      }
+    }
+    final id = RuntimeOperationInput.requiredTarget(input);
+    await clearTextForOperation(id, onBeforeText: beforeText);
+    await enterTextForOperation(
+      id,
+      value,
+      submit: input.arguments['submit'] == true,
+    );
+  }
+
+  Future<void> _submitTextOperationInput(OperationInput input) async {
+    final structured = input.arguments['target'] is Map;
+    Future<void> beforeSubmit() async {
+      await _emitOperationInputEvidenceBoundary(input);
+    }
+
+    if (structured) {
+      await submitTextFinderForOperation(
+        await _finderForInputWithTimeout(input, useConfiguredDefault: true),
+        onBeforeSubmit: beforeSubmit,
+      );
+      return;
+    }
+    await submitTextForOperation(
+      RuntimeOperationInput.requiredTarget(input),
+      timeoutMs: input.arguments['timeoutMs'] as int?,
+      onBeforeSubmit: () => _emitOperationInputEvidenceBoundary(input),
+    );
+  }
+
+  Future<void> _scrollOperationInput(OperationInput input) async {
+    final structured =
+        input.arguments['target'] is Map || input.arguments['bounds'] is Map;
+    final scrollable =
+        structured ? finderForOperationInput(input) : find.byType(Scrollable);
+    if (scrollable.evaluate().isEmpty) {
+      throw EnsembleTestFailure('scroll: no Scrollable found');
+    }
+    await dragFinderForOperation(
+      scrollable.first,
+      Offset(0, ((input.arguments['delta'] as num?) ?? -300).toDouble()),
+      onBeforeDrag: () => _emitOperationInputEvidenceBoundary(input),
+    );
+  }
+
+  Future<void> _scrollUntilVisibleOperationInput(OperationInput input) async {
+    final structured =
+        input.arguments['target'] is Map || input.arguments['bounds'] is Map;
+    final target = structured
+        ? _deferredOperationTargetFinder(input)
+        : assertions.finderForId(
+            RuntimeOperationInput.requiredTarget(input),
+            skipOffstage: false,
+          );
+    await scrollUntilVisibleForOperation(
+      target,
+      scrollableId: input.arguments['scrollableId']?.toString(),
+      timeoutMs: (input.arguments['timeoutMs'] as num?)?.toInt() ??
+          config.defaultWaitTimeout.inMilliseconds,
+    );
+    if (input is TestOperation) {
+      await notifyWaitConditionOperationMatched(input);
+    }
+  }
+
+  Future<void> _focusOperationInput(OperationInput input) async {
+    final finder = await _finderForInputWithTimeout(
+      input,
+      useConfiguredDefault: true,
+    );
+    Future<void> beforeFocus() async {
+      await _emitOperationInputEvidenceBoundary(input);
+    }
+
+    await tapFinderForOperation(finder, onBeforeTap: beforeFocus);
+  }
+
+  Future<void> _unfocusOperationInput(OperationInput input) async {
+    await _emitOperationInputEvidenceBoundary(input);
+    await unfocus();
+  }
+
+  Future<void> _doubleTapOperationInput(OperationInput input) async {
+    final finder = await _finderForInputWithTimeout(
+      input,
+      useConfiguredDefault: true,
+    );
+    Future<void> beforeFirstTap() async {
+      await _emitOperationInputEvidenceBoundary(input);
+    }
+
+    await doubleTapFinderForOperation(
+      finder,
+      onBeforeFirstTap: beforeFirstTap,
+    );
+  }
+
+  Future<void> _longPressOperationInput(OperationInput input) async {
+    final finder = await _finderForInputWithTimeout(
+      input,
+      useConfiguredDefault: true,
+    );
+    await longPressFinderForOperation(
+      finder,
+      onBeforeLongPress: () async {
+        await _emitOperationInputEvidenceBoundary(input);
+      },
+    );
+  }
+
+  Future<void> _selectIndexOperationInput(OperationInput input) async {
+    final index = (input.arguments['index'] as num?)?.toInt() ?? 0;
+    await selectIndexFinderForOperation(
+      finderForOperationInput(input),
+      index,
+      onBeforeSelection: () async {
+        await _emitOperationInputEvidenceBoundary(input);
+      },
+    );
+  }
+
+  Future<void> _setSliderOperationInput(OperationInput input) async {
+    final value = (input.arguments['value'] as num?)?.toDouble() ?? 0.5;
+    await setSliderFinderForOperation(
+      finderForOperationInput(input),
+      value,
+      onBeforeChange: () async {
+        await _emitOperationInputEvidenceBoundary(input);
+      },
+    );
+  }
+
+  Future<void> _chooseDateTimeOperationInput(OperationInput input) async {
+    await _enterTextOperationInput(input);
+  }
+
+  Finder _deferredOperationTargetFinder(OperationInput input) {
+    final target = _targetResolver.targetForInput(input);
+    final locator = target.normalizedLocator;
+    final id = target.testId ?? locator?.id;
+    if (id != null && id.isNotEmpty) {
+      return assertions.finderForId(id, skipOffstage: false);
+    }
+    final text = locator?.text;
+    if (text != null && text.isNotEmpty) {
+      return find.text(text, skipOffstage: false);
+    }
+    final label = locator?.label;
+    if (label != null && label.isNotEmpty) return find.bySemanticsLabel(label);
+    return finderForOperationInput(
+      input,
+      requireInteractive: false,
+      allowEmpty: true,
+    );
+  }
+
+  /// Executes lifecycle behavior selected by the already-validated registry
+  /// descriptor, avoiding a second name-based dispatch pass.
+  Future<void> executeRegisteredLifecycleOperation(
+    OperationDescriptor descriptor,
+    Map<String, dynamic> input, {
+    String? operationName,
+    TestStep? step,
+  }) async {
+    if (descriptor.kind != OperationKind.lifecycle) {
+      throw ArgumentError.value(
+        descriptor.kind,
+        'descriptor.kind',
+        'Expected a lifecycle operation.',
+      );
+    }
+    final name = operationName ?? descriptor.name;
+    Future<void> beforeMutation() async {
+      await emitLifecycleEvidenceBoundary(name, step: step);
+    }
+
+    await LifecycleActions.execute(
+      this,
+      descriptor,
+      name,
+      input,
+      step: step,
+      beforeMutation: beforeMutation,
+    );
+  }
+
+  /// Executes lifecycle behavior with its original authored or compiled input.
+  /// Authored steps retain their evidence callback; compiled inputs are passed
+  /// through without creating a TestStep adapter.
+  Future<void> executeRegisteredLifecycleInput(
+    OperationDescriptor descriptor,
+    OperationInput input,
+  ) =>
+      executeRegisteredLifecycleOperation(
+        descriptor,
+        Map<String, dynamic>.from(input.arguments),
+        operationName: input.operationName,
+        step: input is TestStep ? input : null,
+      );
+
+  String requireId(TestStep step) => _requireId(step);
   Finder finderForTargetStep(
     TestStep step, {
     bool requireInteractive = true,
-  }) {
-    final target = _targetForStep(step);
-    if (target.locator != null || target.usesSnapshotElement) {
-      final resolve = resolveTargetFinder;
-      if (resolve == null) {
-        throw EnsembleTestFailure(
-          'Step "${step.type}" requires a session target resolver.',
-        );
-      }
-      return resolve(target, requireInteractive: requireInteractive);
-    }
-    final id = target.testId;
-    if (id == null || id.isEmpty) {
-      throw EnsembleTestFailure(
-          'Step "${step.type}" requires "id" or "target"');
-    }
-    return assertions.finderForId(id, skipOffstage: requireInteractive);
-  }
-
-  ElementTarget _targetForStep(TestStep step) {
-    final raw = step.args['target'];
-    if (raw is Map) {
-      return ElementTarget(
-        locator: ElementLocator.fromJson(Map<String, dynamic>.from(raw)),
+    bool allowEmpty = false,
+  }) =>
+      _targetResolver.finderForStep(
+        step,
+        requireInteractive: requireInteractive,
+        allowEmpty: allowEmpty,
       );
-    }
-    final id = step.args['id']?.toString() ?? step.args['itemId']?.toString();
-    return ElementTarget(testId: id == null || id.isEmpty ? null : id);
-  }
-
+  Finder finderForOperationInput(
+    OperationInput operation, {
+    bool requireInteractive = true,
+    bool allowEmpty = false,
+    bool allowOffscreen = false,
+  }) =>
+      _targetResolver.finderForInput(
+        operation,
+        requireInteractive: requireInteractive,
+        allowEmpty: allowEmpty,
+        allowOffscreen: allowOffscreen,
+      );
+  Finder finderForTargetArgs(
+    Map<String, dynamic> args, {
+    bool requireInteractive = true,
+    bool allowEmpty = false,
+  }) =>
+      _targetResolver.finderForTargetArgs(
+        args,
+        requireInteractive: requireInteractive,
+        allowEmpty: allowEmpty,
+      );
   String targetDescription(TestStep step) =>
-      step.args['id']?.toString() ??
-      step.args['itemId']?.toString() ??
-      step.args['target']?.toString() ??
-      'target';
-
+      _targetResolver.descriptionFor(step);
   Future<void> tapWidget(String id, {int? timeoutMs}) =>
-      _tap(id, timeoutMs: timeoutMs);
-
-  /// Taps an already-resolved [Finder] (exact element identity; no id rematch).
-  Future<void> tapFinder(Finder finder, {TestStep? step}) async {
-    return await RunnerBenchmark.async('execution', 'tapFinder', () async {
-      if (finder.evaluate().isEmpty) {
-        throw EnsembleTestFailure(
-          'tapFinder: target element is not in the tree (detached or never found).',
-        );
-      }
-      await tester.ensureVisible(finder);
-      await _pump(label: 'tapFinder.ensureVisible');
-      final hitTestable = finder.hitTestable();
-      if (hitTestable.evaluate().isEmpty) {
-        throw EnsembleTestFailure(
-          'tapFinder: target element is not hit-testable. '
-          'It may be off-screen, disabled, or covered by another widget.',
-        );
-      }
-      if (step != null && onBeforeActionStep != null) {
-        await onBeforeActionStep!(step);
-      }
-      await tester.tap(hitTestable.first);
-      await _settleAfterAction();
-    });
-  }
-
-  Future<void> doubleTapFinder(Finder finder) async {
-    await tapFinder(finder);
-    await tapFinder(finder);
-  }
-
-  Future<void> longPressWidget(String id) async {
-    final finder = assertions.finderForId(id);
-    _expectSingleWidget(finder, id, 'longPress');
-    await tester.longPress(finder);
-    await _settleAfterAction();
-  }
-
-  Future<void> longPressFinder(Finder finder) async {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('longPressFinder: target element is detached.');
-    }
-    await tester.ensureVisible(finder);
-    await tester.longPress(finder);
-    await _settleAfterAction();
-  }
-
-  Future<void> focusWidget(String id) async {
-    final finder = assertions.finderForId(id);
-    _expectSingleWidget(finder, id, 'focus');
-    await tester.tap(finder);
-    await _settleAfterAction();
-  }
-
-  Future<void> focusFinder(Finder finder) async {
-    await tapFinder(finder);
-  }
-
-  Future<void> waitForTextContains({
-    String? text,
-    List<String> anyOf = const [],
-    required int timeoutMs,
-  }) async {
-    return await RunnerBenchmark.async('execution', 'waitForTextContains',
-        () async {
-      final textCandidates = <String>[
-        if (text != null && text.trim().isNotEmpty) text,
-        ...anyOf.where((value) => value.trim().isNotEmpty),
-      ];
-      if (textCandidates.isEmpty) {
-        throw EnsembleTestFailure(
-          'expectTextContains requires "text" or "anyOf"',
-        );
-      }
-
-      final stopwatch = Stopwatch()..start();
-      while (stopwatch.elapsedMilliseconds < timeoutMs) {
-        RunnerBenchmark.count('pollingAttempts', 1);
-        await _pump(
-            duration: config.waitPollInterval, label: 'expectTextContains');
-        if (assertions.isAnyTextContainingVisible(textCandidates)) {
-          return;
-        }
-      }
-
-      throw EnsembleTestFailure(
-        'Timed out after ${timeoutMs}ms waiting for text containing one of: '
-        '${textCandidates.map((t) => '"$t"').join(', ')}. '
-        '${assertions.textFailureHint(textCandidates)}',
+      _widgetActions.tapWidget(id, timeoutMs: timeoutMs);
+  Future<void> tapWidgetForOperation(
+    String id, {
+    Future<void> Function()? beforeMutation,
+  }) =>
+      _widgetActions.tap(
+        id,
+        onBeforeTap: () async {
+          await beforeMutation?.call();
+        },
       );
-    });
-  }
+  Future<void> longPressWidgetForOperation(
+    String id, {
+    Future<void> Function()? beforeMutation,
+  }) =>
+      _widgetActions.longPressWidget(
+        id,
+        onBeforeLongPress: () async {
+          await beforeMutation?.call();
+        },
+      );
 
-  Future<void> unfocus() async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await _settle();
-  }
+  Future<void> dragFinderForOperation(
+    Finder finder,
+    Offset offset, {
+    required Future<void> Function() onBeforeDrag,
+  }) =>
+      _widgetActions.dragFinder(
+        finder,
+        offset,
+        onBeforeDrag: onBeforeDrag,
+      );
+
+  Future<void> scrollUntilVisibleForOperation(
+    Finder target, {
+    String? scrollableId,
+    required int timeoutMs,
+  }) =>
+      _widgetActions.scrollUntilVisibleFinder(
+        target,
+        scrollableId: scrollableId,
+        timeoutMs: timeoutMs,
+      );
+
+  Future<void> selectIndexFinderForOperation(
+    Finder finder,
+    int index, {
+    required Future<void> Function() onBeforeSelection,
+  }) =>
+      _widgetActions.selectIndexOnFinder(
+        finder,
+        index,
+        onBeforeSelection: onBeforeSelection,
+      );
+
+  Future<void> setSliderFinderForOperation(
+    Finder finder,
+    double value, {
+    required Future<void> Function() onBeforeChange,
+  }) =>
+      _widgetActions.setSliderOnFinder(
+        finder,
+        value,
+        onBeforeChange: onBeforeChange,
+      );
+
+  Future<void> tapFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeTap,
+  }) =>
+      _widgetActions.tapFinder(finder, onBeforeTap: onBeforeTap);
+
+  Future<void> tapForOperation(
+    String id, {
+    int? timeoutMs,
+    Future<void> Function()? onBeforeTap,
+  }) =>
+      _widgetActions.tap(id, timeoutMs: timeoutMs, onBeforeTap: onBeforeTap);
+
+  Future<void> enterTextFinderForOperation(
+    Finder finder,
+    String value, {
+    bool submit = false,
+    required Future<void> Function() onBeforeText,
+  }) =>
+      _widgetActions.enterTextOnFinder(
+        finder,
+        value,
+        submit: submit,
+        onBeforeText: onBeforeText,
+      );
+
+  Future<void> editTextFinderForOperation(
+    Finder finder,
+    String value, {
+    bool replace = false,
+    bool submit = false,
+    required Future<void> Function() onBeforeText,
+  }) =>
+      _widgetActions.enterTextOnFinder(
+        finder,
+        value,
+        replace: replace,
+        submit: submit,
+        onBeforeText: onBeforeText,
+      );
+
+  Future<void> enterTextForOperation(
+    String id,
+    String value, {
+    bool submit = false,
+    int? timeoutMs,
+    Future<void> Function()? onBeforeText,
+  }) =>
+      _widgetActions.enterText(
+        id,
+        value,
+        submit: submit,
+        timeoutMs: timeoutMs,
+        onBeforeText: onBeforeText,
+      );
+
+  Future<void> clearTextForOperation(
+    String id, {
+    required Future<void> Function() onBeforeText,
+  }) =>
+      _widgetActions.clearText(id, onBeforeText: onBeforeText);
+
+  Future<void> submitTextForOperation(
+    String id, {
+    int? timeoutMs,
+    required Future<void> Function() onBeforeSubmit,
+  }) =>
+      _widgetActions.submitText(
+        id,
+        timeoutMs: timeoutMs,
+        onBeforeSubmit: onBeforeSubmit,
+      );
+
+  Future<void> submitTextFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeSubmit,
+  }) =>
+      _widgetActions.submitTextOnFinder(
+        finder,
+        onBeforeSubmit: onBeforeSubmit,
+      );
+
+  Future<void> selectFinderForOperation(
+    Finder finder,
+    String value, {
+    required Future<void> Function() onBeforeSelection,
+  }) =>
+      _widgetActions.selectOnFinder(
+        finder,
+        value,
+        onBeforeSelection: onBeforeSelection,
+      );
+
+  Future<void> selectForOperation(
+    String id,
+    String value, {
+    int? timeoutMs,
+    required Future<void> Function() onBeforeSelection,
+  }) =>
+      _widgetActions.select(
+        id,
+        value,
+        timeoutMs: timeoutMs,
+        onBeforeSelection: onBeforeSelection,
+      );
+
+  Future<void> toggleFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeToggle,
+  }) =>
+      _widgetActions.toggleFinder(finder, onBeforeToggle: onBeforeToggle);
+
+  Future<void> toggleForOperation(
+    String id, {
+    int? timeoutMs,
+    required Future<void> Function() onBeforeToggle,
+  }) =>
+      _widgetActions.toggle(
+        id,
+        timeoutMs: timeoutMs,
+        onBeforeToggle: onBeforeToggle,
+      );
+
+  Future<void> checkFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeToggle,
+  }) =>
+      _widgetActions.checkFinder(finder, onBeforeToggle: onBeforeToggle);
+
+  Future<void> uncheckFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeToggle,
+  }) =>
+      _widgetActions.uncheckFinder(finder, onBeforeToggle: onBeforeToggle);
+
+  Future<void> doubleTapFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeFirstTap,
+  }) =>
+      _widgetActions.doubleTapFinder(
+        finder,
+        onBeforeFirstTap: onBeforeFirstTap,
+      );
+
+  Future<void> longPressFinderForOperation(
+    Finder finder, {
+    required Future<void> Function() onBeforeLongPress,
+  }) =>
+      _widgetActions.longPressFinder(
+        finder,
+        onBeforeLongPress: onBeforeLongPress,
+      );
+
+  Future<void> doubleTapFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.doubleTapFinder(finder, step: step);
+
+  Future<void> longPressWidget(String id) => _widgetActions.longPressWidget(id);
+
+  Future<void> longPressFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.longPressFinder(finder, step: step);
+
+  Future<void> focusWidget(String id) => _widgetActions.focusWidget(id);
+
+  Future<void> focusFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.focusFinder(finder, step: step);
 
   Future<void> enterTextOn(String id, String value) =>
-      _enterText(id, value, submit: false);
+      _widgetActions.enterTextOn(id, value);
 
   Future<void> enterTextOnFinder(
     Finder finder,
     String value, {
     bool submit = false,
     bool replace = false,
-  }) async {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('enterText: target element is detached.');
-    }
-    if (replace) {
-      await tester.enterText(finder, '');
-      await _pump(label: 'clearText');
-    }
-    await tester.enterText(finder, value);
-    if (submit) {
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-    }
-    await _settleAfterAction();
-  }
-
-  Future<void> submitTextOnFinder(Finder finder) async {
-    await tapFinder(finder);
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await _settleAfterAction();
-  }
-
-  Future<void> toggleFinder(Finder finder) async {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('toggle: target element is detached.');
-    }
-    await tester.ensureVisible(finder);
-    final control = find.descendant(
-      of: finder,
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
-      ),
-    );
-    await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
-    await _settleAfterAction();
-  }
-
-  /// Idempotent check — no-op when already checked (matches uncheck symmetry).
-  Future<void> checkFinder(Finder finder) async {
-    if (_finderIsChecked(finder) == true) return;
-    await toggleFinder(finder);
-  }
-
-  /// Idempotent uncheck — no-op when already unchecked.
-  Future<void> uncheckFinder(Finder finder) async {
-    if (_finderIsChecked(finder) != true) return;
-    await toggleFinder(finder);
-  }
-
-  bool? _finderIsChecked(Finder finder) {
-    if (finder.evaluate().isEmpty) return null;
-    final control = find.descendant(
-      of: finder,
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
-      ),
-    );
-    final target = control.evaluate().isNotEmpty ? control.first : finder;
-    final widget = tester.widget(target);
-    if (widget is Switch) return widget.value;
-    if (widget is CupertinoSwitch) return widget.value;
-    if (widget is Checkbox) return widget.value;
-    return null;
-  }
-
-  Future<void> selectOnFinder(Finder finder, String value) async {
-    if (value.isEmpty) {
-      throw EnsembleTestFailure('select requires "value"');
-    }
-    await tapFinder(finder);
-    final option = find.text(value);
-    if (option.evaluate().isEmpty) {
-      throw EnsembleTestFailure('select could not find option "$value"');
-    }
-    await tester.tap(option);
-    await _settleAfterAction();
-  }
-
-  Future<void> selectIndexOnFinder(Finder finder, int index) async {
-    if (index < 0) {
-      throw EnsembleTestFailure('selectIndex requires a non-negative index');
-    }
-    await tapFinder(finder);
-    final options = find.byType(DropdownMenuItem).evaluate().toList();
-    if (index >= options.length) {
-      throw EnsembleTestFailure('selectIndex: no option at index $index');
-    }
-    await tester.tap(find.byWidget(options[index].widget));
-    await _settleAfterAction();
-  }
-
-  Future<void> setSliderOnFinder(Finder finder, double value) async {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('setSlider: target element is detached.');
-    }
-    final sliderFinder = find.descendant(
-      of: finder,
-      matching: find.byType(Slider),
-    );
-    final effective =
-        sliderFinder.evaluate().isNotEmpty ? sliderFinder.first : finder;
-    final widget = tester.widget(effective);
-    if (widget is! Slider) {
-      throw EnsembleTestFailure('setSlider target is not a Slider.');
-    }
-    if (value < widget.min || value > widget.max) {
-      throw EnsembleTestFailure(
-        'setSlider value $value is outside ${widget.min}..${widget.max}.',
+    TestStep? step,
+  }) =>
+      _widgetActions.enterTextOnFinder(
+        finder,
+        value,
+        submit: submit,
+        replace: replace,
+        step: step,
       );
-    }
-    final rect = tester.getRect(effective);
-    final fraction = widget.max == widget.min
-        ? 0.0
-        : (value - widget.min) / (widget.max - widget.min);
-    await tester
-        .tapAt(Offset(rect.left + rect.width * fraction, rect.center.dy));
-    await _settleAfterAction();
-  }
 
-  Future<void> dragFinder(Finder finder, Offset offset) async {
-    if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('drag: target element is detached.');
-    }
-    await tester.drag(finder, offset);
-    await _settleAfterAction();
-  }
+  Future<void> submitTextOnFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.submitTextOnFinder(finder, step: step);
 
-  Future<void> pullToRefreshFinder(Finder finder) =>
-      dragFinder(finder, const Offset(0, 300));
+  Future<void> toggleFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.toggleFinder(finder, step: step);
 
-  Future<void> scrollUntilVisibleFinder(Finder finder) async {
-    await tester.scrollUntilVisible(
+  Future<void> checkFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.checkFinder(finder, step: step);
+
+  Future<void> uncheckFinder(Finder finder, {TestStep? step}) =>
+      _widgetActions.uncheckFinder(finder, step: step);
+
+  Future<void> selectOnFinder(
+    Finder finder,
+    String value, {
+    TestStep? step,
+  }) =>
+      _widgetActions.selectOnFinder(finder, value, step: step);
+
+  Future<void> selectIndexOnFinder(Finder finder, int index,
+          {TestStep? step}) =>
+      _widgetActions.selectIndexOnFinder(finder, index, step: step);
+
+  Future<void> setSliderOnFinder(Finder finder, double value,
+          {TestStep? step}) =>
+      _widgetActions.setSliderOnFinder(finder, value, step: step);
+
+  Future<void> dragFinder(Finder finder, Offset offset, {TestStep? step}) =>
+      _widgetActions.dragFinder(finder, offset, step: step);
+
+  Future<void> scrollUntilVisibleFinder(
+    Finder finder, {
+    String? scrollableId,
+    TestStep? step,
+  }) async {
+    await _widgetActions.scrollUntilVisibleFinder(
       finder,
-      300,
-      scrollable: find.byType(Scrollable).first,
+      scrollableId: scrollableId,
     );
-    await _settleAfterAction();
+    if (step != null) await _waitOperations.emitConditionBoundary(step);
   }
 
-  Future<void> settle({Duration? timeout}) => _settle(timeout: timeout);
+  Future<void> _emitEvidenceBoundary(TestStep step) async {
+    await onEvidenceBoundary?.call(step);
+  }
+
+  /// Publishes evidence at a lifecycle operation's mutation boundary.
+  Future<void> emitEvidenceBoundary(TestStep step) =>
+      _emitEvidenceBoundary(step);
+
+  Future<void> waitForTextContains({
+    String? text,
+    List<String> anyOf = const [],
+    required int timeoutMs,
+  }) =>
+      _waitOperations.waitForTextContains(
+        text: text,
+        anyOf: anyOf,
+        timeoutMs: timeoutMs,
+      );
+
+  Future<void> waitForTextCondition({
+    String? text,
+    List<String> anyOf = const [],
+    required int timeoutMs,
+    required Future<void> Function(String matchedText) onMatched,
+  }) =>
+      _waitOperations.waitForTextCondition(
+        text: text,
+        anyOf: anyOf,
+        timeoutMs: timeoutMs,
+        onMatched: onMatched,
+      );
+
+  Future<void> unfocus() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await _runtime.settle();
+  }
+
+  Future<void> settle({Duration? timeout}) => _runtime.settle(timeout: timeout);
+
+  Future<void> pumpForTargetReadiness() =>
+      _runtime.pump(label: 'tapFinder.ensureVisible');
+
+  Future<void> settleAfterAction() => _runtime.settleAfterAction();
+
+  Future<void> _waitFor({
+    TestStep? step,
+    String? id,
+    String? text,
+    List<String> anyOf = const [],
+    ElementTarget? target,
+    required int timeoutMs,
+  }) =>
+      RunnerBenchmark.async(
+        'execution',
+        'waitFor',
+        () => _conditionWaiter.waitFor(
+          step: step,
+          id: id,
+          text: text,
+          anyOf: anyOf,
+          target: target,
+          timeoutMs: timeoutMs,
+        ),
+      );
 
   void _applyMocks(TestMocks mocks) {
     final api = services.api;
@@ -723,7 +1175,15 @@ class TestStepExecutor {
     }
   }
 
-  Future<void> openScreenByName(String screen) async {
+  Future<void> _applyMocksOperationInput(OperationInput input) async {
+    _applyMocks(TestMockOperations.decode(input));
+  }
+
+  Future<void> openScreenByName(
+    String screen, {
+    Future<void> Function()? beforeMutation,
+  }) async {
+    await beforeMutation?.call();
     final tc = context.testCase;
     _config = await requireHarness.loadScreen(
       tester: tester,
@@ -738,738 +1198,8 @@ class TestStepExecutor {
       existingConfig: _config,
       context: context,
     );
-    await _settle();
+    await _runtime.settle();
   }
 
-  String _requireId(TestStep step) {
-    final id = step.args['id']?.toString();
-    if (id == null || id.isEmpty) {
-      throw EnsembleTestFailure('Step "${step.type}" requires "id"');
-    }
-    return id;
-  }
-
-  Future<void> _settle({Duration? timeout}) async {
-    return await RunnerBenchmark.async('execution', 'settle', () async {
-      try {
-        await tester.pumpAndSettle(
-          config.settleStepDuration,
-          EnginePhase.sendSemanticsUpdate,
-          timeout ?? config.settleTimeout,
-        );
-      } catch (e) {
-        if (e.toString().contains('timed out') ||
-            e.toString().contains('timeout')) {
-          // Swallow timeout error because background streams/listeners (e.g. Firestore)
-          // might keep the event loop active, but the UI itself has settled.
-        } else {
-          rethrow;
-        }
-      }
-      await _drainFlutterDiagnostics();
-      await _yieldToLiveApiWork();
-    });
-  }
-
-  /// After taps/enterText: Ensemble `onComplete` often calls navigateScreen /
-  /// clearAllScreens. Alternate short live yields with single-frame pumps so
-  /// we do not build mid-`pushAndRemoveUntil` (Overlay / ErrorWidget races).
-  Future<void> _settleAfterAction() async {
-    return await RunnerBenchmark.async('execution', 'settleAfterAction',
-        () async {
-      final deadline = DateTime.now().add(config.actionSettleTimeout);
-      while (DateTime.now().isBefore(deadline)) {
-        RunnerBenchmark.count('pollingAttempts', 1);
-        await _liveDelay(const Duration(milliseconds: 50));
-        await tester.pump(null, EnginePhase.sendSemanticsUpdate);
-        _drainTransientFlutterDiagnostics();
-
-        if (tester.binding.transientCallbackCount == 0 &&
-            !context.apiOverlay.hasPendingLiveCalls) {
-          break;
-        }
-      }
-      await _yieldToLiveApiWork();
-    });
-  }
-
-  /// Lets in-flight live HTTP (wrapped in [WidgetTester.runAsync]) finish and
-  /// pumps a frame so Ensemble can apply API state.
-  ///
-  /// After navigateScreen/clearAllScreens, avoid multi-frame thrashing — that
-  /// re-enters Overlay while entries are still finalizing (Duplicate GlobalKeys /
-  /// `_dependents.isEmpty` → ErrorWidget).
-  Future<void> _yieldToLiveApiWork() async {
-    if (!context.apiOverlay.hasPendingLiveCalls) {
-      await tester.pump(null, EnginePhase.sendSemanticsUpdate);
-      _drainTransientFlutterDiagnostics();
-      return;
-    }
-    for (var i = 0; i < 200; i++) {
-      final hadPending = context.apiOverlay.hasPendingLiveCalls;
-      if (hadPending) {
-        try {
-          await context.apiOverlay
-              .waitForLiveCalls()
-              .timeout(config.waitPollInterval);
-        } on TimeoutException {
-          // Keep polling; HTTP may still be in flight inside runAsync.
-        }
-      }
-      await _liveDelay(const Duration(milliseconds: 20));
-      await tester.pump(null, EnginePhase.sendSemanticsUpdate);
-      _drainTransientFlutterDiagnostics();
-      if (!hadPending) {
-        return;
-      }
-    }
-  }
-
-  void _drainTransientFlutterDiagnostics() {
-    while (tester.takeException() != null) {}
-  }
-
-  /// Binding-aware delay (FakeAsync + live).
-  ///
-  /// Widget tests use [AutomatedTestWidgetsFlutterBinding] / FakeAsync — a
-  /// plain [Future.delayed] never completes without advancing virtual time.
-  /// [TestWidgetsFlutterBinding.delayed] advances FakeAsync and falls through
-  /// to wall-clock delay under [LiveTestWidgetsFlutterBinding].
-  ///
-  /// Must not call [WidgetTester.runAsync] — live HTTP already uses that API,
-  /// and nesting throws "Reentrant call to runAsync() denied".
-  Future<void> _liveDelay(Duration duration) async {
-    if (duration <= Duration.zero) return;
-    await tester.binding.delayed(duration);
-  }
-
-  Future<void> _tap(String id, {int? timeoutMs, TestStep? step}) async {
-    return await RunnerBenchmark.async('execution', 'tap', () async {
-      final effectiveTimeout =
-          timeoutMs ?? config.defaultWaitTimeout.inMilliseconds;
-      final stopwatch = Stopwatch()..start();
-      Finder? tappableFinder;
-
-      while (stopwatch.elapsedMilliseconds < effectiveTimeout) {
-        RunnerBenchmark.count('pollingAttempts', 1);
-        await _pump(duration: config.waitPollInterval, label: 'tap');
-        tappableFinder = _findTappableFinder(id);
-        if (tappableFinder != null) break;
-      }
-
-      if (tappableFinder == null) {
-        final baseFinder = assertions.finderForId(id);
-        if (baseFinder.evaluate().isEmpty) {
-          if (assertions
-              .finderForIdIncludingOffstage(id)
-              .evaluate()
-              .isNotEmpty) {
-            throw EnsembleTestFailure(
-              'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
-              'hit-testable. It may be off-screen, disabled, or covered by another widget. '
-              '${assertions.widgetIdFailureHint(id)}',
-            );
-          }
-          throw EnsembleTestFailure(
-            'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
-            '${assertions.widgetIdFailureHint(id)}',
-          );
-        }
-        throw EnsembleTestFailure(
-          'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
-          'hit-testable. It may be off-screen, disabled, or covered by another widget. '
-          '${assertions.widgetIdFailureHint(id)}',
-        );
-      }
-
-      // Already hit-testable finders do not need ensureVisible. Calling it can
-      // still drive scrollables / rebuilds that race Live-binding navigation and
-      // trip UnmanagedRestorationScope assertions on some Ensemble screens.
-      if (tappableFinder.hitTestable().evaluate().length != 1) {
-        await tester.ensureVisible(tappableFinder);
-        await _pump(label: 'tap.ensureVisible');
-      } else {
-        await _pump(label: 'tap.beforeTap');
-      }
-      tappableFinder = _hitTestableFinderForTap(
-        _interactiveFinder(assertions.finderForId(id)),
-        id,
-      );
-      if (step != null && onBeforeActionStep != null) {
-        await onBeforeActionStep!(step);
-      }
-      await tester.tap(tappableFinder);
-      await _settleAfterAction();
-    });
-  }
-
-  Finder? _findTappableFinder(String id) {
-    final baseFinder = assertions.finderForId(id);
-    if (baseFinder.evaluate().isEmpty) return null;
-
-    final finder = _interactiveFinder(baseFinder);
-    final count = finder.evaluate().length;
-    if (count == 0) return null;
-    if (count > 1) {
-      final hitTestable = finder.hitTestable();
-      final hitTestableCount = hitTestable.evaluate().length;
-      if (hitTestableCount > 1) {
-        throw EnsembleTestFailure(
-          'tap expected exactly one hit-testable widget with id "$id", '
-          'but found $hitTestableCount.',
-        );
-      }
-      return hitTestableCount == 1 ? hitTestable : null;
-    }
-
-    final hitTestable = finder.hitTestable();
-    return hitTestable.evaluate().length == 1 ? hitTestable : null;
-  }
-
-  Finder _hitTestableFinderForTap(Finder finder, String id) {
-    final hitTestable = finder.hitTestable();
-    final hitTestableCount = hitTestable.evaluate().length;
-    if (hitTestableCount == 1) return hitTestable;
-    if (hitTestableCount > 1) {
-      throw EnsembleTestFailure(
-        'tap expected exactly one hit-testable widget with id "$id", '
-        'but found $hitTestableCount.',
-      );
-    }
-    throw EnsembleTestFailure(
-      'tap found widget with id "$id", but it is not hit-testable. '
-      'It may be off-screen, disabled, or covered by another widget.',
-    );
-  }
-
-  Future<void> _toggle(String id) async {
-    final baseFinder = assertions.finderForId(id);
-    if (baseFinder.evaluate().isEmpty) {
-      await _waitFor(
-        id: id,
-        timeoutMs: config.defaultWaitTimeout.inMilliseconds,
-      );
-    }
-    final finder = _interactiveFinder(baseFinder);
-    _expectSingleWidget(finder, id, 'toggle');
-    await tester.ensureVisible(finder);
-
-    final control = find.descendant(
-      of: finder,
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
-      ),
-    );
-    await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
-    await _settleAfterAction();
-  }
-
-  Future<void> _enterText(String id, String value,
-      {bool submit = false}) async {
-    return await RunnerBenchmark.async('execution', 'enterText', () async {
-      var finder = assertions.finderForId(id);
-      if (finder.evaluate().isEmpty) {
-        await _waitFor(
-          id: id,
-          timeoutMs: config.defaultWaitTimeout.inMilliseconds,
-        );
-        finder = assertions.finderForId(id);
-      }
-      _expectSingleWidget(finder, id, 'enterText');
-      await tester.enterText(finder, value);
-      if (submit) {
-        await tester.testTextInput.receiveAction(TextInputAction.done);
-      }
-      await _settleAfterAction();
-    });
-  }
-
-  Future<void> _submitText(String id) async {
-    final finder = assertions.finderForId(id);
-    _expectSingleWidget(finder, id, 'submitText');
-    await tester.tap(finder);
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await _settleAfterAction();
-  }
-
-  Future<void> _clearText(String id) async {
-    final finder = assertions.finderForId(id);
-    _expectSingleWidget(finder, id, 'clearText');
-    await tester.enterText(finder, '');
-    await _settleAfterAction();
-  }
-
-  Future<void> _select(String id, String? value) async {
-    if (value == null || value.isEmpty) {
-      throw EnsembleTestFailure('select requires "value"');
-    }
-    await _tap(id);
-    final option = find.text(value);
-    if (option.evaluate().isEmpty) {
-      throw EnsembleTestFailure('select could not find option "$value"');
-    }
-    await tester.tap(option);
-    await _settleAfterAction();
-  }
-
-  Future<void> _scrollUntilVisible(
-    String id, {
-    String? scrollableId,
-  }) async {
-    final finder = assertions.finderForId(id, skipOffstage: false);
-    final scrollable = scrollableId == null || scrollableId.isEmpty
-        ? find.byType(Scrollable).first
-        : find.descendant(
-            of: find.byKey(ValueKey(scrollableId)),
-            matching: find.byType(Scrollable),
-          );
-    await tester.scrollUntilVisible(
-      finder,
-      300,
-      scrollable: scrollable,
-    );
-    await _settleAfterAction();
-  }
-
-  Future<void> _waitFor({
-    TestStep? step,
-    String? id,
-    String? text,
-    List<String> anyOf = const [],
-    ElementTarget? target,
-    required int timeoutMs,
-  }) async {
-    return await RunnerBenchmark.async('execution', 'waitFor', () async {
-      final textCandidates = <String>[
-        if (text != null && text.trim().isNotEmpty) text,
-        ...anyOf.where((value) => value.trim().isNotEmpty),
-      ];
-      if (id == null && textCandidates.isEmpty) {
-        throw EnsembleTestFailure(
-          'waitFor requires either "id", "text", or "anyOf"',
-        );
-      }
-
-      final stopwatch = Stopwatch()..start();
-      while (stopwatch.elapsedMilliseconds < timeoutMs) {
-        RunnerBenchmark.count('pollingAttempts', 1);
-        await _pump(duration: config.waitPollInterval, label: 'waitFor');
-        if (id != null &&
-            target?.normalizedLocator?.bounds == null &&
-            assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
-          return;
-        }
-        final matchedText = _firstVisibleText(
-          textCandidates,
-          target: target,
-        );
-        if (matchedText != null) {
-          if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
-            await onWaitForTextMatched!(
-                _stepWithMatchedText(step!, matchedText));
-          }
-          return;
-        }
-      }
-
-      final textLabel = textCandidates.isEmpty
-          ? null
-          : textCandidates.length == 1
-              ? 'text "${textCandidates.single}"'
-              : 'any text in ${textCandidates.map((t) => '"$t"').join(', ')}';
-      final targetLabel = id != null && textLabel != null
-          ? 'id "$id" or $textLabel'
-          : id != null
-              ? 'id "$id"'
-              : textLabel!;
-      throw EnsembleTestFailure(
-        'Timed out after ${timeoutMs}ms waiting for $targetLabel. '
-        '${id != null ? '${assertions.widgetIdFailureHint(id)} ${assertions.visibleTextSummary()}' : assertions.textFailureHint(textCandidates)}',
-      );
-    });
-  }
-
-  static List<String> _stringListArg(dynamic value) {
-    if (value is! List) return const [];
-    return [
-      for (final item in value)
-        if (item != null && item.toString().trim().isNotEmpty) item.toString(),
-    ];
-  }
-
-  String? _firstVisibleText(
-    List<String> candidates, {
-    ElementTarget? target,
-  }) {
-    Finder? targetFinder;
-    if (target != null) {
-      try {
-        targetFinder = resolveTargetFinder?.call(target);
-      } on TestExecutionError catch (error) {
-        if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
-      }
-      if (targetFinder == null || targetFinder.evaluate().isEmpty) return null;
-    }
-    for (final text in candidates) {
-      if (target == null) {
-        if (assertions.isTextVisible(text)) return text;
-        continue;
-      }
-      final matching = find.text(text, skipOffstage: false).evaluate().where(
-        (element) {
-          if (!assertions.isElementVisuallyActionable(element)) return false;
-          if (targetFinder != null) {
-            final targetElements = targetFinder.evaluate();
-            return targetElements.any((targetElement) {
-              if (identical(element, targetElement)) return true;
-              var withinTarget = false;
-              element.visitAncestorElements((ancestor) {
-                if (identical(ancestor, targetElement)) {
-                  withinTarget = true;
-                  return false;
-                }
-                return true;
-              });
-              return withinTarget;
-            });
-          }
-          return false;
-        },
-      );
-      if (matching.isNotEmpty) return text;
-    }
-    return null;
-  }
-
-  TestStep _stepWithMatchedText(TestStep step, String text) => TestStep(
-        type: step.type,
-        args: {
-          ...step.args,
-          'text': text,
-        }..remove('anyOf'),
-        mocks: step.mocks,
-        nestedSteps: step.nestedSteps,
-      );
-
-  void _expectSingleWidget(Finder finder, String id, String stepType) {
-    final count = finder.evaluate().length;
-    if (count != 1) {
-      throw EnsembleTestFailure(
-        '$stepType expected exactly one widget with id "$id", but found $count. '
-        '${assertions.widgetIdFailureHint(id)}',
-      );
-    }
-  }
-
-  Finder _interactiveFinder(Finder finder) {
-    if (finder.evaluate().length <= 1) return finder;
-    final hitTestable = finder.hitTestable();
-    return hitTestable.evaluate().length == 1 ? hitTestable : finder;
-  }
-
-  Future<void> _openScreen(TestStep step) async {
-    final screen =
-        step.args['name']?.toString() ?? step.args['screen']?.toString();
-    if (screen == null || screen.isEmpty) {
-      throw EnsembleTestFailure('openScreen requires "name" or "screen"');
-    }
-    final tc = context.testCase;
-    _config = await requireHarness.loadScreen(
-      tester: tester,
-      testCase: EnsembleTestCase(
-        id: tc.id,
-        startScreen: screen,
-        mockFiles: tc.mockFiles,
-        initialState: tc.initialState,
-        mocks: tc.mocks,
-        steps: const [],
-      ),
-      existingConfig: _config,
-      context: context,
-    );
-    await _settle();
-  }
-
-  Future<void> _waitForApi({
-    String? name,
-    required int times,
-    required int timeoutMs,
-  }) async {
-    return await RunnerBenchmark.async('execution', 'waitForApi', () async {
-      if (name == null || name.isEmpty) {
-        throw EnsembleTestFailure('waitForApi requires "name"');
-      }
-
-      final stopwatch = Stopwatch()..start();
-      while (stopwatch.elapsedMilliseconds < timeoutMs) {
-        RunnerBenchmark.count('pollingAttempts', 1);
-        await _yieldToLiveApiWork();
-        await _pump(duration: config.waitPollInterval, label: 'waitForApi');
-        if (context.apiOverlay.callCount(name) >= times) {
-          await _yieldToLiveApiWork();
-          return;
-        }
-      }
-      throw EnsembleTestFailure(
-        'Timed out after ${timeoutMs}ms waiting for API "$name" '
-        'to be called $times time(s)',
-      );
-    });
-  }
-
-  Future<void> _waitForNavigation({
-    required TestStep step,
-    required String screen,
-    required int timeoutMs,
-  }) async {
-    return await RunnerBenchmark.async('execution', 'waitForNavigation',
-        () async {
-      final stopwatch = Stopwatch()..start();
-      final tracker = ScreenTracker();
-      var captureFired = false;
-
-      bool isTargetVisible() =>
-          tracker.isScreenVisible(screenName: screen) ||
-          tracker.isScreenVisible(screenId: screen);
-
-      bool visitedInHistory() =>
-          YamlTestSession.navigationFlow.flow.contains(screen);
-
-      Future<void> captureIfVisible() async {
-        if (captureFired || onWaitForNavigationMatched == null) return;
-        if (!isTargetVisible()) return;
-        if (treeHasFlutterErrorWidget(tester)) return;
-        captureFired = true;
-        await onWaitForNavigationMatched!(step);
-      }
-
-      // Capture as soon as ScreenTracker reports the target — before the next
-      // navigateScreen (e.g. AutoSignIn_Device → Home) can replace the pixels.
-      final screenSub = tracker.onScreenChange.listen((visible) async {
-        final name = visible?.screenName ?? visible?.screenId;
-        if (name == screen) {
-          await captureIfVisible();
-        }
-      });
-
-      final previousOnScreenAdded =
-          YamlTestSession.navigationFlow.onScreenAdded;
-      YamlTestSession.navigationFlow.onScreenAdded = (name) async {
-        final prior = previousOnScreenAdded;
-        if (prior != null) {
-          await prior(name);
-        }
-        if (name == screen) {
-          await captureIfVisible();
-        }
-      };
-
-      try {
-        // Target may already be visible when the step starts.
-        if (isTargetVisible()) {
-          await captureIfVisible();
-          return;
-        }
-
-        while (stopwatch.elapsedMilliseconds < timeoutMs) {
-          RunnerBenchmark.count('pollingAttempts', 1);
-          await YamlTestSession.navigationFlow.flushPending();
-          if (isTargetVisible()) {
-            await captureIfVisible();
-            return;
-          }
-          if (visitedInHistory()) {
-            // Transient target screen was reached and has since left.
-            return;
-          }
-          await _yieldToLiveApiWork();
-          await _pump(
-            duration: config.waitPollInterval,
-            label: 'waitForNavigation',
-          );
-          await YamlTestSession.navigationFlow.flushPending();
-          if (isTargetVisible()) {
-            await captureIfVisible();
-            return;
-          }
-          if (visitedInHistory()) {
-            return;
-          }
-        }
-        await _yieldToLiveApiWork();
-        await _pump(label: 'waitForNavigation');
-        await YamlTestSession.navigationFlow.flushPending();
-        if (isTargetVisible()) {
-          await captureIfVisible();
-          return;
-        }
-        if (visitedInHistory()) {
-          return;
-        }
-        throw EnsembleTestFailure(
-          'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',
-        );
-      } finally {
-        await screenSub.cancel();
-        YamlTestSession.navigationFlow.onScreenAdded = previousOnScreenAdded;
-      }
-    });
-  }
-
-  Future<void> _waitForGone({
-    required ElementTarget target,
-    required int timeoutMs,
-  }) async {
-    return await RunnerBenchmark.async('execution', 'waitForGone', () async {
-      final stopwatch = Stopwatch()..start();
-      while (stopwatch.elapsedMilliseconds < timeoutMs) {
-        RunnerBenchmark.count('pollingAttempts', 1);
-        await _pump(duration: config.waitPollInterval, label: 'waitForGone');
-        try {
-          if (finderForTargetStep(
-            TestStep(
-              type: 'waitForGone',
-              args: target.normalizedLocator != null
-                  ? {'target': target.normalizedLocator!.toJson()}
-                  : {'id': target.testId},
-            ),
-            requireInteractive: false,
-          ).evaluate().isEmpty) {
-            return;
-          }
-        } on TestExecutionError catch (error) {
-          if (error.code == TestExecutionErrorCode.elementNotFound) return;
-          rethrow;
-        }
-      }
-      throw EnsembleTestFailure(
-        'Timed out after ${timeoutMs}ms waiting for target to disappear',
-      );
-    });
-  }
-
-  Future<void> _pump({
-    Duration? duration,
-    EnginePhase phase = EnginePhase.sendSemanticsUpdate,
-    required String label,
-  }) async {
-    // LiveTestWidgetsFlutterBinding.pump(duration) does Future.delayed then
-    // builds a frame in the same turn. Ensemble Timer / live HTTP callbacks
-    // can navigateScreen during that delay and race the build. Yield with a
-    // plain Future.delayed (not tester.runAsync — that nests with live HTTP
-    // and throws "Reentrant call to runAsync() denied"), then pump cleanly.
-    if (duration != null && duration > Duration.zero) {
-      await _liveDelay(duration);
-      await tester.pump(null, phase);
-      // Route transitions / dialogs scheduled during the yield often need a
-      // second frame before finders and hit-tests are stable.
-      await tester.pump(null, phase);
-    } else {
-      await tester.pump(duration, phase);
-    }
-    await _drainFlutterDiagnostics();
-  }
-
-  Future<void> _drainFlutterDiagnostics() async {
-    while (tester.takeException() != null) {}
-  }
-
-  void _expectApiCalled(String name, int times) {
-    final api = services.api;
-    if (api != null) {
-      final actual = api.callCount(name);
-      if (actual != times) {
-        throw EnsembleTestFailure(
-          'Expected API "$name" to be called $times times, got $actual.',
-        );
-      }
-      return;
-    }
-    if (harness == null) {
-      throw const UnsupportedApplicationCapability('api');
-    }
-    if (times == 0) {
-      assertions.expectApiNotCalled(name);
-    } else {
-      assertions.expectApiCalled(name, times);
-    }
-  }
-
-  void _resetApiCalls() {
-    final api = services.api;
-    if (api is ApiMockingTestService) {
-      api.resetCalls();
-      return;
-    }
-    if (api != null) {
-      throw const UnsupportedApplicationCapability('apiMocking');
-    }
-    if (harness == null) {
-      throw const UnsupportedApplicationCapability('api');
-    }
-    context.apiOverlay.resetCalls();
-  }
-
-  void _expectStorage(String key, Object? expected) {
-    final storage = services.storage;
-    if (storage != null) {
-      final actual = storage.read(key);
-      if (actual != expected) {
-        throw EnsembleTestFailure(
-          'Expected storage "$key" to equal "$expected", got "$actual".',
-        );
-      }
-      return;
-    }
-    if (harness == null) {
-      throw const UnsupportedApplicationCapability('storage');
-    }
-    assertions.expectStorage(key, expected);
-  }
-
-  Future<void> _setStorage(String key, Object? value) async {
-    final storage = services.storage;
-    if (storage != null) {
-      await storage.write(key, value);
-      return;
-    }
-    if (harness == null) {
-      throw const UnsupportedApplicationCapability('storage');
-    }
-    context.setStorage(key, value);
-  }
-
-  void _expectNavigateTo(String screen) {
-    final navigation = services.navigation;
-    if (navigation != null) {
-      if (navigation.currentRoute != screen) {
-        throw EnsembleTestFailure(
-          'Expected route "$screen", got "${navigation.currentRoute}".',
-        );
-      }
-      return;
-    }
-    if (harness == null) {
-      throw const UnsupportedApplicationCapability('navigation');
-    }
-    assertions.expectNavigateTo(screen);
-  }
-
-  void _expectVisited(String screen) {
-    final navigation = services.navigation;
-    if (navigation != null) {
-      if (!navigation.routeHistory.contains(screen)) {
-        throw EnsembleTestFailure(
-          'Expected screen "$screen" in navigation history, but visited '
-          '${navigation.routeHistory}',
-        );
-      }
-      return;
-    }
-    if (harness == null) {
-      throw const UnsupportedApplicationCapability('navigation');
-    }
-    assertions.expectVisited(screen);
-  }
+  String _requireId(TestStep step) => _targetResolver.requireId(step);
 }

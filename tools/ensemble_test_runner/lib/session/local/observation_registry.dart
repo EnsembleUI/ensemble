@@ -68,10 +68,18 @@ class ObservationRegistry {
       final handle = handles[elementId];
       if (handle == null) {
         throw TestExecutionError(
-          code: TestExecutionErrorCode.elementNotFound,
+          // An element id is only meaningful inside the observation that
+          // issued it.  If that observation is still retained but the handle
+          // is absent, the target is still stale: it cannot be remapped to a
+          // live id or silently resolved by a broad locator.
+          code: TestExecutionErrorCode.staleObservation,
           message:
-              'Element "$elementId" was not found in observation "$observationId".',
-          details: {'observationId': observationId, 'elementId': elementId},
+              'Element "$elementId" is not available in observation "$observationId".',
+          details: {
+            'observationId': observationId,
+            'elementId': elementId,
+            'reason': 'elementNotRetained',
+          },
         );
       }
       return handle;

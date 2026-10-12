@@ -4,6 +4,7 @@ enum TestStepArgKind {
   openScreen,
   trigger,
   idRequired,
+  idRequiredNoTimeout,
   idOptional,
   enterText,
   select,
@@ -21,6 +22,7 @@ enum TestStepArgKind {
   waitForNavigation,
   textRequired,
   textOrAnyOf,
+  textOrAnyOfWithTimeout,
   textContains,
   expectEquals,
   expectChecked,
@@ -35,12 +37,10 @@ enum TestStepArgKind {
   repeat,
   optional,
   ifVisible,
-  setAuth,
   setPermission,
   setDevice,
   setLocale,
   setTheme,
-  runScript,
   expectConsoleLog,
   expectErrorContains,
   expectApiCallOrder,
@@ -118,6 +118,8 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _targetable(
           properties: {'timeoutMs': _integer},
         );
+      case TestStepArgKind.idRequiredNoTimeout:
+        return _targetable();
       case TestStepArgKind.idOptional:
         return _targetable(targetRequired: false);
       case TestStepArgKind.enterText:
@@ -266,6 +268,28 @@ extension TestStepArgKindSchema on TestStepArgKind {
             },
           ],
         };
+      case TestStepArgKind.textOrAnyOfWithTimeout:
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+            'timeoutMs': _integer,
+          },
+          'anyOf': [
+            {
+              'required': ['text'],
+            },
+            {
+              'required': ['anyOf'],
+            },
+          ],
+        };
       case TestStepArgKind.textContains:
         return {
           'type': 'object',
@@ -388,13 +412,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
             'steps': {'type': 'array', 'items': _ref('step'), 'minItems': 1},
           },
         );
-      case TestStepArgKind.setAuth:
-        return _object(
-          properties: {
-            'user': {'type': 'object', 'additionalProperties': true},
-          },
-          required: ['user'],
-        );
       case TestStepArgKind.setPermission:
         return _object(
           properties: {'name': _string, 'value': _string},
@@ -411,10 +428,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(properties: {'locale': _string});
       case TestStepArgKind.setTheme:
         return _object(properties: {'mode': _string, 'theme': _string});
-      case TestStepArgKind.runScript:
-        return _object(
-          properties: {'script': _string, 'path': _string, 'equals': _any},
-        );
       case TestStepArgKind.expectConsoleLog:
         return _object(
           properties: {'contains': _string},

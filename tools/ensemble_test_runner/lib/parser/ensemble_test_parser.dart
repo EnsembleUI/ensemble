@@ -2,13 +2,17 @@ import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/models/test_document_keys.dart';
+import 'package:ensemble_test_runner/parser/test_config_document_parser.dart';
+import 'package:ensemble_test_runner/parser/parser_value_decoder.dart';
+import 'package:ensemble_test_runner/parser/test_step_parser.dart';
 import 'package:yaml/yaml.dart';
 
-/// Parses test cases and suite configuration from YAML.
+/// Parses test cases and suite configuration from test documents.
 ///
 /// The parser is useful for tooling that wants to validate or inspect test
 /// definitions without starting Flutter. Runtime execution is provided by
-/// [runEnsembleYamlTests].
+/// [runEnsembleTests].
 class EnsembleTestParser {
   /// Loads a test file from disk.
   static Future<EnsembleTestCase> parseFile(
@@ -39,21 +43,8 @@ class EnsembleTestParser {
     String? scenarioId,
   }) {
     return RunnerBenchmark.sync('parser', 'parseString', () {
-      final dynamic doc = loadYaml(content);
-      if (doc is! YamlMap) {
-        throw EnsembleTestFailure(
-            'Invalid test file${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map');
-      }
-
-      if (doc.containsKey('tests')) {
-        throw EnsembleTestFailure(
-          'Each *.test.yaml file defines one test at the root — remove the "tests" '
-          'wrapper and put id, startScreen, and steps at the top level.',
-        );
-      }
-
-      return _parseTestCase(
-        doc,
+      return parseDecodedDocument(
+        loadYaml(content),
         sourcePath: sourcePath,
         inputs: inputs,
         scenario: scenario,
@@ -62,21 +53,73 @@ class EnsembleTestParser {
     });
   }
 
+  /// Parses an already decoded YAML document. Suite planning uses this to
+  /// reuse the document decoded for metadata-based selection.
+  static EnsembleTestCase parseDocument(
+    YamlMap doc, {
+    String? sourcePath,
+    Map<String, dynamic> inputs = const {},
+    Map<String, dynamic> scenario = const {},
+    String? scenarioId,
+    List<TestScenario>? parsedScenarios,
+  }) =>
+      parseDecodedDocument(
+        doc,
+        sourcePath: sourcePath,
+        inputs: inputs,
+        scenario: scenario,
+        scenarioId: scenarioId,
+        parsedScenarios: parsedScenarios,
+      );
+
+  /// Parses a previously decoded document, validating its root before use.
+  /// This lets selection and expansion share the same decoded tree even when
+  /// service substitution changes the source text.
+  static EnsembleTestCase parseDecodedDocument(
+    dynamic doc, {
+    String? sourcePath,
+    Map<String, dynamic> inputs = const {},
+    Map<String, dynamic> scenario = const {},
+    String? scenarioId,
+    List<TestScenario>? parsedScenarios,
+  }) {
+    if (doc is! YamlMap) {
+      throw EnsembleTestFailure(
+          'Invalid test file${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map');
+    }
+    if (doc.containsKey('tests')) {
+      throw EnsembleTestFailure(
+        'Each *.test.yaml file defines one test at the root — remove the "tests" '
+        'wrapper and put id, startScreen, and steps at the top level.',
+      );
+    }
+
+    return _parseTestCase(
+      doc,
+      sourcePath: sourcePath,
+      inputs: inputs,
+      scenario: scenario,
+      scenarioId: scenarioId,
+      parsedScenarios: parsedScenarios,
+    );
+  }
+
   static EnsembleTestCase _parseTestCase(
     YamlMap map, {
     String? sourcePath,
     required Map<String, dynamic> inputs,
     required Map<String, dynamic> scenario,
     String? scenarioId,
+    List<TestScenario>? parsedScenarios,
   }) {
-    final unsupportedKeys = _unsupportedTestRootKeys(map);
+    final unsupportedKeys = TestDocumentKeys.unsupportedRootKeys(map.keys);
     if (unsupportedKeys.isNotEmpty) {
       throw EnsembleTestFailure(
         'Unsupported root key${unsupportedKeys.length == 1 ? '' : 's'} '
         '${unsupportedKeys.map((key) => '"$key"').join(', ')} in *.test.yaml file.',
       );
     }
-    if (_hasYamlKey(map, 'mocks') &&
+    if (_hasDocumentKey(map, 'mocks') &&
         map['mocks'] is! YamlList &&
         map['mocks'] is! YamlMap) {
       throw EnsembleTestFailure(
@@ -94,12 +137,12 @@ class EnsembleTestParser {
     final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
     final session = map['session']?.toString();
     final hasSession = session != null && session.isNotEmpty;
-    final profiles = _toStringSelectorList(map['profiles']);
+    final profiles = ParserValueDecoder.toStringSelectorList(map['profiles']);
 
     final setupNode = map['setup'];
     final setupSteps = setupNode == null
         ? const <TestStep>[]
-        : _parseSetupSteps(
+        : TestStepParser.parseSetupSteps(
             setupNode,
             testId: id,
             inputs: inputs,
@@ -120,7 +163,8 @@ class EnsembleTestParser {
       scenarioId: scenarioId,
     );
 
-    final scenarios = _parseScenarios(map['scenarios'], inputs: inputs);
+    final scenarios =
+        parsedScenarios ?? _parseScenarios(map['scenarios'], inputs: inputs);
     String? scenarioDescription;
     if (scenarioId != null) {
       for (final item in scenarios) {
@@ -136,18 +180,18 @@ class EnsembleTestParser {
       sourcePath: sourcePath,
       type: map['type']?.toString(),
       feature: map['feature']?.toString(),
-      tags: _toStringList(map['tags']),
+      tags: ParserValueDecoder.toStringList(map['tags']),
       description: map['description']?.toString(),
       owner: map['owner']?.toString(),
       priority: map['priority']?.toString(),
       parallel: map['parallel'] == false ? false : true,
-      retry: _optionalNonNegativeInt(
+      retry: TestConfigDocumentParser.optionalNonNegativeInt(
         map['retry'],
         fallback: 0,
         fieldName: '$id.retry',
       ),
       startScreen: hasStartScreen ? startScreen : null,
-      startScreenInputs: _toStringDynamicMap(
+      startScreenInputs: ParserValueDecoder.toStringDynamicMap(
         map['startScreenInputs'],
         inputs: inputs,
         scenario: scenario,
@@ -160,14 +204,14 @@ class EnsembleTestParser {
       mockFiles: parsedMocks.files,
       inlineMocks: parsedMocks.inline,
       scenarios: scenarios,
-      initialState: _toStringDynamicMap(
+      initialState: ParserValueDecoder.toStringDynamicMap(
         map['initialState'],
         inputs: inputs,
         scenario: scenario,
         scenarioId: scenarioId,
       ),
       setupSteps: setupSteps,
-      steps: _parseSteps(
+      steps: TestStepParser.parseSteps(
         stepsNode,
         testId: id,
         inputs: inputs,
@@ -188,7 +232,7 @@ class EnsembleTestParser {
     if (node is YamlMap) {
       return (
         files: const [],
-        inline: _toStringDynamicMap(
+        inline: ParserValueDecoder.toStringDynamicMap(
           node,
           inputs: inputs,
           scenario: scenario,
@@ -212,7 +256,7 @@ class EnsembleTestParser {
     final files = <String>[];
     final inline = <String, dynamic>{};
     for (final entry in node) {
-      final value = _unwrapYaml(
+      final value = ParserValueDecoder.unwrap(
         entry,
         inputs: inputs,
         scenario: scenario,
@@ -246,580 +290,11 @@ class EnsembleTestParser {
           'Invalid test config${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map',
         );
       }
-      return _parseConfig(doc);
-    });
-  }
-
-  static EnsembleTestConfig _parseConfig(YamlMap node) {
-    const allowedKeys = {
-      'mode',
-      'services',
-      'mocks',
-      'profiles',
-      'initialState',
-      'devices',
-      'screenshots',
-      'performance',
-      'timers',
-      'dumpTree',
-      'logApiCalls',
-      'logStorage',
-      'wifi',
-    };
-    for (final key in node.keys) {
-      if (!allowedKeys.contains(key.toString())) {
-        throw EnsembleTestFailure(
-          'Unsupported test config key "$key". Supported keys: '
-          '${allowedKeys.join(', ')}',
-        );
-      }
-    }
-
-    final modeNode = node['mode'];
-    final servicesNode = node['services'];
-    final mocksNode = node['mocks'];
-    final profilesNode = node['profiles'];
-    final initialStateNode = node['initialState'];
-    final devicesNode = node['devices'];
-    final screenshotsNode = node['screenshots'];
-    final performanceNode = node['performance'];
-    final timersNode = node['timers'];
-    final dumpTreeNode = node['dumpTree'];
-    final logApiCallsNode = node['logApiCalls'];
-    final logStorageNode = node['logStorage'];
-    final wifiNode = node['wifi'];
-    if (modeNode != null &&
-        modeNode.toString() != 'widget' &&
-        modeNode.toString() != 'integration') {
-      throw EnsembleTestFailure('"mode" must be "widget" or "integration"');
-    }
-    if (servicesNode != null && servicesNode is! YamlList) {
-      throw EnsembleTestFailure('"services" must be a list');
-    }
-    if (mocksNode != null && mocksNode is! YamlList && mocksNode is! YamlMap) {
-      throw EnsembleTestFailure(
-        '"mocks" must be either a list of .mock.json files or an inline map '
-        'of API mock responses.',
-      );
-    }
-    if (profilesNode != null && profilesNode is! YamlMap) {
-      throw EnsembleTestFailure('"profiles" must be a map');
-    }
-    if (initialStateNode != null && initialStateNode is! YamlMap) {
-      throw EnsembleTestFailure('"initialState" must be a map');
-    }
-    if (devicesNode != null && devicesNode is! YamlList) {
-      throw EnsembleTestFailure('"devices" must be a list');
-    }
-    if (screenshotsNode != null && screenshotsNode is! YamlMap) {
-      throw EnsembleTestFailure('"screenshots" must be a map');
-    }
-    if (screenshotsNode is YamlMap) {
-      for (final key in const ['platform', 'model', 'devices']) {
-        if (screenshotsNode.containsKey(key)) {
-          throw EnsembleTestFailure(
-            '"screenshots.$key" is no longer supported. Define devices at the '
-            'config root under "devices" (platform, model, optional locale/'
-            'theme).',
-          );
-        }
-      }
-    }
-    if (performanceNode != null && performanceNode is! YamlMap) {
-      throw EnsembleTestFailure('"performance" must be a map');
-    }
-    if (timersNode != null && timersNode is! YamlMap) {
-      throw EnsembleTestFailure('"timers" must be a map');
-    }
-    if (dumpTreeNode != null && dumpTreeNode is! YamlMap) {
-      throw EnsembleTestFailure('"dumpTree" must be a map');
-    }
-    if (logApiCallsNode != null && logApiCallsNode is! YamlMap) {
-      throw EnsembleTestFailure('"logApiCalls" must be a map');
-    }
-    if (logStorageNode != null && logStorageNode is! YamlMap) {
-      throw EnsembleTestFailure('"logStorage" must be a map');
-    }
-    if (wifiNode != null && wifiNode is! YamlMap) {
-      throw EnsembleTestFailure('"wifi" must be a map');
-    }
-
-    final parsedMocks = parseMocksNode(
-      mocksNode,
-      testId: 'tests/config.yaml',
-      inputs: const {},
-      scenario: const {},
-    );
-
-    final parsedProfiles = _parseProfilesConfig(profilesNode);
-
-    return EnsembleTestConfig(
-      mode: modeNode?.toString() == 'integration'
-          ? ExecutionMode.integration
-          : ExecutionMode.widget,
-      services: _parseServices(servicesNode),
-      mockFiles: parsedMocks.files,
-      inlineMocks: parsedMocks.inline,
-      initialState: _toStringDynamicMap(
-        initialStateNode,
-        inputs: const {},
-      ),
-      defaultProfile: parsedProfiles.defaultProfile,
-      profiles: parsedProfiles.definitions,
-      profileGroups: parsedProfiles.groups,
-      devices: _parseDevices(devicesNode),
-      screenshots: screenshotsNode == null
-          ? const ScreenshotConfig()
-          : ScreenshotConfig(
-              enabled: screenshotsNode['enabled'] == true,
-              includeSteps: _toStringList(screenshotsNode['includeSteps']),
-              excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
-              secureContent: _secureScreenshotPolicy(
-                screenshotsNode['secureContent'],
-              ),
-            ),
-      performance: performanceNode == null
-          ? const PerformanceConfig()
-          : PerformanceConfig(
-              enabled: performanceNode['enabled'] == true,
-            ),
-      timers: timersNode == null
-          ? const TimerRewriteConfig()
-          : TimerRewriteConfig(
-              enabled: timersNode['enabled'] == true,
-              maxStartAfterSeconds: _optionalNonNegativeInt(
-                timersNode['maxStartAfterSeconds'],
-                fallback: 1,
-                fieldName: 'timers.maxStartAfterSeconds',
-              ),
-              maxRepeatIntervalSeconds: _optionalNonNegativeInt(
-                timersNode['maxRepeatIntervalSeconds'],
-                fallback: 1,
-                fieldName: 'timers.maxRepeatIntervalSeconds',
-              ),
-              maxNumberOfTimes: timersNode['maxNumberOfTimes'] == null
-                  ? null
-                  : _optionalNonNegativeInt(
-                      timersNode['maxNumberOfTimes'],
-                      fallback: 0,
-                      fieldName: 'timers.maxNumberOfTimes',
-                    ),
-              maxNumberOfTimesByScreen:
-                  _parseScreenTimerCaps(timersNode['maxNumberOfTimesByScreen']),
-            ),
-      dumpTree: dumpTreeNode == null
-          ? const DumpTreeConfig()
-          : DumpTreeConfig(
-              enabled: dumpTreeNode['enabled'] == true,
-            ),
-      logApiCalls: logApiCallsNode == null
-          ? const LogApiCallsConfig()
-          : LogApiCallsConfig(
-              enabled: logApiCallsNode['enabled'] == true,
-            ),
-      logStorage: logStorageNode == null
-          ? const LogStorageConfig()
-          : LogStorageConfig(
-              enabled: logStorageNode['enabled'] == true,
-              key: logStorageNode['key']?.toString(),
-            ),
-      wifi: _parseWifiConfig(
-        wifiNode,
-        sourceLabel: 'tests/config.yaml',
-      ),
-    );
-  }
-
-  static ({
-    String? defaultProfile,
-    Map<String, List<String>> groups,
-    Map<String, TestProfile> definitions,
-  }) _parseProfilesConfig(dynamic node) {
-    if (node == null) {
-      return (
-        defaultProfile: null,
-        groups: const <String, List<String>>{},
-        definitions: const <String, TestProfile>{},
-      );
-    }
-    if (node is! YamlMap) {
-      throw EnsembleTestFailure('"profiles" must be a map');
-    }
-
-    const allowedKeys = {'default', 'groups', 'definitions'};
-    for (final key in node.keys) {
-      if (!allowedKeys.contains(key.toString())) {
-        throw EnsembleTestFailure(
-          'Unsupported profiles key "$key". Supported keys: '
-          '${allowedKeys.join(', ')}',
-        );
-      }
-    }
-
-    final defaultProfile = _optionalString(node['default']);
-    final groups = _parseProfileGroups(node['groups']);
-    final definitions = _parseProfileDefinitions(node['definitions']);
-    if (defaultProfile != null &&
-        !definitions.containsKey(defaultProfile) &&
-        !groups.containsKey(defaultProfile)) {
-      throw EnsembleTestFailure(
-        'profiles.default "$defaultProfile" must reference a profile from '
-        'profiles.definitions or a group from profiles.groups.',
-      );
-    }
-    _validateProfileGroups(groups, definitions);
-
-    return (
-      defaultProfile: defaultProfile,
-      groups: groups,
-      definitions: definitions,
-    );
-  }
-
-  static Map<String, TestProfile> _parseProfileDefinitions(dynamic node) {
-    if (node == null) return const {};
-    if (node is! YamlMap) {
-      throw EnsembleTestFailure('"profiles.definitions" must be a map');
-    }
-
-    final profiles = <String, TestProfile>{};
-    for (final entry in node.entries) {
-      final id = entry.key.toString().trim();
-      if (id.isEmpty) {
-        throw EnsembleTestFailure('Profile id must not be empty');
-      }
-      final value = entry.value;
-      if (value is! YamlMap) {
-        throw EnsembleTestFailure('Profile "$id" must be a map');
-      }
-      const allowedKeys = {'mocks', 'initialState'};
-      for (final key in value.keys) {
-        if (!allowedKeys.contains(key.toString())) {
-          throw EnsembleTestFailure(
-            'Unsupported profile key "$key" in profile "$id". Supported keys: '
-            '${allowedKeys.join(', ')}',
-          );
-        }
-      }
-      final mocksNode = value['mocks'];
-      if (mocksNode != null &&
-          mocksNode is! YamlList &&
-          mocksNode is! YamlMap) {
-        throw EnsembleTestFailure(
-          'Profile "$id" mocks must be either a list of .mock.json files or '
-          'an inline map of API mock responses.',
-        );
-      }
-      final initialStateNode = value['initialState'];
-      if (initialStateNode != null && initialStateNode is! YamlMap) {
-        throw EnsembleTestFailure('Profile "$id" initialState must be a map');
-      }
-
-      final parsedMocks = parseMocksNode(
-        mocksNode,
-        testId: 'tests/config.yaml profiles.definitions "$id"',
-        inputs: const {},
-        scenario: const {},
-      );
-      profiles[id] = TestProfile(
-        mockFiles: parsedMocks.files,
-        inlineMocks: parsedMocks.inline,
-        initialState: _toStringDynamicMap(
-          initialStateNode,
-          inputs: const {},
-        ),
-      );
-    }
-    return profiles;
-  }
-
-  static Map<String, List<String>> _parseProfileGroups(dynamic node) {
-    if (node == null) return const {};
-    if (node is! YamlMap) {
-      throw EnsembleTestFailure('"profiles.groups" must be a map');
-    }
-
-    final groups = <String, List<String>>{};
-    for (final entry in node.entries) {
-      final id = entry.key.toString().trim();
-      if (id.isEmpty) {
-        throw EnsembleTestFailure('Profile group id must not be empty');
-      }
-      final profiles = _toStringList(entry.value);
-      if (profiles.isEmpty) {
-        throw EnsembleTestFailure(
-          'profiles.groups "$id" must list at least one profile.',
-        );
-      }
-      groups[id] = profiles;
-    }
-    return groups;
-  }
-
-  static void _validateProfileGroups(
-    Map<String, List<String>> profileGroups,
-    Map<String, TestProfile> profiles,
-  ) {
-    for (final entry in profileGroups.entries) {
-      for (final profile in entry.value) {
-        if (!profiles.containsKey(profile)) {
-          throw EnsembleTestFailure(
-            'profiles.groups "${entry.key}" references unknown profile '
-            '"$profile". Define it under profiles.definitions.',
-          );
-        }
-      }
-    }
-  }
-
-  static WifiTestConfig _parseWifiConfig(
-    dynamic node, {
-    required String sourceLabel,
-  }) {
-    if (node == null) return const WifiTestConfig();
-    if (node is! YamlMap) {
-      throw EnsembleTestFailure('"$sourceLabel" wifi must be a map');
-    }
-    const allowedKeys = {'ssid', 'verifyFailSsid', 'modeStorageKey'};
-    for (final key in node.keys) {
-      if (!allowedKeys.contains(key.toString())) {
-        throw EnsembleTestFailure(
-          'Unsupported wifi key "$key" in $sourceLabel',
-        );
-      }
-    }
-    final ssid = node['ssid']?.toString().trim() ?? '';
-    final verifyFailSsid =
-        node['verifyFailSsid']?.toString().trim() ?? 'Wrong_Network';
-    final modeStorageKey = node['modeStorageKey']?.toString().trim();
-    if (ssid.isEmpty) {
-      throw EnsembleTestFailure(
-        '$sourceLabel wifi.ssid is required',
-      );
-    }
-    if (modeStorageKey != null && modeStorageKey.isEmpty) {
-      throw EnsembleTestFailure(
-        '$sourceLabel wifi.modeStorageKey must not be empty',
-      );
-    }
-    return WifiTestConfig(
-      ssid: ssid,
-      verifyFailSsid: verifyFailSsid,
-      modeStorageKey: modeStorageKey ?? WifiTestConfig.defaultModeStorageKey,
-    );
-  }
-
-  static int _optionalNonNegativeInt(
-    dynamic value, {
-    required int fallback,
-    required String fieldName,
-  }) {
-    if (value == null) return fallback;
-    final parsed = value is int ? value : int.tryParse(value.toString());
-    if (parsed == null || parsed < 0) {
-      throw EnsembleTestFailure('"$fieldName" must be a non-negative integer');
-    }
-    return parsed;
-  }
-
-  static Map<String, int> _parseScreenTimerCaps(dynamic value) {
-    if (value == null) return const {};
-    if (value is! YamlMap) {
-      throw EnsembleTestFailure(
-        '"timers.maxNumberOfTimesByScreen" must be a map',
-      );
-    }
-    return value.map((key, cap) {
-      final screen = key.toString().trim();
-      if (screen.isEmpty) {
-        throw EnsembleTestFailure(
-          '"timers.maxNumberOfTimesByScreen" keys must not be empty',
-        );
-      }
-      return MapEntry(
-        screen,
-        _optionalNonNegativeInt(
-          cap,
-          fallback: 0,
-          fieldName: 'timers.maxNumberOfTimesByScreen.$screen',
-        ),
+      return TestConfigDocumentParser.parse(
+        doc,
+        parseMocks: parseMocksNode,
       );
     });
-  }
-
-  static String? _optionalString(dynamic value) {
-    final string = value?.toString().trim();
-    return string == null || string.isEmpty ? null : string;
-  }
-
-  static List<TestDeviceTarget> _parseDevices(dynamic node) {
-    if (node == null) return const [];
-    if (node is! YamlList) {
-      throw EnsembleTestFailure('"devices" must be a list');
-    }
-    final devices = <TestDeviceTarget>[];
-    final ids = <String>{};
-    for (var i = 0; i < node.length; i++) {
-      final item = node[i];
-      if (item is! YamlMap) {
-        throw EnsembleTestFailure(
-          'Each devices entry must be a map',
-        );
-      }
-      const allowedKeys = {'id', 'platform', 'model', 'locale', 'theme'};
-      for (final key in item.keys) {
-        if (!allowedKeys.contains(key.toString())) {
-          throw EnsembleTestFailure(
-            'Unsupported devices key "$key"',
-          );
-        }
-      }
-      final platform = item['platform']?.toString().trim() ?? '';
-      if (platform.isEmpty) {
-        throw EnsembleTestFailure(
-          'devices[$i].platform is required',
-        );
-      }
-      final model = item['model']?.toString().trim() ?? '';
-      if (model.isEmpty) {
-        throw EnsembleTestFailure(
-          'devices[$i].model is required',
-        );
-      }
-      final locale = item['locale']?.toString().trim();
-      final theme = _parseDeviceTheme(item['theme'], index: i);
-      final idRaw = item['id']?.toString().trim();
-      final id = (idRaw == null || idRaw.isEmpty)
-          ? _defaultDeviceId(
-              platform: platform,
-              locale: locale,
-              index: i,
-            )
-          : idRaw;
-      if (!ids.add(id)) {
-        throw EnsembleTestFailure(
-          'Duplicate devices id "$id"',
-        );
-      }
-      devices.add(
-        TestDeviceTarget(
-          id: id,
-          platform: platform,
-          model: model,
-          locale: (locale == null || locale.isEmpty) ? null : locale,
-          theme: theme,
-        ),
-      );
-    }
-    return devices;
-  }
-
-  static String _defaultDeviceId({
-    required String platform,
-    required String? locale,
-    required int index,
-  }) {
-    final platformKey = platform.toLowerCase().replaceAll(
-          RegExp(r'[^a-z0-9]+'),
-          '_',
-        );
-    final localeKey = (locale == null || locale.isEmpty)
-        ? null
-        : locale.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
-    if (localeKey == null) {
-      return '${platformKey}_$index';
-    }
-    return '${platformKey}_$localeKey';
-  }
-
-  /// Optional `devices[].theme`. Empty is ignored; non-empty values are kept
-  /// as written (harness resolves aliases like `light` → `Light`).
-  static String? _parseDeviceTheme(dynamic value, {required int index}) {
-    if (value == null) return null;
-    final theme = value.toString().trim();
-    if (theme.isEmpty) return null;
-    return theme;
-  }
-
-  static List<TestServiceConfig> _parseServices(dynamic node) {
-    if (node == null) return const [];
-    final services = <TestServiceConfig>[];
-    final names = <String>{};
-    for (final item in node as YamlList) {
-      if (item is! YamlMap) {
-        throw EnsembleTestFailure('Each service must be a map');
-      }
-      const allowedKeys = {
-        'name',
-        'command',
-        'url',
-        'arguments',
-        'workingDirectory',
-        'environment',
-        'readyUrl',
-        'readyTimeoutMs',
-      };
-      for (final key in item.keys) {
-        if (!allowedKeys.contains(key)) {
-          throw EnsembleTestFailure(
-            'Unsupported service key "$key". Supported keys: '
-            '${allowedKeys.join(', ')}',
-          );
-        }
-      }
-
-      final name = item['name']?.toString();
-      final command = item['command']?.toString();
-      if (name == null || name.isEmpty) {
-        throw EnsembleTestFailure('Each service requires "name"');
-      }
-      if (!names.add(name)) {
-        throw EnsembleTestFailure('Duplicate service name "$name"');
-      }
-      if (command == null || command.isEmpty) {
-        throw EnsembleTestFailure('Service "$name" requires "command"');
-      }
-
-      final argumentsNode = item['arguments'];
-      if (argumentsNode != null && argumentsNode is! YamlList) {
-        throw EnsembleTestFailure(
-          'Service "$name" "arguments" must be a list',
-        );
-      }
-      final environmentNode = item['environment'];
-      if (environmentNode != null && environmentNode is! YamlMap) {
-        throw EnsembleTestFailure(
-          'Service "$name" "environment" must be a map',
-        );
-      }
-      final timeout = item['readyTimeoutMs'];
-      if (timeout != null && (timeout is! int || timeout <= 0)) {
-        throw EnsembleTestFailure(
-          'Service "$name" "readyTimeoutMs" must be a positive integer',
-        );
-      }
-
-      services.add(
-        TestServiceConfig(
-          name: name,
-          command: command,
-          url: item['url']?.toString(),
-          arguments: argumentsNode == null
-              ? const []
-              : argumentsNode.map<String>((value) => value.toString()).toList(),
-          workingDirectory: item['workingDirectory']?.toString(),
-          environment: environmentNode == null
-              ? const {}
-              : {
-                  for (final entry in environmentNode.entries)
-                    entry.key.toString(): entry.value.toString(),
-                },
-          readyUrl: item['readyUrl']?.toString(),
-          readyTimeoutMs: timeout as int? ?? 10000,
-        ),
-      );
-    }
-    return services;
   }
 
   static List<TestScenario> _parseScenarios(
@@ -843,7 +318,7 @@ class EnsembleTestParser {
       if (!ids.add(id)) {
         throw EnsembleTestFailure('Duplicate scenario id "$id"');
       }
-      final vars = _toStringDynamicMap(
+      final vars = ParserValueDecoder.toStringDynamicMap(
         item['vars'],
         inputs: inputs,
         scenario: const {},
@@ -860,401 +335,7 @@ class EnsembleTestParser {
     return scenarios;
   }
 
-  static List<TestStep> _parseSteps(
-    YamlList steps, {
-    required String testId,
-    required Map<String, dynamic> inputs,
-    required Map<String, dynamic> scenario,
-    String? scenarioId,
-  }) {
-    final parsed = _parseStepsList(
-      steps,
-      testId: testId,
-      inputs: inputs,
-      scenario: scenario,
-      scenarioId: scenarioId,
-    );
-    for (final step in parsed) {
-      _validateTestStep(step, testId);
-    }
-    return parsed;
-  }
-
-  static void _validateTestStep(TestStep step, String testId) {
-    for (final nested in step.nestedSteps) {
-      _validateTestStep(nested, testId);
-    }
-  }
-
-  static List<TestStep> _parseSetupSteps(
-    dynamic steps, {
-    required String testId,
-    required Map<String, dynamic> inputs,
-    required Map<String, dynamic> scenario,
-    String? scenarioId,
-  }) {
-    final parsed = _parseStepsList(
-      steps,
-      testId: testId,
-      inputs: inputs,
-      scenario: scenario,
-      scenarioId: scenarioId,
-      listName: 'setup',
-    );
-    for (final step in parsed) {
-      _validateSetupStep(step, testId);
-    }
-    return parsed;
-  }
-
-  static void _validateSetupStep(TestStep step, String testId) {
-    if (step.type == 'httpRequest') return;
-    if (step.type == 'group' || step.type == 'optional') {
-      for (final nested in step.nestedSteps) {
-        _validateSetupStep(nested, testId);
-      }
-      return;
-    }
-    throw EnsembleTestFailure(
-      'Test "$testId" setup only supports httpRequest, group, and optional, '
-      'but found "${step.type}"',
-    );
-  }
-
-  static List<TestStep> _parseStepsList(
-    dynamic steps, {
-    required String testId,
-    required Map<String, dynamic> inputs,
-    required Map<String, dynamic> scenario,
-    String? scenarioId,
-    String listName = 'steps',
-  }) {
-    if (steps is! List || steps.isEmpty) {
-      throw EnsembleTestFailure(
-          'Test "$testId" requires a non-empty "$listName" list');
-    }
-    final result = <TestStep>[];
-    for (var i = 0; i < steps.length; i++) {
-      result.add(
-        _parseStep(
-          steps[i],
-          testId: testId,
-          index: i,
-          inputs: inputs,
-          scenario: scenario,
-          scenarioId: scenarioId,
-        ),
-      );
-    }
-    return result;
-  }
-
-  static TestStep _parseStep(
-    dynamic step, {
-    required String testId,
-    int? index,
-    required Map<String, dynamic> inputs,
-    Map<String, dynamic> scenario = const {},
-    String? scenarioId,
-  }) {
-    final String type;
-    final dynamic argsNode;
-
-    if (step is YamlMap && step.length == 1) {
-      type = step.keys.first.toString();
-      argsNode = step[type];
-    } else if (step is Map && step.length == 1) {
-      type = step.keys.first.toString();
-      argsNode = step[type];
-    } else {
-      throw EnsembleTestFailure(
-        'Test "$testId" step ${index ?? ''} must be a single-key map '
-        '(e.g. expectVisible: {...})',
-      );
-    }
-
-    final args = _argsFromNode(
-      argsNode,
-      inputs: inputs,
-      scenario: scenario,
-      scenarioId: scenarioId,
-    );
-
-    List<TestStep> nested = const [];
-    if (type == 'group' || type == 'repeat') {
-      final stepsNode = args['steps'];
-      if (stepsNode is List && stepsNode.isNotEmpty) {
-        nested = _parseStepsList(
-          stepsNode,
-          testId: testId,
-          inputs: inputs,
-          scenario: scenario,
-          scenarioId: scenarioId,
-        );
-      } else {
-        throw EnsembleTestFailure('"$type" requires a non-empty "steps" list');
-      }
-    } else if (type == 'optional' || type == 'ifVisible') {
-      final single = args['step'];
-      if (single is YamlMap && single.length == 1) {
-        nested = [
-          _parseStep(
-            single,
-            testId: testId,
-            inputs: inputs,
-            scenario: scenario,
-            scenarioId: scenarioId,
-          ),
-        ];
-      } else if (single is Map && single.length == 1) {
-        nested = [
-          _parseStep(
-            single,
-            testId: testId,
-            inputs: inputs,
-            scenario: scenario,
-            scenarioId: scenarioId,
-          ),
-        ];
-      } else if (args['steps'] is List && (args['steps'] as List).isNotEmpty) {
-        nested = _parseStepsList(
-          args['steps'],
-          testId: testId,
-          inputs: inputs,
-          scenario: scenario,
-          scenarioId: scenarioId,
-        );
-      }
-    }
-
-    return TestStep(type: type, args: args, nestedSteps: nested);
-  }
-
-  static Map<String, dynamic> _argsFromNode(
-    dynamic node, {
-    required Map<String, dynamic> inputs,
-    required Map<String, dynamic> scenario,
-    String? scenarioId,
-  }) {
-    if (node is YamlMap) {
-      return _toStringDynamicMap(
-        node,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      );
-    }
-    if (node is Map) {
-      return node.map(
-        (key, value) => MapEntry(
-          key.toString(),
-          _unwrapYaml(
-            value,
-            inputs: inputs,
-            scenario: scenario,
-            scenarioId: scenarioId,
-          ),
-        ),
-      );
-    }
-    if (node != null) {
-      return {
-        'value': _unwrapYaml(
-          node,
-          inputs: inputs,
-          scenario: scenario,
-          scenarioId: scenarioId,
-        ),
-      };
-    }
-    return {};
-  }
-
-  static Map<String, dynamic> _toStringDynamicMap(
-    dynamic node, {
-    required Map<String, dynamic> inputs,
-    Map<String, dynamic> scenario = const {},
-    String? scenarioId,
-  }) {
-    if (node == null) return {};
-    if (node is! YamlMap) {
-      throw EnsembleTestFailure('Expected a map');
-    }
-    final out = <String, dynamic>{};
-    node.forEach((key, value) {
-      out[key.toString()] = _unwrapYaml(
-        value,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      );
-    });
-    return out;
-  }
-
-  static List<String> _toStringList(
-    dynamic node, {
-    Map<String, dynamic> inputs = const {},
-    Map<String, dynamic> scenario = const {},
-    String? scenarioId,
-  }) {
-    if (node == null) return const [];
-    if (node is! Iterable) {
-      throw EnsembleTestFailure('Expected a list');
-    }
-    return node
-        .map(
-          (value) => _unwrapYaml(
-            value,
-            inputs: inputs,
-            scenario: scenario,
-            scenarioId: scenarioId,
-          ).toString(),
-        )
-        .toList();
-  }
-
-  static List<String> _toStringSelectorList(dynamic node) {
-    if (node == null) return const [];
-    if (node is String) {
-      final value = node.trim();
-      return value.isEmpty ? const [] : [value];
-    }
-    return _toStringList(node);
-  }
-
-  static dynamic _unwrapYaml(
-    dynamic value, {
-    required Map<String, dynamic> inputs,
-    Map<String, dynamic> scenario = const {},
-    String? scenarioId,
-  }) {
-    if (value is YamlMap) {
-      return _toStringDynamicMap(
-        value,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      );
-    }
-    if (value is YamlList) {
-      return value
-          .map(
-            (item) => _unwrapYaml(
-              item,
-              inputs: inputs,
-              scenario: scenario,
-              scenarioId: scenarioId,
-            ),
-          )
-          .toList();
-    }
-    if (value is String) {
-      return _resolvePlaceholders(
-        value,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      );
-    }
-    return value;
-  }
-
-  static dynamic _resolvePlaceholders(
-    String value, {
-    required Map<String, dynamic> inputs,
-    required Map<String, dynamic> scenario,
-    String? scenarioId,
-  }) {
-    final exact = RegExp(r'^\$\{(inputs|scenario)\.([A-Za-z0-9_.-]+)\}$')
-        .firstMatch(value);
-    if (exact != null) {
-      return _placeholderValue(
-        exact.group(1)!,
-        exact.group(2)!,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      );
-    }
-
-    return value.replaceAllMapped(
-      RegExp(r'\$\{(inputs|scenario)\.([A-Za-z0-9_.-]+)\}'),
-      (match) => _placeholderValue(
-        match.group(1)!,
-        match.group(2)!,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      ).toString(),
-    );
-  }
-
-  static dynamic _placeholderValue(
-    String namespace,
-    String key, {
-    required Map<String, dynamic> inputs,
-    required Map<String, dynamic> scenario,
-    String? scenarioId,
-  }) {
-    if (namespace == 'inputs') {
-      if (!inputs.containsKey(key)) {
-        throw EnsembleTestFailure(
-          'Missing CLI input "$key". Pass it with --input $key=value.',
-        );
-      }
-      return inputs[key];
-    }
-    if (scenarioId == null && scenario.isEmpty) {
-      return '\${scenario.$key}';
-    }
-    if (!scenario.containsKey(key)) {
-      throw EnsembleTestFailure(
-        'Missing scenario value "$key"'
-        '${scenarioId != null ? ' in scenario "$scenarioId"' : ''}.',
-      );
-    }
-    return scenario[key];
-  }
-
-  static bool _hasYamlKey(YamlMap map, String key) {
+  static bool _hasDocumentKey(YamlMap map, String key) {
     return map.keys.any((candidate) => candidate.toString() == key);
-  }
-
-  static SecureScreenshotPolicy _secureScreenshotPolicy(dynamic value) {
-    final name = value?.toString() ?? 'mask';
-    return SecureScreenshotPolicy.values.firstWhere(
-      (policy) => policy.name == name,
-      orElse: () => throw EnsembleTestFailure(
-        'screenshots.secureContent must be mask, skip, or allow',
-      ),
-    );
-  }
-
-  static List<String> _unsupportedTestRootKeys(YamlMap map) {
-    const supported = {
-      'id',
-      'type',
-      'feature',
-      'tags',
-      'description',
-      'owner',
-      'priority',
-      'parallel',
-      'retry',
-      'startScreen',
-      'startScreenInputs',
-      'session',
-      'profiles',
-      'initialState',
-      'setup',
-      'mocks',
-      'scenarios',
-      'steps',
-    };
-    return map.keys
-        .map((key) => key.toString())
-        .where((key) => !supported.contains(key))
-        .toList();
   }
 }

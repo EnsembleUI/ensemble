@@ -1,7 +1,7 @@
-/// CLI output filtering for [runEnsembleYamlTestsCli].
+/// CLI output filtering for [runEnsembleTestsCli].
 library;
 
-const suiteReportStart = '┌─ Ensemble YAML tests';
+const suiteReportStart = '┌─ Ensemble tests';
 const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
 const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
@@ -129,6 +129,11 @@ List<String> flutterTestArguments(List<String> arguments) {
       continue;
     }
     if (a.startsWith('--input=')) continue;
+    if (a == '--plan-batch-file') {
+      i++;
+      continue;
+    }
+    if (a.startsWith('--plan-batch-file=')) continue;
     if (a.startsWith('--app-dir') ||
         a.startsWith('--report') ||
         a == '--doctor' ||

@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
+import 'package:ensemble_test_runner/models/test_document_keys.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/src/runtime/operation_registry.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -175,7 +177,7 @@ class EnsembleTestValidator {
           continue;
         }
 
-        final unsupportedKeys = _unsupportedTestRootKeys(doc);
+        final unsupportedKeys = TestDocumentKeys.unsupportedRootKeys(doc.keys);
         if (unsupportedKeys.isNotEmpty) {
           add(
             ValidationSeverity.error,
@@ -330,8 +332,9 @@ _StepInfo _collectStepInfo(dynamic steps) {
       if (step is! Map || step.isEmpty) continue;
       final type = step.keys.first.toString();
       final args = step.values.first;
-      final capability = _capabilityForStepType(type);
-      if (capability != null) requiredCapabilities.add(capability);
+      requiredCapabilities.addAll(
+        operationRegistry.lookup(type)?.requiredCapabilities ?? const {},
+      );
       if (args is Map) {
         final id = args['id'];
         if (id != null) widgetIds.add(id.toString());
@@ -354,68 +357,5 @@ _StepInfo _collectStepInfo(dynamic steps) {
   );
 }
 
-String? _capabilityForStepType(String type) {
-  switch (type) {
-    case 'expectApiCalled':
-    case 'expectApiNotCalled':
-    case 'expectApiCallOrder':
-    case 'expectLastApiCall':
-    case 'resetApiCalls':
-    case 'logApiCalls':
-    case 'waitForApi':
-      return 'api';
-    case 'mocks':
-      return 'apiMocking';
-    case 'setStorage':
-    case 'expectStorage':
-    case 'removeStorage':
-    case 'clearStorage':
-    case 'logStorage':
-      return 'storage';
-    case 'expectScreen':
-    case 'expectNavigateTo':
-    case 'expectVisited':
-    case 'expectNotVisited':
-    case 'expectBackStack':
-    case 'expectCanGoBack':
-    case 'goBack':
-    case 'waitForNavigation':
-      return 'navigation';
-    case 'openScreen':
-    case 'reloadScreen':
-    case 'restartApp':
-      return 'ensembleHarness';
-    default:
-      return null;
-  }
-}
-
 bool _isPlaceholder(String value) =>
     RegExp(r'\$\{(inputs|scenario)\.[A-Za-z0-9_.-]+\}').hasMatch(value);
-
-List<String> _unsupportedTestRootKeys(YamlMap map) {
-  const supported = {
-    'id',
-    'type',
-    'feature',
-    'tags',
-    'description',
-    'owner',
-    'priority',
-    'parallel',
-    'retry',
-    'profiles',
-    'startScreen',
-    'startScreenInputs',
-    'session',
-    'initialState',
-    'setup',
-    'mocks',
-    'scenarios',
-    'steps',
-  };
-  return map.keys
-      .map((key) => key.toString())
-      .where((key) => !supported.contains(key))
-      .toList();
-}

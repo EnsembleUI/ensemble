@@ -1,25 +1,38 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
-import 'dart:convert';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
-import 'package:ensemble_test_runner/session/local/modal_route_lookup.dart';
-import 'package:ensemble_test_runner/session/local/view_geometry.dart';
+import 'package:ensemble_test_runner/session/local/element_visibility.dart';
 import 'package:ensemble_test_runner/session/local/widget_locator_id.dart';
+import 'package:ensemble_test_runner/assertions/assertion_semantics.dart';
+import 'package:ensemble_test_runner/assertions/assertion_navigation.dart';
+import 'package:ensemble_test_runner/assertions/assertion_target_diagnostics.dart';
+import 'package:ensemble_test_runner/assertions/assertion_text_policy.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class AssertionEngine {
   final WidgetTester tester;
   final EnsembleTestContext? context;
   final ApplicationTestServices services;
+  late final AssertionTargetDiagnostics _targetDiagnostics =
+      AssertionTargetDiagnostics(
+    tester: tester,
+    isVisuallyActionable: isElementVisuallyActionable,
+  );
+  late final AssertionSemantics _semantics = AssertionSemantics(tester);
+  late final AssertionTextPolicy _textPolicy = AssertionTextPolicy(
+    isVisible: isTextVisible,
+    isContainingVisible: isTextContainingVisible,
+    failureHint: (texts) => textFailureHint(texts),
+  );
+  late final AssertionNavigation _navigation = AssertionNavigation(
+    navigationFlow: _ensembleContext.navigationFlow,
+  );
 
   AssertionEngine({
     required this.tester,
@@ -126,8 +139,8 @@ class AssertionEngine {
         'Enabled check requires exactly one resolved element; found ${matches.length}.',
       );
     }
-    final actual = _readSemantics(
-      () => _semanticsIsEnabled(
+    final actual = _semantics.read(
+      () => _semantics.isEnabled(
         tester.getSemantics(finder).getSemanticsData(),
       ),
     );
@@ -149,65 +162,27 @@ class AssertionEngine {
   }
 
   void expectText(String text) {
-    return RunnerBenchmark.sync('assertion', 'expectText', () {
-      if (!isTextVisible(text)) {
-        throw EnsembleTestFailure(
-          'Expected text "$text" to be visible. ${textFailureHint([text])}',
-        );
-      }
-    });
+    return _textPolicy.expectText(text);
   }
 
   void expectTextAny(List<String> texts) {
-    final candidates = _nonEmptyTexts(texts);
-    for (final text in candidates) {
-      if (isTextVisible(text)) return;
-    }
-    throw EnsembleTestFailure(
-      'Expected one of these texts to be visible: '
-      '${candidates.map((t) => '"$t"').join(', ')}. '
-      '${textFailureHint(candidates)}',
-    );
+    return _textPolicy.expectTextAny(texts);
   }
 
   void expectNoText(String text) {
-    if (isTextVisible(text)) {
-      throw EnsembleTestFailure('Expected text "$text" to not be visible.');
-    }
+    return _textPolicy.expectNoText(text);
   }
 
   void expectNoTextAny(List<String> texts) {
-    final candidates = _nonEmptyTexts(texts);
-    final visible = <String>[];
-    for (final text in candidates) {
-      if (isTextVisible(text)) visible.add(text);
-    }
-    if (visible.isNotEmpty) {
-      throw EnsembleTestFailure(
-        'Expected none of these texts to be visible, but found: '
-        '${visible.map((t) => '"$t"').join(', ')}.',
-      );
-    }
+    return _textPolicy.expectNoTextAny(texts);
   }
 
   void expectTextContains(String text) {
-    if (!isTextContainingVisible(text)) {
-      throw EnsembleTestFailure(
-        'Expected text containing "$text". ${textFailureHint([text])}',
-      );
-    }
+    return _textPolicy.expectTextContains(text);
   }
 
   void expectTextContainsAny(List<String> texts) {
-    final candidates = _nonEmptyTexts(texts);
-    for (final text in candidates) {
-      if (isTextContainingVisible(text)) return;
-    }
-    throw EnsembleTestFailure(
-      'Expected text containing one of: '
-      '${candidates.map((t) => '"$t"').join(', ')}. '
-      '${textFailureHint(candidates)}',
-    );
+    return _textPolicy.expectTextContainsAny(texts);
   }
 
   bool isTextVisible(String text) => _hasVisiblePaintedElement(find.text(text));
@@ -216,21 +191,7 @@ class AssertionEngine {
       _hasVisiblePaintedElement(find.textContaining(text));
 
   bool isAnyTextContainingVisible(List<String> texts) {
-    for (final text in _nonEmptyTexts(texts)) {
-      if (isTextContainingVisible(text)) return true;
-    }
-    return false;
-  }
-
-  static List<String> _nonEmptyTexts(List<String> texts) {
-    final candidates = texts
-        .map((text) => text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    if (candidates.isEmpty) {
-      throw EnsembleTestFailure('Text anyOf must not be empty.');
-    }
-    return candidates;
+    return _textPolicy.isAnyTextContainingVisible(texts);
   }
 
   void expectEnabled(String id) {
@@ -248,8 +209,8 @@ class AssertionEngine {
         'Expected widget with id "$id" to exist for enabled check.',
       );
     }
-    final isEnabled = _readSemantics(
-      () => _semanticsIsEnabled(
+    final isEnabled = _semantics.read(
+      () => _semantics.isEnabled(
         tester.getSemantics(finder).getSemanticsData(),
       ),
     );
@@ -371,61 +332,7 @@ class AssertionEngine {
   }
 
   bool _isElementInViewport(Element element) {
-    // Never use ModalRoute.of — that registers InheritedWidget dependents on
-    // every checked element and poisons Live-binding workers on navigation.
-    if (!isUnderCurrentModalRoute(element)) return false;
-    if (_isUnderOffstageAncestor(element)) return false;
-
-    final renderObject = element.renderObject;
-    if (renderObject is! RenderBox ||
-        !renderObject.hasSize ||
-        renderObject.size.isEmpty) {
-      return false;
-    }
-    if (_effectiveOpacity(element) <= 0.01) return false;
-
-    final topLeft = renderObject.localToGlobal(Offset.zero);
-    final rect = topLeft & renderObject.size;
-    if (!rect.isFinite || rect.isEmpty) return false;
-
-    return rectIntersectsLogicalViewport(rect, tester);
-  }
-
-  bool _isUnderOffstageAncestor(Element element) {
-    var isOffstage = false;
-    element.visitAncestorElements((ancestor) {
-      final renderObject = ancestor.renderObject;
-      if (renderObject is RenderOffstage && renderObject.offstage) {
-        isOffstage = true;
-        return false;
-      }
-      return true;
-    });
-    return isOffstage;
-  }
-
-  double _effectiveOpacity(Element element) {
-    var opacity = 1.0;
-    element.visitAncestorElements((ancestor) {
-      final renderObject = ancestor.renderObject;
-      if (renderObject is RenderOpacity) {
-        opacity *= renderObject.opacity;
-      } else if (renderObject != null &&
-          renderObject.runtimeType.toString() == 'RenderAnimatedOpacity') {
-        try {
-          final animatedOpacity = (renderObject as dynamic).opacity;
-          if (animatedOpacity is Animation<double>) {
-            opacity *= animatedOpacity.value;
-          } else if (animatedOpacity is double) {
-            opacity *= animatedOpacity;
-          }
-        } catch (_) {
-          // Keep the opacity already collected from other ancestors.
-        }
-      }
-      return opacity > 0.01;
-    });
-    return opacity;
+    return isElementGeometricallyVisible(element, tester);
   }
 
   void expectChecked(String id, bool expected) {
@@ -441,8 +348,8 @@ class AssertionEngine {
       if (finder.evaluate().isEmpty) {
         throw EnsembleTestFailure('expectChecked: $description not found.');
       }
-      final isChecked = _readSemantics(
-        () => _semanticsIsChecked(
+      final isChecked = _semantics.read(
+        () => _semantics.isChecked(
           tester.getSemantics(finder).getSemanticsData(),
         ),
       );
@@ -452,38 +359,6 @@ class AssertionEngine {
         );
       }
     });
-  }
-
-  // Flutter 3.47 exposes typed semantics flags through `flagsCollection`.
-  // Keep the dynamic fallback for the package's supported Flutter 3.27+
-  // range, where SemanticsData exposes the same values through `hasFlag`.
-  bool _semanticsIsEnabled(SemanticsData data) {
-    final dynamic compatibleData = data;
-    try {
-      return _semanticsFlagValue(compatibleData.flagsCollection.isEnabled) ==
-          true;
-    } on NoSuchMethodError {
-      return compatibleData.hasFlag(SemanticsFlag.isEnabled) == true;
-    }
-  }
-
-  bool _semanticsIsChecked(SemanticsData data) {
-    final dynamic compatibleData = data;
-    try {
-      return _semanticsFlagValue(compatibleData.flagsCollection.isChecked) ==
-          true;
-    } on NoSuchMethodError {
-      return compatibleData.hasFlag(SemanticsFlag.isChecked) == true;
-    }
-  }
-
-  bool? _semanticsFlagValue(Object? value) {
-    if (value is bool) return value;
-    return switch (value?.toString().split('.').last) {
-      'isTrue' || 'checked' => true,
-      'isFalse' || 'unchecked' => false,
-      _ => null,
-    };
   }
 
   void expectProperty(String id, String property, dynamic expected) {
@@ -506,7 +381,7 @@ class AssertionEngine {
         throw EnsembleTestFailure('expectProperty: $description not found.');
       }
       if (property == 'label') {
-        final label = _readSemantics(() => tester.getSemantics(finder).label);
+        final label = _semantics.read(() => tester.getSemantics(finder).label);
         if (label != expected?.toString()) {
           throw EnsembleTestFailure(
             'Expected label "$expected", got "$label".',
@@ -595,42 +470,15 @@ class AssertionEngine {
   }
 
   void expectNotVisited(String screenName) {
-    final flow = YamlTestSession.navigationFlow.flow;
-    final visited = flow.contains(screenName);
-    if (visited) {
-      throw EnsembleTestFailure(
-        'Expected screen "$screenName" not to be visited.',
-      );
-    }
+    _navigation.expectNotVisited(screenName);
   }
 
   void expectBackStack(List<String> screens) {
-    final history = ScreenTracker()
-        .screenHistory
-        .map((s) => s.screenName ?? s.screenId)
-        .whereType<String>()
-        .toList();
-    if (history.length < screens.length) {
-      throw EnsembleTestFailure(
-        'Back stack too short. Expected suffix $screens, got $history',
-      );
-    }
-    final suffix = history.sublist(history.length - screens.length);
-    if (!_deepEquals(suffix, screens)) {
-      throw EnsembleTestFailure(
-        'Expected back stack suffix $screens, got $suffix (full: $history)',
-      );
-    }
+    _navigation.expectBackStack(screens);
   }
 
   void expectCanGoBack(bool expected) {
-    final canPop = ScreenTracker().screenHistory.isNotEmpty;
-    if (canPop != expected) {
-      throw EnsembleTestFailure(
-        'Expected canGoBack=$expected, but history length is '
-        '${ScreenTracker().screenHistory.length}.',
-      );
-    }
+    _navigation.expectCanGoBack(expected);
   }
 
   void expectApiCallOrder(List<String> names) {
@@ -685,7 +533,7 @@ class AssertionEngine {
       if (finder.evaluate().isEmpty) {
         throw EnsembleTestFailure('expectAccessible: $description not found.');
       }
-      final hasAccessibleText = _readSemantics(() {
+      final hasAccessibleText = _semantics.read(() {
         final semantics = tester.getSemantics(finder);
         return semantics.label.isNotEmpty || semantics.value.isNotEmpty;
       });
@@ -711,22 +559,13 @@ class AssertionEngine {
     String description = 'target',
   }) {
     return RunnerBenchmark.sync('assertion', 'expectSemanticsLabelFinder', () {
-      final actual = _readSemantics(() => tester.getSemantics(finder).label);
+      final actual = _semantics.read(() => tester.getSemantics(finder).label);
       if (actual != label) {
         throw EnsembleTestFailure(
           'Expected semantics label "$label" for $description, got "$actual".',
         );
       }
     });
-  }
-
-  T _readSemantics<T>(T Function() read) {
-    final handle = tester.ensureSemantics();
-    try {
-      return read();
-    } finally {
-      handle.dispose();
-    }
   }
 
   void expectNoOverflow(String id) {
@@ -793,131 +632,27 @@ class AssertionEngine {
   ScopeManager? activeScope() => _activeScope();
 
   void expectNavigateTo(String screenName) {
-    final tracker = ScreenTracker();
-    if (!tracker.isScreenVisible(screenName: screenName) &&
-        !tracker.isScreenVisible(screenId: screenName)) {
-      final current = tracker.getCurrentScreenIdentifier();
-      final history = tracker.screenHistory
-          .map((s) => s.screenName ?? s.screenId)
-          .whereType<String>()
-          .toList();
-      throw EnsembleTestFailure(
-        'Expected navigation to "$screenName", but current screen is "$current". '
-        'History: $history. Navigation flow: ${YamlTestSession.navigationFlow.flow}',
-      );
-    }
+    _navigation.expectNavigateTo(screenName);
   }
 
   void expectVisited(String screenName) {
-    final flow = YamlTestSession.navigationFlow.flow;
-    final visited = flow.contains(screenName);
-    if (!visited) {
-      throw EnsembleTestFailure(
-        'Expected screen "$screenName" in navigation history, but visited '
-        '$flow',
-      );
-    }
+    _navigation.expectVisited(screenName);
   }
 
-  String widgetIdFailureHint(String id, {int limit = 12}) {
-    final matches = closestVisibleWidgetIds(id, limit: 5);
-    final similar =
-        matches.isEmpty ? '' : ' Closest visible ids: ${matches.join(', ')}.';
-    return 'No visible widget matched this id.$similar '
-        '${visibleWidgetIdSummary(limit: limit)} '
-        '${_currentScreenSummary()} '
-        'Hint: check that "$id" is on the current screen/state, or add a '
-        'testId/id to the intended widget.';
-  }
+  String widgetIdFailureHint(String id, {int limit = 12}) =>
+      _targetDiagnostics.widgetIdFailureHint(id, limit: limit);
 
-  List<String> closestVisibleWidgetIds(String target, {int limit = 5}) {
-    final targetTokens = _idTokens(target);
-    if (targetTokens.isEmpty) return const [];
+  List<String> closestVisibleWidgetIds(String target, {int limit = 5}) =>
+      _targetDiagnostics.closestVisibleWidgetIds(target, limit: limit);
 
-    final scored = <({String id, int score})>[];
-    for (final id in _visibleWidgetIds()) {
-      if (id == target) continue;
-      final candidateTokens = _idTokens(id);
-      var score = 0;
-      for (final token in targetTokens) {
-        if (candidateTokens.contains(token)) {
-          score += 3;
-        } else if (candidateTokens.any(
-          (candidate) =>
-              candidate.startsWith(token) || token.startsWith(candidate),
-        )) {
-          score += 1;
-        }
-      }
-      if (score > 0) scored.add((id: id, score: score));
-    }
+  String visibleWidgetIdSummary({int limit = 12}) =>
+      _targetDiagnostics.visibleWidgetIdSummary(limit: limit);
 
-    scored.sort((a, b) {
-      final score = b.score.compareTo(a.score);
-      if (score != 0) return score;
-      return a.id.compareTo(b.id);
-    });
-    return scored.take(limit).map((match) => match.id).toList();
-  }
+  String visibleTextSummary({int limit = 10}) =>
+      _targetDiagnostics.visibleTextSummary(limit: limit);
 
-  String visibleWidgetIdSummary({int limit = 12}) {
-    final ids = _visibleWidgetIds();
-    if (ids.isEmpty) return 'No keyed test widgets are currently visible.';
-    final shown = ids.take(limit).join(', ');
-    final suffix = ids.length > limit ? ', ... (${ids.length} total)' : '';
-    return 'Visible widget ids: $shown$suffix.';
-  }
-
-  List<String> _visibleWidgetIds() {
-    final ids = <String>{};
-    for (final element in tester.allElements) {
-      if (!isElementVisuallyActionable(element)) continue;
-      final id = readOwnedWidgetLocatorId(element);
-      if (id != null && id.isNotEmpty) ids.add(id);
-    }
-    return ids.toList()..sort();
-  }
-
-  List<String> _idTokens(String value) => value
-      .toLowerCase()
-      .split(RegExp(r'[^a-z0-9]+'))
-      .where((token) => token.length >= 2)
-      .toSet()
-      .toList();
-
-  String visibleTextSummary({int limit = 10}) {
-    final texts = tester.allWidgets
-        .whereType<Text>()
-        .map((widget) => widget.data)
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .take(limit)
-        .toList();
-    if (texts.isEmpty) return 'No Text widgets are currently visible.';
-    return 'Visible text: ${texts.map(jsonEncode).join(', ')}.';
-  }
-
-  String textFailureHint(List<String> expectedTexts, {int limit = 10}) {
-    final expected = _nonEmptyTexts(expectedTexts);
-    final localeHint = expected.any(_containsNonAscii)
-        ? ' Also verify that the test is running with the expected locale/translation.'
-        : '';
-    return '${visibleTextSummary(limit: limit)} '
-        '${_currentScreenSummary()} '
-        'Hint: check that the app is on the expected screen/state before this assertion.$localeHint';
-  }
-
-  String _currentScreenSummary() {
-    final screen = ScreenTracker().getCurrentScreenIdentifier();
-    if (screen == null || screen.trim().isEmpty) {
-      return 'Current screen: unknown.';
-    }
-    return 'Current screen: "${screen.trim()}".';
-  }
-
-  bool _containsNonAscii(String value) =>
-      value.runes.any((codeUnit) => codeUnit > 127);
+  String textFailureHint(List<String> expectedTexts, {int limit = 10}) =>
+      _targetDiagnostics.textFailureHint(expectedTexts, limit: limit);
 
   String apiCallSummary({int limit = 10}) {
     final calls = _ensembleContext.apiOverlay.calls;
@@ -937,52 +672,5 @@ class AssertionEngine {
       if (scope != null) return scope;
     }
     return null;
-  }
-
-  bool _deepEquals(dynamic a, dynamic b) {
-    if (a == b) return true;
-
-    final normalizedA = _normalizeForCompare(a);
-    final normalizedB = _normalizeForCompare(b);
-
-    if (normalizedA is Map && normalizedB is Map) {
-      if (normalizedA.length != normalizedB.length) return false;
-      for (final key in normalizedA.keys) {
-        if (!normalizedB.containsKey(key)) return false;
-        if (!_deepEquals(normalizedA[key], normalizedB[key])) return false;
-      }
-      return true;
-    }
-
-    if (normalizedA is List && normalizedB is List) {
-      if (normalizedA.length != normalizedB.length) return false;
-      for (var i = 0; i < normalizedA.length; i++) {
-        if (!_deepEquals(normalizedA[i], normalizedB[i])) return false;
-      }
-      return true;
-    }
-
-    return false;
-  }
-
-  dynamic _normalizeForCompare(dynamic value) {
-    if (value == null) return null;
-    if (value is Map) {
-      return value.map(
-        (key, val) => MapEntry(key.toString(), _normalizeForCompare(val)),
-      );
-    }
-    if (value is List) {
-      return value.map(_normalizeForCompare).toList();
-    }
-    if (value is String) {
-      final trimmed = value.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        try {
-          return _normalizeForCompare(json.decode(trimmed));
-        } catch (_) {}
-      }
-    }
-    return value;
   }
 }

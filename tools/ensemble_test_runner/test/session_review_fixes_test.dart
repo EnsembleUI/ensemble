@@ -1,3 +1,6 @@
+import 'support/session_operation.dart';
+import 'dart:ui' as ui;
+
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -6,16 +9,22 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/actions/artifact_request.dart';
-import 'package:ensemble_test_runner/session/actions/test_action.dart';
+import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'test_event_loop.dart';
 
-EnsembleTestContext _ctx(String id) => EnsembleTestContext(
+EnsembleTestContext _ctx(
+  String id, {
+  EnsembleTestConfig config = const EnsembleTestConfig(),
+}) =>
+    EnsembleTestContext(
       testCase: EnsembleTestCase(id: id, steps: const []),
+      config: config,
       apiOverlay: TestApiProviderOverlay(mocks: const {}),
       logger: TestLogger(),
       setup: const EnsembleTestSetup(),
@@ -146,14 +155,11 @@ void main() {
     enabled.value = false;
     await tester.pump();
 
-    final result = await session.act(
-      TapAction(
-        ElementTarget(
+    final result = await session.act(actionOperation('tap',
+        target: ElementTarget(
           elementId: btn.elementId,
           observationId: obs.observationId,
-        ),
-      ),
-    );
+        )));
     expect(result.error?.code, TestExecutionErrorCode.staleObservation);
     await session.close();
     enabled.dispose();
@@ -188,9 +194,8 @@ void main() {
     );
 
     final session = _session(tester, 'occ');
-    final result = await session.act(
-      const TapAction(ElementTarget(testId: 'dup', occurrence: 1)),
-    );
+    final result = await session.act(actionOperation('tap',
+        target: ElementTarget(testId: 'dup', occurrence: 1)));
     expect(result.succeeded, isTrue, reason: '${result.error?.message}');
     expect(taps, ['second']);
     await session.close();
@@ -225,14 +230,11 @@ void main() {
     expect(el.type, 'checkbox');
     expect(el.state.checked, isFalse);
 
-    final viaSnapshot = await session.act(
-      CheckAction(
-        ElementTarget(
+    final viaSnapshot = await session.act(actionOperation('check',
+        target: ElementTarget(
           elementId: el.elementId,
           observationId: obs.observationId,
-        ),
-      ),
-    );
+        )));
     expect(viaSnapshot.succeeded, isTrue, reason: '${viaSnapshot.error}');
     expect(checked, isTrue);
 
@@ -245,26 +247,21 @@ void main() {
     final el2 = obs2.elements.firstWhere((e) => e.testId == 'agree');
 
     // Already checked — second check must not toggle off.
-    final again = await session.act(
-      CheckAction(
-        ElementTarget(
+    final again = await session.act(actionOperation('check',
+        target: ElementTarget(
           elementId: el2.elementId,
           observationId: obs2.observationId,
-        ),
-      ),
-    );
+        )));
     expect(again.succeeded, isTrue, reason: '${again.error}');
     expect(checked, isTrue);
 
     final viaTestId = await session.act(
-      const UncheckAction(ElementTarget(testId: 'agree')),
-    );
+        actionOperation('uncheck', target: ElementTarget(testId: 'agree')));
     expect(viaTestId.succeeded, isTrue, reason: '${viaTestId.error}');
     expect(checked, isFalse);
 
     final uncheckAgain = await session.act(
-      const UncheckAction(ElementTarget(testId: 'agree')),
-    );
+        actionOperation('uncheck', target: ElementTarget(testId: 'agree')));
     expect(uncheckAgain.succeeded, isTrue);
     expect(checked, isFalse);
 
@@ -278,7 +275,7 @@ void main() {
       ),
     );
     // Paint a frame so the layer tree is screenshotable.
-    await tester.pumpAndSettle();
+    await pumpUntilIdle(tester);
 
     final session = _session(tester, 'art');
     final artifact = await session.captureArtifact(
@@ -295,6 +292,65 @@ void main() {
 
     await session.close();
     expect(session.artifactBytes(artifact.artifactId), isNull);
+  });
+
+  testWidgets('explicit screenshot artifacts include secure field pixels',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final controller = TextEditingController(text: 'private value');
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 300,
+            height: 48,
+            child: TextField(
+              key: const ValueKey('secure-artifact-field'),
+              obscureText: true,
+              controller: controller,
+            ),
+          ),
+        ),
+      ),
+    ));
+
+    final secureField = tester.getRect(
+      find.byKey(const ValueKey('secure-artifact-field')),
+    );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: _harness(),
+      context: _ctx(
+        'secure-artifact',
+        config: const EnsembleTestConfig(
+          screenshots: ScreenshotConfig(
+            enabled: true,
+          ),
+        ),
+      ),
+      permissions: SessionPermissions.testController,
+    );
+    final artifact = await session.captureArtifact(
+      const ArtifactRequest(kind: 'screenshot'),
+    );
+    final png = session.artifactBytes(artifact.artifactId)!;
+    final codec = await tester.runAsync(() => ui.instantiateImageCodec(png));
+    final frame = await tester.runAsync(() => codec!.getNextFrame());
+    final rgba = await tester.runAsync(
+      () => frame!.image.toByteData(format: ui.ImageByteFormat.rawRgba),
+    );
+    expect(rgba, isNotNull);
+    final index = (secureField.center.dy.round() * frame!.image.width +
+            secureField.center.dx.round()) *
+        4;
+    expect(rgba!.buffer.asUint8List().sublist(index, index + 4),
+        isNot([0x20, 0x21, 0x24, 0xFF]));
+    frame.image.dispose();
+    codec!.dispose();
+    await session.close();
   });
 
   testWidgets('standalone close clears bootstrap runtime', (tester) async {
@@ -350,14 +406,11 @@ void main() {
     final btn = obs.elements.firstWhere((e) => e.testId == 'go');
     expect(btn.bounds, isNull);
 
-    final result = await session.act(
-      TapAction(
-        ElementTarget(
+    final result = await session.act(actionOperation('tap',
+        target: ElementTarget(
           elementId: btn.elementId,
           observationId: obs.observationId,
-        ),
-      ),
-    );
+        )));
     expect(result.succeeded, isTrue, reason: '${result.error?.message}');
     expect(taps, 1);
     await session.close();
@@ -394,9 +447,8 @@ void main() {
     );
     expect(obs.revision, greaterThan(0));
 
-    final result = await session.act(
-      const TapAction(ElementTarget(testId: 'flip')),
-    );
+    final result = await session
+        .act(actionOperation('tap', target: ElementTarget(testId: 'flip')));
     expect(result.succeeded, isTrue, reason: '${result.error?.message}');
     expect(result.beforeRevision, obs.revision);
     expect(result.afterRevision, greaterThan(result.beforeRevision));

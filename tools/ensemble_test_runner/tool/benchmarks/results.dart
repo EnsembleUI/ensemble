@@ -4,6 +4,81 @@ import 'dart:math' as math;
 
 const benchmarkSchemaVersion = 1;
 const benchmarkFixtureVersion = 1;
+const benchmarkMinimumReliableSamples = 3;
+const benchmarkStableCoefficientOfVariation = 0.10;
+
+Map<String, Object?> measurementQuality(List<Map<String, dynamic>> samples,
+    List<Map<String, dynamic>> valid, Map<String, Object?> timePerOperation) {
+  final coefficient = timePerOperation['coefficientOfVariation'] as num?;
+  final singleIterationSamples =
+      valid.where((sample) => (sample['iterations'] as int? ?? 0) == 1).length;
+  final quality = valid.length < benchmarkMinimumReliableSamples
+      ? 'insufficient-samples'
+      : coefficient != null &&
+              coefficient > benchmarkStableCoefficientOfVariation
+          ? 'unstable'
+          : 'stable';
+  final warnings = <String>[];
+  if (valid.length < benchmarkMinimumReliableSamples) {
+    warnings.add(
+        'Collect at least $benchmarkMinimumReliableSamples valid samples before comparing revisions.');
+  }
+  if (quality == 'unstable') {
+    warnings.add(
+        'Coefficient of variation exceeds ${(benchmarkStableCoefficientOfVariation * 100).toStringAsFixed(0)}%; rerun under a quieter host.');
+  }
+  if (singleIterationSamples > 0) {
+    warnings.add(
+        '$singleIterationSamples valid sample(s) completed one iteration; the sample duration floor did not batch them.');
+  }
+  if (samples.any((sample) => sample['batchCapped'] == true)) {
+    warnings
+        .add('A sample reached the batching limit before its duration floor.');
+  }
+  return {
+    'classification': quality,
+    'minimumReliableSamples': benchmarkMinimumReliableSamples,
+    'stableCoefficientOfVariation': benchmarkStableCoefficientOfVariation,
+    'validSamples': valid.length,
+    'totalSamples': samples.length,
+    'singleIterationSamples': singleIterationSamples,
+    'coefficientOfVariation': coefficient,
+    'warnings': warnings,
+  };
+}
+
+Map<String, Object?> memoryMeasurement(
+    List<Map<String, dynamic>> validSamples) {
+  final resources = <Map<String, dynamic>>[];
+  for (final sample in validSamples) {
+    final raw = sample['memoryResources'];
+    if (raw is Map) resources.add(Map<String, dynamic>.from(raw));
+  }
+  final peakDeltas = [
+    for (final resource in resources)
+      if (resource['peakRssDeltaBytes'] is num)
+        resource['peakRssDeltaBytes'] as num,
+  ];
+  final rssDeltas = [
+    for (final resource in resources)
+      if (resource['rssBeforeBytes'] is num && resource['rssAfterBytes'] is num)
+        (resource['rssAfterBytes'] as num) -
+            (resource['rssBeforeBytes'] as num),
+  ];
+  return {
+    'measurement': 'process-high-water-mark-delta',
+    'scope': 'sample-boundary',
+    'samples': resources.length,
+    'peakRssDeltaBytes': statistics(peakDeltas),
+    'rssDeltaBytes': statistics(rssDeltas),
+    'warnings': [
+      if (resources.length < validSamples.length)
+        'Memory evidence is missing for one or more valid samples.',
+      if (resources.isNotEmpty && peakDeltas.every((delta) => delta == 0))
+        'No new process high-water mark was observed during these samples; this does not prove zero allocation.',
+    ],
+  };
+}
 
 Map<String, Object?> statistics(List<num> values) {
   if (values.isEmpty) return {'count': 0, 'median': null, 'p95': null};
@@ -95,6 +170,14 @@ Map<String, Object?> summarizeCase(Map<String, dynamic> result) {
         for (final s in valid)
           (s['elapsedUs'] as num) / (s['iterations'] as int)
       ]),
+      'measurementQuality': measurementQuality(
+          samples,
+          valid,
+          statistics([
+            for (final s in valid)
+              (s['elapsedUs'] as num) / (s['iterations'] as int)
+          ])),
+      'memoryMeasurement': memoryMeasurement(valid),
       'services': [
         for (final e in serviceSpans.entries)
           {
@@ -430,6 +513,14 @@ Map<String, Object?> summarizePrecomputed(Map<String, dynamic> result,
         for (final s in valid)
           (s['elapsedUs'] as num) / (s['iterations'] as int)
       ]),
+      'measurementQuality': measurementQuality(
+          samples,
+          valid,
+          statistics([
+            for (final s in valid)
+              (s['elapsedUs'] as num) / (s['iterations'] as int)
+          ])),
+      'memoryMeasurement': memoryMeasurement(valid),
       'operations': merge('operations', 'key'),
       'services': merge('services', 'service'),
       'nestedOperations': merge('nestedOperations', 'path'),

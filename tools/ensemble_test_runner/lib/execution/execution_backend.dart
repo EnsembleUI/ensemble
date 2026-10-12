@@ -1,4 +1,4 @@
-import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
+import 'package:ensemble_test_runner/cli/app_patcher.dart';
 import 'package:ensemble_test_runner/execution/device_discovery.dart';
 import 'package:ensemble_test_runner/execution/device_selector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -25,7 +25,7 @@ class WidgetExecutionBackend implements ExecutionBackend {
   bool get hostOwnsServices => false;
 
   @override
-  String get entryRelativePath => YamlTestAppPatcher.testEntryRelativePath;
+  String get entryRelativePath => TestAppPatcher.testEntryRelativePath;
 
   @override
   Future<FlutterDevice?> selectDevice(List<String> arguments) async => null;
@@ -45,7 +45,7 @@ class IntegrationExecutionBackend implements ExecutionBackend {
 
   @override
   String get entryRelativePath =>
-      YamlTestAppPatcher.integrationTestEntryRelativePath;
+      TestAppPatcher.integrationTestEntryRelativePath;
 
   @override
   Future<FlutterDevice?> selectDevice(List<String> arguments) =>

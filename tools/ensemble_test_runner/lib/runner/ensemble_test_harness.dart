@@ -1,50 +1,35 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
-import 'package:ensemble/framework/screen_tracker.dart';
-import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:ensemble/framework/encrypted_storage_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/utils.dart';
-import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_theme.dart';
-import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
-import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
+import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
+import 'package:ensemble_test_runner/src/integrations/test_integration_registration.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/event_driven_settler.dart';
+import 'package:ensemble_test_runner/runner/test_font_loader.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/runner/test_app_metadata.dart';
+import 'package:ensemble_test_runner/runner/test_session.dart';
+import 'package:ensemble_test_runner/runner/test_bootstrap.dart';
+import 'package:ensemble_test_runner/runner/test_harness_host_runtime.dart';
+import 'package:ensemble_test_runner/src/integrations/device_preview/device_preview_adapter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:yaml/yaml.dart';
 
-/// Per-test bootstrap data applied before the widget tree mounts.
-class EnsembleTestSetup {
-  final Map<String, dynamic>? envOverrides;
-  final Map<String, dynamic>? initialPublicStorage;
-  final Map<String, dynamic>? initialSecureStorage;
-  final Map<String, dynamic>? initialKeychain;
-
-  const EnsembleTestSetup({
-    this.envOverrides,
-    this.initialPublicStorage,
-    this.initialSecureStorage,
-    this.initialKeychain,
-  });
-}
+export 'test_bootstrap.dart';
 
 /// Execution-environment behavior used by the shared Ensemble harness.
 abstract class EnsembleTestRuntimeAdapter {
@@ -52,6 +37,15 @@ abstract class EnsembleTestRuntimeAdapter {
   bool get usesPhysicalDisplay;
   bool get clearsPersistentStateBetweenIndependentTests;
   void initialize();
+  void afterBootstrap();
+  Future<void> applyViewport(
+    WidgetTester tester,
+    EnsembleTestContext context,
+    DeviceInfo? screenshotDevice, {
+    bool ensureDefaultViewport = true,
+    bool reportLogicalDisplaySize = true,
+  });
+  Future<void> resetViewport(WidgetTester tester);
 }
 
 class WidgetTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
@@ -65,6 +59,36 @@ class WidgetTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
   bool get clearsPersistentStateBetweenIndependentTests => false;
   @override
   void initialize() => EnsembleTestHarness.ensureTestPlugins();
+
+  @override
+  void afterBootstrap() {
+    ensureWifiTestDoublesForTest();
+    EnsembleTestHarness.afterTestPluginBootstrap();
+  }
+
+  @override
+  Future<void> applyViewport(
+    WidgetTester tester,
+    EnsembleTestContext context,
+    DeviceInfo? screenshotDevice, {
+    bool ensureDefaultViewport = true,
+    bool reportLogicalDisplaySize = true,
+  }) async {
+    if (screenshotDevice != null) {
+      await EnsembleTestHarness.setViewportForDevice(
+        tester,
+        context,
+        screenshotDevice,
+      );
+    }
+    if (ensureDefaultViewport) {
+      await EnsembleTestHarness.ensureDefaultViewport(tester, context);
+    }
+  }
+
+  @override
+  Future<void> resetViewport(WidgetTester tester) =>
+      EnsembleTestHarness.resetViewport(tester);
 }
 
 class IntegrationTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
@@ -78,85 +102,38 @@ class IntegrationTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
   bool get clearsPersistentStateBetweenIndependentTests => true;
   @override
   void initialize() => EnsembleTestHarness.ensureIntegrationRuntime();
-}
 
-/// Applies YAML test environment and storage bootstrap data to [config].
-Future<void> applyYamlTestBootstrap(
-    EnsembleConfig config, EnsembleTestSetup setup) async {
-  if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
-    config.updateEnvOverrides(setup.envOverrides!);
+  @override
+  void afterBootstrap() {}
+
+  @override
+  Future<void> applyViewport(
+    WidgetTester tester,
+    EnsembleTestContext context,
+    DeviceInfo? screenshotDevice, {
+    bool ensureDefaultViewport = true,
+    bool reportLogicalDisplaySize = true,
+  }) async {
+    if (reportLogicalDisplaySize) {
+      EnsembleTestHarness.recordPhysicalDisplaySize(tester, context);
+    } else {
+      context.runtime.deviceSize = tester.view.physicalSize;
+    }
   }
-  await applyYamlTestStorageBootstrap(setup);
-}
 
-Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
-  return await RunnerBenchmark.async(
-      'lifecycle', 'applyYamlTestStorageBootstrap', () async {
-    for (final entry in setup.initialPublicStorage?.entries ??
-        const Iterable<MapEntry<String, dynamic>>.empty()) {
-      await StorageManager().write(entry.key, entry.value);
-    }
-    final secureEntries = setup.initialSecureStorage?.entries.toList() ??
-        const <MapEntry<String, dynamic>>[];
-    if (secureEntries.isNotEmpty) {
-      await SecretsStore().initialize();
-      installTestEncryptionKey();
-    }
-    for (final entry in secureEntries) {
-      EncryptedStorageManager.setSecureStorage({
-        'key': entry.key,
-        'value': entry.value,
-      });
-      // The runtime API is synchronous for compatibility with released
-      // Ensemble versions, while GetStorage persists asynchronously. Wait for
-      // the backend entry to become observable before mounting the app.
-      for (var attempt = 0; attempt < 50; attempt++) {
-        if (StorageManager().read('enc_${entry.key}') != null) break;
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
-    }
-    for (final entry in setup.initialKeychain?.entries ??
-        const Iterable<MapEntry<String, dynamic>>.empty()) {
-      await StorageManager().writeSecurely(key: entry.key, value: entry.value);
-    }
-  });
-}
-
-/// Installs the per-run test encryption key into [SecretsStore] and clears the
-/// process-cached key in [EncryptedStorageManager].
-///
-/// The key comes from `--dart-define=ensembleTestEncryptionKey=...` (generated
-/// by the CLI each run). Widget-test fixtures may pass a deterministic value.
-void installTestEncryptionKey() {
-  const fromDefine = String.fromEnvironment('ensembleTestEncryptionKey');
-  final key = fromDefine.isNotEmpty ? fromDefine : _fallbackTestEncryptionKey();
-  if (key.length != 32) {
-    throw StateError(
-      'ensembleTestEncryptionKey must be exactly 32 characters '
-      '(got ${key.length}).',
-    );
+  @override
+  Future<void> resetViewport(WidgetTester tester) async {
+    // Integration mode reports and uses the physical display. Its viewport is
+    // owned by the native host and must not be reset between attempts.
   }
-  EncryptedStorageManager.resetCachedKey();
-  SecretsStore().secretCache['encryptionKey'] = key;
-}
-
-String _fallbackTestEncryptionKey() {
-  // Deterministic fallback for unit tests that do not go through the CLI.
-  // Never used as a production secret; process-local only.
-  return 'EnsembleTestKey00000000000000000';
 }
 
 /// Boots the real Ensemble runtime for widget tests.
 class EnsembleTestHarness {
-  static final String _testStoragePath =
-      Directory.systemTemp.createTempSync('ensemble_test_runner_storage_').path;
-  static bool _appFontsLoaded = false;
-  static bool _sqfliteInitialized = false;
-  static final Map<String, String> _secureStorage = {};
-
   /// Storage present when the suite started. Independent integration tests
   /// restore this instead of wiping the whole device keychain.
   static AppSessionSnapshot? _preSuiteStorageSnapshot;
+  static Future<AppSessionSnapshot>? _preSuiteStorageSnapshotCapture;
 
   static const bool resetDeviceStorage = bool.fromEnvironment(
     'ensembleTestResetDeviceStorage',
@@ -199,236 +176,30 @@ class EnsembleTestHarness {
     );
   }
 
-  /// Widget tests mock MethodChannels because there is no host OS plugin.
-  /// Integration runs inside a real Android/iOS binary; those plugins must
-  /// stay registered. Host drivers call this in both modes.
-  static void ensureTestPlugins() {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    if (_usesNativeHostPlugins) {
-      ensureIntegrationRuntime();
-      return;
-    }
-    if (!_sqfliteInitialized) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-      _sqfliteInitialized = true;
-    }
-    ensureFirebaseCoreMocksForTest();
-    ensureAdobeAnalyticsMocksForTest();
-    HttpOverrides.global = _RealNetworkHttpOverrides();
-    const pathProviderChannel =
-        MethodChannel('plugins.flutter.io/path_provider');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(pathProviderChannel, (call) async {
-      switch (call.method) {
-        case 'getApplicationDocumentsDirectory':
-        case 'getTemporaryDirectory':
-        case 'getApplicationSupportDirectory':
-          return _testStoragePath;
-        default:
-          return null;
-      }
-    });
-
-    const packageInfoChannel =
-        MethodChannel('dev.fluttercommunity.plus/package_info');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(packageInfoChannel, (call) async {
-      if (call.method == 'getAll') {
-        return _resolvePackageInfo(Directory.current);
-      }
-      return null;
-    });
-
-    const secureStorageChannel =
-        MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(secureStorageChannel, (call) async {
-      final args = Map<String, Object?>.from(call.arguments as Map? ?? {});
-      final key = args['key']?.toString();
-      switch (call.method) {
-        case 'write':
-          if (key != null) {
-            _secureStorage[key] = args['value']?.toString() ?? '';
-          }
-          return null;
-        case 'read':
-          return key == null ? null : _secureStorage[key];
-        case 'readAll':
-          return Map<String, String>.from(_secureStorage);
-        case 'delete':
-          if (key != null) _secureStorage.remove(key);
-          return null;
-        case 'deleteAll':
-          _secureStorage.clear();
-          return null;
-        case 'containsKey':
-          return key != null && _secureStorage.containsKey(key);
-        default:
-          return null;
-      }
-    });
-
-    const deviceInfoChannel =
-        MethodChannel('dev.fluttercommunity.plus/device_info');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(deviceInfoChannel, (call) async {
-      if (call.method == 'getDeviceInfo') {
-        return deviceInfoMockForTest();
-      }
-      return null;
-    });
-
-    const connectivityChannel =
-        MethodChannel('dev.fluttercommunity.plus/connectivity');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(connectivityChannel, (call) async {
-      if (call.method == 'check') {
-        return ['wifi'];
-      }
-      return null;
-    });
-
-    const connectivityStatusChannel =
-        MethodChannel('dev.fluttercommunity.plus/connectivity_status');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(connectivityStatusChannel, (call) async {
-      switch (call.method) {
-        case 'listen':
-        case 'cancel':
-          return null;
-        default:
-          return null;
-      }
-    });
-
-    const appLinksEventsChannel =
-        MethodChannel('com.llfbandit.app_links/events');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(appLinksEventsChannel, (call) async {
-      switch (call.method) {
-        case 'listen':
-        case 'cancel':
-          return null;
-        default:
-          return null;
-      }
-    });
-
-    const workmanagerChannel = MethodChannel(
-        'be.tramckrijte.workmanager/foreground_channel_work_manager');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(workmanagerChannel, (call) async {
-      switch (call.method) {
-        case 'initialize':
-          return true;
-        default:
-          return null;
-      }
-    });
-
-    YamlTestSession.navigationFlow.startListening();
-  }
-
-  /// Initializes only runner-owned Dart listeners for a real application.
-  /// Native plugin channels remain registered by the Android/iOS host app.
-  static void ensureIntegrationRuntime() {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    YamlTestSession.navigationFlow.startListening();
-  }
-
-  static bool get _usesNativeHostPlugins =>
-      const String.fromEnvironment(
-        'ensembleTestExecutionMode',
-        defaultValue: 'widget',
-      ) ==
-      'integration';
-
-  /// Platform-shaped `device_info_plus` map. A macOS payload on iOS makes
-  /// `IosDeviceInfo.fromMap` throw `type 'Null' is not a subtype of type
-  /// 'String'` because required fields such as `name` are missing.
+  /// Exposes initialization state for the startup-boundary regression test.
   @visibleForTesting
-  static Map<String, Object?> deviceInfoMockForTest() {
-    if (Platform.isIOS) {
-      return {
-        'name': 'iPhone',
-        'systemName': 'iOS',
-        'systemVersion': '17.0',
-        'model': 'iPhone',
-        'modelName': 'iPhone',
-        'localizedModel': 'iPhone',
-        'identifierForVendor': 'ensemble-test-device',
-        'isPhysicalDevice': false,
-        'isiOSAppOnMac': false,
-        'isiOSAppOnVision': false,
-        'physicalRamSize': 4096,
-        'availableRamSize': 2048,
-        'freeDiskSize': 1024,
-        'totalDiskSize': 2048,
-        'utsname': {
-          'sysname': 'Darwin',
-          'nodename': 'ensemble-test',
-          'release': '23.0.0',
-          'version': 'test',
-          'machine': 'iPhone15,2',
-        },
-      };
-    }
-    if (Platform.isAndroid) {
-      return {
-        'version': {
-          'baseOS': '',
-          'sdkInt': 34,
-          'release': '14',
-          'codename': 'REL',
-          'incremental': '1',
-          'previewSdkInt': 0,
-          'securityPatch': '2024-01-01',
-        },
-        'board': 'goldfish',
-        'bootloader': 'unknown',
-        'brand': 'google',
-        'device': 'generic',
-        'display': 'test',
-        'fingerprint': 'google/test',
-        'hardware': 'ranchu',
-        'host': 'ensemble-test',
-        'id': 'TEST',
-        'manufacturer': 'Google',
-        'model': 'sdk',
-        'product': 'sdk',
-        'name': 'Ensemble Test',
-        'supported32BitAbis': <String>[],
-        'supported64BitAbis': <String>['arm64-v8a'],
-        'supportedAbis': <String>['arm64-v8a'],
-        'tags': 'test',
-        'type': 'user',
-        'isPhysicalDevice': false,
-        'freeDiskSize': 1024,
-        'totalDiskSize': 2048,
-        'systemFeatures': <String>[],
-        'isLowRamDevice': false,
-        'physicalRamSize': 4096,
-        'availableRamSize': 2048,
-      };
-    }
-    return {
-      'computerName': 'Ensemble Test',
-      'hostName': 'ensemble-test',
-      'arch': 'arm64',
-      'model': 'Mac',
-      'modelName': 'Mac',
-      'kernelVersion': 'test',
-      'osRelease': 'test',
-      'majorVersion': 15,
-      'minorVersion': 0,
-      'patchVersion': 0,
-      'activeCPUs': 8,
-      'memorySize': 8589934592,
-      'cpuFrequency': 0,
-      'systemGUID': 'ensemble-test-device',
-    };
-  }
+  static bool get testStoragePathCreatedForTest =>
+      TestHarnessHostRuntime.testStoragePathCreatedForTest;
+
+  static void disposeTestStorage() =>
+      TestHarnessHostRuntime.disposeTestStorage();
+
+  static void ensureTestPlugins() => TestHarnessHostRuntime.ensureTestPlugins();
+
+  static void configureTestIntegrations(
+    Iterable<TestIntegrationRegistration> registrations,
+  ) =>
+      TestHarnessHostRuntime.configureTestIntegrations(registrations);
+
+  static void afterTestPluginBootstrap() =>
+      TestHarnessHostRuntime.afterTestPluginBootstrap();
+
+  static void ensureIntegrationRuntime() =>
+      TestHarnessHostRuntime.ensureIntegrationRuntime();
+
+  @visibleForTesting
+  static Map<String, Object?> deviceInfoMockForTest() =>
+      TestHarnessHostRuntime.deviceInfoMockForTest();
 
   final String appPath;
   final String appHome;
@@ -436,9 +207,7 @@ class EnsembleTestHarness {
   final Map<String, Function>? externalMethods;
   final ExecutionMode executionMode;
   late final EnsembleTestRuntimeAdapter runtimeAdapter =
-      executionMode == ExecutionMode.integration
-          ? const IntegrationTestRuntimeAdapter()
-          : const WidgetTestRuntimeAdapter();
+      runtimeAdapterFor(executionMode);
 
   EnsembleTestHarness({
     required this.appPath,
@@ -447,6 +216,11 @@ class EnsembleTestHarness {
     this.externalMethods,
     this.executionMode = ExecutionMode.widget,
   });
+
+  static EnsembleTestRuntimeAdapter runtimeAdapterFor(ExecutionMode mode) =>
+      mode == ExecutionMode.integration
+          ? const IntegrationTestRuntimeAdapter()
+          : const WidgetTestRuntimeAdapter();
 
   static String normalizeAppPath(String path) {
     if (path.endsWith('/')) return path;
@@ -553,274 +327,42 @@ class EnsembleTestHarness {
       if (apiOverlay != null) {
         installTestApiOverlay(config, apiOverlay);
       }
-      await applyYamlTestStorageBootstrap(setup);
+      await applyTestStorageBootstrap(setup);
 
-      YamlTestSession.markRuntimeBootstrapped();
       return config;
     });
   }
 
-  static Future<void> ensureAppFontsLoaded() async {
-    if (_appFontsLoaded) return;
-    _appFontsLoaded = true;
-
-    var loadedRoboto = false;
-    try {
-      final rawManifest = await rootBundle.loadString('FontManifest.json');
-      final manifest = jsonDecode(rawManifest) as List<dynamic>;
-      for (final familyEntry in manifest.whereType<Map>()) {
-        final family = familyEntry['family']?.toString();
-        final fonts = familyEntry['fonts'];
-        if (family == null || fonts is! List) continue;
-        var familyLoaded = false;
-        for (final alias in _fontFamilyAliases(family)) {
-          familyLoaded = await _loadFontFamily(alias, fonts) || familyLoaded;
-        }
-        if (familyLoaded && family.toLowerCase().contains('roboto')) {
-          loadedRoboto = true;
-        }
-      }
-    } catch (_) {
-      // App may not ship a FontManifest; fall through to SDK Roboto.
-    }
-
-    await _loadSdkRoboto(includeRoboto: !loadedRoboto);
-  }
-
-  static String? _flutterSdkRoot() {
-    final env = Platform.environment['FLUTTER_ROOT'];
-    if (env != null &&
-        env.isNotEmpty &&
-        Directory('$env/bin/cache/artifacts/material_fonts').existsSync()) {
-      return env;
-    }
-    var dir = File(Platform.resolvedExecutable).absolute.parent;
-    for (var i = 0; i < 8; i++) {
-      if (Directory('${dir.path}/bin/cache/artifacts/material_fonts')
-          .existsSync()) {
-        return dir.path;
-      }
-      final parent = dir.parent;
-      if (parent.path == dir.path) break;
-      dir = parent;
-    }
-    return null;
-  }
-
-  static const _sdkRobotoFiles = [
-    'Roboto-Regular.ttf',
-    'Roboto-Medium.ttf',
-    'Roboto-Bold.ttf',
-  ];
-
-  /// Families that widget tests otherwise paint as Ahem until a network font
-  /// arrives. Ensemble's default theme asks Google Fonts for Inter (`Inter_regular`,
-  /// `Inter_500`, …). Login/macOS Material uses SF Pro.
-  static const _sdkFallbackFamilies = [
-    'Roboto',
-    'roboto',
-    'Inter',
-    'inter',
-    'Inter_regular',
-    'Inter_500',
-    'Inter_600',
-    'Inter_700',
-    '.SF Pro Text',
-    '.SF Pro Display',
-    '.SF UI Text',
-    '.SF UI Display',
-  ];
-
-  static Future<void> _loadSdkRoboto({required bool includeRoboto}) async {
-    final root = _flutterSdkRoot();
-    if (root == null) return;
-    final fontsDir = '$root/bin/cache/artifacts/material_fonts';
-    final payloads = <ByteData>[];
-    for (final name in _sdkRobotoFiles) {
-      final file = File('$fontsDir/$name');
-      if (!file.existsSync()) continue;
-      payloads.add(ByteData.sublistView(file.readAsBytesSync()));
-    }
-    if (payloads.isEmpty) return;
-    for (final family in _sdkFallbackFamilies) {
-      if (!includeRoboto && (family == 'Roboto' || family == 'roboto')) {
-        continue;
-      }
-      final loader = FontLoader(family);
-      for (final data in payloads) {
-        loader.addFont(Future.value(data));
-      }
-      await loader.load();
-    }
-  }
+  static Future<void> ensureAppFontsLoaded() => TestFontLoader.ensureLoaded();
 
   static List<String> fontFamilyAliasesForTest(String family) =>
-      _fontFamilyAliases(family);
+      TestFontLoader.familyAliases(family);
 
   static List<String> fontAssetCandidatesForTest(String asset) =>
-      _fontAssetCandidates(asset);
+      TestFontLoader.assetCandidates(asset);
 
   static Map<String, String> packageInfoForTest(String appDir) =>
-      _resolvePackageInfo(Directory(appDir));
-
-  static Map<String, String> _resolvePackageInfo(Directory appDir) {
-    final pubspec = _readPubspec(appDir);
-    final properties = _readProperties(
-      File('${appDir.path}/ensemble/ensemble.properties'),
-    );
-
-    final packageName =
-        properties['appId'] ?? pubspec['name'] ?? 'com.ensemble.test';
-    final appName = properties['appName'] ??
-        _titleFromPackageName(pubspec['name']) ??
-        'EnsembleTest';
-    final versionParts = _splitVersion(pubspec['version']);
-
-    return {
-      'appName': appName,
-      'packageName': packageName,
-      'version': versionParts.version,
-      'buildNumber': versionParts.buildNumber,
-    };
-  }
-
-  static Map<String, String> _readPubspec(Directory appDir) {
-    final file = File('${appDir.path}/pubspec.yaml');
-    if (!file.existsSync()) return const {};
-
-    try {
-      final yaml = loadYaml(file.readAsStringSync());
-      if (yaml is! YamlMap) return const {};
-      return {
-        for (final entry in yaml.entries)
-          if (entry.value != null) entry.key.toString(): entry.value.toString(),
-      };
-    } catch (_) {
-      return const {};
-    }
-  }
-
-  static Map<String, String> _readProperties(File file) {
-    if (!file.existsSync()) return const {};
-
-    final values = <String, String>{};
-    for (final rawLine in file.readAsLinesSync()) {
-      final line = rawLine.trim();
-      if (line.isEmpty || line.startsWith('#')) continue;
-      final separator = line.indexOf('=');
-      if (separator <= 0) continue;
-      values[line.substring(0, separator).trim()] =
-          line.substring(separator + 1).trim();
-    }
-    return values;
-  }
-
-  static ({String version, String buildNumber}) _splitVersion(String? raw) {
-    if (raw == null || raw.trim().isEmpty) {
-      return (version: '1.0.0', buildNumber: '1');
-    }
-    final parts = raw.trim().split('+');
-    final version = parts.first.trim();
-    final buildNumber = parts.length > 1 ? parts.sublist(1).join('+') : '1';
-    return (
-      version: version.isEmpty ? '1.0.0' : version,
-      buildNumber: buildNumber.trim().isEmpty ? '1' : buildNumber.trim(),
-    );
-  }
-
-  static String? _titleFromPackageName(String? name) {
-    if (name == null || name.trim().isEmpty) return null;
-    return name
-        .trim()
-        .split(RegExp(r'[_\s]+'))
-        .where((part) => part.isNotEmpty)
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-        .join(' ');
-  }
-
-  static List<String> _fontFamilyAliases(String family) {
-    final aliases = <String>{family, family.toLowerCase()};
-
-    const packagePrefix = 'packages/';
-    if (family.startsWith(packagePrefix)) {
-      final slashIndex = family.lastIndexOf('/');
-      if (slashIndex != -1 && slashIndex < family.length - 1) {
-        final unqualifiedFamily = family.substring(slashIndex + 1);
-        aliases.add(unqualifiedFamily);
-        aliases.add(unqualifiedFamily.toLowerCase());
-      }
-    }
-
-    return aliases.toList(growable: false);
-  }
-
-  static List<String> _fontAssetCandidates(String asset) {
-    final candidates = <String>{asset};
-    if (asset.contains('%')) {
-      try {
-        candidates.add(Uri.decodeFull(asset));
-      } catch (_) {
-        // Keep the manifest-provided asset key if decoding is not valid URI
-        // escaping.
-      }
-    }
-    return candidates.toList(growable: false);
-  }
-
-  static Future<bool> _loadFontFamily(
-    String family,
-    List<dynamic> fontEntries,
-  ) async {
-    final loader = FontLoader(family);
-    var hasFonts = false;
-
-    for (final fontEntry in fontEntries.whereType<Map>()) {
-      final asset = fontEntry['asset']?.toString();
-      if (asset == null || asset.isEmpty) continue;
-
-      for (final assetKey in _fontAssetCandidates(asset)) {
-        try {
-          final fontData = await rootBundle.load(assetKey);
-          loader.addFont(Future.value(fontData));
-          hasFonts = true;
-          break;
-        } catch (_) {
-          // Ignore missing assets so a bad font entry does not fail unrelated
-          // behavioral tests.
-        }
-      }
-    }
-
-    if (hasFonts) {
-      await loader.load();
-    }
-    return hasFonts;
-  }
+      TestAppMetadata.packageInfo(appDir);
 
   Future<EnsembleConfig> loadScreen({
     required WidgetTester tester,
     required EnsembleTestCase testCase,
+    required EnsembleTestContext context,
     EnsembleConfig? existingConfig,
-    EnsembleTestContext? context,
     EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
     Future<void> Function()? beforeBootstrap,
     Locale? forcedLocale,
   }) async {
     return await RunnerBenchmark.async('lifecycle', 'loadScreen', () async {
+      final ctx = context;
       // Independent tests need a new EnsembleApp state. Pumping another
       // EnsembleApp of the same type would otherwise reuse the prior route.
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
-      resetTestRuntime();
+      resetTestRuntime(navigationFlow: ctx.navigationFlow);
       ScreenTracker().clearAll();
-      YamlTestSession.navigationFlow.clear();
       await beforeBootstrap?.call();
 
-      final ctx = context ??
-          EnsembleTestContext.fromTestCase(
-            testCase,
-            config: suiteConfig,
-          );
       await applyViewport(
         tester,
         ctx,
@@ -881,9 +423,8 @@ class EnsembleTestHarness {
   }
 
   static Future<void> openSessionScreen(
-    WidgetTester tester,
-    EnsembleTestCase testCase,
-  ) async {
+      WidgetTester tester, EnsembleTestCase testCase,
+      {required NavigationFlowRecorder navigationFlow}) async {
     final startScreen = testCase.startScreen;
     if (startScreen == null || startScreen.isEmpty) {
       throw EnsembleTestFailure(
@@ -898,7 +439,7 @@ class EnsembleTestHarness {
     }
 
     ScreenTracker().clearAll();
-    YamlTestSession.navigationFlow.clear();
+    navigationFlow.clear();
     ScreenController().navigateToScreen(
       context,
       screenId: startScreen,
@@ -916,20 +457,21 @@ class EnsembleTestHarness {
     WidgetTester tester,
     EnsembleTestContext context, {
     DeviceInfo? screenshotDevice,
+    bool ensureDefaultViewport = true,
+    bool reportLogicalDisplaySize = true,
   }) async {
     return await RunnerBenchmark.async('lifecycle', 'applyViewport', () async {
-      if (runtimeAdapter.usesPhysicalDisplay) {
-        _recordPhysicalDisplaySize(tester, context);
-        return;
-      }
-      if (screenshotDevice != null) {
-        await _setViewportForDevice(tester, context, screenshotDevice);
-      }
-      await _ensureDefaultViewport(tester, context);
+      await runtimeAdapter.applyViewport(
+        tester,
+        context,
+        screenshotDevice,
+        ensureDefaultViewport: ensureDefaultViewport,
+        reportLogicalDisplaySize: reportLogicalDisplaySize,
+      );
     });
   }
 
-  static void _recordPhysicalDisplaySize(
+  static void recordPhysicalDisplaySize(
     WidgetTester tester,
     EnsembleTestContext context,
   ) {
@@ -941,7 +483,7 @@ class EnsembleTestHarness {
     );
   }
 
-  static Future<void> _ensureDefaultViewport(
+  static Future<void> ensureDefaultViewport(
     WidgetTester tester,
     EnsembleTestContext context,
   ) async {
@@ -954,7 +496,16 @@ class EnsembleTestHarness {
     context.runtime.deviceSize = size;
   }
 
-  static Future<void> _setViewportForDevice(
+  /// Restores the widget-test view after a report screenshot viewport override.
+  static Future<void> resetViewport(WidgetTester tester) async {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+    tester.view.resetPadding();
+    tester.view.resetViewPadding();
+    await tester.binding.setSurfaceSize(null);
+  }
+
+  static Future<void> setViewportForDevice(
     WidgetTester tester,
     EnsembleTestContext context,
     DeviceInfo device,
@@ -992,20 +543,23 @@ class EnsembleTestHarness {
       }
     }
 
-    await tester.pump();
-    await _yieldToRealAsyncWork(tester);
-    for (var i = 0; i < 80; i++) {
-      if (keysToWait.isEmpty ||
-          keysToWait.every(
-            (id) => find.byKey(ValueKey(id)).evaluate().isNotEmpty,
-          )) {
-        return;
-      }
-      await tester.pump(const Duration(milliseconds: 100));
+    if (keysToWait.isEmpty) {
+      await tester.pump();
       await _yieldToRealAsyncWork(tester);
+      return;
     }
 
-    if (keysToWait.isNotEmpty) {
+    try {
+      await EventDrivenSettler(
+        tester: tester,
+        onPump: () => _yieldToRealAsyncWork(tester),
+      ).waitFor(
+        condition: () => keysToWait.every(
+          (id) => find.byKey(ValueKey(id)).evaluate().isNotEmpty,
+        ),
+        timeout: const Duration(seconds: 8),
+      );
+    } on FlutterError {
       throw EnsembleTestFailure(
         'Timed out waiting for widgets: ${keysToWait.join(", ")}',
       );
@@ -1029,7 +583,7 @@ class EnsembleTestHarness {
         () async {
       final config = Ensemble().getConfig();
       if (config != null) {
-        await applyYamlTestBootstrap(config, ctx.setup);
+        await applyTestBootstrap(config, ctx.setup);
       }
       ctx.applyRuntimeEnv();
       for (final entry in ctx.testCase.mocks.apis.entries) {
@@ -1045,26 +599,30 @@ class EnsembleTestHarness {
   /// when [resetDeviceStorage] is set or when capturing an empty baseline.
   static Future<void> wipeAllPersistentStorage() async {
     final storage = StorageManager();
-    await storage.clearPublicStorage();
-    for (final key
-        in storage.getKeys().where((key) => key.startsWith('enc_')).toList()) {
-      await storage.remove(key);
-    }
-    final keychain = await storage.getAllFromKeychain();
-    for (final key in keychain.keys) {
-      await storage.removeSecurely(key);
-    }
+    await AppSessionSnapshot.clearPersistentStorage(storage);
   }
 
   /// Captures the pre-suite storage baseline once. When
   /// [resetDeviceStorage] is true, wipes first so the baseline is empty.
   static Future<void> ensurePreSuiteStorageSnapshot() async {
     if (_preSuiteStorageSnapshot != null) return;
-    requirePhysicalDeviceStorageAcknowledgment();
-    if (resetDeviceStorage) {
-      await wipeAllPersistentStorage();
+    final capture = _preSuiteStorageSnapshotCapture ??=
+        Future<AppSessionSnapshot>.microtask(() async {
+      requirePhysicalDeviceStorageAcknowledgment();
+      if (resetDeviceStorage) {
+        await wipeAllPersistentStorage();
+      }
+      final snapshot = await AppSessionSnapshot.capture();
+      _preSuiteStorageSnapshot = snapshot;
+      return snapshot;
+    });
+    try {
+      await capture;
+    } finally {
+      if (identical(_preSuiteStorageSnapshotCapture, capture)) {
+        _preSuiteStorageSnapshotCapture = null;
+      }
     }
-    _preSuiteStorageSnapshot = await AppSessionSnapshot.capture();
   }
 
   /// Restores device storage to the pre-suite baseline so independent tests
@@ -1091,7 +649,12 @@ class EnsembleTestHarness {
   /// Safe to call repeatedly: after the first attempt the baseline is cleared
   /// so a second call is a no-op (avoids double-restore across finally/tearDown).
   static Future<void> restorePreSuiteStorageAtSuiteEnd() async {
-    final snapshot = _preSuiteStorageSnapshot;
+    var snapshot = _preSuiteStorageSnapshot;
+    final pendingCapture = _preSuiteStorageSnapshotCapture;
+    if (snapshot == null && pendingCapture != null) {
+      await pendingCapture;
+      snapshot = _preSuiteStorageSnapshot;
+    }
     if (snapshot == null) return;
     // Clear before restore so a second call (tearDown after finally) is a
     // no-op even if restore throws — the first failure is the one reported.
@@ -1102,20 +665,18 @@ class EnsembleTestHarness {
   /// Test hook: drop the cached baseline between unit tests.
   static void resetPreSuiteStorageSnapshotForTest() {
     _preSuiteStorageSnapshot = null;
+    _preSuiteStorageSnapshotCapture = null;
   }
 
   /// Test hook exposing [restorePreSuiteStorage].
   static Future<void> restorePreSuiteStorageForTest() =>
       restorePreSuiteStorage();
 
-  static void resetTestRuntime() {
-    YamlTestSession.reset();
-  }
-}
-
-class _RealNetworkHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context);
+  static void resetTestRuntime({NavigationFlowRecorder? navigationFlow}) {
+    navigationFlow
+      ?..clear()
+      ..onScreenAdded = null;
+    LiveAsyncCallSupport.reset();
+    Ensemble.resetInitManagersForTest();
   }
 }
