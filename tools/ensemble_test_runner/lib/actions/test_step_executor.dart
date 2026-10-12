@@ -333,14 +333,16 @@ class TestStepExecutor {
           }
         }
 
-        // IDs in existing apps can be shared by mirrored/offstage controls.
-        // The regular tap path selects the hit-testable match; existence must
-        // not reject the action before that selection and readiness check.
-        await tapForOperation(
-          locator.id!,
-          timeoutMs: input.arguments['timeoutMs'] as int?,
-          onBeforeTap: boundary,
+        // Resolve the mounted target through the shared locator rules before
+        // tapping. The legacy id-only tap helper considers a disabled button
+        // hit-testable and would report success after delivering a no-op tap.
+        // Allow offscreen matches here so tapFinder can still scroll them into
+        // view; disabled and offstage matches remain excluded.
+        final finder = finderForOperationInput(
+          input,
+          allowOffscreen: true,
         );
+        await tapFinderForOperation(finder, onBeforeTap: boundary);
         return;
       } else if (canWaitForLocator) {
         final timeout = Duration(
