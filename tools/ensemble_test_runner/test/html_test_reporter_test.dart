@@ -75,7 +75,9 @@ ORDER BY id DESC LIMIT 1
     expect(shell, contains('ensemble_test.db'));
     expect(shell, contains('sql-wasm.js'));
     expect(shell, contains('Test Execution History'));
-    expect(shell, contains('historyRange = 50'));
+    expect(shell, isNot(contains('Run scope')));
+    expect(shell, isNot(contains('Chart range')));
+    expect(shell, contains('const chartRuns = [...runs].reverse()'));
     expect(shell, contains('function renderTestTrends'));
     expect(shell, contains('function renderHistoryComparison'));
     expect(shell, contains('Choose two different runs to compare'));
