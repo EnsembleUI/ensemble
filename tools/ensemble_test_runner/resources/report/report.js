@@ -15,8 +15,6 @@
   let historyLoaded = false;
   let historyLoadPromise = null;
   let historyData = null;
-  let historyRange = 50;
-  let historyScope = 'comparable';
   let historyModeFilter = 'all';
   let historyDeviceFilter = 'all';
   let historyTestFilter = '';
@@ -761,19 +759,8 @@
     const tests = runs.reduce((sum, run) => sum + Number(run.total || 0), 0);
     const passed = runs.reduce((sum, run) => sum + Number(run.passed || 0), 0);
     const success = tests ? Math.round(passed / tests * 100) : 0;
-    const scopeTotals = [...new Set(runs
-      .map(run => Number(run.total))
-      .filter(total => Number.isSafeInteger(total) && total > 0))].sort((a, b) => b - a);
-    const comparableTotal = runs.find(run => Number.isSafeInteger(Number(run.total)) && Number(run.total) > 0)?.total;
-    const scopeTotal = historyScope === 'comparable' ? comparableTotal : Number(historyScope);
-    const scopeRuns = historyScope === 'all'
-      ? runs.filter(run => Number.isSafeInteger(Number(run.total)) && Number(run.total) > 0)
-      : runs.filter(run => Number(run.total) === scopeTotal);
-    const chartRuns = scopeRuns.slice(0, Math.max(1, Number(historyRange) || 20)).reverse();
-    const scopeLabel = historyScope === 'all'
-      ? 'all test counts'
-      : `${scopeTotal || 0} tests per run`;
-    const chartLabel = `${scopeLabel} · ${chartRuns.length} ${chartRuns.length === 1 ? 'run' : 'runs'}`;
+    const chartRuns = [...runs].reverse();
+    const chartLabel = `all run sizes · ${chartRuns.length} ${chartRuns.length === 1 ? 'run' : 'runs'}`;
     const selectOptions = (values, selected) => values.map(value => '<option value="' + escapeHtml(value) + '"' + (value === selected ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join('');
     const oldA = document.getElementById('history-compare-a')?.value;
     const oldB = document.getElementById('history-compare-b')?.value;
@@ -785,8 +772,6 @@
     html += '<div class="history-controls">';
     html += '<label>Mode <select onchange="setHistoryFilter(\'mode\', this.value)"><option value="all">All modes</option>' + selectOptions(modes, historyModeFilter) + '</select></label>';
     html += '<label>Device <select onchange="setHistoryFilter(\'device\', this.value)"><option value="all">All devices</option>' + selectOptions(devices, historyDeviceFilter) + '</select></label>';
-    html += '<label>Run scope <select onchange="setHistoryScope(this.value)"><option value="comparable"' + (historyScope === 'comparable' ? ' selected' : '') + '>' + (comparableTotal ? 'Latest size (' + comparableTotal + ' tests)' : 'Comparable runs') + '</option><option value="all"' + (historyScope === 'all' ? ' selected' : '') + '>All run sizes</option>' + scopeTotals.filter(total => total !== Number(comparableTotal)).map(total => '<option value="' + total + '"' + (Number(historyScope) === total ? ' selected' : '') + '>' + total + ' tests</option>').join('') + '</select></label>';
-    html += '<label>Chart range <select onchange="setHistoryRange(this.value)">' + [10,20,50].map(count => '<option value="' + count + '"' + (Number(historyRange) === count ? ' selected' : '') + '>Last ' + count + '</option>').join('') + '</select></label>';
     html += '</div><div class="history-metrics-grid">';
     html += '<div class="metric-card"><div class="metric-val">' + runs.length + '</div><div class="metric-label">Runs in view</div></div>';
     html += '<div class="metric-card"><div class="metric-val">' + formatDuration(avg) + '</div><div class="metric-label">Average Suite Duration</div></div>';
@@ -882,8 +867,6 @@
     return html;
   }
 
-  window.setHistoryRange = function(value) { historyRange=Number(value)||20; renderHistory(historyData); };
-  window.setHistoryScope = function(value) { historyScope=String(value || 'comparable'); renderHistory(historyData); };
   window.setHistorySearch = function(value) { historyTestFilter=value; const input=document.getElementById('history-test-search'); const pos=input?.selectionStart; renderHistory(historyData); const next=document.getElementById('history-test-search'); next?.focus(); if(pos!=null) next?.setSelectionRange(pos,pos); };
   window.setHistoryFilter = function(type,value) { if(type==='mode') historyModeFilter=value; else if(type==='device') historyDeviceFilter=value; else if(type==='outcome') historyOutcomeFilter=value; renderHistory(historyData); };
 

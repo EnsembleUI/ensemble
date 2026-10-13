@@ -26,8 +26,8 @@ Future<ProcessResult> _runParallelFlutterTests(
       ...testFiles.parallel.map((file) => file.id),
       ...testFiles.serial,
     ];
-    if (allFiles.length < 2) {
-      return _runSingleFlutterTestProcess(
+    Future<ProcessResult> runSingleAndPersistReport() async {
+      final process = await _runSingleFlutterTestProcess(
         arguments,
         appDir: appDir,
         flutterExecutable: flutterExecutable,
@@ -37,6 +37,52 @@ Future<ProcessResult> _runParallelFlutterTests(
         reportFile: reportFile,
         timeoutSeconds: timeoutSeconds,
       );
+      final result = _runResultFromProcessOutput(
+        process,
+        artifactRoot: _artifactRootPath(appDir),
+      );
+      if (result != null) {
+        await reportCoordinator.writeHtmlReport(result);
+      } else {
+        final output = '${process.stdout ?? ''}\n${process.stderr ?? ''}';
+        final suiteOutput = extractSuiteReport(output);
+        final failure = extractKnownFailure(output);
+        final details = failure.isNotEmpty
+            ? failure
+            : suiteOutput.isNotEmpty
+                ? suiteOutput.trim()
+                : 'The test worker did not produce a machine-readable result.';
+        await reportCoordinator.writeHtmlReport(
+          EnsembleTestRunResult(
+            results: [
+              EnsembleSingleTestResult.failed(
+                testId: 'test-process',
+                durationMs: 0,
+                message: details,
+                logs: suiteOutput.isEmpty ? [details] : [suiteOutput],
+                failure: TestFailureDetails(
+                  kind: TestFailureKind.incompleteExecution,
+                  message: details,
+                  phase: 'worker',
+                ),
+              ),
+            ],
+          ),
+        );
+        if (process.exitCode == 0) {
+          return ProcessResult(
+            process.pid,
+            3,
+            process.stdout,
+            process.stderr,
+          );
+        }
+      }
+      return process;
+    }
+
+    if (allFiles.length < 2) {
+      return runSingleAndPersistReport();
     }
 
     final requestedJobs = jobs ?? _autoWorkerCount(allFiles.length);
@@ -49,16 +95,7 @@ Future<ProcessResult> _runParallelFlutterTests(
         ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
         : 0;
     if (parallelWorkerCount <= 1 && !hasSerialFiles) {
-      return _runSingleFlutterTestProcess(
-        arguments,
-        appDir: appDir,
-        flutterExecutable: flutterExecutable,
-        patcher: patcher,
-        timerRewritePlan: timerRewritePlan,
-        reportMode: reportMode,
-        reportFile: reportFile,
-        timeoutSeconds: timeoutSeconds,
-      );
+      return runSingleAndPersistReport();
     }
     final shards = shard_planner.balancedCliShards(
       testFiles.parallel,
@@ -418,6 +455,13 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
       : CliAppConsoleLog.relativePath();
   final appLogDisplayPath = useWorker ? CliAppConsoleLog.relativePath() : null;
   final artifactRoot = useWorker ? _artifactRootPath(appDir) : null;
+  final internalReportFile = reportFile ??
+      (reportMode == null
+          ? p.join(
+              _artifactRootPath(appDir),
+              ensembleTestMachineResultRelativePath,
+            )
+          : null);
   final runtimeEnvironment =
       flutter_test_command.buildFlutterTestWorkerEnvironment(
     suiteEncryptionKey: _suiteEncryptionKey(),
@@ -427,7 +471,7 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
     timeoutSeconds: timeoutSeconds,
     shardPaths: const [],
     shardIds: const [],
-    reportFile: reportFile,
+    reportFile: internalReportFile,
     progressFile: null,
     appLogPath: appLogPath,
     appLogDisplayPath: appLogDisplayPath,
@@ -440,7 +484,7 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
       arguments,
       suiteEncryptionKey: _suiteEncryptionKey(),
       reportMode: reportMode,
-      reportFile: reportFile,
+      reportFile: internalReportFile,
       timeoutSeconds: timeoutSeconds,
       verbose: false,
       appLogPath: appLogPath,
