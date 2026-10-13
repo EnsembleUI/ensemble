@@ -11,6 +11,8 @@ void main() {
         'ENSEMBLE_TEST_PROGRESS_V1:{"status":"passed","testId":"checkout","durationMs":4200}';
 
     expect(CliProcessOutput.isIntegrationProgressLine(start), isTrue);
+    expect(CliProcessOutput.isIntegrationWorkloadStarted(start), isTrue);
+    expect(CliProcessOutput.isIntegrationWorkloadStarted(done), isFalse);
     expect(CliProcessOutput.formatIntegrationProgressLine(start), isNull);
     expect(
       CliProcessOutput.formatIntegrationProgressLine(done),

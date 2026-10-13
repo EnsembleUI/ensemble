@@ -163,6 +163,8 @@ Future<void> _executeCliRun({
             timeout: timeoutSeconds == null
                 ? null
                 : Duration(seconds: timeoutSeconds),
+            timeoutAfterIntegrationStartup:
+                executionMode == ExecutionMode.integration,
           ))
             .result
         : await _runParallelFlutterTests(

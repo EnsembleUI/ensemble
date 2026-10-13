@@ -94,7 +94,8 @@ String _suiteEncryptionKey() {
 ///   --allow-device-storage-mutation  Acknowledge storage mutation on physical devices
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
-///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
+///   --timeout=<duration> Test execution timeout, e.g. 30s, 5m, 1h (default: 10m)
+///                        Integration builds have a separate 20m startup budget.
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 ///   --plan-batch-file=<path>  Opt-in compiled plan hand-off for workers
 ///   --help             Show this help without inspecting or changing an app
@@ -422,7 +423,8 @@ Options:
   --host-address=<ip>    LAN address for physical iOS host services
   --input key=value      Provide a test input; repeatable
   --jobs=<n|auto>        Concurrent workers (default: adaptive; 1 disables)
-  --timeout=<duration>   Suite timeout, e.g. 30s, 5m, 1h
+  --timeout=<duration>   Test execution timeout, e.g. 30s, 5m, 1h
+                         Integration builds have a separate 20m startup budget.
   --verbose              Full Flutter command output
   --help, -h             Show this help
 ''';
