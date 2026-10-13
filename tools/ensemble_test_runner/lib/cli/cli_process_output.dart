@@ -52,6 +52,19 @@ final class CliProcessOutput {
   static bool isIntegrationProgressLine(String line) =>
       line.contains(ensembleTestProgressProtocolPrefix);
 
+  static bool isIntegrationWorkloadStarted(String line) {
+    final marker = line.indexOf(ensembleTestProgressProtocolPrefix);
+    if (marker < 0) return false;
+    try {
+      final raw =
+          line.substring(marker + ensembleTestProgressProtocolPrefix.length);
+      final decoded = json.decode(_jsonRecordFromLine(raw));
+      return decoded is Map && decoded['status'] == 'running';
+    } catch (_) {
+      return false;
+    }
+  }
+
   static String? formatIntegrationProgressLine(String line) {
     final marker = line.indexOf(ensembleTestProgressProtocolPrefix);
     if (marker < 0) return line;

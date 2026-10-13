@@ -42,6 +42,8 @@ Future<List<T>> startManagedProcesses<T>(
 Future<ManagedProcessExit> waitForManagedProcess(
   Process process, {
   Duration? timeout,
+  Duration? startupTimeout,
+  Future<void>? timeoutStartsAfter,
   Duration terminationGracePeriod = const Duration(seconds: 3),
   Future<ProcessSignal>? interruption,
 
@@ -146,6 +148,12 @@ Future<ManagedProcessExit> waitForManagedProcess(
     complete(exitCode);
   }
 
+  void armTimeout(Duration duration) {
+    timer?.cancel();
+    timer =
+        Timer(duration, () => terminate(ProcessSignal.sigterm, timeout: true));
+  }
+
   processExit.then((exitCode) {
     observedExitCode = exitCode;
     if (!terminating) complete(exitCode);
@@ -158,9 +166,18 @@ Future<ManagedProcessExit> waitForManagedProcess(
       // continues to its normal exit or configured timeout.
     },
   );
-  if (timeout != null) {
-    timer =
-        Timer(timeout, () => terminate(ProcessSignal.sigterm, timeout: true));
+  if (timeoutStartsAfter != null) {
+    final startupBudget = startupTimeout ?? timeout;
+    if (startupBudget != null) armTimeout(startupBudget);
+    timeoutStartsAfter.then((_) {
+      if (timeout != null && !result.isCompleted && !terminating) {
+        armTimeout(timeout);
+      } else if (timeout == null) {
+        timer?.cancel();
+      }
+    });
+  } else if (timeout != null) {
+    armTimeout(timeout);
   }
   if (terminateOnStart != null) {
     unawaited(terminate(terminateOnStart, timeout: false));

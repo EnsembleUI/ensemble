@@ -1,6 +1,7 @@
 part of 'ensemble_test_cli.dart';
 
 const _processOutputDrainTimeout = Duration(seconds: 3);
+const _integrationStartupTimeout = Duration(minutes: 20);
 
 final class _WorkerProcessResult {
   const _WorkerProcessResult({
@@ -82,6 +83,7 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
   required bool verbose,
   String? appLogFile,
   Duration? timeout,
+  bool timeoutAfterIntegrationStartup = false,
   Map<String, String>? environment,
 }) async {
   return await RunnerBenchmark.async('worker', 'runFlutterTestProcess',
@@ -114,7 +116,10 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
     final stderrBuffer = StringBuffer();
     final transcript = CliProcessTranscript();
     final liveFilter = LiveFlutterTestOutputFilter();
+    final integrationWorkloadReady = Completer<void>();
+    var integrationWorkloadStarted = !timeoutAfterIntegrationStartup;
     final elapsed = Stopwatch()..start();
+    final integrationExecutionElapsed = Stopwatch();
     var lastLiveOutput = DateTime.now();
     Timer? heartbeat;
     final appLog = CliAppConsoleLog.open(appLogFile);
@@ -123,9 +128,19 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
       heartbeat = Timer.periodic(const Duration(seconds: 10), (_) {
         final idleFor = DateTime.now().difference(lastLiveOutput);
         if (idleFor.inSeconds >= 10) {
-          stderr.writeln(
-            'Still running Flutter tests (${elapsed.elapsed.inSeconds}s)...',
-          );
+          if (timeoutAfterIntegrationStartup && !integrationWorkloadStarted) {
+            stderr.writeln(
+              'Still building/starting integration app '
+              '(${elapsed.elapsed.inSeconds}s)...',
+            );
+          } else {
+            final runningFor = timeoutAfterIntegrationStartup
+                ? integrationExecutionElapsed.elapsed
+                : elapsed.elapsed;
+            stderr.writeln(
+              'Still running Flutter tests (${runningFor.inSeconds}s)...',
+            );
+          }
         }
       });
     }
@@ -137,6 +152,16 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
           .listen((line) {
         stdoutBuffer.writeln(line);
         transcript.add('stdout', line);
+        if (timeoutAfterIntegrationStartup &&
+            CliProcessOutput.isIntegrationWorkloadStarted(line)) {
+          if (!integrationWorkloadStarted) {
+            integrationWorkloadStarted = true;
+            integrationExecutionElapsed.start();
+          }
+          if (!integrationWorkloadReady.isCompleted) {
+            integrationWorkloadReady.complete();
+          }
+        }
         if (line.contains('ENSEMBLE_BENCHMARK_WORKLOAD_READY')) {
           benchmarkBootstrap?.finish();
           RunnerBenchmark.dimension(
@@ -182,11 +207,19 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
       final managedExit = await waitForManagedProcess(
         process,
         timeout: timeout,
+        startupTimeout:
+            timeoutAfterIntegrationStartup ? _integrationStartupTimeout : null,
+        timeoutStartsAfter: timeoutAfterIntegrationStartup
+            ? integrationWorkloadReady.future
+            : null,
         interruption: interruptionWatch.future,
       );
       if (managedExit.timedOut) {
-        final message =
-            'Ensemble test worker timed out after ${timeout!.inSeconds}s.';
+        final message = integrationWorkloadStarted
+            ? 'Ensemble test worker timed out after '
+                '${timeout?.inSeconds ?? 0}s of test execution.'
+            : 'Flutter integration build/startup did not reach the first test within '
+                '${_integrationStartupTimeout.inMinutes}m.';
         stderrBuffer.writeln(message);
         transcript.add('stderr', message);
       }

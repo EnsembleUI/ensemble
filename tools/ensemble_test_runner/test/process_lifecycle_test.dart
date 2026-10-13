@@ -69,6 +69,47 @@ Future<void> main() async {
     }
   });
 
+  test('integration execution timeout starts after workload readiness',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('runner_startup');
+    final script = File('${directory.path}/startup_then_work.dart');
+    await script.writeAsString('''
+import 'dart:async';
+Future<void> main() async {
+  await Future<void>.delayed(const Duration(milliseconds: 250));
+  print('workload-ready');
+  await Future<void>.delayed(const Duration(milliseconds: 30));
+}
+''');
+    final process = await Process.start(
+      findDartExecutable(),
+      ['run', script.path],
+      runInShell: false,
+    );
+    final workloadReady = Completer<void>();
+    final outputSubscription =
+        process.stdout.transform(utf8.decoder).listen((chunk) {
+      if (chunk.contains('workload-ready') && !workloadReady.isCompleted) {
+        workloadReady.complete();
+      }
+    });
+
+    try {
+      final result = await waitForManagedProcess(
+        process,
+        timeout: const Duration(milliseconds: 100),
+        startupTimeout: const Duration(seconds: 2),
+        timeoutStartsAfter: workloadReady.future,
+        terminationGracePeriod: const Duration(milliseconds: 100),
+      );
+      expect(result.timedOut, isFalse);
+      expect(result.exitCode, 0);
+    } finally {
+      await outputSubscription.cancel();
+      await directory.delete(recursive: true);
+    }
+  });
+
   test('a timed out child leaves structured results for every assigned case',
       () async {
     final directory = await Directory.systemTemp.createTemp('runner_worker');
