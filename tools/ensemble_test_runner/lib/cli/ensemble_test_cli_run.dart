@@ -25,9 +25,40 @@ Future<void> _executeCliRun({
   required CliWorkerWorkspace workerWorkspace,
 }) async {
   var exitCode = 0;
+  var htmlReportStarted = false;
+  var reportFailureReason =
+      'The runner stopped before it could save the completed test results.';
+  final runTimer = Stopwatch()..start();
   final flutter = resolveFlutterExecutable(appDir);
   TestServiceManager? hostServices;
   final reversedPorts = <int>[];
+
+  Future<void> finalizeHtmlReportAfterFailure() async {
+    if (!htmlReportStarted || machineReport) return;
+    try {
+      await reportCoordinator.writeHtmlReport(
+        EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.failed(
+              testId: 'test-process',
+              durationMs: runTimer.elapsedMilliseconds,
+              message: reportFailureReason,
+              metadata: {'mode': executionMode.name},
+              logs: [reportFailureReason],
+            ),
+          ],
+          metadata: {'mode': executionMode.name},
+        ),
+        wallTimeMs: runTimer.elapsedMilliseconds,
+      );
+      htmlReportStarted = false;
+    } catch (error) {
+      stderr.writeln(
+        'Warning: could not finalize the HTML report after the run failed: $error',
+      );
+    }
+  }
+
   try {
     CliProcessOutput.writeStatus(
       'Preparing Ensemble tests...',
@@ -72,6 +103,7 @@ Future<void> _executeCliRun({
     _cleanParallelRunArtifacts(appDir);
 
     if (!machineReport) {
+      htmlReportStarted = true;
       try {
         await reportCoordinator.writeHtmlReport(
           const EnsembleTestRunResult(results: []),
@@ -182,6 +214,13 @@ Future<void> _executeCliRun({
             suiteConfig: suiteConfig,
           );
 
+    // The parallel coordinator merges the worker results and persists the
+    // completed HTML report before it returns its human-readable CLI summary.
+    // That summary intentionally has no machine-readable payload for this
+    // outer process to parse, so don't replace the persisted per-test report
+    // with the fallback process-level failure below.
+    if (!runSerial && !machineReport) htmlReportStarted = false;
+
     if (executionMode == ExecutionMode.integration) {
       var transport = await materializeTransportedArtifacts(
         artifactRoot: _artifactRootPath(appDir),
@@ -197,8 +236,10 @@ Future<void> _executeCliRun({
         }
       }
       if (!transport.complete) {
+        reportFailureReason = transport.error ??
+            'Integration artifact transport ended before the completed test report arrived.';
         stderr.writeln(
-          transport.error ?? 'Integration artifact transport was incomplete.',
+          reportFailureReason,
         );
         if (transport.receivedPaths.isNotEmpty) {
           stderr.writeln(
@@ -233,6 +274,7 @@ Future<void> _executeCliRun({
         await reportCoordinator.recordHistory(machineResult);
       } else {
         await reportCoordinator.writeHtmlReport(machineResult);
+        htmlReportStarted = false;
       }
       if (executionMode == ExecutionMode.integration && reportFile != null) {
         reportCoordinator.writeMachineResult(
@@ -242,19 +284,31 @@ Future<void> _executeCliRun({
         );
       }
     }
-    exitCode = machineResult == null
-        ? (executionMode == ExecutionMode.integration
+    if (machineResult == null) {
+      if (htmlReportStarted) {
+        reportFailureReason = testRun.exitCode == 0
+            ? 'Flutter test execution finished without a machine-readable result; the runner could not build the HTML report.'
+            : 'Flutter test execution exited with code ${testRun.exitCode} without a machine-readable result; inspect the terminal output for the test failure.';
+        exitCode = 3;
+      } else {
+        exitCode = executionMode == ExecutionMode.integration
             ? 3
-            : (testRun.exitCode == 0 ? 0 : 1))
-        : (machineResult.failedCount == 0 ? 0 : 1);
+            : (testRun.exitCode == 0 ? 0 : 1);
+      }
+    } else {
+      exitCode = machineResult.failedCount == 0 ? 0 : 1;
+    }
   } on StateError catch (error) {
+    reportFailureReason = error.message;
     stderr.writeln(error.message);
     exitCode = 3;
   } catch (error, stackTrace) {
+    reportFailureReason = 'Runner infrastructure failure: $error';
     stderr.writeln('Ensemble test runner infrastructure failure: $error');
     if (verbose) stderr.writeln(stackTrace);
     exitCode = 3;
   } finally {
+    await finalizeHtmlReportAfterFailure();
     // Teardown must continue through every owner.  Service shutdown can fail
     // when a child process ignores termination; that must not strand worker
     // sandboxes, leave patched entry points in the app, or hold the artifact
