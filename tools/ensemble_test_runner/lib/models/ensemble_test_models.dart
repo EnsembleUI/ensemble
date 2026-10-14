@@ -1,7 +1,18 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 /// Declarative test document and run results.
 library;
 
-/// Request object describing an Ensemble YAML test run.
+import 'test_step.dart';
+
+export 'package:ensemble_test_runner/models/test_failure_details.dart'
+    show TestFailureDetails, TestFailureKind;
+export 'test_step.dart';
+export 'test_results.dart';
+
+/// Request object describing an Ensemble test run.
 class EnsembleTestRunRequest {
   final String? appPath;
   final String? appHome;
@@ -20,14 +31,14 @@ class EnsembleTestRunRequest {
   });
 }
 
-/// Environment overrides applied to a YAML test run.
+/// Environment overrides applied to a test run.
 class EnsembleTestEnvironment {
   final Map<String, dynamic> env;
 
   const EnsembleTestEnvironment({this.env = const {}});
 }
 
-/// Parsed definition of a single YAML test case.
+/// Parsed definition of a single declarative test case.
 class EnsembleTestCase {
   final String id;
   final String? sourcePath;
@@ -141,6 +152,7 @@ class TestScenario {
 /// fields only for data that genuinely belongs to one test case, such as its
 /// description, steps, and scenario selection.
 class EnsembleTestConfig {
+  final ExecutionMode mode;
   final List<TestServiceConfig> services;
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
@@ -149,8 +161,12 @@ class EnsembleTestConfig {
   final Map<String, TestProfile> profiles;
   final Map<String, List<String>> profileGroups;
 
-  /// Suite device matrix (platform/model + optional locale). When non-empty,
-  /// each test runs once per entry.
+  /// Suite device matrix (platform/model + optional locale/theme).
+  ///
+  /// Widget mode expands each test once per entry and applies the viewport.
+  /// Integration mode keeps entries whose [TestDeviceTarget.platform] matches
+  /// the connected emulator/simulator so locale/theme still apply, and ignores
+  /// viewport/model because the real display is used.
   final List<TestDeviceTarget> devices;
   final ScreenshotConfig screenshots;
   final PerformanceConfig performance;
@@ -161,6 +177,7 @@ class EnsembleTestConfig {
   final WifiTestConfig wifi;
 
   const EnsembleTestConfig({
+    this.mode = ExecutionMode.widget,
     this.services = const [],
     this.mockFiles = const [],
     this.inlineMocks = const {},
@@ -179,7 +196,48 @@ class EnsembleTestConfig {
   });
 
   bool get hasDeviceMatrix => devices.isNotEmpty;
+
+  EnsembleTestConfig copyWith({
+    ExecutionMode? mode,
+    List<TestServiceConfig>? services,
+    List<String>? mockFiles,
+    Map<String, dynamic>? inlineMocks,
+    Map<String, dynamic>? initialState,
+    String? defaultProfile,
+    Map<String, TestProfile>? profiles,
+    Map<String, List<String>>? profileGroups,
+    List<TestDeviceTarget>? devices,
+    ScreenshotConfig? screenshots,
+    PerformanceConfig? performance,
+    DumpTreeConfig? dumpTree,
+    LogApiCallsConfig? logApiCalls,
+    LogStorageConfig? logStorage,
+    TimerRewriteConfig? timers,
+    WifiTestConfig? wifi,
+  }) {
+    return EnsembleTestConfig(
+      mode: mode ?? this.mode,
+      services: services ?? this.services,
+      mockFiles: mockFiles ?? this.mockFiles,
+      inlineMocks: inlineMocks ?? this.inlineMocks,
+      initialState: initialState ?? this.initialState,
+      defaultProfile: defaultProfile ?? this.defaultProfile,
+      profiles: profiles ?? this.profiles,
+      profileGroups: profileGroups ?? this.profileGroups,
+      devices: devices ?? this.devices,
+      screenshots: screenshots ?? this.screenshots,
+      performance: performance ?? this.performance,
+      dumpTree: dumpTree ?? this.dumpTree,
+      logApiCalls: logApiCalls ?? this.logApiCalls,
+      logStorage: logStorage ?? this.logStorage,
+      timers: timers ?? this.timers,
+      wifi: wifi ?? this.wifi,
+    );
+  }
 }
+
+/// Host environment used to execute a declarative test suite.
+enum ExecutionMode { widget, integration }
 
 /// A named profile containing reusable mocks and initial state.
 class TestProfile {
@@ -281,10 +339,19 @@ class TimerRewriteConfig {
   final int maxStartAfterSeconds;
   final int maxRepeatIntervalSeconds;
 
+  /// When set, caps YAML `maxNumberOfTimes` on timers (keeps long poll loops
+  /// like firmware disconnect waits from running for minutes under tests).
+  final int? maxNumberOfTimes;
+
+  /// Optional per-screen cap, keyed by the screen YAML filename without `.yaml`.
+  final Map<String, int> maxNumberOfTimesByScreen;
+
   const TimerRewriteConfig({
     this.enabled = false,
     this.maxStartAfterSeconds = 1,
     this.maxRepeatIntervalSeconds = 1,
+    this.maxNumberOfTimes,
+    this.maxNumberOfTimesByScreen = const {},
   });
 }
 
@@ -297,13 +364,14 @@ class DumpTreeConfig {
   });
 }
 
-/// Controls writing observed API calls to a diagnostic artifact.
+/// Controls writing the per-test API call log artifact.
+///
+/// The default remains enabled for compatibility with existing suites. Set
+/// `logApiCalls.enabled: false` to avoid collecting and writing the sidecar.
 class LogApiCallsConfig {
   final bool enabled;
 
-  const LogApiCallsConfig({
-    this.enabled = false,
-  });
+  const LogApiCallsConfig({this.enabled = true});
 }
 
 /// Controls writing the final local storage snapshot to an artifact.
@@ -348,6 +416,23 @@ class TestDeviceTarget {
     return parts.join(' · ');
   }
 
+  /// Canonical platform key used to match Flutter integration targets.
+  ///
+  /// `android*` → `android`; `ios` / `iphone` / `ipad` → `ios`.
+  static String normalizePlatform(String raw) {
+    final key = raw.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    if (key.startsWith('android')) return 'android';
+    if (key.startsWith('ios') ||
+        key.startsWith('iphone') ||
+        key.startsWith('ipad')) {
+      return 'ios';
+    }
+    return key;
+  }
+
+  bool matchesPlatform(String other) =>
+      normalizePlatform(platform) == normalizePlatform(other);
+
   Map<String, dynamic> toScreenshotArgs() => {
         'platform': platform,
         'model': model,
@@ -383,353 +468,4 @@ class ScreenshotConfig {
     }
     return true;
   }
-}
-
-/// Mock configuration attached to a test case.
-/// API mocks attached to a test after profile and suite composition.
-class TestMocks {
-  final Map<String, MockAPIResponse> apis;
-
-  const TestMocks({this.apis = const {}});
-}
-
-/// Mock API response returned by the test HTTP provider.
-/// A deterministic API response used by the test provider.
-///
-/// [responses] can provide a sequence of responses for repeated calls, and
-/// [delayMs] simulates server latency while preserving the API loading state.
-class MockAPIResponse {
-  final int statusCode;
-  final dynamic body;
-  final Map<String, dynamic>? headers;
-  final int? delayMs;
-  final List<MockAPIResponse> responses;
-
-  const MockAPIResponse({
-    this.statusCode = 200,
-    this.body,
-    this.headers,
-    this.delayMs,
-    this.responses = const [],
-  });
-}
-
-/// Single executable step from a YAML test file.
-class TestStep {
-  /// YAML step key (e.g. `expectVisible`, `group`).
-  final String type;
-  final Map<String, dynamic> args;
-  final TestMocks mocks;
-
-  /// Nested steps for control-flow step types such as `group` and `repeat`.
-  final List<TestStep> nestedSteps;
-
-  const TestStep({
-    required this.type,
-    required this.args,
-    this.mocks = const TestMocks(),
-    this.nestedSteps = const [],
-  });
-
-  /// Canonical handler name after alias resolution.
-  String get canonicalType => type;
-
-  TestStep withCanonicalType(String canonical) => TestStep(
-        type: canonical,
-        args: args,
-        mocks: mocks,
-        nestedSteps: nestedSteps,
-      );
-
-  Map<String, dynamic> toJson() => {
-        type: args,
-        if (nestedSteps.isNotEmpty)
-          'steps': nestedSteps.map((s) => s.toJson()).toList(),
-      };
-}
-
-/// Aggregate result for a YAML test run.
-/// Aggregate result for one complete runner invocation.
-class EnsembleTestRunResult {
-  final List<EnsembleSingleTestResult> results;
-  final List<String> suiteLogs;
-
-  const EnsembleTestRunResult({
-    required this.results,
-    this.suiteLogs = const [],
-  });
-
-  int get passedCount =>
-      results.where((r) => r.status == TestStatus.passed).length;
-  int get failedCount =>
-      results.where((r) => r.status == TestStatus.failed).length;
-
-  String get summary =>
-      '$passedCount passed, $failedCount failed (${results.length} total)';
-
-  Map<String, dynamic> toJson() => {
-        'status': failedCount > 0 ? 'failed' : 'passed',
-        'total': results.length,
-        'passed': passedCount,
-        'failed': failedCount,
-        'results': results.map((r) => r.toJson()).toList(),
-        if (suiteLogs.isNotEmpty) 'suiteLogs': suiteLogs,
-      };
-}
-
-/// Status of a finished test case.
-/// Final status of an executed test case.
-enum TestStatus { passed, failed }
-
-/// Result for one executed YAML test case.
-/// Result and diagnostics for one expanded test case run.
-class EnsembleSingleTestResult {
-  final String testId;
-  final Map<String, dynamic> metadata;
-  final TestStatus status;
-  final int durationMs;
-  final int attempts;
-  final int retry;
-  final int? failedStepIndex;
-  final TestStep? failedStep;
-  final String? message;
-  final String? stackTrace;
-  final List<String> logs;
-  final EnsembleTestReportDetails? report;
-
-  const EnsembleSingleTestResult({
-    required this.testId,
-    this.metadata = const {},
-    required this.status,
-    required this.durationMs,
-    this.attempts = 1,
-    this.retry = 0,
-    this.failedStepIndex,
-    this.failedStep,
-    this.message,
-    this.stackTrace,
-    this.logs = const [],
-    this.report,
-  });
-
-  factory EnsembleSingleTestResult.passed({
-    required String testId,
-    Map<String, dynamic> metadata = const {},
-    required int durationMs,
-    int attempts = 1,
-    int retry = 0,
-    List<String> logs = const [],
-    EnsembleTestReportDetails? report,
-  }) =>
-      EnsembleSingleTestResult(
-        testId: testId,
-        metadata: metadata,
-        status: TestStatus.passed,
-        durationMs: durationMs,
-        attempts: attempts,
-        retry: retry,
-        logs: logs,
-        report: report,
-      );
-
-  factory EnsembleSingleTestResult.failed({
-    required String testId,
-    Map<String, dynamic> metadata = const {},
-    required int durationMs,
-    int attempts = 1,
-    int retry = 0,
-    int? failedStepIndex,
-    TestStep? failedStep,
-    String? error,
-    String? stackTrace,
-    List<String> logs = const [],
-    EnsembleTestReportDetails? report,
-  }) =>
-      EnsembleSingleTestResult(
-        testId: testId,
-        metadata: metadata,
-        status: TestStatus.failed,
-        durationMs: durationMs,
-        attempts: attempts,
-        retry: retry,
-        failedStepIndex: failedStepIndex,
-        failedStep: failedStep,
-        message: error,
-        stackTrace: stackTrace,
-        logs: logs,
-        report: report,
-      );
-
-  Map<String, dynamic> toJson() => {
-        'testId': testId,
-        if (metadata.isNotEmpty) 'metadata': metadata,
-        'status': status.name,
-        'durationMs': durationMs,
-        if (attempts > 1) 'attempts': attempts,
-        if (retry > 0) 'retry': retry,
-        if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
-        if (failedStep != null) 'failedStep': failedStep!.toJson(),
-        if (message != null) 'message': message,
-        if (status == TestStatus.failed) 'failure': _failureJson(),
-        if (stackTrace != null) 'stackTrace': stackTrace,
-        'logs': logs,
-        if (report != null) 'report': report!.toJson(),
-      };
-
-  Map<String, dynamic> _failureJson() {
-    final text = message ?? '';
-    final kind = _failureKind(text);
-    return {
-      'kind': kind,
-      if (failedStep != null) 'step': failedStep!.type,
-      if (failedStepIndex != null) 'stepIndex': failedStepIndex,
-      if (failedStep?.args['id'] != null) 'expected': failedStep!.args['id'],
-      'actual': text,
-      'suggestions': _failureSuggestions(kind, failedStep),
-      if (report != null)
-        'context': {
-          'currentScreen': report!.endScreen ?? report!.startScreen,
-          'screensVisited': report!.screensVisited,
-        },
-    };
-  }
-
-  String _failureKind(String text) {
-    final lower = text.toLowerCase();
-    if (lower.contains('timeout') || lower.contains('timed out')) {
-      return 'timeout';
-    }
-    if (lower.contains('api')) return 'apiMismatch';
-    if (lower.contains('navigation') ||
-        lower.contains('navigated') ||
-        lower.contains('screen')) {
-      return 'navigationMismatch';
-    }
-    if (lower.contains('widget') ||
-        lower.contains('visible') ||
-        lower.contains('finder')) {
-      return 'missingWidget';
-    }
-    if (lower.contains('yaml') ||
-        lower.contains('parse') ||
-        lower.contains('invalid')) {
-      return 'parseError';
-    }
-    return 'assertionFailure';
-  }
-
-  List<String> _failureSuggestions(String kind, TestStep? step) {
-    switch (kind) {
-      case 'missingWidget':
-        final id = step?.args['id'];
-        return [
-          if (id != null)
-            'Verify "$id" exists as id/testId on the active screen.',
-          'Run --inspect-app to list available widget ids.',
-        ];
-      case 'apiMismatch':
-        return [
-          'Check API name spelling against --inspect-app output.',
-          'Use root mocks with .mock.json files for mocked API responses.',
-        ];
-      case 'navigationMismatch':
-        return [
-          'Check expected screen name against --inspect-app navigation targets.',
-          'Add waitForNavigation after navigation-triggering actions.',
-        ];
-      case 'timeout':
-        return [
-          'Wait for a stable widget or API completion before asserting.',
-          'Increase timeoutMs only after confirming the expected UI appears.',
-        ];
-      case 'parseError':
-        return [
-          'Run --validate-only to find schema issues.',
-        ];
-      default:
-        return [
-          'Inspect the failedStep and report context to repair the test.'
-        ];
-    }
-  }
-}
-
-/// Human-readable run metadata for console reports (see [TestReporter]).
-class EnsembleTestReportDetails {
-  /// Display start screen (explicit or inherited from runtime).
-  final String startScreen;
-  final String? endScreen;
-  final String? session;
-  final List<String> screensVisited;
-  final List<String> stepsOutline;
-
-  /// Wall-clock ms for each top-level step (same order as [EnsembleTestCase.steps]).
-  /// Shorter than the step list when the run failed mid-suite.
-  final List<int> stepDurationsMs;
-  final List<String> stepStartTimes;
-
-  /// Map from screen name to its captured artifacts (debugTree, performance, etc.)
-  final Map<String, Map<String, dynamic>> screens;
-
-  const EnsembleTestReportDetails({
-    required this.startScreen,
-    this.endScreen,
-    this.session,
-    this.screensVisited = const [],
-    this.stepsOutline = const [],
-    this.stepDurationsMs = const [],
-    this.stepStartTimes = const [],
-    this.screens = const {},
-  });
-
-  factory EnsembleTestReportDetails.fromJson(Map<String, dynamic> json) {
-    final screensMap = <String, Map<String, dynamic>>{};
-    if (json['screens'] is Map) {
-      (json['screens'] as Map).forEach((k, v) {
-        if (v is Map) {
-          screensMap[k.toString()] = Map<String, dynamic>.from(v);
-        }
-      });
-    }
-    return EnsembleTestReportDetails(
-      startScreen: json['startScreen']?.toString() ?? '(unknown)',
-      endScreen: json['endScreen']?.toString(),
-      session: json['session']?.toString(),
-      screensVisited: (json['screensVisited'] as List<dynamic>? ?? const [])
-          .map((value) => value.toString())
-          .toList(),
-      stepsOutline: (json['stepsOutline'] as List<dynamic>? ?? const [])
-          .map((value) => value.toString())
-          .toList(),
-      stepDurationsMs: (json['stepDurationsMs'] as List<dynamic>? ?? const [])
-          .map((value) => value is int ? value : int.tryParse('$value') ?? 0)
-          .toList(),
-      stepStartTimes: (json['stepStartTimes'] as List<dynamic>? ?? const [])
-          .map((value) => value.toString())
-          .toList(),
-      screens: screensMap,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'startScreen': startScreen,
-        if (endScreen != null) 'endScreen': endScreen,
-        if (session != null) 'session': session,
-        'screensVisited': screensVisited,
-        'stepsOutline': stepsOutline,
-        if (stepDurationsMs.isNotEmpty) 'stepDurationsMs': stepDurationsMs,
-        if (stepStartTimes.isNotEmpty) 'stepStartTimes': stepStartTimes,
-        if (screens.isNotEmpty) 'screens': screens,
-      };
-}
-
-/// Thrown when a test step or assertion fails.
-/// Exception used for user-facing YAML test and assertion failures.
-class EnsembleTestFailure implements Exception {
-  final String message;
-
-  EnsembleTestFailure(this.message);
-
-  @override
-  String toString() => message;
 }

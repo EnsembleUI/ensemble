@@ -1,3 +1,9 @@
+## 1.2.55
+
+## 1.2.54
+
+ - Bump "ensemble_camera" to `1.2.54`.
+
 ## 1.2.53
 
  - Bump "ensemble_camera" to `1.2.53`.

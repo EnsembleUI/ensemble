@@ -13,7 +13,7 @@ void main() {
     await StorageManager().init();
     await StorageManager().clearPublicStorage();
     applyWifiTestConfig(const WifiTestConfig(
-      ssid: 'KPN_Test_WiFi',
+      ssid: 'Runner_Test_WiFi',
       modeStorageKey: 'wifiTestMode',
     ));
   });
@@ -33,11 +33,11 @@ void main() {
 
     expect(
       await GetIt.I<WifiManager>()
-          .connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
+          .connectToSecureNetwork('Runner_Test_WiFi', 'pw'),
       isTrue,
     );
     final info = await GetIt.I<NetworkInfoManager>().getNetworkInfo();
-    expect(info.wifiName, 'KPN_Test_WiFi');
+    expect(info.wifiName, 'Runner_Test_WiFi');
   });
 
   test('wifi doubles honor connect_fail mode from storage', () async {
@@ -46,7 +46,7 @@ void main() {
 
     expect(
       await GetIt.I<WifiManager>()
-          .connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
+          .connectToSecureNetwork('Runner_Test_WiFi', 'pw'),
       isFalse,
     );
   });
@@ -57,7 +57,7 @@ void main() {
 
     expect(
       await GetIt.I<WifiManager>()
-          .connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
+          .connectToSecureNetwork('Runner_Test_WiFi', 'pw'),
       isTrue,
     );
     final info = await GetIt.I<NetworkInfoManager>().getNetworkInfo();

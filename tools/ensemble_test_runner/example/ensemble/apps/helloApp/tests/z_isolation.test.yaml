@@ -1,0 +1,9 @@
+id: storage_isolation
+startScreen: Hello Home
+initialState:
+  storage:
+    session_value: null
+steps:
+  - expectStorage:
+      key: session_value
+      equals: null

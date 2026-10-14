@@ -1,3 +1,4 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -21,25 +22,27 @@ Map<String, dynamic> buildScreenPerformanceJson({
   required List<AppFrameTimingEntry> frames,
   required List<PerformanceMarker> markers,
 }) {
-  final screenMarkers = markers.where((m) => m.screen == screenName).toList();
-  final screenFrames = frames.where((f) {
-    final marker = _markerForFrame(f, markers);
-    return marker?.screen == screenName;
-  }).toList();
+  return RunnerBenchmark.sync('diagnostic', 'buildScreenPerformanceJson', () {
+    final screenMarkers = markers.where((m) => m.screen == screenName).toList();
+    final screenFrames = frames.where((f) {
+      final marker = _markerForFrame(f, markers);
+      return marker?.screen == screenName;
+    }).toList();
 
-  final jankyFrames = screenFrames.where((frame) => frame.isJanky).length;
-  return {
-    'screen': screenName,
-    'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
-    'totalFrames': screenFrames.length,
-    'jankyFrames': jankyFrames,
-    'jankyFrameRate': _ratio(jankyFrames, screenFrames.length),
-    'averageBuildMs': _average(screenFrames.map((frame) => frame.buildMs)),
-    'averageRasterMs': _average(screenFrames.map((frame) => frame.rasterMs)),
-    'averageTotalSpanMs':
-        _average(screenFrames.map((frame) => frame.totalSpanMs)),
-    'markers': screenMarkers.map((m) => _markerJson(m)).toList(),
-  };
+    final jankyFrames = screenFrames.where((frame) => frame.isJanky).length;
+    return {
+      'screen': screenName,
+      'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
+      'totalFrames': screenFrames.length,
+      'jankyFrames': jankyFrames,
+      'jankyFrameRate': _ratio(jankyFrames, screenFrames.length),
+      'averageBuildMs': _average(screenFrames.map((frame) => frame.buildMs)),
+      'averageRasterMs': _average(screenFrames.map((frame) => frame.rasterMs)),
+      'averageTotalSpanMs':
+          _average(screenFrames.map((frame) => frame.totalSpanMs)),
+      'markers': screenMarkers.map((m) => _markerJson(m)).toList(),
+    };
+  });
 }
 
 Future<String> writePerformanceLog({
@@ -50,20 +53,36 @@ Future<String> writePerformanceLog({
   List<PerformanceMarker> markers = const [],
   List<APICallRecord> apiCalls = const [],
 }) {
-  final jankyFrames = frames.where((frame) => frame.isJanky).length;
-  final attributedFrames = frames
-      .map((frame) => _AttributedFrame(frame, _markerForFrame(frame, markers)))
-      .toList(growable: false);
-  final slowestFrames = attributedFrames.toList()
-    ..sort((a, b) => b.frame.totalSpanMs.compareTo(a.frame.totalSpanMs));
-  final worstSteps = _worstSteps(attributedFrames);
-  final worstScreens = _worstScreens(attributedFrames);
-  final jankClusters = _jankClusters(attributedFrames);
-  final apiCorrelation = _apiCorrelation(attributedFrames, apiCalls);
-  final content = const JsonEncoder.withIndent('  ').convert({
-    'testId': filePrefix.isEmpty ? 'suite' : filePrefix,
-    'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
-    'summary': {
+  return RunnerBenchmark.future('diagnostic', 'writePerformanceLog', () {
+    final jankyFrames = frames.where((frame) => frame.isJanky).length;
+    final attributedFrames = frames
+        .map(
+            (frame) => _AttributedFrame(frame, _markerForFrame(frame, markers)))
+        .toList(growable: false);
+    final slowestFrames = attributedFrames.toList()
+      ..sort((a, b) => b.frame.totalSpanMs.compareTo(a.frame.totalSpanMs));
+    final worstSteps = _worstSteps(attributedFrames);
+    final worstScreens = _worstScreens(attributedFrames);
+    final jankClusters = _jankClusters(attributedFrames);
+    final apiCorrelation = _apiCorrelation(attributedFrames, apiCalls);
+    final content = const JsonEncoder.withIndent('  ').convert({
+      'testId': filePrefix.isEmpty ? 'suite' : filePrefix,
+      'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
+      'summary': {
+        'totalFrames': frames.length,
+        'jankyFrames': jankyFrames,
+        'jankyFrameRate': _ratio(jankyFrames, frames.length),
+        'averageBuildMs': _average(frames.map((frame) => frame.buildMs)),
+        'averageRasterMs': _average(frames.map((frame) => frame.rasterMs)),
+        'averageTotalSpanMs':
+            _average(frames.map((frame) => frame.totalSpanMs)),
+        'maxBuildMs': _max(frames.map((frame) => frame.buildMs)),
+        'maxRasterMs': _max(frames.map((frame) => frame.rasterMs)),
+        'maxTotalSpanMs': _max(frames.map((frame) => frame.totalSpanMs)),
+        if (worstSteps.isNotEmpty) 'worstStep': worstSteps.first['step'],
+        if (worstScreens.isNotEmpty)
+          'worstScreen': worstScreens.first['screen'],
+      },
       'totalFrames': frames.length,
       'jankyFrames': jankyFrames,
       'jankyFrameRate': _ratio(jankyFrames, frames.length),
@@ -73,33 +92,22 @@ Future<String> writePerformanceLog({
       'maxBuildMs': _max(frames.map((frame) => frame.buildMs)),
       'maxRasterMs': _max(frames.map((frame) => frame.rasterMs)),
       'maxTotalSpanMs': _max(frames.map((frame) => frame.totalSpanMs)),
-      if (worstSteps.isNotEmpty) 'worstStep': worstSteps.first['step'],
-      if (worstScreens.isNotEmpty) 'worstScreen': worstScreens.first['screen'],
-    },
-    'totalFrames': frames.length,
-    'jankyFrames': jankyFrames,
-    'jankyFrameRate': _ratio(jankyFrames, frames.length),
-    'averageBuildMs': _average(frames.map((frame) => frame.buildMs)),
-    'averageRasterMs': _average(frames.map((frame) => frame.rasterMs)),
-    'averageTotalSpanMs': _average(frames.map((frame) => frame.totalSpanMs)),
-    'maxBuildMs': _max(frames.map((frame) => frame.buildMs)),
-    'maxRasterMs': _max(frames.map((frame) => frame.rasterMs)),
-    'maxTotalSpanMs': _max(frames.map((frame) => frame.totalSpanMs)),
-    'worstSteps': worstSteps,
-    'worstScreens': worstScreens,
-    'jankClusters': jankClusters,
-    'apiCorrelation': apiCorrelation,
-    'slowestFrames':
-        slowestFrames.take(10).map((frame) => frame.toJson()).toList(),
-    'frames': attributedFrames.map((frame) => frame.toJson()).toList(),
-  });
+      'worstSteps': worstSteps,
+      'worstScreens': worstScreens,
+      'jankClusters': jankClusters,
+      'apiCorrelation': apiCorrelation,
+      'slowestFrames':
+          slowestFrames.take(10).map((frame) => frame.toJson()).toList(),
+      'frames': attributedFrames.map((frame) => frame.toJson()).toList(),
+    });
 
-  return logger.writeLogFile(
-    testId: filePrefix,
-    name: name,
-    content: content,
-    extension: 'json',
-  );
+    return logger.writeLogFile(
+      testId: filePrefix,
+      name: name,
+      content: content,
+      extension: 'json',
+    );
+  });
 }
 
 PerformanceMarker? _markerForFrame(

@@ -15,6 +15,12 @@ class EncryptedStorageManager {
 
   factory EncryptedStorageManager() => _instance;
 
+  /// Clears the cached encryption key so the next secure-storage call re-reads
+  /// [SecretsStore]. Used by the test runner between suites.
+  static void resetCachedKey() {
+    _key = null;
+  }
+
   static void _ensureInitialized() {
     if (_key != null) return;
 

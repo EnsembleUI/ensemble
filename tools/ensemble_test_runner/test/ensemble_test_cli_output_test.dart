@@ -1,13 +1,31 @@
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
+import 'package:ensemble_test_runner/cli/cli_process_output.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('live progress output suppresses running events but keeps completion',
+      () {
+    const start =
+        'ENSEMBLE_TEST_PROGRESS_V1:{"status":"running","testId":"checkout"}';
+    const done =
+        'ENSEMBLE_TEST_PROGRESS_V1:{"status":"passed","testId":"checkout","durationMs":4200}';
+
+    expect(CliProcessOutput.isIntegrationProgressLine(start), isTrue);
+    expect(CliProcessOutput.isIntegrationWorkloadStarted(start), isTrue);
+    expect(CliProcessOutput.isIntegrationWorkloadStarted(done), isFalse);
+    expect(CliProcessOutput.formatIntegrationProgressLine(start), isNull);
+    expect(
+      CliProcessOutput.formatIntegrationProgressLine(done),
+      '[passed] checkout (4200ms)',
+    );
+  });
+
   test('extractSuiteReport keeps screen tracker and boxed summary', () {
     const noisy = '''
 00:00 +0: loading test/ensemble_tests.dart
 SCREEN TRACKER: Hello Home
 name is ={first: John}
-┌─ Ensemble YAML tests ─────────────────────────────
+┌─ Ensemble tests ─────────────────────────────
 │  ✓ hello_home_renders
 └─ 5 passed, 0 failed (5 total) · 653ms total
 
@@ -17,7 +35,7 @@ name is ={first: John}
     expect(
       extractSuiteReport(noisy),
       '''SCREEN TRACKER: Hello Home
-┌─ Ensemble YAML tests ─────────────────────────────
+┌─ Ensemble tests ─────────────────────────────
 │  ✓ hello_home_renders
 └─ 5 passed, 0 failed (5 total) · 653ms total
 ''',
@@ -27,14 +45,14 @@ name is ={first: John}
   test('extractSuiteReport can omit streamed screen tracker lines', () {
     const noisy = '''
 SCREEN TRACKER: Login
-┌─ Ensemble YAML tests ─────────────────────────────
+┌─ Ensemble tests ─────────────────────────────
 │  ✓ login_test
 └─ 1 passed, 0 failed (1 total) · 653ms total
 ''';
 
     expect(
       extractSuiteReport(noisy, includeScreenTracker: false),
-      '''┌─ Ensemble YAML tests ─────────────────────────────
+      '''┌─ Ensemble tests ─────────────────────────────
 │  ✓ login_test
 └─ 1 passed, 0 failed (1 total) · 653ms total
 ''',
@@ -49,16 +67,21 @@ SCREEN TRACKER: Login
         '--quiet',
         '--doctor',
         '--inspect-app',
+        '--screen=Hello Home',
         '--validate-only',
         '--scaffold-test=login',
         '--report=json',
         '--report-file=build/results.json',
         '--id=login',
         '--feature=auth',
-        '--profile=fwa_arc',
+        '--profile=alternate',
         '--tag=smoke',
         '--path=auth/',
+        '--mode=integration',
+        '--device-id=emulator-5554',
         '--timeout=30s',
+        '--tests-dir=tests',
+        '--test-entry=test/application_tests.dart',
         '--input',
         'adminPassword=s4C>M7U6t~',
         '--input=expectedDeviceCount=2',
@@ -86,22 +109,37 @@ SCREEN TRACKER: Login
     );
   });
 
+  test('extractJsonReport reads Flutter-prefixed marker lines', () {
+    expect(
+      extractJsonReport(
+        'flutter: ENSEMBLE_TEST_JSON_REPORT:{"status":"passed"}\n',
+      ),
+      '{"status":"passed"}',
+    );
+    expect(
+      extractJsonReport(
+        'I/flutter (12345): ENSEMBLE_TEST_JSON_REPORT:{"mode":"integration"}\n',
+      ),
+      '{"mode":"integration"}',
+    );
+  });
+
   test('extractKnownFailure keeps no-tests message only', () {
     const noisy = '''
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════
 The following EnsembleTestFailure was thrown running a test:
-No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/
+No declarative tests found. Add *.test.yaml files under ensemble/apps/sample_app/tests/
 
 When the exception was thrown, this was the stack:
 #0      EnsembleTestExecutionPlanner.build
 The test description was:
-  Ensemble app *.test.yaml
+  Ensemble app test suite
 ════════════════════════════════════════════════════════════════════════════════
 ''';
 
     expect(
       extractKnownFailure(noisy),
-      'No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/',
+      'No declarative tests found. Add *.test.yaml files under ensemble/apps/sample_app/tests/',
     );
   });
 
@@ -134,11 +172,21 @@ When the exception was thrown, this was the stack:
     );
     expect(
       filter.shouldEmit(
+        'ENSEMBLE_TEST_ARTIFACT_V1:{"event":"chunk","data":"AAAA"}',
+      ),
+      isFalse,
+    );
+    expect(filter.shouldEmit('ENSEMBLE_TEST_OBSERVE_V1_BEGIN'), isFalse);
+    expect(filter.shouldEmit('Screen: Hello Home'), isFalse);
+    expect(filter.shouldEmit('ENSEMBLE_TEST_OBSERVE_V1_END'), isFalse);
+    expect(filter.shouldEmit('DEBUG after observe'), isTrue);
+    expect(
+      filter.shouldEmit(
         '(The following exception is now available via WidgetTester.takeException:)',
       ),
       isFalse,
     );
-    expect(filter.shouldEmit('┌─ Ensemble YAML tests ─────'), isFalse);
+    expect(filter.shouldEmit('┌─ Ensemble tests ─────'), isFalse);
     expect(filter.shouldEmit('SCREEN TRACKER: Home'), isFalse);
   });
 

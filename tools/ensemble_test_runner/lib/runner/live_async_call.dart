@@ -6,13 +6,25 @@ import 'dart:async';
 /// requests from the app must be queued when multiple actions run in parallel.
 class LiveAsyncCallSupport {
   static Future<T?> Function<T>(Future<T> Function())? runner;
-  static void Function()? drainPendingExceptions;
+  static Future<T?> Function<T>(Future<T> Function())? platformHttpRunner;
 
-  static int _pendingLiveCalls = 0;
+  static int _completedLiveCalls = 0;
+  static DateTime? _lastLiveCallCompletedAt;
   static final Set<Future<dynamic>> _inFlightLiveCalls = {};
   static Future<void> _liveCallQueue = Future<void>.value();
 
-  static bool get hasPendingLiveCalls => _pendingLiveCalls > 0;
+  static bool get hasPendingLiveCalls => _inFlightLiveCalls.isNotEmpty;
+  static int get pendingLiveCallCount => _inFlightLiveCalls.length;
+  static int get completedLiveCallCount => _completedLiveCalls;
+  static DateTime? get lastLiveCallCompletedAt => _lastLiveCallCompletedAt;
+
+  /// Captures the live calls already in flight at this boundary.
+  ///
+  /// The returned future does not include calls started after the snapshot.
+  static Future<void>? pendingLiveCallsSnapshot() {
+    if (_inFlightLiveCalls.isEmpty) return null;
+    return Future.wait(_inFlightLiveCalls.toList());
+  }
 
   static Future<void> waitForLiveCalls() async {
     if (_inFlightLiveCalls.isEmpty) {
@@ -21,9 +33,13 @@ class LiveAsyncCallSupport {
     await Future.wait(_inFlightLiveCalls.toList());
   }
 
-  /// Backwards-compatible alias for callers that need real async work.
+  /// Runs platform HTTP outside the runner's console-capture zone.
+  ///
+  /// Some platform HTTP clients depend on the test binding's native
+  /// `runAsync` zone. Keep this route on the binding directly while ordinary
+  /// app async work uses [runner] for console capture.
   static Future<T?> runWithPlatformHttp<T>(Future<T> Function() call) =>
-      run(call);
+      _run(call, trackAsLiveCall: true, runnerOverride: platformHttpRunner);
 
   static Future<T?> run<T>(Future<T> Function() call) =>
       _run(call, trackAsLiveCall: true);
@@ -37,8 +53,9 @@ class LiveAsyncCallSupport {
   static Future<T?> _run<T>(
     Future<T> Function() call, {
     required bool trackAsLiveCall,
+    Future<T?> Function<T>(Future<T> Function())? runnerOverride,
   }) {
-    final liveRunner = runner;
+    final liveRunner = runnerOverride ?? runner;
     if (liveRunner == null) {
       return call();
     }
@@ -46,7 +63,6 @@ class LiveAsyncCallSupport {
     final completer = Completer<T?>();
     final trackedFuture = completer.future;
     if (trackAsLiveCall) {
-      _pendingLiveCalls++;
       _inFlightLiveCalls.add(trackedFuture);
     }
 
@@ -58,10 +74,10 @@ class LiveAsyncCallSupport {
           completer.completeError(error, stackTrace);
         }
       } finally {
-        drainPendingExceptions?.call();
         if (trackAsLiveCall) {
-          _pendingLiveCalls--;
           _inFlightLiveCalls.remove(trackedFuture);
+          _completedLiveCalls++;
+          _lastLiveCallCompletedAt = DateTime.now().toUtc();
         }
       }
     });
@@ -71,8 +87,9 @@ class LiveAsyncCallSupport {
 
   static void reset() {
     runner = null;
-    drainPendingExceptions = null;
-    _pendingLiveCalls = 0;
+    platformHttpRunner = null;
+    _completedLiveCalls = 0;
+    _lastLiveCallCompletedAt = null;
     _inFlightLiveCalls.clear();
     _liveCallQueue = Future<void>.value();
   }

@@ -1,6 +1,59 @@
 # Test Authoring
 
+## Application modes
+
+The same YAML vocabulary runs against standalone Ensemble, pure Flutter, and
+mixed Flutter/Ensemble applications. Standalone tests require `startScreen`.
+Host-driven tests normally omit it and launch through `ApplicationTestDriver`.
+Use `--tests-dir=tests --test-entry=test/application_tests.dart` for host
+suites. The runner never modifies a custom entry file. `--mode=integration`
+reuses that entry from a generated `integration_test/` wrapper. `example_host/`
+is a runnable Flutter login → 3-tab shell with Ensemble opened from the bottom
+nav or a host card.
+
+## Element targets
+
+`id:` remains shorthand for an exact `ValueKey<String>` match. Use `target:`
+for exact accessible or compound matching:
+
+```yaml
+- expectVisible:
+    target:
+      label: Continue
+      role: button
+      within: {id: login_form}
+      occurrence: 0
+```
+
+All supplied fields are conjunctive. `within` must resolve to one ancestor.
+Without `occurrence`, multiple matches are an error. There is no heuristic
+fallback. Secure editable values are removed from observations. Screenshots
+include the rendered screen contents, including secure fields.
+
+When the observer cannot produce a unique selector, use its logical-pixel
+bounds as another conjunctive target field:
+
+```yaml
+- tap:
+    target:
+      text: Wifiversterker 2
+      bounds: {left: 16, top: 653.75, width: 120.08, height: 22}
+```
+
+Bounds are matched against the current rendered element when the action runs;
+they do not send a raw coordinate tap. Include the observed text or role when
+available. If the screen has moved enough that the bounds no longer identify
+one element, the action fails instead of choosing another match.
+
 `ensemble_test_runner` can act as the execution backend for test authoring. The recommended loop is:
+
+Suites may set `mode: widget` (the default) or `mode: integration` in
+`tests/config.yaml`. The CLI `--mode` option overrides that value. Integration
+mode runs the same YAML engine in an installed application on one Android
+emulator or iOS simulator selected with `--device-id`. It is serial. Suite
+`devices` entries whose platform matches the connected target still apply
+locale/theme; viewport/model are ignored, and other platforms are skipped.
+`--device` filters those matching rows.
 
 1. Inspect the app:
    ```sh
@@ -51,7 +104,7 @@ mocks:
 
 initialState:
   storage:
-    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+    apiUrl: http://ensemble.test/api/devices
   env:
     APP_LOCALE: nl
 
@@ -77,6 +130,7 @@ timers:
   enabled: true
   maxStartAfterSeconds: 1
   maxRepeatIntervalSeconds: 1
+  maxNumberOfTimes: 15
 dumpTree:
   enabled: true
 logApiCalls:
@@ -93,10 +147,19 @@ the same API name). Suite `initialState` is the base for every test;
 test-level `storage` / `keychain` / `env` keys override suite values.
 
 When `screenshots.enabled` is true, the runner captures automatic step
-screenshots as per-step PNGs under `build/ensemble_test_runner/screenshots/`.
-Frame metadata is folded into `report/results.json.gz` (no leftover `*_frames.json`).
+screenshots and stores them in `build/ensemble_test_runner/report/screenshots.zip`.
+The HTML report reads images from the archive in memory without extracting it.
+Host suites (`ApplicationTestDriver` / `example_host`) use the same config
+flag and attach those frames plus app console, API, and storage logs on each
+test result so the HTML report gallery is populated. Host widget tests also
+resize the surface to the screenshot device (default iPhone 15 Pro) before
+launch so the capture is not stretched into the bezel.
+Frame manifests (`*_frames.json`) are written under
+`build/ensemble_test_runner/frames/` and folded into the current report payload
+inside `report/ensemble_test.db`
+(no leftover manifests after report generation).
 When `performance` / `dumpTree` are enabled, those payloads are embedded **per
-screen** in the same `results.json.gz` under `tests[].report.screens` (then
+screen** in the same database report under `tests[].report.screens` (then
 `logs/` is deleted).
 
 When `devices` is set, each test runs once per device (test ids become
@@ -107,6 +170,8 @@ like `Light` / `Dark`) is applied via `EnsembleThemeManager` after the app
 boots, so it works for any `startScreen`. Explicit test `languageCode` /
 `themeMode` inputs are left as written. Each device run writes its own frames
 set named after the expanded test id (for example `home[android_nl]_frames.json`).
+In integration mode, only entries whose `platform` matches the connected
+emulator/simulator run; viewport/model are ignored.
 
 For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 
@@ -123,12 +188,15 @@ For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 ```
 
 When `timers.enabled` is true, the CLI temporarily caps numeric
-`startAfter` and `repeatInterval` values in local app screen YAML while the test
-process runs, then restores the original files.
+`startAfter`, `repeatInterval`, and optional `maxNumberOfTimes` values in local
+app screen YAML while the test process runs, then restores the original files.
+Set `maxNumberOfTimes` high enough to cover the whole screen visit — including
+mid-test `mocks` steps that wait for a later poll.
 
 ## App Context
 
-`--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints.
+`--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints (static EDL walk — no Flutter launch).
+
 
 ## Mocks
 
@@ -182,7 +250,7 @@ values and merges mock entries in order.
 
 ```yaml
 id: home_scenarios
-session: signin_to_gateway
+session: sign_in_session
 startScreen: Home
 
 mocks:

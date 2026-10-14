@@ -28,4 +28,34 @@ class SignInUtils {
       a.messagingSenderId == b.messagingSenderId &&
       a.projectId == b.projectId;
   }
+
+  /// Decides how custom-token sign-in should bind to Firebase.
+  ///
+  /// [ensembleAppId] is only a name for a new FirebaseApp. An app that native
+  /// startup or Firestore already initialized does not need it.
+  static FirebaseSignInPlan planFirebaseSignIn({
+    required bool hasPlatformOptions,
+    required bool hasMatchingInitializedApp,
+    required bool hasAnyInitializedApp,
+    required String? ensembleAppId,
+  }) {
+    if (hasPlatformOptions && hasMatchingInitializedApp) {
+      return FirebaseSignInPlan.useExistingApp;
+    }
+    if (hasPlatformOptions &&
+        ensembleAppId != null &&
+        ensembleAppId.isNotEmpty) {
+      return FirebaseSignInPlan.createNamedApp;
+    }
+    if (!hasPlatformOptions && hasAnyInitializedApp) {
+      return FirebaseSignInPlan.useExistingApp;
+    }
+    return FirebaseSignInPlan.notConfigured;
+  }
+}
+
+enum FirebaseSignInPlan {
+  useExistingApp,
+  createNamedApp,
+  notConfigured,
 }

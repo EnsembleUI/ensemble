@@ -1,12 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
+import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
 import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
+import 'package:ensemble_test_runner/src/core/operation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   late Directory tempDir;
@@ -21,30 +26,37 @@ void main() {
     }
   });
 
-  Map<String, dynamic> readExpandedResults() {
-    final reportDir = Directory(p.join(tempDir.path, 'report'));
-    expect(
-      File(p.join(reportDir.path, TestReportDocument.resultsFileName))
-          .existsSync(),
-      isTrue,
+  Future<Uint8List> readLatestReportBytes() async {
+    final db = await databaseFactoryFfi.openDatabase(
+      p.join(tempDir.path, 'report', EnsembleTestHistoryStore.fileName),
     );
-    expect(File(p.join(reportDir.path, 'results.json')).existsSync(), isFalse);
-    return TestReportDocument.readResults(reportDir);
+    try {
+      final rows = await db.rawQuery('''
+SELECT report_data FROM test_results
+WHERE record_type = 'run' AND report_data IS NOT NULL
+ORDER BY id DESC LIMIT 1
+''');
+      expect(rows, hasLength(1));
+      return Uint8List.fromList(rows.single['report_data'] as List<int>);
+    } finally {
+      await db.close();
+    }
   }
 
-  Map<String, dynamic> readRawOptimized() {
-    final file = File(
-        p.join(tempDir.path, 'report', TestReportDocument.resultsFileName));
-    final jsonText = utf8.decode(gzip.decode(file.readAsBytesSync()));
+  Future<Map<String, dynamic>> readExpandedResults() async =>
+      TestReportDocument.decodeCompressed(await readLatestReportBytes());
+
+  Future<Map<String, dynamic>> readRawOptimized() async {
+    final jsonText = utf8.decode(gzip.decode(await readLatestReportBytes()));
     return json.decode(jsonText) as Map<String, dynamic>;
   }
 
   test('suite start writes shell + loading results without rewriting later',
-      () {
+      () async {
     const displayRoot = 'build/ensemble_test_runner';
     final reporter = HtmlTestReporter();
 
-    final htmlPath = reporter.write(
+    final htmlPath = await reporter.write(
       const EnsembleTestRunResult(results: []),
       artifactRoot: tempDir.path,
       displayRoot: displayRoot,
@@ -56,14 +68,37 @@ void main() {
     final htmlFile = File(p.join(tempDir.path, 'report', 'index.html'));
     expect(htmlFile.existsSync(), isTrue);
     final shell = htmlFile.readAsStringSync();
-    expect(shell, contains('results.json.gz'));
-    expect(shell, contains("fetch('results.json.gz"));
+    expect(shell, isNot(contains('results.json.gz')));
+    expect(shell, isNot(contains("fetch('results.json.gz")));
+    expect(shell, contains('report_data AS reportData'));
     expect(shell, contains('history-host'));
-    expect(shell, contains('ensemble_test_history.db'));
+    expect(shell, contains('ensemble_test.db'));
     expect(shell, contains('sql-wasm.js'));
     expect(shell, contains('Test Execution History'));
+    expect(shell, isNot(contains('Run scope')));
+    expect(shell, isNot(contains('Chart range')));
+    expect(shell, contains('const chartRuns = [...runs].reverse()'));
+    expect(shell, contains('function renderTestTrends'));
+    expect(shell, contains('function renderHistoryComparison'));
+    expect(shell, contains('Choose two different runs to compare'));
+    expect(
+        shell, contains('Per-test comparison is unavailable for these runs'));
+    expect(shell, contains('history-chart-heading'));
+    expect(shell, contains('No issues surfaced in these runs'));
+    expect(shell, contains('test_results'));
+    expect(shell, contains('ensureHistoryLoaded'));
+    expect(shell, contains('setHistorySearch'));
+    expect(shell, isNot(contains('Last 10 Runs')));
+    expect(shell, contains('chartRuns.length * 32'));
+    expect(shell, contains('overflow-x: auto;'));
+    expect(shell, contains("Execution Duration (' + chartLabel"));
+    expect(shell, contains("Test Volume & Results (' + chartLabel"));
     expect(shell, contains('DecompressionStream'));
     expect(shell, contains('report-loader'));
+    expect(shell,
+        contains('Waiting for a completed test report in ensemble_test.db'));
+    expect(shell,
+        contains('No completed test report is stored in ensemble_test.db yet'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
     expect(shell, contains('pollAndRender'));
     expect(shell, contains('feature-select'));
@@ -72,29 +107,44 @@ void main() {
     expect(shell, contains('applyProfileFilter'));
     expect(shell, contains('features.length > 1'));
     expect(shell, contains('profiles.length > 1'));
-    expect(shell.length, lessThan(200000));
+    expect(shell, contains('modal-step-error'));
+    expect(shell, contains('stepFailureMessage'));
+    expect(shell, contains('window.stepMeta'));
+    expect(shell.length, lessThan(252000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
 
-    final loading = readExpandedResults();
-    expect(loading['state'], 'loading');
-    expect(loading['tests'], isEmpty);
+    expect(
+      await databaseFactoryFfi
+          .openDatabase(
+        p.join(tempDir.path, 'report', EnsembleTestHistoryStore.fileName),
+      )
+          .then((db) async {
+        try {
+          return await db.rawQuery(
+            "SELECT report_data FROM test_results WHERE record_type = 'run'",
+          );
+        } finally {
+          await db.close();
+        }
+      }),
+      isEmpty,
+    );
 
     final shellBefore = shell;
-    final mtimeBefore = htmlFile.lastModifiedSync();
 
     Directory(p.join(tempDir.path, 'logs')).createSync(recursive: true);
     File(p.join(tempDir.path, 'logs', 'ok_app_console.log'))
         .writeAsStringSync('done\n');
 
-    reporter.writeResultsOnly(
+    await reporter.write(
       EnsembleTestRunResult(
         results: [
           EnsembleSingleTestResult.passed(
             testId: 'ok',
             metadata: const {
-              'feature': 'fwa-installation',
-              'profile': 'fwa_arc',
+              'feature': 'alternate-installation',
+              'profile': 'alternate',
               'scenarioId': 'manual_connect',
               'scenarioDescription': 'Manual Wi-Fi connection.',
               'device': {
@@ -119,21 +169,19 @@ void main() {
       displayRoot: displayRoot,
     );
 
-    expect(htmlFile.readAsStringSync(), shellBefore);
+    expect(htmlFile.readAsStringSync(), contains('ensemble_test.db'));
+    expect(shellBefore, contains('ensemble_test.db'));
     expect(
-      htmlFile
-              .lastModifiedSync()
-              .isBefore(mtimeBefore.add(const Duration(seconds: 1))) ||
-          htmlFile.readAsStringSync() == shellBefore,
-      isTrue,
+      File(p.join(tempDir.path, 'report', 'results.json.gz')).existsSync(),
+      isFalse,
     );
 
-    final complete = readExpandedResults();
+    final complete = await readExpandedResults();
     expect(complete['state'], 'complete');
     expect(complete['tests'], hasLength(1));
     expect(complete['tests'][0]['id'], 'ok');
-    expect(complete['tests'][0]['feature'], 'fwa-installation');
-    expect(complete['tests'][0]['profile'], 'fwa_arc');
+    expect(complete['tests'][0]['feature'], 'alternate-installation');
+    expect(complete['tests'][0]['profile'], 'alternate');
     expect(complete['tests'][0]['scenarioId'], 'manual_connect');
     expect(
       complete['tests'][0]['scenarioDescription'],
@@ -146,18 +194,33 @@ void main() {
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
   });
 
-  test('complete results aggregate api/storage/console/screenshots/steps', () {
-    final screenshotsDir = Directory(p.join(tempDir.path, 'screenshots'))
+  test('replaces an outdated report shell with the database reader', () {
+    final report = Directory(p.join(tempDir.path, 'report'))
+      ..createSync(recursive: true);
+    final html = File(p.join(report.path, 'index.html'))
+      ..writeAsStringSync("fetch('results.json.gz')");
+
+    HtmlTestReporter().writeShell(artifactRoot: tempDir.path);
+
+    final refreshed = html.readAsStringSync();
+    expect(refreshed, contains('report_data AS reportData'));
+    expect(refreshed, contains('ensemble_test.db'));
+    expect(refreshed, isNot(contains('results.json.gz')));
+  });
+
+  test('complete results aggregate api/storage/console/screenshots/steps',
+      () async {
+    final framesDir = Directory(p.join(tempDir.path, 'frames'))
       ..createSync(recursive: true);
     final reportScreenshotsDir =
         Directory(p.join(tempDir.path, 'report', 'screenshots'))
           ..createSync(recursive: true);
-    File(p.join(reportScreenshotsDir.path, 'login_flow_step0_0.png'))
-        .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
-    File(p.join(reportScreenshotsDir.path, 'login_flow_step1_0.png'))
-        .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
-    File(p.join(screenshotsDir.path, 'login_flow_frames.json'))
-        .writeAsStringSync(
+    const webpHeader = [82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80];
+    File(p.join(reportScreenshotsDir.path, 'login_flow_step0_0.webp'))
+        .writeAsBytesSync(webpHeader);
+    File(p.join(reportScreenshotsDir.path, 'login_flow_step1_0.webp'))
+        .writeAsBytesSync(webpHeader);
+    File(p.join(framesDir.path, 'login_flow_frames.json')).writeAsStringSync(
       jsonEncode({
         'status': 'failed',
         'failedStepIndex': 1,
@@ -165,12 +228,12 @@ void main() {
           {
             'stepIndex': 0,
             'label': '1. enterText(email_field)',
-            'file': 'login_flow_step0_0.png',
+            'file': 'login_flow_step0_0.webp',
           },
           {
             'stepIndex': 1,
             'label': '2. tap(login_button)',
-            'file': 'login_flow_step1_0.png',
+            'file': 'login_flow_step1_0.webp',
             'failed': true,
           },
         ],
@@ -204,22 +267,38 @@ void main() {
         ],
       }),
     );
+    File(p.join(logsDir.path, 'login_flow_attempt_1_api_calls.json'))
+        .writeAsStringSync(jsonEncode({
+      'events': [
+        {
+          'name': 'loginRetry',
+          'timestamp': '2026-07-22T12:00:00.020',
+          'stepIndex': 1,
+          'statusCode': 503,
+        },
+      ],
+    }));
     File(p.join(logsDir.path, 'login_flow_storage.json')).writeAsStringSync(
       jsonEncode({
-        'keys': {'token': 'abc'},
-        'steps': [
-          {
-            'stepIndex': 1,
-            'timestamp': '2026-07-22T12:00:01.000',
-            'changes': [
-              {'key': 'token', 'change': 'added', 'after': 'abc'},
-            ],
-          },
-        ],
+        'storage': {
+          'keys': {'token': 'abc'},
+          'steps': [
+            {
+              'stepIndex': 1,
+              'timestamp': '2026-07-22T12:00:01.000',
+              'changes': [
+                {'key': 'token', 'change': 'added', 'after': 'abc'},
+              ],
+            },
+          ],
+        },
       }),
     );
     File(p.join(logsDir.path, 'login_flow_app_console.log'))
         .writeAsStringSync('[2026-07-22T12:00:00.050][step=1] during wait\n');
+    File(p.join(logsDir.path, 'login_flow_attempt_1_app_console.log'))
+        .writeAsStringSync(
+            '--- Attempt 1 of 4 ---\n[2026-07-22T12:00:00.020][step=1] first attempt\n');
     File(p.join(logsDir.path, 'ok_home_app_console.log'))
         .writeAsStringSync('<no console output>\n');
 
@@ -245,10 +324,11 @@ void main() {
           },
           durationMs: 3400,
           failedStepIndex: 1,
-          error: 'Timed out waiting for dashboard',
+          message: 'Timed out waiting for dashboard',
           logs: [
-            'screenshots: $displayRoot/screenshots/login_flow_frames.json',
-            'screenshotFrames: $displayRoot/screenshots/login_flow_frames.json',
+            'screenshotFrames: $displayRoot/frames/login_flow_frames.json',
+            'apiCalls: $displayRoot/logs/login_flow_attempt_1_api_calls.json',
+            'appLogs: $displayRoot/logs/login_flow_attempt_1_app_console.log',
             'apiCalls: $displayRoot/logs/login_flow_api_calls.json',
             'storage: $displayRoot/logs/login_flow_storage.json',
             'appLogs: $displayRoot/logs/login_flow_app_console.log',
@@ -271,7 +351,7 @@ void main() {
     );
 
     final reporter = HtmlTestReporter();
-    reporter.write(
+    await reporter.write(
       result,
       artifactRoot: tempDir.path,
       displayRoot: displayRoot,
@@ -279,24 +359,62 @@ void main() {
 
     final html =
         File(p.join(tempDir.path, 'report', 'index.html')).readAsStringSync();
-    expect(html, contains('results.json.gz'));
-    expect(html, contains("fetch('results.json.gz"));
+    expect(html, isNot(contains('results.json.gz')));
+    expect(html, isNot(contains("fetch('results.json.gz")));
+    expect(html, contains('report_data AS reportData'));
     expect(html, contains('switchModalTab(\'screenshots\')'));
+    expect(html, isNot(contains('switchModalTab(\'observer\')')));
+    expect(html, contains('modal-observer-side'));
+    expect(html, contains('screenshots-split'));
+    expect(html, contains('copyObserverJson'));
+    expect(html, contains('renderObserverTreeNode'));
+    expect(html, contains('observer-tree'));
+    expect(html, contains('bindObserverTreeHover'));
+    expect(html, contains('openObserverElementDetail'));
+    expect(html, contains('Bounds (logical px)'));
+    expect(html, contains('el.selected'));
+    expect(html, contains('el.offscreen'));
+    expect(
+        html, contains('const payload = observer && observer.observationJson'));
+    expect(html, contains('window.__observerCopyPayload = payload'));
+    expect(html, contains('el.actions'));
+    expect(html, isNot(contains('formatObserverActionYaml')));
+    expect(html, contains('return { bounds: el.bounds }'));
+    expect(html, contains('bounds=\' + JSON.stringify(locator.bounds)'));
+    expect(html, contains('navigateObserverElement'));
+    expect(html, contains('renderObserverElementPreview'));
+    expect(html, contains('Element is outside this screenshot viewport'));
+    expect(html, contains('Screenshot has no bounds overlay for this element'));
+    expect(html, contains('layoutObserverDetailPreview'));
+    expect(html, contains('observer-element-detail-overlay'));
     expect(html, contains('screenshot-highlight'));
     expect(html, contains('renderScreenshotImage'));
+    expect(html, contains('layoutScreenshotChips'));
+    expect(html, contains('flattenScreenshotFramesWithOverlays'));
+    expect(html, contains('screenshotOverlayToolbarHtml'));
+    expect(html, contains('copyScreenshotOverlay'));
+    expect(html,
+        contains("screenshotOverlaySwitchHtml('obsHighlights', 'Elements')"));
+    expect(
+        html, contains("screenshotOverlaySwitchHtml('obsLabels', 'Labels')"));
+    expect(html,
+        contains("screenshotOverlaySwitchHtml('actionHighlights', 'Target')"));
+    expect(html, contains("screenshotOverlaySwitchHtml('showTree', 'Tree')"));
+    expect(html, contains('modal-screenshots-toolbar'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
 
-    final doc = readExpandedResults();
+    final doc = await readExpandedResults();
     expect(doc['state'], 'complete');
     expect(doc['summary']['passed'], 1);
     expect(doc['summary']['failed'], 1);
 
     final tests = doc['tests'] as List;
-    expect(tests.first['id'], contains('login_flow'));
-    expect(tests.last['id'], contains('ok_home'));
+    // All report projections preserve the execution order from machine JSON.
+    expect(tests.first['id'], contains('ok_home'));
+    expect(tests.last['id'], contains('login_flow'));
 
-    final failed = tests.first as Map<String, dynamic>;
+    final failed = tests.last as Map<String, dynamic>;
     expect(
       failed['description'],
       'Logs in with a valid token and opens the dashboard',
@@ -311,12 +429,21 @@ void main() {
     final steps = failed['steps'] as List;
     expect(steps, hasLength(2));
     expect((steps[0] as Map)['apiCalls'], isEmpty);
-    expect(((steps[1] as Map)['apiCalls'] as List).first['name'], 'login');
+    final stepApiCalls = (steps[1] as Map)['apiCalls'] as List;
+    expect(stepApiCalls.map((event) => event['name']),
+        containsAll(['loginRetry', 'login']));
+    expect(stepApiCalls.firstWhere((event) => event['name'] == 'login')['name'],
+        'login');
     expect(
-      ((steps[1] as Map)['apiCalls'] as List).first['responseBody']['token'],
+      stepApiCalls.firstWhere(
+          (event) => event['name'] == 'login')['responseBody']['token'],
       'abc',
     );
     expect((steps[1] as Map)['appLogs'], isNotEmpty);
+    expect(
+      (steps[1] as Map)['appLogs'],
+      contains('[2026-07-22T12:00:00.020][step=1] first attempt'),
+    );
     expect(
       (steps[1] as Map)['appLogs'],
       contains('[2026-07-22T12:00:00.050][step=1] during wait'),
@@ -327,55 +454,62 @@ void main() {
     );
     expect((steps[0] as Map)['screenshots'], isNotEmpty);
     final frames = (steps[0] as Map)['screenshots'] as List;
-    expect(frames.first['href'], 'screenshots/login_flow_step0_0.png');
+    expect(frames.first['href'],
+        'screenshots.zip#screenshots/login_flow_step0_0.webp');
     expect(((steps[1] as Map)['screenshots'] as List).first['failed'], isTrue);
 
-    final raw = readRawOptimized();
+    final raw = await readRawOptimized();
     expect(raw.containsKey('blobs'), isTrue);
-    final api = (((raw['tests'] as List).first as Map)['steps'] as List)[1]
-        as Map<String, dynamic>;
-    final ev = (api['apiCalls'] as List).first as Map<String, dynamic>;
+    final rawFailed = (raw['tests'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((test) => (test['id'] as String).contains('login_flow'));
+    final api = ((rawFailed['steps'] as List)[1] as Map<String, dynamic>);
+    final ev = (api['apiCalls'] as List)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((event) => event['name'] == 'login');
     expect(ev['responseBody'], isA<Map>());
     expect((ev['responseBody'] as Map).containsKey(r'$b'), isTrue);
 
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
     expect(
-      File(p.join(screenshotsDir.path, 'login_flow_frames.json')).existsSync(),
+      File(p.join(framesDir.path, 'login_flow_frames.json')).existsSync(),
       isFalse,
     );
     expect(
-      File(p.join(screenshotsDir.path, 'login_flow_step0_0.png')).existsSync(),
+      File(p.join(framesDir.path, 'login_flow_step0_0.png')).existsSync(),
       isFalse,
     );
+    final screenshotArchive = ZipDecoder().decodeBytes(
+      File(p.join(tempDir.path, 'report', 'screenshots.zip')).readAsBytesSync(),
+    );
     expect(
-      File(p.join(
-        tempDir.path,
-        'report',
-        'screenshots',
-        'login_flow_step0_0.png',
-      )).existsSync(),
-      isTrue,
+      screenshotArchive.files.map((file) => file.name),
+      contains('screenshots/login_flow_step0_0.webp'),
+    );
+    expect(
+      Directory(p.join(tempDir.path, 'report', 'screenshots')).existsSync(),
+      isFalse,
     );
   });
 
-  test('buildHtml escapes untrusted text inside results payload', () {
-    final html = HtmlTestReporter().buildHtml(
+  test('compressed report preserves untrusted text for escaped rendering', () {
+    final html = HtmlTestReporter().buildShellHtml();
+    final document = TestReportDocument.buildComplete(
       EnsembleTestRunResult(
         results: [
           EnsembleSingleTestResult.failed(
             testId: 'bad<script>',
             durationMs: 1,
-            error: '<img src=x onerror=alert(1)>',
+            message: '<img src=x onerror=alert(1)>',
           ),
         ],
       ),
       artifactRoot: tempDir.path,
       displayRoot: 'build/ensemble_test_runner',
     );
-    expect(html, isNot(contains('bad<script>')));
-    expect(html, isNot(contains('<img src=x')));
-
-    final doc = readExpandedResults();
+    final doc = TestReportDocument.decodeCompressed(
+      TestReportDocument.encodeCompressed(document),
+    );
     final test = (doc['tests'] as List).first as Map<String, dynamic>;
     expect(test['id'], 'bad<script>');
     expect(test['message'], '<img src=x onerror=alert(1)>');
@@ -460,16 +594,6 @@ void main() {
     expect(loading['state'], 'loading');
     expect(loading['tests'], isEmpty);
 
-    final dir = Directory(p.join(tempDir.path, 'report'))
-      ..createSync(recursive: true);
-    TestReportDocument.writeResults(dir, loading);
-    expect(
-      File(p.join(dir.path, TestReportDocument.resultsFileName)).existsSync(),
-      isTrue,
-    );
-    expect(File(p.join(dir.path, 'results.json')).existsSync(), isFalse);
-    expect(File(p.join(dir.path, 'results.js')).existsSync(), isFalse);
-
     final complete = TestReportDocument.buildComplete(
       EnsembleTestRunResult(
         results: [
@@ -484,15 +608,223 @@ void main() {
     );
     expect(complete['state'], 'complete');
     expect(complete['summary']['passed'], 1);
+    expect(complete['summary']['failed'], 0);
+    expect(complete['summary']['total'], 1);
+    expect(complete['summary']['status'], 'passed');
+    final restoredLoading = TestReportDocument.decodeCompressed(
+      TestReportDocument.encodeCompressed(loading),
+    );
+    expect(restoredLoading['state'], 'loading');
+    expect(restoredLoading['summary'], loading['summary']);
+    expect(restoredLoading['tests'], isEmpty);
+    final restoredComplete = TestReportDocument.decodeCompressed(
+      TestReportDocument.encodeCompressed(complete),
+    );
+    expect(restoredComplete['state'], 'complete');
+    expect(restoredComplete['summary'], complete['summary']);
+    expect((restoredComplete['tests'] as List).single['id'], 't1');
     expect((complete['tests'] as List).first['id'], 't1');
   });
 
-  test('embeds dumpTree and appPerformance per screen into results.json.gz',
+  test('complete reports deduplicate repeated durable suite artifact links',
       () {
+    final artifact = File(p.join(tempDir.path, 'logs', 'suite.log'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('suite evidence');
+    const displayRoot = 'build/ensemble_test_runner';
+    final result = EnsembleTestRunResult(
+      results: const [],
+      suiteLogs: [
+        'custom: $displayRoot/logs/suite.log',
+        'custom: $displayRoot/logs/suite.log',
+      ],
+    );
+
+    final complete = TestReportDocument.buildComplete(
+      result,
+      artifactRoot: tempDir.path,
+      displayRoot: displayRoot,
+    );
+
+    expect(artifact.existsSync(), isTrue);
+    expect(complete['suiteArtifacts'], [
+      {
+        'label': 'custom',
+        'path': '$displayRoot/logs/suite.log',
+        'href': '../logs/suite.log',
+      },
+    ]);
+  });
+
+  test('complete reports read duplicate artifact references once', () {
+    const displayRoot = 'build/ensemble_test_runner';
+    final logs = Directory(p.join(tempDir.path, 'logs'))..createSync();
+    File(p.join(logs.path, 'api.json')).writeAsStringSync(jsonEncode({
+      'events': [
+        {
+          'name': 'load',
+          'timestamp': '2026-07-22T12:00:00.100Z',
+          'stepIndex': 0
+        }
+      ],
+    }));
+    File(p.join(logs.path, 'console.log'))
+        .writeAsStringSync('[2026-07-22T12:00:00.100Z][step=0] loaded\n');
+
+    final complete = TestReportDocument.buildComplete(
+      EnsembleTestRunResult(results: [
+        EnsembleSingleTestResult.passed(
+          testId: 'load (tests/load.test.yaml)',
+          durationMs: 100,
+          logs: [
+            'apiCalls: $displayRoot/logs/api.json',
+            'apiCalls: $displayRoot/logs/api.json',
+            'appLogs: $displayRoot/logs/console.log',
+            'appLogs: $displayRoot/logs/console.log',
+          ],
+          report: const EnsembleTestReportDetails(
+            stepsOutline: ['tap(load_button)'],
+            stepDurationsMs: [100],
+            stepStartTimes: ['2026-07-22T12:00:00.000Z'],
+          ),
+        ),
+      ]),
+      artifactRoot: tempDir.path,
+      displayRoot: displayRoot,
+    );
+
+    final step =
+        ((complete['tests'] as List).single as Map)['steps'].single as Map;
+    expect(step['apiCalls'], hasLength(1));
+    expect(step['appLogs'], hasLength(1));
+  });
+
+  test('storage reports ignore retired flat snapshot artifacts', () {
+    const displayRoot = 'build/ensemble_test_runner';
+    final logs = Directory(p.join(tempDir.path, 'logs'))..createSync();
+    final flatSnapshot = File(p.join(logs.path, 'storage.json'))
+      ..writeAsStringSync(jsonEncode({
+        'keys': {'token': 'retired'},
+        'steps': [
+          {
+            'stepIndex': 0,
+            'changes': [
+              {'key': 'token', 'change': 'added', 'after': 'retired'},
+            ],
+          },
+        ],
+      }));
+
+    final complete = TestReportDocument.buildComplete(
+      EnsembleTestRunResult(results: [
+        EnsembleSingleTestResult.passed(
+          testId: 'flat-storage',
+          durationMs: 1,
+          logs: ['storage: $displayRoot/logs/${p.basename(flatSnapshot.path)}'],
+          report: const EnsembleTestReportDetails(
+            stepsOutline: ['tap(open_button)'],
+            stepDurationsMs: [1],
+          ),
+        ),
+      ]),
+      artifactRoot: tempDir.path,
+      displayRoot: displayRoot,
+    );
+
+    final result = (complete['tests'] as List).single as Map;
+    expect(result['storage'], {
+      'keys': <String, dynamic>{},
+      'secureStorageKeys': <String, dynamic>{},
+      'keychainKeys': <String, dynamic>{},
+    });
+    final step = (result['steps'] as List).single as Map;
+    expect(step['storageChanges'], isEmpty);
+  });
+
+  test('HTML results preserve canonical structured failure diagnostics', () {
+    final failed = EnsembleSingleTestResult.failed(
+      testId: 'failed-case',
+      metadata: const {
+        'owner': 'qa',
+        'custom': {'priority': 'high'},
+      },
+      durationMs: 12,
+      attempts: 2,
+      retry: 1,
+      message: 'missing submit button',
+      stackTrace: 'failure stack',
+      failedStepIndex: 2,
+      failureOperation: 'tap',
+      failureSource: const SourceLocation('tests/submit.test.yaml', 'steps[2]'),
+      failedStep: TestStep(type: 'tap', args: {'id': 'submit'}),
+      failure: const TestFailureDetails(
+        kind: TestFailureKind.elementNotFound,
+        message: 'submit was not found',
+        target: {'id': 'submit'},
+        phase: 'execution',
+      ),
+      secondaryFailures: const [
+        TestFailureDetails(
+          kind: TestFailureKind.cleanup,
+          message: 'cleanup failed',
+          phase: 'cleanup',
+        ),
+      ],
+      capabilityStatus: const {'screenshots': false},
+    );
+    final expected = failed.toJson();
+    final complete = TestReportDocument.buildComplete(
+      EnsembleTestRunResult(results: [failed]),
+      artifactRoot: tempDir.path,
+      displayRoot: 'build/ensemble_test_runner',
+    );
+    final entry = (complete['tests'] as List).single as Map<String, dynamic>;
+
+    for (final key in const [
+      'failure',
+      'secondaryFailures',
+      'stackTrace',
+      'failedStep',
+      'failureOperation',
+      'failureSource',
+      'capabilities',
+      'attempts',
+      'retry',
+      'metadata',
+    ]) {
+      expect(entry[key], expected[key],
+          reason: '$key should match result JSON');
+    }
+
+    // The persisted, optimized report must expose the same diagnostics as
+    // the in-memory document consumed by the HTML reporter.
+    final persisted = ReportJsonOptimizer.expand(
+      ReportJsonOptimizer.optimize(complete),
+    );
+    final persistedEntry =
+        (persisted['tests'] as List).single as Map<String, dynamic>;
+    for (final key in const [
+      'failure',
+      'secondaryFailures',
+      'stackTrace',
+      'failedStep',
+      'failureOperation',
+      'failureSource',
+      'capabilities',
+      'attempts',
+      'retry',
+      'metadata',
+    ]) {
+      expect(persistedEntry[key], expected[key],
+          reason: '$key should survive report compression');
+    }
+  });
+
+  test('stores screen details in the database report payload', () async {
     const displayRoot = 'build/ensemble_test_runner';
 
     final reporter = HtmlTestReporter();
-    reporter.write(
+    await reporter.write(
       EnsembleTestRunResult(
         results: [
           EnsembleSingleTestResult.passed(
@@ -529,9 +861,7 @@ void main() {
       displayRoot: displayRoot,
     );
 
-    final doc = TestReportDocument.readResults(
-      Directory(p.join(tempDir.path, 'report')),
-    );
+    final doc = await readExpandedResults();
     final test = (doc['tests'] as List).single as Map<String, dynamic>;
     expect(test.containsKey('performance'), isFalse);
     expect(test.containsKey('dumpTree'), isFalse);
@@ -549,7 +879,7 @@ void main() {
     expect(html, isNot(contains('modal-tab-performance')));
   });
 
-  test('cleanTransientArtifacts keeps report screenshots', () {
+  test('cleanTransientArtifacts keeps screenshot archive', () {
     final root = tempDir.path;
     Directory(p.join(root, 'logs')).createSync(recursive: true);
     File(p.join(root, 'logs', 'x_api_calls.json')).writeAsStringSync('{}');
@@ -558,38 +888,33 @@ void main() {
     File(p.join(root, 'worker_reports', 'worker1.json'))
         .writeAsStringSync('{}');
     Directory(p.join(root, 'report')).createSync(recursive: true);
-    File(p.join(root, 'report', TestReportDocument.resultsFileName))
+    File(p.join(root, 'report', EnsembleTestHistoryStore.fileName))
         .writeAsBytesSync([1, 2, 3]);
     File(p.join(root, 'report', 'index.html'))
         .writeAsStringSync('<html></html>');
-    Directory(p.join(root, 'report', 'screenshots'))
-        .createSync(recursive: true);
-    File(p.join(root, 'report', 'screenshots', 't_step0_0.png'))
-        .writeAsBytesSync([1]);
+    File(p.join(root, 'report', 'screenshots.zip')).writeAsBytesSync([1]);
     File(p.join(root, 'test_durations.json')).writeAsStringSync('{}');
+    Directory(p.join(root, 'frames')).createSync(recursive: true);
+    File(p.join(root, 'frames', 't_frames.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'screenshots')).createSync(recursive: true);
-    File(p.join(root, 'screenshots', 't_frames.json')).writeAsStringSync('{}');
+    File(p.join(root, 'screenshots', 'legacy_frames.json'))
+        .writeAsStringSync('{}');
 
     TestReportDocument.cleanTransientArtifacts(root);
 
     expect(Directory(p.join(root, 'logs')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_progress')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_reports')).existsSync(), isFalse);
+    expect(Directory(p.join(root, 'frames')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'screenshots')).existsSync(), isFalse);
     expect(
-      File(p.join(root, 'report', TestReportDocument.resultsFileName))
+      File(p.join(root, 'report', EnsembleTestHistoryStore.fileName))
           .existsSync(),
       isTrue,
     );
     expect(File(p.join(root, 'report', 'index.html')).existsSync(), isTrue);
-    expect(File(p.join(root, 'test_durations.json')).existsSync(), isTrue);
+    expect(File(p.join(root, 'test_durations.json')).existsSync(), isFalse);
     expect(
-      File(p.join(root, 'report', 'screenshots', 't_step0_0.png')).existsSync(),
-      isTrue,
-    );
-    expect(
-      File(p.join(root, 'report', 'screenshots', 't_frames.json')).existsSync(),
-      isFalse,
-    );
+        File(p.join(root, 'report', 'screenshots.zip')).existsSync(), isTrue);
   });
 }

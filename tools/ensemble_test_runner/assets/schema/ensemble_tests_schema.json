@@ -135,10 +135,113 @@
   },
   "required": [
     "id",
-    "startScreen",
     "steps"
   ],
   "$defs": {
+    "elementBounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "left": {
+          "type": "number"
+        },
+        "top": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "left",
+        "top",
+        "width",
+        "height"
+      ]
+    },
+    "elementLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "button",
+            "card",
+            "toast",
+            "text",
+            "textField",
+            "checkbox",
+            "switch",
+            "slider",
+            "dropdown",
+            "icon",
+            "image",
+            "svg",
+            "gif",
+            "lottie",
+            "widget"
+          ]
+        },
+        "within": {
+          "$ref": "#/$defs/elementLocator"
+        },
+        "occurrence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bounds": {
+          "$ref": "#/$defs/elementBounds"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "label"
+          ]
+        },
+        {
+          "required": [
+            "role"
+          ]
+        },
+        {
+          "required": [
+            "bounds"
+          ]
+        },
+        {
+          "required": [
+            "within"
+          ]
+        }
+      ]
+    },
     "initialState": {
       "type": "object",
       "additionalProperties": false,
@@ -357,12 +460,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "tap",
@@ -380,12 +495,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "doubleTap",
@@ -402,12 +529,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "longPress",
@@ -424,13 +563,31 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": true,
         "submit": {
           "type": "boolean"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
-        "id"
+        "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "enterText",
@@ -448,12 +605,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "clearText",
@@ -470,13 +639,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": true,
         "submit": {
           "type": "boolean"
         }
       },
       "required": [
-        "id"
+        "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "replaceText",
@@ -494,12 +678,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "submitText",
@@ -516,12 +712,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "focus",
@@ -547,13 +755,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "select",
@@ -571,12 +793,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "index": {
           "type": "integer"
         }
       },
       "required": [
-        "id"
+        "index"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "selectIndex",
@@ -594,12 +831,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "check",
@@ -616,12 +865,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "uncheck",
@@ -638,12 +899,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "toggle",
@@ -660,12 +933,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "number"
         }
       },
       "required": [
-        "id"
+        "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "setSlider",
@@ -683,13 +971,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "chooseDate",
@@ -707,13 +1009,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "value": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "value"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "chooseTime",
@@ -728,8 +1044,20 @@
     "args_scroll": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "delta": {
           "type": "integer"
+        },
+        "direction": {
+          "type": "string"
+        },
+        "distance": {
+          "type": "number"
         }
       },
       "additionalProperties": false,
@@ -747,12 +1075,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "scrollUntilVisible",
@@ -766,6 +1106,12 @@
     "args_swipe": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "direction": {
           "type": "string",
           "enum": [
@@ -774,9 +1120,6 @@
             "up",
             "down"
           ]
-        },
-        "id": {
-          "type": "string"
         }
       },
       "additionalProperties": false,
@@ -795,6 +1138,9 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "dx": {
           "type": "number"
         },
@@ -802,8 +1148,17 @@
           "type": "number"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "drag",
@@ -821,6 +1176,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
       "additionalProperties": false,
@@ -873,7 +1231,7 @@
       },
       "additionalProperties": false,
       "title": "settle",
-      "description": "Run pumpAndSettle until idle or timeout",
+      "description": "Wait for the UI to become idle or until timeout",
       "examples": [
         {
           "timeoutMs": 5000
@@ -882,9 +1240,13 @@
     },
     "args_waitFor": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         },
         "text": {
           "type": "string"
@@ -900,7 +1262,28 @@
           "type": "integer"
         }
       },
-      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        },
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
+      ],
       "title": "waitFor",
       "description": "Poll until a widget id and/or text appears",
       "examples": [
@@ -912,9 +1295,13 @@
     },
     "args_waitForText": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         },
         "text": {
           "type": "string"
@@ -930,7 +1317,28 @@
           "type": "integer"
         }
       },
-      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        },
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
+      ],
       "title": "waitForText",
       "description": "Poll until the given text appears on screen",
       "examples": [
@@ -946,12 +1354,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "waitForGone",
@@ -981,7 +1401,7 @@
       ],
       "additionalProperties": false,
       "title": "waitForApi",
-      "description": "Poll until a mocked API is called N times",
+      "description": "Wait until N calls to the named API complete",
       "examples": [
         {
           "name": "login",
@@ -1101,12 +1521,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectVisible",
@@ -1123,12 +1555,21 @@
         "id": {
           "type": "string"
         },
-        "timeoutMs": {
-          "type": "integer"
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNotVisible",
@@ -1145,12 +1586,21 @@
         "id": {
           "type": "string"
         },
-        "timeoutMs": {
-          "type": "integer"
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectExists",
@@ -1167,12 +1617,21 @@
         "id": {
           "type": "string"
         },
-        "timeoutMs": {
-          "type": "integer"
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNotExists",
@@ -1196,6 +1655,9 @@
             "type": "string"
           },
           "minItems": 1
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "anyOf": [
@@ -1298,12 +1760,21 @@
         "id": {
           "type": "string"
         },
-        "timeoutMs": {
-          "type": "integer"
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectEnabled",
@@ -1320,12 +1791,21 @@
         "id": {
           "type": "string"
         },
-        "timeoutMs": {
-          "type": "integer"
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectDisabled",
@@ -1342,11 +1822,25 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": true
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectValue",
@@ -1364,12 +1858,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": {
           "type": "boolean"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectChecked",
@@ -1387,14 +1893,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "property": {
           "type": "string"
         },
         "equals": true
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectProperty",
@@ -1413,14 +1933,28 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "property": {
           "type": "string"
         },
         "equals": true
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectStyle",
@@ -1439,12 +1973,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": {
           "type": "boolean"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectSelected",
@@ -1462,13 +2008,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "equals": {
           "type": "integer"
         }
       },
       "required": [
-        "id",
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectCount",
@@ -1486,6 +2046,9 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "itemId": {
           "type": "string"
         },
@@ -1495,6 +2058,18 @@
       },
       "required": [
         "equals"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectListCount",
@@ -1512,13 +2087,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "text": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "text"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectListContains",
@@ -1535,10 +2124,22 @@
       "properties": {
         "itemId": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
         }
       },
-      "required": [
-        "itemId"
+      "anyOf": [
+        {
+          "required": [
+            "itemId"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectListItem",
@@ -1555,12 +2156,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectEmpty",
@@ -1577,12 +2190,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNotEmpty",
@@ -1936,38 +2561,6 @@
         }
       ]
     },
-    "args_setAuth": {
-      "type": "object",
-      "properties": {
-        "user": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      },
-      "required": [
-        "user"
-      ],
-      "additionalProperties": false,
-      "title": "setAuth",
-      "description": "Simulate a signed-in user",
-      "examples": [
-        {
-          "user": {
-            "id": "1",
-            "email": "user@test.com"
-          }
-        }
-      ]
-    },
-    "args_clearAuth": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "clearAuth",
-      "description": "Clear the signed-in user",
-      "examples": [
-        {}
-      ]
-    },
     "args_setPermission": {
       "type": "object",
       "properties": {
@@ -2043,48 +2636,6 @@
       "examples": [
         {
           "mode": "dark"
-        }
-      ]
-    },
-    "args_runScript": {
-      "type": "object",
-      "properties": {
-        "script": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "equals": true
-      },
-      "additionalProperties": false,
-      "title": "runScript",
-      "description": "Evaluate a script expression in the data context",
-      "examples": [
-        {
-          "script": "1 + 1",
-          "equals": 2
-        }
-      ]
-    },
-    "args_expectScriptResult": {
-      "type": "object",
-      "properties": {
-        "script": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "equals": true
-      },
-      "additionalProperties": false,
-      "title": "expectScriptResult",
-      "description": "Evaluate script and assert result equals expected",
-      "examples": [
-        {
-          "script": "1 + 1",
-          "equals": 2
         }
       ]
     },
@@ -2209,6 +2760,9 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "step": {
           "$ref": "#/$defs/step"
         },
@@ -2220,8 +2774,17 @@
           "minItems": 1
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "ifVisible",
@@ -2237,15 +2800,6 @@
             }
           ]
         }
-      ]
-    },
-    "args_logApiCalls": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "logApiCalls",
-      "description": "Log all recorded API calls to the test log",
-      "examples": [
-        {}
       ]
     },
     "args_expectNoConsoleErrors": {
@@ -2297,12 +2851,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectAccessible",
@@ -2319,13 +2885,27 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "label": {
           "type": "string"
         }
       },
       "required": [
-        "id",
         "label"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectSemanticsLabel",
@@ -2343,12 +2923,24 @@
         "id": {
           "type": "string"
         },
+        "target": {
+          "$ref": "#/$defs/elementLocator"
+        },
         "timeoutMs": {
           "type": "integer"
         }
       },
-      "required": [
-        "id"
+      "anyOf": [
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "target"
+          ]
+        }
       ],
       "additionalProperties": false,
       "title": "expectNoOverflow",
@@ -3238,7 +3830,7 @@
         {
           "type": "object",
           "title": "settle",
-          "description": "Run pumpAndSettle until idle or timeout",
+          "description": "Wait for the UI to become idle or until timeout",
           "examples": [
             {
               "settle": {
@@ -3252,7 +3844,7 @@
           "properties": {
             "settle": {
               "$ref": "#/$defs/args_settle",
-              "description": "Run pumpAndSettle until idle or timeout",
+              "description": "Wait for the UI to become idle or until timeout",
               "examples": [
                 {
                   "timeoutMs": 5000
@@ -3360,7 +3952,7 @@
         {
           "type": "object",
           "title": "waitForApi",
-          "description": "Poll until a mocked API is called N times",
+          "description": "Wait until N calls to the named API complete",
           "examples": [
             {
               "waitForApi": {
@@ -3376,7 +3968,7 @@
           "properties": {
             "waitForApi": {
               "$ref": "#/$defs/args_waitForApi",
-              "description": "Poll until a mocked API is called N times",
+              "description": "Wait until N calls to the named API complete",
               "examples": [
                 {
                   "name": "login",
@@ -4608,66 +5200,6 @@
         },
         {
           "type": "object",
-          "title": "setAuth",
-          "description": "Simulate a signed-in user",
-          "examples": [
-            {
-              "setAuth": {
-                "user": {
-                  "id": "1",
-                  "email": "user@test.com"
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "setAuth": {
-              "$ref": "#/$defs/args_setAuth",
-              "description": "Simulate a signed-in user",
-              "examples": [
-                {
-                  "user": {
-                    "id": "1",
-                    "email": "user@test.com"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "setAuth"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "clearAuth",
-          "description": "Clear the signed-in user",
-          "examples": [
-            {
-              "clearAuth": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "clearAuth": {
-              "$ref": "#/$defs/args_clearAuth",
-              "description": "Clear the signed-in user",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "clearAuth"
-          ]
-        },
-        {
-          "type": "object",
           "title": "setPermission",
           "description": "Set a permission flag for the test runtime",
           "examples": [
@@ -4784,68 +5316,6 @@
           },
           "required": [
             "setTheme"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "runScript",
-          "description": "Evaluate a script expression in the data context",
-          "examples": [
-            {
-              "runScript": {
-                "script": "1 + 1",
-                "equals": 2
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "runScript": {
-              "$ref": "#/$defs/args_runScript",
-              "description": "Evaluate a script expression in the data context",
-              "examples": [
-                {
-                  "script": "1 + 1",
-                  "equals": 2
-                }
-              ]
-            }
-          },
-          "required": [
-            "runScript"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectScriptResult",
-          "description": "Evaluate script and assert result equals expected",
-          "examples": [
-            {
-              "expectScriptResult": {
-                "script": "1 + 1",
-                "equals": 2
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectScriptResult": {
-              "$ref": "#/$defs/args_expectScriptResult",
-              "description": "Evaluate script and assert result equals expected",
-              "examples": [
-                {
-                  "script": "1 + 1",
-                  "equals": 2
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectScriptResult"
           ]
         },
         {
@@ -5045,31 +5515,6 @@
           },
           "required": [
             "ifVisible"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "logApiCalls",
-          "description": "Log all recorded API calls to the test log",
-          "examples": [
-            {
-              "logApiCalls": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "logApiCalls": {
-              "$ref": "#/$defs/args_logApiCalls",
-              "description": "Log all recorded API calls to the test log",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "logApiCalls"
           ]
         },
         {

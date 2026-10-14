@@ -1,10 +1,59 @@
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
+import 'package:ensemble_test_runner/src/core/plan.dart';
+import 'package:ensemble_test_runner/src/runtime/compiled_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('EnsembleTestExecutionPlanner', () {
+    test('decodes the suite once and expands only selected definition files',
+        () async {
+      final collector = BenchmarkCollector(
+        caseId: 'planner.selected-definitions',
+        sample: 0,
+        processId: 'test',
+      );
+
+      final plan = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.buildForTest(
+          assetContents: {
+            'tests/selected.test.yaml': '''
+id: selected
+steps:
+  - expectVisible:
+      id: selected_button
+''',
+            'tests/unselected.test.yaml': '''
+id: unselected
+steps:
+  - expectVisible:
+      id: unselected_button
+''',
+          },
+          selection: const EnsembleTestSelection(ids: {'selected'}),
+        ),
+      );
+
+      final spans = collector.toJson();
+      final plannerSpan = spans.singleWhere(
+        (span) =>
+            span['service'] == 'planner' &&
+            span['operation'] == 'buildFromResolvedAssets',
+      );
+      expect(plannerSpan['counters'], {'documentsDecoded': 2});
+      expect(
+        spans.where((span) =>
+            span['service'] == 'planner' &&
+            span['operation'] == 'parseDefinitionsFromAsset'),
+        hasLength(1),
+      );
+      expect(plan.ordered.map((definition) => definition.testCase.id),
+          ['selected']);
+    });
+
     test('orders session producer before session consumers', () {
       final byId = {
         'signin': _def('a/signin.test.yaml', '''
@@ -128,7 +177,7 @@ steps:
     test('expands scenarios with bracketed ids', () async {
       const yaml = '''
 id: home_scenarios
-session: signin_to_gateway
+session: sign_in_session
 startScreen: Home
 scenarios:
   - id: v12_online
@@ -146,7 +195,7 @@ steps:
 
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'ensemble/apps/inhome/tests/home.test.yaml',
+        'ensemble/apps/sample_app/tests/home.test.yaml',
         yaml,
       );
 
@@ -157,8 +206,8 @@ steps:
           'home_scenarios[v14_empty]',
         ],
       );
-      expect(definitions[0].testCase.session, 'signin_to_gateway');
-      expect(definitions[1].testCase.session, 'signin_to_gateway');
+      expect(definitions[0].testCase.session, 'sign_in_session');
+      expect(definitions[1].testCase.session, 'sign_in_session');
       expect(definitions[0].testCase.scenarioId, 'v12_online');
       expect(definitions[0].testCase.scenarioDescription, 'V12 online state.');
       expect(definitions[1].testCase.scenarioId, 'v14_empty');
@@ -170,7 +219,7 @@ steps:
     test('skips empty discovered test files', () async {
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'ensemble/apps/inhome/tests/commented.test.yaml',
+        'ensemble/apps/sample_app/tests/commented.test.yaml',
         '''
 # id: disabled_test
 # startScreen: Home
@@ -192,11 +241,11 @@ id: service_url
 startScreen: Login
 steps:
   - httpRequest:
-      url: \${services.modemStub.url}/reset
+      url: \${services.testService.url}/reset
 ''',
         services: const [
           TestServiceConfig(
-            name: 'modemStub',
+            name: 'testService',
             command: 'python',
             url: 'http://127.0.0.1:5001',
           ),
@@ -206,6 +255,55 @@ steps:
       expect(
         definitions.single.testCase.steps.single.args['url'],
         'http://127.0.0.1:5001/reset',
+      );
+    });
+
+    test('decodes substituted scenario documents once before expansion',
+        () async {
+      final collector = BenchmarkCollector(
+        caseId: 'planner.substituted-scenarios',
+        sample: 0,
+        processId: 'test',
+      );
+      final definitions = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+          'suite/tests/service-scenarios.test.yaml',
+          r'''
+id: service_scenarios
+startScreen: Login
+scenarios:
+  - id: first
+  - id: second
+steps:
+  - httpRequest:
+      url: ${services.testService.url}/reset
+''',
+          services: const [
+            TestServiceConfig(
+              name: 'testService',
+              command: 'python',
+              url: 'http://127.0.0.1:5001',
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        definitions.map((definition) => definition.testCase.id),
+        ['service_scenarios[first]', 'service_scenarios[second]'],
+      );
+      expect(
+        definitions
+            .map((definition) => definition.testCase.steps.single.args['url'])
+            .toSet(),
+        {'http://127.0.0.1:5001/reset'},
+      );
+      expect(
+        collector.spans.where(
+          (span) => span.service == 'parser' && span.operation == 'parseString',
+        ),
+        isEmpty,
       );
     });
 
@@ -410,7 +508,7 @@ steps:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/common.mock.json': '''
+        'suite/tests/mocks/primary/common.mock.json': '''
 {
   "getDevices": {
     "body": {"count": 2}
@@ -423,12 +521,12 @@ steps:
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
         'suite/tests/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_v12',
+        suiteDefaultProfile: 'primary_v12',
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/common.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/common.mock.json'],
             initialState: {
-              'storage': {'deviceType': 'HGW_SAH'},
+              'storage': {'deviceType': 'DEVICE_TYPE_A'},
               'keychain': {'adminPassword': 'dummyPassword'},
             },
           ),
@@ -438,7 +536,8 @@ steps:
 
       final test = definitions.single.testCase;
       expect((test.mocks.apis['getDevices']!.body as Map)['count'], 2);
-      expect((test.initialState['storage'] as Map)['deviceType'], 'HGW_SAH');
+      expect(
+          (test.initialState['storage'] as Map)['deviceType'], 'DEVICE_TYPE_A');
       expect((test.initialState['storage'] as Map)['screen'], 'home');
       expect(
         (test.initialState['keychain'] as Map)['adminPassword'],
@@ -448,27 +547,27 @@ steps:
 
     test('explicit profile overrides suite profile', () async {
       const yaml = '''
-id: home_fwa_profile
-profiles: fwa_arc
-startScreen: Home_FWA
+id: explicit_profile
+profiles: alternate
+startScreen: Home_Alternate
 steps:
   - expectVisible:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/common.mock.json': '''
+        'suite/tests/mocks/primary/common.mock.json': '''
 {
   "getDevices": {
-    "body": {"source": "hgw"}
+    "body": {"source": "primary"}
   }
 }
 ''',
-        'suite/tests/mocks/fwa/common.mock.json': '''
+        'suite/tests/mocks/alternate/common.mock.json': '''
 {
   "getDevices": {
-    "body": {"source": "fwa"}
+    "body": {"source": "alternate"}
   },
-  "getFWAStatus": {
+  "getDeviceStatus": {
     "body": {"mobile_status": {"Status": "True"}}
   }
 }
@@ -477,21 +576,21 @@ steps:
 
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'suite/tests/fwa/home.test.yaml',
+        'suite/tests/alternate/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_v12',
+        suiteDefaultProfile: 'primary_v12',
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/common.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/common.mock.json'],
             initialState: {
-              'storage': {'deviceType': 'HGW_SAH'},
+              'storage': {'deviceType': 'DEVICE_TYPE_A'},
             },
           ),
-          'fwa_arc': TestProfile(
-            mockFiles: ['mocks/fwa/common.mock.json'],
+          'alternate': TestProfile(
+            mockFiles: ['mocks/alternate/common.mock.json'],
             initialState: {
-              'storage': {'deviceType': 'FWA_ARC'},
-              'keychain': {'fwaPassword': 'dummyPassword'},
+              'storage': {'deviceType': 'DEVICE_TYPE_B'},
+              'keychain': {'adminPassword': 'dummyPassword'},
             },
           ),
         },
@@ -499,22 +598,24 @@ steps:
       );
 
       final test = definitions.single.testCase;
-      expect(test.profile, 'fwa_arc');
-      expect((test.mocks.apis['getDevices']!.body as Map)['source'], 'fwa');
-      expect(test.mocks.apis, contains('getFWAStatus'));
-      expect((test.initialState['storage'] as Map)['deviceType'], 'FWA_ARC');
+      expect(test.profile, 'alternate');
       expect(
-        (test.initialState['keychain'] as Map)['fwaPassword'],
+          (test.mocks.apis['getDevices']!.body as Map)['source'], 'alternate');
+      expect(test.mocks.apis, contains('getDeviceStatus'));
+      expect(
+          (test.initialState['storage'] as Map)['deviceType'], 'DEVICE_TYPE_B');
+      expect(
+        (test.initialState['keychain'] as Map)['adminPassword'],
         'dummyPassword',
       );
     });
 
     test('expands test profiles into profile-specific runs', () async {
       const yaml = '''
-id: hgw_home
+id: home_profiles
 profiles:
-  - hgw_v12
-  - hgw_v10
+  - primary_v12
+  - primary_v10
 startScreen: Home
 session: signed_in
 steps:
@@ -522,14 +623,14 @@ steps:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/v12.mock.json': '''
+        'suite/tests/mocks/primary/v12.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v12"}
   }
 }
 ''',
-        'suite/tests/mocks/hgw/v10.mock.json': '''
+        'suite/tests/mocks/primary/v10.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v10"}
@@ -543,14 +644,14 @@ steps:
         'suite/tests/home.test.yaml',
         yaml,
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/v12.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/v12.mock.json'],
             initialState: {
               'storage': {'deviceType': 'v12'},
             },
           ),
-          'hgw_v10': TestProfile(
-            mockFiles: ['mocks/hgw/v10.mock.json'],
+          'primary_v10': TestProfile(
+            mockFiles: ['mocks/primary/v10.mock.json'],
             initialState: {
               'storage': {'deviceType': 'v10'},
             },
@@ -561,11 +662,11 @@ steps:
 
       expect(
         definitions.map((definition) => definition.testCase.id),
-        ['hgw_home[hgw_v12]', 'hgw_home[hgw_v10]'],
+        ['home_profiles[primary_v12]', 'home_profiles[primary_v10]'],
       );
       expect(
         definitions.map((definition) => definition.testCase.session),
-        ['signed_in[hgw_v12]', 'signed_in[hgw_v10]'],
+        ['signed_in[primary_v12]', 'signed_in[primary_v10]'],
       );
       expect(
         definitions.map((definition) {
@@ -588,7 +689,7 @@ steps:
       id: login
 ''',
           'suite/tests/home.test.yaml': '''
-id: hgw_home
+id: home_profiles
 session: signed_in
 startScreen: Home
 steps:
@@ -597,25 +698,25 @@ steps:
 ''',
         },
         config: const EnsembleTestConfig(
-          defaultProfile: 'hgw_sah',
+          defaultProfile: 'primary_group',
           profileGroups: {
-            'hgw_sah': ['hgw_v12', 'hgw_v10'],
+            'primary_group': ['primary_v12', 'primary_v10'],
           },
           profiles: {
-            'hgw_v12': TestProfile(),
-            'hgw_v10': TestProfile(),
+            'primary_v12': TestProfile(),
+            'primary_v10': TestProfile(),
           },
         ),
-        selection: const EnsembleTestSelection(profiles: {'hgw_v10'}),
+        selection: const EnsembleTestSelection(profiles: {'primary_v10'}),
       );
 
       expect(
         plan.ordered.map((definition) => definition.testCase.id),
-        ['signed_in[hgw_v10]', 'hgw_home[hgw_v10]'],
+        ['signed_in[primary_v10]', 'home_profiles[primary_v10]'],
       );
       expect(
         plan.ordered.map((definition) => definition.testCase.profile),
-        ['hgw_v10', 'hgw_v10'],
+        ['primary_v10', 'primary_v10'],
       );
     });
 
@@ -624,15 +725,15 @@ steps:
       final plan = await EnsembleTestExecutionPlanner.buildForTest(
         assetContents: {
           'suite/tests/home.test.yaml': '''
-id: hgw_home
+id: home_profiles
 startScreen: Home
 steps:
   - expectVisible:
       id: home
 ''',
-          'suite/tests/fwa.test.yaml': '''
-id: fwa_home
-profiles: fwa_arc
+          'suite/tests/alternate.test.yaml': '''
+id: alternate_home
+profiles: alternate
 startScreen: Home
 steps:
   - expectVisible:
@@ -640,43 +741,43 @@ steps:
 ''',
         },
         config: const EnsembleTestConfig(
-          defaultProfile: 'hgw_sah',
+          defaultProfile: 'primary_group',
           profileGroups: {
-            'hgw_sah': ['hgw_v12'],
+            'primary_group': ['primary_v12'],
           },
           profiles: {
-            'hgw_v12': TestProfile(),
-            'fwa_arc': TestProfile(),
+            'primary_v12': TestProfile(),
+            'alternate': TestProfile(),
           },
         ),
-        selection: const EnsembleTestSelection(profiles: {'hgw_sah'}),
+        selection: const EnsembleTestSelection(profiles: {'primary_group'}),
       );
 
       expect(
         plan.ordered.map((definition) => definition.testCase.id),
-        ['hgw_home'],
+        ['home_profiles'],
       );
-      expect(plan.ordered.single.testCase.profile, 'hgw_v12');
+      expect(plan.ordered.single.testCase.profile, 'primary_v12');
     });
 
     test('expands suite default group for tests without profile selectors',
         () async {
       const yaml = '''
-id: hgw_home
+id: home_profiles
 startScreen: Home
 steps:
   - expectVisible:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/hgw/v12.mock.json': '''
+        'suite/tests/mocks/primary/v12.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v12"}
   }
 }
 ''',
-        'suite/tests/mocks/hgw/v10.mock.json': '''
+        'suite/tests/mocks/primary/v10.mock.json': '''
 {
   "getDeviceInfo": {
     "body": {"device": "v10"}
@@ -689,16 +790,16 @@ steps:
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
         'suite/tests/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_sah',
+        suiteDefaultProfile: 'primary_group',
         suiteProfileGroups: const {
-          'hgw_sah': ['hgw_v12', 'hgw_v10'],
+          'primary_group': ['primary_v12', 'primary_v10'],
         },
         suiteProfiles: const {
-          'hgw_v12': TestProfile(
-            mockFiles: ['mocks/hgw/v12.mock.json'],
+          'primary_v12': TestProfile(
+            mockFiles: ['mocks/primary/v12.mock.json'],
           ),
-          'hgw_v10': TestProfile(
-            mockFiles: ['mocks/hgw/v10.mock.json'],
+          'primary_v10': TestProfile(
+            mockFiles: ['mocks/primary/v10.mock.json'],
           ),
         },
         assetLoader: (path) async => assets[path]!,
@@ -706,24 +807,24 @@ steps:
 
       expect(
         definitions.map((definition) => definition.testCase.id),
-        ['hgw_home[hgw_v12]', 'hgw_home[hgw_v10]'],
+        ['home_profiles[primary_v12]', 'home_profiles[primary_v10]'],
       );
     });
 
     test('test profiles selector overrides suite default group', () async {
       const yaml = '''
-id: fwa_home
-profiles: fwa
-startScreen: FwaHome
+id: alternate_home
+profiles: alternate
+startScreen: AlternateHome
 steps:
   - expectVisible:
       id: home
 ''';
       final assets = {
-        'suite/tests/mocks/fwa/arc.mock.json': '''
+        'suite/tests/mocks/alternate/arc.mock.json': '''
 {
-  "getFwaStatus": {
-    "body": {"device": "fwa"}
+  "getDeviceStatus": {
+    "body": {"device": "alternate"}
   }
 }
 ''',
@@ -731,26 +832,26 @@ steps:
 
       final definitions =
           await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
-        'suite/tests/fwa/home.test.yaml',
+        'suite/tests/alternate/home.test.yaml',
         yaml,
-        suiteDefaultProfile: 'hgw_sah',
+        suiteDefaultProfile: 'primary_group',
         suiteProfileGroups: const {
-          'hgw_sah': ['hgw_v12'],
-          'fwa': ['fwa_arc'],
+          'primary_group': ['primary_v12'],
+          'alternate': ['alternate'],
         },
         suiteProfiles: const {
-          'hgw_v12': TestProfile(),
-          'fwa_arc': TestProfile(
-            mockFiles: ['mocks/fwa/arc.mock.json'],
+          'primary_v12': TestProfile(),
+          'alternate': TestProfile(
+            mockFiles: ['mocks/alternate/arc.mock.json'],
           ),
         },
         assetLoader: (path) async => assets[path]!,
       );
 
       final test = definitions.single.testCase;
-      expect(test.id, 'fwa_home');
-      expect(test.profile, 'fwa_arc');
-      expect(test.mocks.apis, contains('getFwaStatus'));
+      expect(test.id, 'alternate_home');
+      expect(test.profile, 'alternate');
+      expect(test.mocks.apis, contains('getDeviceStatus'));
     });
 
     test('fails clearly for unknown explicit profile', () async {
@@ -768,7 +869,7 @@ steps:
           'suite/tests/home.test.yaml',
           yaml,
           suiteProfiles: const {
-            'hgw_v12': TestProfile(),
+            'primary_v12': TestProfile(),
           },
         ),
         throwsA(
@@ -900,6 +1001,31 @@ steps:
       expect(
         plan.ordered.map((definition) => definition.testCase.id),
         ['login[android]', 'home[android]'],
+      );
+    });
+
+    test('selected files reuse preview YAML and skip full parsing of others',
+        () async {
+      final plan = await EnsembleTestExecutionPlanner.buildForTest(
+        assetContents: const {
+          'suite/tests/selected.test.yaml': '''
+id: selected
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+          'suite/tests/unselected.test.yaml': '''
+id: unselected
+unsupportedRootKey: this remains outside the selected test's parse path
+''',
+        },
+        selection: const EnsembleTestSelection(ids: {'selected'}),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id),
+        ['selected'],
       );
     });
 
@@ -1217,6 +1343,161 @@ steps:
         'home_scenarios[first]',
         'home_scenarios[second]',
       ]);
+    });
+
+    test('selected scenarios retain substitutions with a reused YAML document',
+        () async {
+      final collector = BenchmarkCollector(
+        caseId: 'selected-scenarios',
+        sample: 0,
+        processId: 'test',
+      );
+      final plan = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.buildForTest(
+          assetContents: const {
+            'suite/tests/scenarios.test.yaml': r'''
+id: scenario_values
+startScreen: Home
+scenarios:
+  - id: first
+    vars:
+      label: First
+      field: first_input
+  - id: second
+    vars:
+      label: Second
+      field: second_input
+steps:
+  - expectText:
+      text: ${scenario.label}
+  - enterText:
+      id: ${scenario.field}
+      text: ${scenario.label}
+''',
+          },
+          selection: const EnsembleTestSelection(ids: {'scenario_values'}),
+        ),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id),
+        ['scenario_values[first]', 'scenario_values[second]'],
+      );
+      expect(
+        plan.ordered
+            .map((definition) => definition.testCase.steps.first.args['text']),
+        ['First', 'Second'],
+      );
+      final compiled = [
+        for (final definition in plan.ordered)
+          CompiledPlanCompiler().compile(definition.testCase),
+      ];
+      expect(compiled.map((item) => item.id), [
+        'scenario_values[first]',
+        'scenario_values[second]',
+      ]);
+
+      // Walk the executable graph (rather than relying on its node-map
+      // insertion order) and compare operations with each expanded parser
+      // model. This proves scenario substitution and authored order survive
+      // the production planner-to-compiled-plan boundary.
+      final compiledOperations = <List<PlanNode>>[];
+      for (final item in compiled) {
+        final operations = <PlanNode>[];
+        var nodeId = item.start;
+        var reachedEnd = false;
+        while (!reachedEnd) {
+          final node = item.nodes[nodeId];
+          if (node == null) fail('Missing node $nodeId in ${item.id}.');
+          switch (node) {
+            case StepBoundaryNode(:final next):
+              nodeId = next;
+            case OperationNode(:final next):
+              operations.add(node);
+              nodeId = next;
+            case EndNode():
+              reachedEnd = true;
+            default:
+              fail('Unexpected node in expanded simple scenario: $node');
+          }
+        }
+        compiledOperations.add(operations);
+      }
+      expect(
+        compiledOperations
+            .map((operations) => operations.map((node) {
+                  final operation = (node as OperationNode).operation;
+                  return [operation.name, operation.input];
+                }).toList())
+            .toList(),
+        [
+          [
+            [
+              'expectText',
+              {'text': 'First'}
+            ],
+            [
+              'enterText',
+              {'id': 'first_input', 'text': 'First'}
+            ],
+          ],
+          [
+            [
+              'expectText',
+              {'text': 'Second'}
+            ],
+            [
+              'enterText',
+              {'id': 'second_input', 'text': 'Second'}
+            ],
+          ],
+        ],
+      );
+      expect(
+        collector.spans.where(
+          (span) => span.service == 'parser' && span.operation == 'parseString',
+        ),
+        isEmpty,
+      );
+    });
+
+    test('unfiltered planning decodes each YAML asset once', () async {
+      final collector = BenchmarkCollector(
+        caseId: 'unfiltered-plan',
+        sample: 0,
+        processId: 'test',
+      );
+      final plan = await RunnerBenchmark.collect(
+        collector,
+        () => EnsembleTestExecutionPlanner.buildForTest(
+          assetContents: const {
+            'suite/tests/login.test.yaml': '''
+id: login
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login
+''',
+            'suite/tests/home.test.yaml': '''
+id: home
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+          },
+        ),
+      );
+
+      expect(plan.ordered.map((definition) => definition.testCase.id),
+          ['home', 'login']);
+      expect(
+        collector.spans.where(
+          (span) => span.service == 'parser' && span.operation == 'parseString',
+        ),
+        isEmpty,
+      );
     });
 
     test('selection ignores missing CLI inputs in unrelated tests', () async {

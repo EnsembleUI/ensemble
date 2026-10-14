@@ -1,10 +1,14 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 
 /// Simple in-memory logger for test runs.
 class TestLogger {
-  static const _artifactSuffix = String.fromEnvironment(
-    'ensembleTestWorkerSuffix',
-  );
+  static final _artifactSuffix =
+      RunnerRuntimeConfiguration.current.string('ensembleTestWorkerSuffix');
 
   final List<String> logs = [];
 
@@ -19,8 +23,6 @@ class TestLogger {
     required String content,
     String extension = 'log',
   }) async {
-    final directory = ensembleTestArtifactDirectory('logs');
-    await directory.create(recursive: true);
     final safeTestId = _safeFileName(testId);
     final safeName = _safeFileName(name);
     final suffix = _safeFileName(_artifactSuffix);
@@ -28,8 +30,14 @@ class TestLogger {
     final fileName = safeTestId.isEmpty
         ? '$safeName$suffixPart.${_safeExtension(extension)}'
         : '${safeTestId}_$safeName$suffixPart.${_safeExtension(extension)}';
-    final file = ensembleTestArtifactFile('logs', fileName);
-    await file.writeAsString(content);
+    await writeEnsembleTestArtifactString(
+      'logs',
+      fileName,
+      content,
+      mimeType: extension == 'json'
+          ? 'application/json'
+          : 'text/plain; charset=utf-8',
+    );
     return ensembleTestArtifactDisplayPath('logs', fileName);
   }
 

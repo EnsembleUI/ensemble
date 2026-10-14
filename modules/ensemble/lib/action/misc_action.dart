@@ -155,11 +155,14 @@ class ShareAction extends EnsembleAction {
           // Share files if any were created successfully
           if (xFiles.isNotEmpty) {
             try {
-              final result = await Share.shareXFiles(
-                xFiles,
-                text: evaluatedText,
-                subject: evaluatedTitle ?? '',
-                sharePositionOrigin: sharePositionOrigin,
+              // https://pub.dev/packages/share_plus/changelog
+              final result = await SharePlus.instance.share(
+                ShareParams(
+                  files: xFiles,
+                  text: evaluatedText,
+                  subject: evaluatedTitle ?? '',
+                  sharePositionOrigin: sharePositionOrigin,
+                ),
               );
 
               // Handle share result
@@ -173,10 +176,12 @@ class ShareAction extends EnsembleAction {
               debugPrint('Error sharing files: $e');
               if (kIsWeb) {
                 // On web, fall back to sharing just the text
-                await Share.share(
-                  evaluatedText,
-                  subject: evaluatedTitle ?? '',
-                  sharePositionOrigin: sharePositionOrigin,
+                await SharePlus.instance.share(
+                  ShareParams(
+                    text: evaluatedText,
+                    subject: evaluatedTitle ?? '',
+                    sharePositionOrigin: sharePositionOrigin,
+                  ),
                 );
                 return;
               }
@@ -188,10 +193,12 @@ class ShareAction extends EnsembleAction {
 
       // Fall back to sharing just text if no files or file sharing failed
       if (evaluatedText.isNotEmpty) {
-        final result = await Share.share(
-          evaluatedText,
-          subject: evaluatedTitle ?? '',
-          sharePositionOrigin: sharePositionOrigin,
+        final result = await SharePlus.instance.share(
+          ShareParams(
+            text: evaluatedText,
+            subject: evaluatedTitle ?? '',
+            sharePositionOrigin: sharePositionOrigin,
+          ),
         );
 
         if (result.status == ShareResultStatus.success) {

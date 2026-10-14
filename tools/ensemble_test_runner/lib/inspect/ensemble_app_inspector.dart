@@ -1,3 +1,8 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -81,22 +86,28 @@ class EnsembleAppInspector {
   EnsembleAppInspector(this.appDir);
 
   EnsembleAppInspection inspect() {
-    final config = _loadLocalConfig();
-    final appPath = config.path;
-    final appRoot = Directory(p.join(appDir, appPath));
-    if (!appRoot.existsSync()) {
-      throw StateError('definitions.local.path does not exist: $appPath');
-    }
+    return RunnerBenchmark.sync('tools', 'inspect', () {
+      final config = _loadLocalConfig();
+      final appPath = config.path;
+      final appRoot = Directory(p.join(appDir, appPath));
+      if (!appRoot.existsSync()) {
+        throw StateError('definitions.local.path does not exist: $appPath');
+      }
 
-    return EnsembleAppInspection(
-      appDir: appDir,
-      appPath: appPath,
-      appHome: config.appHome,
-      screens: _inspectScreens(appPath, appRoot),
-      widgets: _listYamlNames(Directory(p.join(appRoot.path, 'widgets'))),
-      actions: _listYamlNames(Directory(p.join(appRoot.path, 'actions'))),
-      scripts: _listNames(Directory(p.join(appRoot.path, 'scripts')), '.js'),
-    );
+      return EnsembleAppInspection(
+        appDir: appDir,
+        appPath: appPath,
+        appHome: config.appHome,
+        screens: _inspectScreens(appPath, appRoot),
+        widgets: _listDefinitionNames(
+          Directory(p.join(appRoot.path, 'widgets')),
+        ),
+        actions: _listDefinitionNames(
+          Directory(p.join(appRoot.path, 'actions')),
+        ),
+        scripts: _listNames(Directory(p.join(appRoot.path, 'scripts')), '.js'),
+      );
+    });
   }
 
   _LocalConfig _loadLocalConfig() {
@@ -140,14 +151,16 @@ class EnsembleAppInspector {
           p.relative(file.path, from: appDir).replaceAll('\\', '/');
       final name = p.basenameWithoutExtension(file.path);
       final content = file.readAsStringSync();
-      final dynamic yaml = loadYaml(content);
+      final dynamic document = loadYaml(content);
       final collector = _InspectionCollector(content);
-      if (yaml is YamlMap) collector.visit(yaml);
+      if (document is YamlMap) collector.visit(document);
 
       return ScreenInspection(
         name: name,
         path: relative,
-        imports: _toStringList(yaml is YamlMap ? yaml['Import'] : null),
+        imports: _toStringList(
+          document is YamlMap ? document['Import'] : null,
+        ),
         testIds: collector.testIds.sorted(),
         apis: collector.apis.sorted(),
         actions: collector.actions.sorted(),
@@ -229,7 +242,7 @@ class _LocalConfig {
   const _LocalConfig({required this.path, required this.appHome});
 }
 
-List<String> _listYamlNames(Directory dir) => _listNames(dir, '.yaml');
+List<String> _listDefinitionNames(Directory dir) => _listNames(dir, '.yaml');
 
 List<String> _listNames(Directory dir, String extension) {
   if (!dir.existsSync()) return const [];

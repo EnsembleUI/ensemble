@@ -22,7 +22,7 @@ steps:
 
     test('parses retry count', () {
       const yaml = '''
-id: signin_to_gateway
+id: sign_in_session
 startScreen: Login
 retry: 3
 steps:
@@ -36,24 +36,24 @@ steps:
 
     test('parses test profiles selector', () {
       const yaml = '''
-id: fwa_home
-profiles: fwa_arc
+id: alternate_home
+profiles: alternate
 startScreen: InitApp
 steps:
   - waitForNavigation:
-      screen: Home_FWA
+      screen: Home_Alternate
 ''';
 
       final test = EnsembleTestParser.parseString(yaml);
-      expect(test.profiles, ['fwa_arc']);
+      expect(test.profiles, ['alternate']);
     });
 
     test('parses test profile matrix', () {
       const yaml = '''
-id: hgw_home
+id: home_profiles
 profiles:
-  - hgw_v12
-  - hgw_v10
+  - primary_v12
+  - primary_v10
 startScreen: Home
 steps:
   - expectVisible:
@@ -61,13 +61,13 @@ steps:
 ''';
 
       final test = EnsembleTestParser.parseString(yaml);
-      expect(test.profiles, ['hgw_v12', 'hgw_v10']);
+      expect(test.profiles, ['primary_v12', 'primary_v10']);
     });
 
     test('rejects removed test profile key', () {
       const yaml = '''
-id: hgw_home
-profile: hgw_v12
+id: home_profiles
+profile: primary_v12
 startScreen: Home
 steps:
   - expectVisible:
@@ -88,7 +88,7 @@ steps:
 
     test('rejects negative retry count', () {
       const yaml = '''
-id: signin_to_gateway
+id: sign_in_session
 startScreen: Login
 retry: -1
 steps:
@@ -102,8 +102,7 @@ steps:
           isA<EnsembleTestFailure>().having(
             (error) => error.message,
             'message',
-            contains(
-                '"signin_to_gateway.retry" must be a non-negative integer'),
+            contains('"sign_in_session.retry" must be a non-negative integer'),
           ),
         ),
       );
@@ -165,7 +164,7 @@ initialState:
   storage:
     languageSet: true
   keychain:
-    kpnPsi: test-psi
+    sessionPsi: test-psi
     authPayload:
       token: abc
 steps:
@@ -175,7 +174,7 @@ steps:
 
       final test = EnsembleTestParser.parseString(yaml);
       expect(test.initialState['keychain'], isA<Map>());
-      expect((test.initialState['keychain'] as Map)['kpnPsi'], 'test-psi');
+      expect((test.initialState['keychain'] as Map)['sessionPsi'], 'test-psi');
       expect(
         ((test.initialState['keychain'] as Map)['authPayload'] as Map)['token'],
         'abc',
@@ -252,7 +251,7 @@ steps:
       );
     });
 
-    test('rejects session without a start screen', () {
+    test('parses host session without a start screen', () {
       const yaml = '''
 id: invalid_session
 session: signin
@@ -261,16 +260,9 @@ steps:
       id: home
 ''';
 
-      expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (error) => error.message,
-            'message',
-            contains('must have "startScreen"'),
-          ),
-        ),
-      );
+      final parsed = EnsembleTestParser.parseString(yaml);
+      expect(parsed.startScreen, isNull);
+      expect(parsed.session, 'signin');
     });
 
     test('resolves CLI inputs in initial state and steps', () {
@@ -477,21 +469,21 @@ screenshots:
     test('parses suite test services', () {
       const yaml = '''
 services:
-  - name: modemStub
+  - name: testService
     command: .venv/bin/python
-    arguments: [modemstub/app.py]
-    workingDirectory: ensemble/apps/inhome/autotests
+    arguments: [test_service/app.py]
+    workingDirectory: ensemble/apps/sample_app/autotests
     readyUrl: /ping
     readyTimeoutMs: 15000
 ''';
 
       final service =
           EnsembleTestParser.parseConfigString(yaml).services.single;
-      expect(service.name, 'modemStub');
+      expect(service.name, 'testService');
       expect(service.command, '.venv/bin/python');
       expect(service.url, isNull);
-      expect(service.arguments, ['modemstub/app.py']);
-      expect(service.workingDirectory, 'ensemble/apps/inhome/autotests');
+      expect(service.arguments, ['test_service/app.py']);
+      expect(service.workingDirectory, 'ensemble/apps/sample_app/autotests');
       expect(service.environment, isEmpty);
       expect(service.resolvedEnvironment, isEmpty);
       expect(service.readyUrl, '/ping');
@@ -520,82 +512,85 @@ mocks:
     test('parses suite profiles', () {
       const yaml = '''
 profiles:
-  default: hgw_sah
+  default: primary_group
   groups:
-    hgw_sah:
-      - hgw_v12
-      - hgw_v10
+    primary_group:
+      - primary_v12
+      - primary_v10
   definitions:
-    hgw_v12:
+    primary_v12:
       mocks:
-        - mocks/hgw/common.mock.json
+        - mocks/primary/common.mock.json
         - getDevices:
             body: {count: 2}
       initialState:
         storage:
-          deviceType: HGW_SAH
+          deviceType: DEVICE_TYPE_A
         keychain:
           adminPassword: dummyPassword
-    hgw_v10:
+    primary_v10:
       mocks: []
-    fwa_arc:
+    alternate:
       mocks:
-        - mocks/fwa/common.mock.json
+        - mocks/alternate/common.mock.json
       initialState:
         storage:
-          deviceType: FWA_ARC
+          deviceType: DEVICE_TYPE_B
         keychain:
-          fwaPassword: dummyPassword
+          adminPassword: dummyPassword
 ''';
 
       final config = EnsembleTestParser.parseConfigString(yaml);
       final profiles = config.profiles;
-      expect(config.defaultProfile, 'hgw_sah');
-      expect(config.profileGroups['hgw_sah'], ['hgw_v12', 'hgw_v10']);
-      expect(profiles.keys, containsAll(['hgw_v12', 'fwa_arc']));
-      expect(profiles['hgw_v12']!.mockFiles, ['mocks/hgw/common.mock.json']);
+      expect(config.defaultProfile, 'primary_group');
+      expect(config.profileGroups['primary_group'],
+          ['primary_v12', 'primary_v10']);
+      expect(profiles.keys, containsAll(['primary_v12', 'alternate']));
+      expect(profiles['primary_v12']!.mockFiles,
+          ['mocks/primary/common.mock.json']);
       expect(
-        profiles['hgw_v12']!.inlineMocks['getDevices'],
+        profiles['primary_v12']!.inlineMocks['getDevices'],
         {
           'body': {'count': 2}
         },
       );
       expect(
-        (profiles['fwa_arc']!.initialState['storage'] as Map)['deviceType'],
-        'FWA_ARC',
+        (profiles['alternate']!.initialState['storage'] as Map)['deviceType'],
+        'DEVICE_TYPE_B',
       );
     });
 
     test('parses suite active profile group', () {
       const yaml = '''
 profiles:
-  default: hgw_sah
+  default: primary_group
   groups:
-    hgw_sah:
-      - hgw_v12
-      - hgw_v10
+    primary_group:
+      - primary_v12
+      - primary_v10
   definitions:
-    hgw_v12:
+    primary_v12:
       mocks:
-        - mocks/hgw/v12.mock.json
-    hgw_v10:
+        - mocks/primary/v12.mock.json
+    primary_v10:
       mocks:
-        - mocks/hgw/v10.mock.json
+        - mocks/primary/v10.mock.json
 ''';
 
       final config = EnsembleTestParser.parseConfigString(yaml);
-      expect(config.defaultProfile, 'hgw_sah');
-      expect(config.profileGroups['hgw_sah'], ['hgw_v12', 'hgw_v10']);
+      expect(config.defaultProfile, 'primary_group');
+      expect(config.profileGroups['primary_group'],
+          ['primary_v12', 'primary_v10']);
     });
 
     test('rejects suite default profile that is not defined', () {
       const yaml = '''
 profiles:
-  default: hgw_v14
+  default: primary_v14
   definitions:
-    hgw_v12:
+    primary_v12:
       mocks:
-        - mocks/hgw/common.mock.json
+        - mocks/primary/common.mock.json
 ''';
 
       expect(
@@ -604,7 +599,7 @@ profiles:
           isA<EnsembleTestFailure>().having(
             (error) => error.message,
             'message',
-            contains('profiles.default "hgw_v14" must reference'),
+            contains('profiles.default "primary_v14" must reference'),
           ),
         ),
       );
@@ -614,12 +609,12 @@ profiles:
       const yaml = '''
 profiles:
   groups:
-    hgw_sah:
-      - hgw_v12
+    primary_group:
+      - primary_v12
   definitions:
-    hgw_v10:
+    primary_v10:
       mocks:
-        - mocks/hgw/v10.mock.json
+        - mocks/primary/v10.mock.json
 ''';
 
       expect(
@@ -628,7 +623,7 @@ profiles:
           isA<EnsembleTestFailure>().having(
             (error) => error.message,
             'message',
-            contains('references unknown profile "hgw_v12"'),
+            contains('references unknown profile "primary_v12"'),
           ),
         ),
       );
@@ -667,12 +662,17 @@ timers:
   enabled: true
   maxStartAfterSeconds: 2
   maxRepeatIntervalSeconds: 3
+  maxNumberOfTimes: 15
+  maxNumberOfTimesByScreen:
+    FirmwareUpgrade: 12
 ''';
 
       final config = EnsembleTestParser.parseConfigString(yaml);
       expect(config.timers.enabled, isTrue);
       expect(config.timers.maxStartAfterSeconds, 2);
       expect(config.timers.maxRepeatIntervalSeconds, 3);
+      expect(config.timers.maxNumberOfTimes, 15);
+      expect(config.timers.maxNumberOfTimesByScreen, {'FirmwareUpgrade': 12});
     });
 
     test('rejects removed record config', () {
@@ -709,6 +709,18 @@ logStorage:
       expect(config.logApiCalls.enabled, isTrue);
       expect(config.logStorage.enabled, isTrue);
       expect(config.logStorage.key, 'auth');
+    });
+
+    test('parses API call logging config', () {
+      const yaml = '''
+logApiCalls:
+  enabled: false
+''';
+
+      expect(
+        EnsembleTestParser.parseConfigString(yaml).logApiCalls.enabled,
+        isFalse,
+      );
     });
 
     test('parses AI-friendly metadata fields', () {
@@ -756,7 +768,7 @@ tests:
   });
 
   group('startScreen', () {
-    test('rejects when startScreen is missing', () {
+    test('allows structurally optional startScreen for host validation', () {
       const yaml = '''
 id: invalid_neither
 steps:
@@ -764,16 +776,8 @@ steps:
       id: x
 ''';
 
-      expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (e) => e.message,
-            'message',
-            contains('startScreen'),
-          ),
-        ),
-      );
+      final parsed = EnsembleTestParser.parseString(yaml);
+      expect(parsed.startScreen, isNull);
     });
   });
 
@@ -785,7 +789,7 @@ steps:
           EnsembleSingleTestResult.failed(
             testId: 'b',
             durationMs: 2,
-            error: 'oops',
+            message: 'oops',
           ),
         ],
       );

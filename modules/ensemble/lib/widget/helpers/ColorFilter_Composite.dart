@@ -24,6 +24,9 @@ class ColorFilterComposite {
   ColorFilter? getColorFilter() { 
     if (color == null) return null;
     // Special case for black color with modulate blend mode - use grayscale
+    // TODO(flutter-upgrade): on Flutter >= 3.35 use color!.toARGB32()
+    // https://docs.flutter.dev/release/breaking-changes/wide-gamut-framework
+    // ignore: deprecated_member_use
     bool isBlack = color!.value == 0xFF000000 || color!.value == 0x00000000;
     if (isBlack && blendMode == BlendMode.modulate) {
       return Utils.getGreyScale();

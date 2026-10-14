@@ -1,5 +1,6 @@
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/src/integrations/firebase/firebase_test_registration.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -7,6 +8,9 @@ void main() {
   testWidgets(
     'firebase core mock preserves projectId from initializeApp',
     (tester) async {
+      EnsembleTestHarness.configureTestIntegrations(
+        const [firebaseTestIntegration],
+      );
       EnsembleTestHarness.ensureTestPlugins();
 
       await tester.runAsync(() async {

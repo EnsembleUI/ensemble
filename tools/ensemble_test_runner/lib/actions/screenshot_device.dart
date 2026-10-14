@@ -1,5 +1,9 @@
-import 'package:ensemble_device_preview/ensemble_device_preview.dart';
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/src/integrations/device_preview/device_preview_adapter.dart';
 
 DeviceInfo? screenshotDeviceForTestCase(
   EnsembleTestCase testCase,
@@ -22,9 +26,9 @@ DeviceInfo resolveScreenshotDevice(Map<String, dynamic> args) {
   final model = args['model']?.toString();
   final platformKey = normalizeScreenshotDeviceName(platform);
   final candidates = switch (platformKey) {
-    'android' => Devices.android.all,
-    'ios' || 'iphone' || 'ipad' => Devices.ios.all,
-    _ => Devices.all,
+    'android' => DeviceCatalog.android,
+    'ios' || 'iphone' || 'ipad' => DeviceCatalog.ios,
+    _ => DeviceCatalog.all,
   };
 
   if (model != null && model.trim().isNotEmpty) {
@@ -48,8 +52,8 @@ DeviceInfo resolveScreenshotDevice(Map<String, dynamic> args) {
     );
   }
 
-  if (platformKey == 'android') return Devices.android.all.first;
-  return Devices.ios.iPhone15Pro;
+  if (platformKey == 'android') return DeviceCatalog.defaultAndroid;
+  return DeviceCatalog.defaultIos;
 }
 
 String normalizeScreenshotDeviceName(String? value) =>

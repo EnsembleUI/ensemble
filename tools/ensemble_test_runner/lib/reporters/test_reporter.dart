@@ -1,8 +1,10 @@
-import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
+import 'package:ensemble_test_runner/reporters/result_projection.dart';
+import 'package:ensemble_test_runner/reporters/console_test_case.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/runner/test_session.dart';
 
 export 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 
@@ -11,15 +13,18 @@ EnsembleTestReportDetails buildTestReportDetails(
   List<int> stepDurationsMs = const [],
   List<String> stepStartTimes = const [],
   Map<String, Map<String, dynamic>> screens = const {},
+  required NavigationFlowRecorder navigationFlow,
 }) {
-  final effectiveStart = testCase.startScreen ??
-      ScreenTracker().getCurrentScreenIdentifier() ??
-      '(unknown)';
+  final flow = navigationFlow.flow;
+  final effectiveStart =
+      testCase.startScreen ?? (flow.isEmpty ? null : flow.first);
   final details = EnsembleTestReportDetails(
     startScreen: effectiveStart,
-    endScreen: ScreenTracker().getCurrentScreenIdentifier(),
+    endScreen: flow.isEmpty ? null : flow.last,
     session: testCase.session,
-    screensVisited: collectScreensVisited(effectiveStart),
+    screensVisited: effectiveStart == null
+        ? flow
+        : collectScreensVisited(effectiveStart, navigationFlow: navigationFlow),
     stepsOutline: outlineSteps(testCase.steps),
     stepDurationsMs: stepDurationsMs,
     stepStartTimes: stepStartTimes,
@@ -28,8 +33,11 @@ EnsembleTestReportDetails buildTestReportDetails(
   return details;
 }
 
-List<String> collectScreensVisited(String effectiveStart) {
-  final flow = List<String>.from(YamlTestSession.navigationFlow.flow);
+List<String> collectScreensVisited(
+  String effectiveStart, {
+  required NavigationFlowRecorder navigationFlow,
+}) {
+  final flow = List<String>.from(navigationFlow.flow);
   if (flow.isEmpty) {
     return [effectiveStart];
   }
@@ -68,35 +76,37 @@ class TestReporter {
     EnsembleTestRunResult result, {
     String? testFile,
   }) {
-    final buffer = StringBuffer();
-    final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
+    return RunnerBenchmark.sync('report', 'formatSummary', () {
+      final buffer = StringBuffer();
+      final suite = SuiteResultProjection(result);
 
-    buffer.writeln('┌─ Ensemble YAML tests ─────────────────────────────');
-    if (testFile != null) {
-      buffer.writeln('│  $testFile');
-      buffer.writeln('│');
-    }
-
-    for (var i = 0; i < result.results.length; i++) {
-      final r = result.results[i];
-      if (i > 0) buffer.writeln('│');
-      _writeTestCase(buffer, r);
-    }
-
-    final suiteArtifacts = durableArtifactLogs(result.suiteLogs).toList();
-    if (suiteArtifacts.isNotEmpty) {
-      buffer.writeln('│');
-      buffer.writeln('│  suite artifacts:');
-      for (final log in suiteArtifacts) {
-        buffer.writeln('│       $log');
+      buffer.writeln('┌─ Ensemble tests ─────────────────────────────────');
+      if (testFile != null) {
+        buffer.writeln('│  $testFile');
+        buffer.writeln('│');
       }
-    }
 
-    buffer.writeln('│');
-    buffer.writeln(
-      '└─ ${result.summary} · ${totalMs}ms total',
-    );
-    return buffer.toString();
+      final orderedResults = suite.orderedResults;
+      for (var i = 0; i < orderedResults.length; i++) {
+        if (i > 0) buffer.writeln('│');
+        writeTestCase(buffer, orderedResults[i]);
+      }
+
+      final suiteArtifacts = durableArtifactLogs(result.suiteLogs).toList();
+      if (suiteArtifacts.isNotEmpty) {
+        buffer.writeln('│');
+        buffer.writeln('│  suite artifacts:');
+        for (final log in suiteArtifacts) {
+          buffer.writeln('│       $log');
+        }
+      }
+
+      buffer.writeln('│');
+      buffer.writeln(
+        '└─ ${suite.summary} · ${suite.totalDurationMs}ms total',
+      );
+      return buffer.toString();
+    });
   }
 
   /// Formats the short failure passed to Flutter's test framework.
@@ -108,99 +118,65 @@ class TestReporter {
     Iterable<String> failedPaths = const [],
     Iterable<Object?> pendingFrameworkExceptions = const [],
   }) {
-    final failed = result.results
-        .where((r) => r.status == TestStatus.failed)
-        .toList(growable: false);
-    final paths = failedPaths.toList(growable: false);
-    final buffer = StringBuffer()
-      ..writeln(
-        'Failed YAML tests (${result.failedCount}/${result.results.length}):',
-      );
+    return RunnerBenchmark.sync('report', 'formatFailureSummary', () {
+      final suite = SuiteResultProjection(result);
+      final failed = suite.orderedResults
+          .where((r) => r.status == TestStatus.failed)
+          .toList(growable: false);
+      final paths = failedPaths.toList(growable: false);
+      final buffer = StringBuffer()
+        ..writeln(
+          'Failed tests (${suite.failed}/${suite.total}):',
+        );
 
-    for (var i = 0; i < failed.length; i++) {
-      final r = failed[i];
-      final path = i < paths.length ? paths[i] : null;
-      final label = path == null || r.testId.contains(path)
-          ? r.testId
-          : '${r.testId} ($path)';
-      final failedStep = r.failedStep != null
-          ? ' (failed: ${formatStepBrief(r.failedStep!)})'
-          : r.failedStepIndex != null
-              ? ' (failed: step ${r.failedStepIndex! + 1})'
-              : '';
-      buffer.writeln('- $label: ${r.message ?? 'failed'}$failedStep');
-    }
-
-    final pending = pendingFrameworkExceptions
-        .map((e) => e?.toString().trim() ?? '')
-        .where((e) => e.isNotEmpty)
-        .toList(growable: false);
-    if (pending.isNotEmpty) {
-      buffer.writeln();
-      buffer.writeln('Pending Flutter framework exceptions:');
-      for (final exception in pending) {
-        buffer.writeln('- ${_firstLine(exception)}');
+      for (var i = 0; i < failed.length; i++) {
+        final r = failed[i];
+        final path = i < paths.length ? paths[i] : null;
+        final label = path == null || r.testId.contains(path)
+            ? r.testId
+            : '${r.testId} ($path)';
+        final failedStep = r.failedStep != null
+            ? ' (failed: ${formatStepBrief(r.failedStep!)})'
+            : r.failedStepIndex != null
+                ? ' (failed: step ${r.failedStepIndex! + 1})'
+                : '';
+        buffer.writeln('- $label: ${r.effectiveFailureMessage}$failedStep');
       }
-    }
 
-    buffer.writeln();
-    buffer.write('See the Ensemble YAML tests report above.');
-    return buffer.toString();
-  }
-
-  void _writeTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
-    final icon = r.status == TestStatus.passed ? '✓' : '✗';
-    buffer.writeln('│  $icon ${r.testId} (${r.durationMs}ms)');
-    if (r.attempts > 1) {
-      buffer.writeln('│     attempts: ${r.attempts}/${r.retry + 1}');
-    }
-
-    final report = r.report;
-    if (report != null) {
-      if (report.session != null) {
-        buffer.writeln('│     session: ${report.session}');
-      }
-      buffer.writeln('│     start: ${report.startScreen}');
-      if (report.endScreen != null && report.endScreen != report.startScreen) {
-        buffer.writeln('│     end:   ${report.endScreen}');
-      }
-      if (report.screensVisited.length > 1) {
-        buffer.writeln('│     flow:  ${report.screensVisited.join(' → ')}');
-      }
-      if (report.stepsOutline.isNotEmpty) {
-        buffer.writeln('│     steps (${report.stepsOutline.length}):');
-        var i = 0;
-        for (final line in stepOutlineDisplayLines(
-          stepsOutline: report.stepsOutline,
-          stepDurationsMs: report.stepDurationsMs,
-          failedStepIndex:
-              r.status == TestStatus.failed ? r.failedStepIndex : null,
-        )) {
-          final prefix = line.failed ? '>>' : '  ';
-          buffer.writeln('│       $prefix ${i + 1}. ${line.text}');
-          i++;
+      final pending = pendingFrameworkExceptions
+          .map((e) => e?.toString().trim() ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false);
+      if (pending.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln('Pending Flutter framework exceptions:');
+        for (final exception in pending) {
+          buffer.writeln('- ${_firstLine(exception)}');
         }
       }
-    }
 
-    if (r.status == TestStatus.failed) {
-      if (r.message != null) {
-        buffer.writeln('│     error: ${r.message}');
-      }
-      if (r.failedStep != null) {
-        buffer.writeln('│     failed: ${formatStepBrief(r.failedStep!)}');
-      } else if (r.failedStepIndex != null) {
-        buffer.writeln('│     at step: ${r.failedStepIndex! + 1}');
-      }
-    }
+      buffer.writeln();
+      buffer.write('See the Ensemble tests report above.');
+      return buffer.toString();
+    });
+  }
 
-    final artifacts = durableArtifactLogs(r.logs).toList();
-    if (artifacts.isNotEmpty) {
-      buffer.writeln('│     artifacts:');
-      for (final log in artifacts) {
-        buffer.writeln('│          $log');
-      }
-    }
+  /// Writes one test entry using the canonical result projection.
+  ///
+  /// The CLI and the boxed reporter intentionally share this formatter so
+  /// failure fallbacks, retry text, step highlighting, and artifact display
+  /// cannot drift between entry points. The CLI omits the richer failure kind
+  /// line to preserve its compact output contract.
+  static void writeTestCase(
+    StringBuffer buffer,
+    EnsembleSingleTestResult r, {
+    bool includeFailureKind = true,
+  }) {
+    writeConsoleTestCase(
+      buffer,
+      r,
+      includeFailureKind: includeFailureKind,
+    );
   }
 }
 

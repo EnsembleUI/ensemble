@@ -1,3 +1,9 @@
+## 1.0.4
+
+ - Bump "ensemble_icons" to `1.0.4`.
+
+## 1.0.3
+
 ## [1.0.2] - Updated to Flutter 3.35.5
 * Updated to Flutter 3.35.5
 * Removed deprecated methods

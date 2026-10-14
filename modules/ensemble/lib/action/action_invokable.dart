@@ -73,6 +73,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.disconnectSSE,
       ActionType.openFaceCamera,
       ActionType.executeAction,
+      ActionType.respondToTool,
     ]);
   }
 

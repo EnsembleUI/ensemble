@@ -53,17 +53,17 @@ steps:
 
 void _writeApp(Directory dir) {
   File('${dir.path}/pubspec.yaml').writeAsStringSync('name: sample_app');
-  Directory('${dir.path}/ensemble/apps/inhome/screens')
+  Directory('${dir.path}/ensemble/apps/sample_app/screens')
       .createSync(recursive: true);
-  Directory('${dir.path}/ensemble/apps/inhome/tests')
+  Directory('${dir.path}/ensemble/apps/sample_app/tests')
       .createSync(recursive: true);
   File('${dir.path}/ensemble/ensemble-config.yaml').writeAsStringSync('''
 definitions:
   local:
-    path: ensemble/apps/inhome
+    path: ensemble/apps/sample_app
     appHome: Login
 ''');
-  File('${dir.path}/ensemble/apps/inhome/screens/Login.yaml')
+  File('${dir.path}/ensemble/apps/sample_app/screens/Login.yaml')
       .writeAsStringSync('''
 View:
   onLoad:
@@ -84,6 +84,6 @@ API:
 }
 
 void _writeTest(Directory dir, String name, String content) {
-  File('${dir.path}/ensemble/apps/inhome/tests/$name')
+  File('${dir.path}/ensemble/apps/sample_app/tests/$name')
       .writeAsStringSync(content);
 }

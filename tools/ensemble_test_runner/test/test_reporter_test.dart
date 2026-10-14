@@ -1,6 +1,6 @@
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/runner/test_session.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,49 +36,79 @@ void main() {
 
   group('collectScreensVisited', () {
     test('reads navigation flow including back navigation', () {
-      YamlTestSession.navigationFlow
-          .seed(['Hello Home', 'Goodbye', 'Hello Home']);
+      final navigationFlow = NavigationFlowRecorder()
+        ..seed(['Hello Home', 'Goodbye', 'Hello Home']);
 
       expect(
-        collectScreensVisited('Hello Home'),
+        collectScreensVisited('Hello Home', navigationFlow: navigationFlow),
         ['Hello Home', 'Goodbye', 'Hello Home'],
       );
     });
 
     test('beginTest starts a fresh report flow for continuation tests',
         () async {
-      YamlTestSession.navigationFlow.seed([
-        'Login',
-        'InitApp',
-        'AutoSignIn',
-        'AutoSignIn_Gateway',
-        'Home',
-      ]);
+      final navigationFlow = NavigationFlowRecorder()
+        ..seed([
+          'Login',
+          'InitApp',
+          'AutoSignIn',
+          'AutoSignIn_Device',
+          'Home',
+        ]);
 
-      YamlTestSession.navigationFlow.beginTest('Home');
-      YamlTestSession.navigationFlow.recordScreenChange(
+      navigationFlow.beginTest('Home');
+      navigationFlow.recordScreenChange(
         VisibleScreen(screenName: 'Devices', visibleSince: DateTime.now()),
       );
-      await YamlTestSession.navigationFlow.flushPending();
-      YamlTestSession.navigationFlow.recordScreenChange(
+      await navigationFlow.flushPending();
+      navigationFlow.recordScreenChange(
         VisibleScreen(screenName: 'Home', visibleSince: DateTime.now()),
       );
-      await YamlTestSession.navigationFlow.flushPending();
-      YamlTestSession.navigationFlow.recordScreenChange(
+      await navigationFlow.flushPending();
+      navigationFlow.recordScreenChange(
         VisibleScreen(
             screenName: 'Settings_Wifi', visibleSince: DateTime.now()),
       );
-      await YamlTestSession.navigationFlow.flushPending();
-      YamlTestSession.navigationFlow.recordScreenChange(
+      await navigationFlow.flushPending();
+      navigationFlow.recordScreenChange(
         VisibleScreen(screenName: 'Home', visibleSince: DateTime.now()),
       );
-      await YamlTestSession.navigationFlow.flushPending();
+      await navigationFlow.flushPending();
 
       expect(
-        collectScreensVisited('Home'),
+        collectScreensVisited('Home', navigationFlow: navigationFlow),
         ['Home', 'Devices', 'Home', 'Settings_Wifi', 'Home'],
       );
     });
+  });
+
+  test('report details never inherit another attempt screen from the tracker',
+      () {
+    ScreenTracker().clearAll();
+    ScreenTracker().trackScreen(screenName: 'Previous Attempt');
+    addTearDown(ScreenTracker().clearAll);
+
+    final report = buildTestReportDetails(
+      const EnsembleTestCase(id: 'no-navigation', steps: []),
+      navigationFlow: NavigationFlowRecorder(),
+    );
+
+    expect(report.startScreen, isNull);
+    expect(report.endScreen, isNull);
+    expect(report.screensVisited, isEmpty);
+  });
+
+  test('report details preserve the attempt-owned navigation flow', () {
+    final navigationFlow = NavigationFlowRecorder()..seed(['Home', 'Details']);
+
+    final report = buildTestReportDetails(
+      const EnsembleTestCase(id: 'attempt-navigation', steps: []),
+      navigationFlow: navigationFlow,
+    );
+
+    expect(report.startScreen, 'Home');
+    expect(report.endScreen, 'Details');
+    expect(report.screensVisited, ['Home', 'Details']);
   });
 
   group('TestReporter', () {
@@ -129,7 +159,8 @@ void main() {
               durationMs: 100,
               failedStepIndex: 1,
               failedStep: const TestStep(type: 'tap', args: {'id': 'submit'}),
-              error: 'not found',
+              failureOperation: 'tap',
+              message: 'not found',
               report: report,
             ),
           ],
@@ -138,6 +169,7 @@ void main() {
 
       expect(output, contains('>> 2. tap(submit) (55ms)'));
       expect(output, contains('error: not found'));
+      expect(output, contains('operation: tap'));
     });
 
     test('report JSON includes stepDurationsMs', () {
@@ -154,7 +186,7 @@ void main() {
         EnsembleTestRunResult(
           results: [
             EnsembleSingleTestResult.passed(
-              testId: 'signin_to_gateway',
+              testId: 'sign_in_session',
               durationMs: 1200,
               attempts: 2,
               retry: 3,
@@ -177,15 +209,14 @@ void main() {
                 'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.json',
                 'storage: build/ensemble_test_runner/logs/api_log_test_storage.json',
                 'appLogs: build/ensemble_test_runner/logs/api_log_test_app_console.log',
-                'screenshots: build/ensemble_test_runner/screenshots/api_log_test_frames.json',
-                'screenshotFrames: build/ensemble_test_runner/screenshots/api_log_test_frames.json',
+                'screenshotFrames: build/ensemble_test_runner/frames/api_log_test_frames.json',
                 'dumpTree: build/ensemble_test_runner/logs/api_log_test_dump_tree.txt',
               ],
             ),
           ],
           suiteLogs: const [
             'htmlReport: build/ensemble_test_runner/report/index.html',
-            'results: build/ensemble_test_runner/report/results.json.gz',
+            'history: build/ensemble_test_runner/report/ensemble_test.db',
             'appPerformance: build/ensemble_test_runner/logs/app_performance.json',
           ],
         ),
@@ -198,7 +229,7 @@ void main() {
       expect(output, isNot(contains('appPerformance:')));
       expect(output, contains('suite artifacts:'));
       expect(output, contains('htmlReport:'));
-      expect(output, contains('results:'));
+      expect(output, contains('history:'));
     });
 
     test('prints durable suite logs separately from test logs', () {
@@ -212,7 +243,7 @@ void main() {
           ],
           suiteLogs: const [
             'htmlReport: build/ensemble_test_runner/report/index.html',
-            'results: build/ensemble_test_runner/report/results.json.gz',
+            'history: build/ensemble_test_runner/report/ensemble_test.db',
           ],
         ),
       );
@@ -224,7 +255,7 @@ void main() {
       );
       expect(
         output,
-        contains('results: build/ensemble_test_runner/report/results.json.gz'),
+        contains('history: build/ensemble_test_runner/report/ensemble_test.db'),
       );
     });
 
@@ -234,38 +265,38 @@ void main() {
           results: [
             EnsembleSingleTestResult.failed(
               testId:
-                  'login_test  (ensemble/apps/inhome/tests/signin.test.yaml)',
+                  'login_test  (ensemble/apps/sample_app/tests/signin.test.yaml)',
               durationMs: 100,
               failedStep: const TestStep(
                 type: 'waitForNavigation',
                 args: {'screen': 'Home'},
               ),
-              error: 'Timed out waiting for navigation',
+              message: 'Timed out waiting for navigation',
             ),
             EnsembleSingleTestResult.failed(
               testId:
-                  'smoke_navigations  (ensemble/apps/inhome/tests/smoke.test.yaml)',
+                  'smoke_navigations  (ensemble/apps/sample_app/tests/smoke.test.yaml)',
               durationMs: 0,
-              error: 'Prerequisite "login_test" failed',
+              message: 'Prerequisite "login_test" failed',
             ),
           ],
         ),
         failedPaths: const [
-          'ensemble/apps/inhome/tests/signin.test.yaml',
-          'ensemble/apps/inhome/tests/smoke.test.yaml',
+          'ensemble/apps/sample_app/tests/signin.test.yaml',
+          'ensemble/apps/sample_app/tests/smoke.test.yaml',
         ],
         pendingFrameworkExceptions: const [
           'Reentrant call to runAsync() denied.\nextra framework text',
         ],
       );
 
-      expect(output, contains('Failed YAML tests (2/2):'));
+      expect(output, contains('Failed tests (2/2):'));
       expect(output, contains('Timed out waiting for navigation'));
       expect(output, contains('failed: waitForNavigation(Home)'));
       expect(output, contains('Pending Flutter framework exceptions:'));
       expect(output, contains('Reentrant call to runAsync() denied.'));
-      expect(output, contains('See the Ensemble YAML tests report above.'));
-      expect(output, isNot(contains('┌─ Ensemble YAML tests')));
+      expect(output, contains('See the Ensemble tests report above.'));
+      expect(output, isNot(contains('┌─ Ensemble tests')));
       expect(output, isNot(contains('extra framework text')));
     });
   });

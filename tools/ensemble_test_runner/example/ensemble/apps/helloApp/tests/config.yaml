@@ -1,5 +1,12 @@
+mode: integration
 screenshots:
-  enabled: false
+  enabled: true
 
 performance:
   enabled: false
+
+services:
+  - name: fixture
+    command: dart
+    arguments: [run, tool/test_service.dart]
+    readyUrl: /ready

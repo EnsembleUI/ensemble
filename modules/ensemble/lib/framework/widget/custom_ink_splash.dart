@@ -64,7 +64,8 @@ class CustomInkSplash extends InteractiveInkFeature {
       ..addListener(controller.markNeedsPaint)
       ..addStatusListener(_handleAlphaStatusChanged);
     _alpha = _alphaController!.drive(IntTween(
-      begin: color.alpha,
+      // https://docs.flutter.dev/release/breaking-changes/wide-gamut-framework
+      begin: (color.a * 255).round(),
       end: 0,
     ));
 

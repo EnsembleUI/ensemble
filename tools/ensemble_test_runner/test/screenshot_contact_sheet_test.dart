@@ -3,14 +3,14 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('writes compressed per-step images and frames.json',
-      (tester) async {
+  testWidgets('writes WebP per-step images and frames.json', (tester) async {
     const testId = 'contact_sheet_passed_test';
     final legacyFile = File(
       'build/ensemble_test_runner/screenshots/${testId}_sheet.png',
@@ -20,26 +20,31 @@ void main() {
     )..createSync(recursive: true);
 
     final image = await _testImage(color: Colors.blue);
-    final path = await tester.runAsync(
-      () => writeScreenshotFrames(
-        testId: testId,
-        config: const ScreenshotConfig(enabled: true),
-        frames: [
-          ScreenshotSheetFrame(
-            stepIndex: 0,
-            label: '1. tap(button)',
-            image: image,
-            highlight: const ScreenshotHighlight(
-              kind: 'action',
-              left: 10,
-              top: 20,
-              width: 30,
-              height: 5,
-            ),
-          ),
-        ],
-        status: TestStatus.passed,
+    final path = await RunnerBenchmark.collect(
+      BenchmarkCollector(
+        caseId: 'webp-screenshot',
+        sample: 0,
+        processId: 'test',
       ),
+      () => tester.runAsync(() => writeScreenshotFrames(
+            testId: testId,
+            config: const ScreenshotConfig(enabled: true),
+            frames: [
+              ScreenshotSheetFrame(
+                stepIndex: 0,
+                label: '1. tap(button)',
+                image: image,
+                highlight: const ScreenshotHighlight(
+                  kind: 'action',
+                  left: 10,
+                  top: 20,
+                  width: 30,
+                  height: 5,
+                ),
+              ),
+            ],
+            status: TestStatus.passed,
+          )),
     );
 
     expect(path, endsWith('/${testId}_frames.json'));
@@ -47,7 +52,7 @@ void main() {
     expect(legacyComposite.existsSync(), isFalse);
 
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     expect(framesManifest.existsSync(), isTrue);
     final framesJson =
@@ -59,7 +64,7 @@ void main() {
     expect(frames.single['file'], startsWith('shot_'));
     expect(
       frames.single['file'],
-      anyOf(endsWith('.jpg'), endsWith('.png'), endsWith('.webp')),
+      endsWith('.webp'),
     );
     expect(frames.single['highlight']['kind'], 'action');
     expect(frames.single['highlight']['left'], 10);
@@ -103,7 +108,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
@@ -143,7 +148,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
@@ -214,7 +219,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
@@ -272,7 +277,7 @@ void main() {
 
     expect(path, endsWith('/${testId}_frames.json'));
     final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+      'build/ensemble_test_runner/frames/${testId}_frames.json',
     );
     final framesJson =
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;

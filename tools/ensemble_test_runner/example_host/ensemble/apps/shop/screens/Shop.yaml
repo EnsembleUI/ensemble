@@ -1,0 +1,40 @@
+View:
+  onLoad:
+    invokeAPI:
+      name: getCatalog
+  body:
+    Column:
+      styles:
+        padding: 24
+        gap: 16
+      children:
+        - Text:
+            testId: shop_title
+            text: Ensemble Shop
+        - Text:
+            testId: shop_subtitle
+            text: Loaded as a child of the Flutter host
+        - Button:
+            testId: shop_featured_button
+            label: Featured item
+            onTap:
+              invokeAPI:
+                name: getFeaturedItem
+
+API:
+  getCatalog:
+    url: https://jsonplaceholder.typicode.com/posts
+    method: GET
+    authorization: none
+    onResponse: |
+      console.log('shop: catalog loaded');
+    onError: |
+      console.log('shop: catalog failed');
+  getFeaturedItem:
+    url: https://jsonplaceholder.typicode.com/posts/1
+    method: GET
+    authorization: none
+    onResponse: |
+      console.log('shop: featured loaded');
+    onError: |
+      console.log('shop: featured failed');

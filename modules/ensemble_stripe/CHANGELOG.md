@@ -1,3 +1,11 @@
+## 1.2.55
+
+ - Bump "ensemble_stripe" to `1.2.55`.
+
+## 1.2.54
+
+ - Bump "ensemble_stripe" to `1.2.54`.
+
 ## 1.2.53
 
  - Bump "ensemble_stripe" to `1.2.53`.

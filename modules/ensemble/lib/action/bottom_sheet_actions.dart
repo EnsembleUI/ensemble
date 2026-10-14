@@ -239,8 +239,10 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
       {required Widget child, required bool isScrollable}) {
     Widget rootWidget = Container(
         decoration: BoxDecoration(
+            // https://docs.flutter.dev/release/breaking-changes/deprecate-themedata-dialogbackgroundcolor
             color: getBackgroundColor(scopeManager) ??
-                Theme.of(context).dialogBackgroundColor,
+                Theme.of(context).dialogTheme.backgroundColor ??
+                Theme.of(context).colorScheme.surface,
             borderRadius: borderRadius(scopeManager)?.getValue() ??
                 const BorderRadius.only(
                     topLeft: defaultTopBorderRadius,

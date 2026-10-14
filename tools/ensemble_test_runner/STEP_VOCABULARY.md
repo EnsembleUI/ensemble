@@ -34,18 +34,39 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 `expectScreen` (alias), `expectNavigateTo`, `expectVisited`, `expectNotVisited`, `expectBackStack`, `expectCanGoBack`, `goBack`
 
 ### API mocks / assert / logs
-`mocks`, `httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
+`mocks`, `httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`
 
 ### Storage / runtime
-`setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
+`setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
 
 ### Scripts / debug / quality
-`runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
+`expectConsoleLog`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
 
 ### Control flow
 `group`, `repeat`, `optional`, `ifVisible`
 
+## Targets
+
+`id:` is shorthand for an exact `ValueKey<String>` match. Use `target:` for
+exact accessible or compound matching (`id`, `text`, `label`, `role`, `within`,
+zero-based `occurrence`). Fields are conjunctive; missing or ambiguous matches
+fail without heuristic fallback. Snapshot element IDs keep observation identity
+and never fall back to a locator. Supported `role` values: `button`, `text`,
+`textField`, `checkbox`, `switch`, `slider`, `dropdown`, `icon`, `widget`.
+
+```yaml
+- tap:
+    target:
+      label: Continue
+      role: button
+      within: {id: login_form}
+      occurrence: 0
+```
+
 ## Example
+
+Standalone Ensemble suites require `startScreen`. Pure Flutter / mixed host
+suites omit it unless the driver implements screen launch.
 
 ```yaml
 id: login_flow
@@ -66,9 +87,10 @@ steps:
 
 Editor validation: `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json` (committed copy at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json), regenerate with `dart run tool/generate_schema.dart`). Arg shapes come from [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) on each [`TestStepRegistryEntry`](lib/vocabulary/test_step_registry.dart).
 
-Performance logging captures Flutter frame timing **per screen** into
-`results.json.gz` (`tests[].report.screens`). Enable it once for the full suite
-in `tests/config.yaml`:
+Performance logging captures Flutter frame timing **per screen** in the current
+report payload stored in `report/ensemble_test.db`
+(`tests[].report.screens`). Enable it once for the full suite in
+`tests/config.yaml`:
 
 ```yaml
 performance:
@@ -86,8 +108,9 @@ timers:
 ```
 
 `dumpTree` and `performance` are suite-level **config** flags; when enabled
-they emit **per-screen** payloads under `report.screens` in
-`results.json.gz`. `logApiCalls` and `logStorage` likewise attach **per-test**
+they emit **per-screen** payloads under `report.screens` in the current report
+payload stored in `report/ensemble_test.db`. `logApiCalls` and `logStorage`
+likewise attach **per-test**
 data to each test result / HTML card:
 
 ```yaml
@@ -108,14 +131,14 @@ after the suite:
 
 ```yaml
 services:
-  - name: modemStub
+  - name: testService
     command: .venv/bin/python
-    arguments: [modemstub/app.py]
-    workingDirectory: ensemble/apps/inhome/autotests
+    arguments: [test_service/app.py]
+    workingDirectory: ensemble/apps/sample_app/autotests
     readyUrl: /ping
 ```
 
-The runner assigns a free local port. Use `${services.modemStub.url}` in test
+The runner assigns a free local port. Use `${services.testService.url}` in test
 steps instead of repeating the endpoint.
 
 Use `httpRequest` for finite setup or state changes during a test:
@@ -123,7 +146,7 @@ Use `httpRequest` for finite setup or state changes during a test:
 ```yaml
 - httpRequest:
     method: POST
-    url: ${services.modemStub.url}/api/v1/stub/hard-reset
+    url: ${services.testService.url}/api/v1/stub/hard-reset
     body:
       loadDefaults: true
     expectStatus: 200
@@ -145,10 +168,10 @@ from the Flutter wrapper app root to validate config, test discovery, duplicate
 IDs, sessions, schema comments, and obvious widget IDs. CI can request JSON
 with `--report=json` or `--report-file=build/ensemble_test_results.json`.
 
-Each `*.test.yaml` file is a single test case and must provide:
+Each `*.test.yaml` file is a single test case and may provide:
 
-- `startScreen` — cold-starts the app on the given screen and runs steps
-- `session` — optional; runs the referenced test once, restores its captured public storage/secure storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen`
+- `startScreen` — required for standalone Ensemble; cold-starts the app on the given screen and runs steps. Host/mixed suites omit it when `ApplicationTestDriver` owns launch.
+- `session` — optional; runs the referenced test once, restores its captured public storage/secure storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen` (Ensemble) or restores a checkpoint (host, when supported)
 - `retry` — number of additional attempts after a failed run, e.g. `retry: 3`
 
 Root-level `setup` supports `httpRequest`, `group`, and `optional`. It runs
@@ -160,7 +183,14 @@ references, and executes each test once in topological order.
 
 ## Adding a step
 
-1. Add one row to [`tool/generate_step_registry.dart`](tool/generate_step_registry.dart) (`desc` + optional `example` override; defaults come from `defaultExampleForArg`) and run `dart run tool/generate_step_registry.dart`.
+1. Add one row to [`tool/generate_step_registry.dart`](tool/generate_step_registry.dart) (`desc` + optional `example` override; defaults come from `defaultExampleForArg`), verify with `dart run tool/generate_step_registry.dart --check`, then write with `dart run tool/generate_step_registry.dart --write`.
 2. If needed, add a variant to [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) and its `jsonSchema` switch.
-3. Implement in [`TestStepExecutor`](lib/actions/test_step_executor.dart) and/or [`ExtendedStepHandlers`](lib/actions/extended_step_handlers.dart).
+3. Implement in the registered operation handler in [`TestRuntimeOperationDispatcher`](lib/actions/test_runtime_operation_dispatcher.dart).
 4. Run `dart run tool/generate_schema.dart` and document here.
+
+Session routing and UI capability lists are derived from registry categories via
+[`SessionStepRouting`](lib/session/step_routing.dart) — do **not**
+hand-edit a parallel migration matrix. New UI actions / waits without a dedicated
+sealed session type route through `GenericAction` / `GenericWait` automatically.
+Add a typed `TestAction` / `WaitCondition` only when the programmatic session API
+needs first-class fields.

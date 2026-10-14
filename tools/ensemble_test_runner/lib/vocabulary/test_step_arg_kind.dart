@@ -4,6 +4,7 @@ enum TestStepArgKind {
   openScreen,
   trigger,
   idRequired,
+  idRequiredNoTimeout,
   idOptional,
   enterText,
   select,
@@ -21,6 +22,7 @@ enum TestStepArgKind {
   waitForNavigation,
   textRequired,
   textOrAnyOf,
+  textOrAnyOfWithTimeout,
   textContains,
   expectEquals,
   expectChecked,
@@ -35,12 +37,10 @@ enum TestStepArgKind {
   repeat,
   optional,
   ifVisible,
-  setAuth,
   setPermission,
   setDevice,
   setLocale,
   setTheme,
-  runScript,
   expectConsoleLog,
   expectErrorContains,
   expectApiCallOrder,
@@ -71,6 +71,31 @@ extension TestStepArgKindSchema on TestStepArgKind {
 
   static Map<String, dynamic> _ref(String name) => {'\$ref': '#/\$defs/$name'};
 
+  static Map<String, dynamic> _targetable({
+    Map<String, dynamic> properties = const {},
+    List<String> required = const [],
+    bool targetRequired = true,
+  }) =>
+      {
+        'type': 'object',
+        'properties': {
+          'id': _string,
+          'target': _ref('elementLocator'),
+          ...properties,
+        },
+        if (required.isNotEmpty) 'required': required,
+        if (targetRequired)
+          'anyOf': const [
+            {
+              'required': ['id'],
+            },
+            {
+              'required': ['target'],
+            },
+          ],
+        'additionalProperties': false,
+      };
+
   /// JSON Schema for this step's YAML argument object.
   Map<String, dynamic> get jsonSchema {
     switch (this) {
@@ -90,60 +115,65 @@ extension TestStepArgKindSchema on TestStepArgKind {
           required: ['action'],
         );
       case TestStepArgKind.idRequired:
-        return _object(
-          properties: {'id': _string, 'timeoutMs': _integer},
-          required: ['id'],
+        return _targetable(
+          properties: {'timeoutMs': _integer},
         );
+      case TestStepArgKind.idRequiredNoTimeout:
+        return _targetable();
       case TestStepArgKind.idOptional:
-        return _object(properties: {'id': _string});
+        return _targetable(targetRequired: false);
       case TestStepArgKind.enterText:
-        return _object(
-          properties: {'id': _string, 'value': _any, 'submit': _boolean},
-          required: ['id'],
+        return _targetable(
+          properties: {'value': _any, 'submit': _boolean},
+          required: ['value'],
         );
       case TestStepArgKind.select:
-        return _object(
-          properties: {'id': _string, 'value': _string},
-          required: ['id', 'value'],
+        return _targetable(
+          properties: {'value': _string},
+          required: ['value'],
         );
       case TestStepArgKind.selectIndex:
-        return _object(
-          properties: {'id': _string, 'index': _integer},
-          required: ['id'],
+        return _targetable(
+          properties: {'index': _integer},
+          required: ['index'],
         );
       case TestStepArgKind.setSlider:
-        return _object(
+        return _targetable(
           properties: {
-            'id': _string,
             'value': {'type': 'number'}
           },
-          required: ['id'],
+          required: ['value'],
         );
       case TestStepArgKind.chooseValue:
-        return _object(
-          properties: {'id': _string, 'value': _string},
-          required: ['id', 'value'],
+        return _targetable(
+          properties: {'value': _string},
+          required: ['value'],
         );
       case TestStepArgKind.scroll:
-        return _object(properties: {'delta': _integer});
+        return _targetable(
+          properties: {
+            'delta': _integer,
+            'direction': _string,
+            'distance': {'type': 'number'},
+          },
+          targetRequired: false,
+        );
       case TestStepArgKind.swipe:
-        return _object(
+        return _targetable(
           properties: {
             'direction': {
               'type': 'string',
               'enum': ['left', 'right', 'up', 'down'],
             },
-            'id': _string,
           },
+          targetRequired: false,
         );
       case TestStepArgKind.drag:
-        return _object(
+        return _targetable(
           properties: {
-            'id': _string,
             'dx': {'type': 'number'},
             'dy': {'type': 'number'},
           },
-          required: ['id'],
         );
       case TestStepArgKind.pump:
         return _object(properties: {'durationMs': _integer});
@@ -177,9 +207,12 @@ extension TestStepArgKindSchema on TestStepArgKind {
           required: ['url'],
         );
       case TestStepArgKind.waitFor:
-        return _object(
-          properties: {
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
             'id': _string,
+            'target': _ref('elementLocator'),
             'text': _string,
             'anyOf': {
               'type': 'array',
@@ -188,11 +221,24 @@ extension TestStepArgKindSchema on TestStepArgKind {
             },
             'timeoutMs': _integer,
           },
-        );
+          'anyOf': const [
+            {
+              'required': ['id']
+            },
+            {
+              'required': ['target']
+            },
+            {
+              'required': ['text']
+            },
+            {
+              'required': ['anyOf']
+            },
+          ],
+        };
       case TestStepArgKind.waitForGone:
-        return _object(
-          properties: {'id': _string, 'timeoutMs': _integer},
-          required: ['id'],
+        return _targetable(
+          properties: {'timeoutMs': _integer},
         );
       case TestStepArgKind.waitForNavigation:
         return _object(
@@ -212,6 +258,28 @@ extension TestStepArgKindSchema on TestStepArgKind {
               'items': _string,
               'minItems': 1,
             },
+          },
+          'anyOf': [
+            {
+              'required': ['text'],
+            },
+            {
+              'required': ['anyOf'],
+            },
+          ],
+        };
+      case TestStepArgKind.textOrAnyOfWithTimeout:
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+            'timeoutMs': _integer,
           },
           'anyOf': [
             {
@@ -245,30 +313,51 @@ extension TestStepArgKindSchema on TestStepArgKind {
           ],
         };
       case TestStepArgKind.expectEquals:
-        return _object(
-          properties: {'id': _string, 'equals': _any},
-          required: ['id', 'equals'],
-        );
-      case TestStepArgKind.expectChecked:
-        return _object(
-          properties: {'id': _string, 'equals': _boolean},
-          required: ['id'],
-        );
-      case TestStepArgKind.expectProperty:
-        return _object(
-          properties: {'id': _string, 'property': _string, 'equals': _any},
-          required: ['id', 'equals'],
-        );
-      case TestStepArgKind.expectCount:
-        return _object(
-          properties: {'id': _string, 'equals': _integer},
-          required: ['id', 'equals'],
-        );
-      case TestStepArgKind.expectListCount:
-        return _object(
-          properties: {'id': _string, 'itemId': _string, 'equals': _integer},
+        return _targetable(
+          properties: {'equals': _any},
           required: ['equals'],
         );
+      case TestStepArgKind.expectChecked:
+        return _targetable(
+          properties: {'equals': _boolean},
+        );
+      case TestStepArgKind.expectProperty:
+        return _targetable(
+          properties: {'property': _string, 'equals': _any},
+          required: ['equals'],
+        );
+      case TestStepArgKind.expectCount:
+        return _targetable(
+          properties: {'equals': _integer},
+          required: ['equals'],
+        );
+      case TestStepArgKind.expectListCount:
+        return _targetable(
+          properties: {'itemId': _string, 'equals': _integer},
+          required: ['equals'],
+        );
+      case TestStepArgKind.expectListContains:
+        return _targetable(
+          properties: {'text': _string},
+          required: ['text'],
+        );
+      case TestStepArgKind.expectListItem:
+        return {
+          'type': 'object',
+          'properties': {
+            'itemId': _string,
+            'target': _ref('elementLocator'),
+          },
+          'anyOf': const [
+            {
+              'required': ['itemId']
+            },
+            {
+              'required': ['target']
+            },
+          ],
+          'additionalProperties': false,
+        };
       case TestStepArgKind.screenRequired:
         return _object(
           properties: {'screen': _string, 'name': _string},
@@ -317,20 +406,11 @@ extension TestStepArgKindSchema on TestStepArgKind {
           },
         );
       case TestStepArgKind.ifVisible:
-        return _object(
+        return _targetable(
           properties: {
-            'id': _string,
             'step': _ref('step'),
             'steps': {'type': 'array', 'items': _ref('step'), 'minItems': 1},
           },
-          required: ['id'],
-        );
-      case TestStepArgKind.setAuth:
-        return _object(
-          properties: {
-            'user': {'type': 'object', 'additionalProperties': true},
-          },
-          required: ['user'],
         );
       case TestStepArgKind.setPermission:
         return _object(
@@ -348,10 +428,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(properties: {'locale': _string});
       case TestStepArgKind.setTheme:
         return _object(properties: {'mode': _string, 'theme': _string});
-      case TestStepArgKind.runScript:
-        return _object(
-          properties: {'script': _string, 'path': _string, 'equals': _any},
-        );
       case TestStepArgKind.expectConsoleLog:
         return _object(
           properties: {'contains': _string},
@@ -370,16 +446,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
           },
           required: ['names'],
         );
-      case TestStepArgKind.expectListContains:
-        return _object(
-          properties: {'id': _string, 'text': _string},
-          required: ['id', 'text'],
-        );
-      case TestStepArgKind.expectListItem:
-        return _object(
-          properties: {'itemId': _string},
-          required: ['itemId'],
-        );
       case TestStepArgKind.expectBackStack:
         return _object(
           properties: {
@@ -394,9 +460,9 @@ extension TestStepArgKindSchema on TestStepArgKind {
       case TestStepArgKind.expectCanGoBack:
         return _object(properties: {'equals': _boolean});
       case TestStepArgKind.expectSemanticsLabel:
-        return _object(
-          properties: {'id': _string, 'label': _string},
-          required: ['id', 'label'],
+        return _targetable(
+          properties: {'label': _string},
+          required: ['label'],
         );
     }
   }

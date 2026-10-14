@@ -1,29 +1,29 @@
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
-import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:ensemble_test_runner/runner/webp_encoder.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
-import 'package:image/image.dart' as img;
+import 'package:ensemble_test_runner/src/integrations/device_preview/device_preview_adapter.dart';
 import 'package:path/path.dart' as p;
 
 const _maxReportScreenshotWidth = 360;
-const _reportScreenshotJpegQuality = 82;
-const _reportScreenshotWebPQuality = 82;
 
-String? _cachedCwebpPath;
-bool _didResolveCwebpPath = false;
-
-/// Encodes each frame to a compressed device-framed image and writes a
-/// `frames.json` manifest.
+/// Encodes each frame for the HTML report and writes a `frames.json` manifest.
+///
+/// Widget mode dresses frames in a device bezel. Integration mode keeps the
+/// raw simulator/emulator capture so highlights match the pixels.
 ///
 /// Returns the display path of the frames manifest.
 /// The HTML report builds the contact-sheet gallery from these per-step files.
@@ -36,106 +36,118 @@ Future<String?> writeScreenshotFrames({
   String? failedStepLabel,
   String? failureMessage,
   String? failedDeviceId,
+  List<StepObserverArtifact> stepObservers = const [],
 }) async {
-  if (frames.isEmpty) return null;
+  return await RunnerBenchmark.async('screenshot', 'writeScreenshotFrames',
+      () async {
+    if (frames.isEmpty && stepObservers.isEmpty) return null;
 
-  final defaultDevice = resolveScreenshotDevice(const {});
-  final manifestDirectory = ensembleTestArtifactDirectory('screenshots');
-  manifestDirectory.createSync(recursive: true);
-  final imageDirectory = ensembleTestArtifactDirectory(
-    p.join('report', 'screenshots'),
-  );
-  imageDirectory.createSync(recursive: true);
-  final safeTestId = _safeFileName(testId);
-  final frameEntries = <Map<String, dynamic>>[];
+    final defaultDevice = resolveScreenshotDevice(const {});
+    final manifestDirectory = ensembleTestArtifactDirectory('frames');
+    final imageDirectory = ensembleTestArtifactDirectory(
+      p.join('report', 'screenshots'),
+    );
+    if (!usesDeviceArtifactTransport) {
+      manifestDirectory.createSync(recursive: true);
+      imageDirectory.createSync(recursive: true);
+    }
+    final safeTestId = _safeFileName(testId);
+    final frameEntries = <Map<String, dynamic>>[];
 
-  try {
-    for (final frame in frames) {
-      final failedFrame = status == TestStatus.failed &&
-          frame.stepIndex == failedStepIndex &&
-          (failedDeviceId == null || frame.deviceId == failedDeviceId);
-      final frameDevice = _deviceForFrame(frame, defaultDevice);
-      final encoded = frame.encodedReportImage ??
-          await _encodeFrameImage(frame, frameDevice);
-      frame.encodedReportImage ??= encoded;
+    try {
+      for (final frame in frames) {
+        final failedFrame = status == TestStatus.failed &&
+            frame.stepIndex == failedStepIndex &&
+            (failedDeviceId == null || frame.deviceId == failedDeviceId);
+        final frameDevice = _deviceForFrame(frame, defaultDevice);
+        final encoded = frame.encodedReportImage ??
+            await _encodeFrameImage(frame, frameDevice);
+        frame.encodedReportImage ??= encoded;
+        RunnerBenchmark.count('framesEncoded', 1);
+        RunnerBenchmark.count('encodedBytes', encoded.bytes.length);
+        RunnerBenchmark.dimension('codec', encoded.extension);
 
-      // Byte-exact dedup only: any real pixel difference keeps its own file.
-      // Perceptual hashing previously collapsed small UI changes (day-button
-      // selection, success toasts) into stale frames and broke report highlights.
-      final frameFileName = _dedupedImageFileName(encoded);
-      final frameFile = File(p.join(imageDirectory.path, frameFileName));
-      if (!frameFile.existsSync()) {
-        AtomicFile.writeBytesSync(frameFile, encoded.bytes);
+        // Byte-exact dedup only: any real pixel difference keeps its own file.
+        // Perceptual hashing previously collapsed small UI changes (day-button
+        // selection, success toasts) into stale frames and broke report highlights.
+        final frameFileName = _dedupedImageFileName(encoded);
+        final frameFile = File(p.join(imageDirectory.path, frameFileName));
+        if (usesDeviceArtifactTransport || !frameFile.existsSync()) {
+          RunnerBenchmark.count('filesWritten', 1);
+          await writeEnsembleTestArtifactBytes(
+            p.join('report', 'screenshots'),
+            frameFileName,
+            encoded.bytes,
+            mimeType: _mimeTypeForExtension(encoded.extension),
+          );
+        }
+        frameEntries.add({
+          'stepIndex': frame.stepIndex,
+          'label': frame.label,
+          'file': frameFileName,
+          if (failedFrame) 'failed': true,
+          if (frame.deviceId != null) 'deviceId': frame.deviceId,
+          if (frame.deviceLabel != null) 'deviceLabel': frame.deviceLabel,
+          if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
+        });
       }
-      frameEntries.add({
-        'stepIndex': frame.stepIndex,
-        'label': frame.label,
-        'file': frameFileName,
-        if (failedFrame) 'failed': true,
-        if (frame.deviceId != null) 'deviceId': frame.deviceId,
-        if (frame.deviceLabel != null) 'deviceLabel': frame.deviceLabel,
-        if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
-      });
+
+      for (final observer in stepObservers) {
+        // Metadata only — no second PNG. HTML draws overlays on the step shot.
+        frameEntries.add({
+          'stepIndex': observer.stepIndex,
+          'role': 'observer',
+          'observationJson': observer.observationJson,
+          if (observer.overlays.isNotEmpty) 'overlays': observer.overlays,
+        });
+      }
+    } finally {
+      for (final frame in frames) {
+        try {
+          frame.image.dispose();
+        } catch (_) {}
+      }
+      for (final observer in stepObservers) {
+        observer.dispose();
+      }
     }
-  } finally {
-    for (final frame in frames) {
-      try {
-        frame.image.dispose();
-      } catch (_) {}
+
+    if (frameEntries.isEmpty) return null;
+
+    // Drop legacy composite sheet artifacts from older runner versions.
+    if (!usesDeviceArtifactTransport) {
+      for (final legacyDir in [
+        manifestDirectory,
+        ensembleTestArtifactDirectory('screenshots'),
+      ]) {
+        for (final legacyName in [
+          '$safeTestId.png',
+          '${safeTestId}_sheet.png',
+        ]) {
+          final legacy = File(p.join(legacyDir.path, legacyName));
+          if (legacy.existsSync()) {
+            legacy.deleteSync();
+          }
+        }
+      }
     }
-  }
 
-  if (frameEntries.isEmpty) return null;
+    final framesFileName = '${safeTestId}_frames.json';
+    await writeEnsembleTestArtifactString(
+      'frames',
+      framesFileName,
+      const JsonEncoder.withIndent(' ').convert({
+        'status': status.name,
+        if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
+        if (failedStepLabel != null) 'failedStepLabel': failedStepLabel,
+        if (failureMessage != null) 'failureMessage': failureMessage,
+        'frames': frameEntries,
+      }),
+      mimeType: 'application/json',
+    );
 
-  // Drop legacy composite sheet artifacts from older runner versions.
-  for (final legacyName in [
-    '$safeTestId.png',
-    '${safeTestId}_sheet.png',
-  ]) {
-    final legacy = File(p.join(manifestDirectory.path, legacyName));
-    if (legacy.existsSync()) {
-      legacy.deleteSync();
-    }
-  }
-
-  final framesFileName = '${safeTestId}_frames.json';
-  final framesFile = ensembleTestArtifactFile('screenshots', framesFileName);
-  AtomicFile.writeStringSync(
-    framesFile,
-    const JsonEncoder.withIndent('  ').convert({
-      'status': status.name,
-      if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
-      if (failedStepLabel != null) 'failedStepLabel': failedStepLabel,
-      if (failureMessage != null) 'failureMessage': failureMessage,
-      'frames': frameEntries,
-    }),
-  );
-
-  return ensembleTestArtifactDisplayPath('screenshots', framesFileName);
-}
-
-/// @Deprecated Use [writeScreenshotFrames]. Kept as a thin alias for call sites.
-Future<String?> writeScreenshotContactSheet({
-  required String testId,
-  required ScreenshotConfig config,
-  required List<ScreenshotSheetFrame> frames,
-  required TestStatus status,
-  required int durationMs,
-  int? failedStepIndex,
-  String? failedStepLabel,
-  String? failureMessage,
-  String? failedDeviceId,
-}) {
-  return writeScreenshotFrames(
-    testId: testId,
-    config: config,
-    frames: frames,
-    status: status,
-    failedStepIndex: failedStepIndex,
-    failedStepLabel: failedStepLabel,
-    failureMessage: failureMessage,
-    failedDeviceId: failedDeviceId,
-  );
+    return ensembleTestArtifactDisplayPath('frames', framesFileName);
+  });
 }
 
 DeviceInfo _deviceForFrame(
@@ -158,169 +170,51 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
   ScreenshotSheetFrame frame,
   DeviceInfo device,
 ) async {
-  final bytes = await LiveAsyncCallSupport.runUntracked(
-    () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
-  );
-  if (bytes == null) {
-    throw EnsembleTestFailure('Failed to encode screenshot.');
-  }
-  return _compressedReportImage(bytes);
-}
-
-Future<EncodedScreenshotImage> _compressedReportImage(
-    Uint8List pngBytes) async {
-  try {
-    final decoded = img.decodePng(pngBytes);
-    if (decoded == null) {
-      return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-    }
-
-    final resized = decoded.width > _maxReportScreenshotWidth
-        ? img.copyResize(
-            decoded,
-            width: _maxReportScreenshotWidth,
-            interpolation: img.Interpolation.average,
-          )
-        : decoded;
-
-    final background =
-        img.Image(width: resized.width, height: resized.height, numChannels: 3);
-    img.fill(background, color: img.ColorRgb8(10, 17, 31));
-    img.compositeImage(background, resized);
-
-    final webPInputBytes = Uint8List.fromList(
-      img.encodePng(background, level: 1),
-    );
-    final webPBytes = await _encodeWebP(webPInputBytes);
-    if (webPBytes != null) {
+  return await RunnerBenchmark.async('screenshot', 'encodeFrameImage',
+      () async {
+    if (!framesScreenshotsWithDeviceBezel) {
+      final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) {
+        throw EnsembleTestFailure('Failed to encode integration screenshot.');
+      }
       return EncodedScreenshotImage(
-        bytes: webPBytes,
-        extension: 'webp',
+        bytes: data.buffer.asUint8List(),
+        extension: 'png',
       );
     }
-
-    final jpgBytes = Uint8List.fromList(
-      img.encodeJpg(
-        background,
-        quality: _reportScreenshotJpegQuality,
-        chroma: img.JpegChroma.yuv420,
-      ),
+    final bytes = await LiveAsyncCallSupport.runUntracked(
+      () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
     );
-    final optimizedPngBytes = Uint8List.fromList(
-      img.encodePng(background, level: 6),
-    );
-    final candidates = <EncodedScreenshotImage>[
-      EncodedScreenshotImage(
-        bytes: jpgBytes,
-        extension: 'jpg',
-      ),
-      EncodedScreenshotImage(
-        bytes: optimizedPngBytes,
-        extension: 'png',
-      ),
-    ];
-    candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
-    return candidates.first;
-  } catch (_) {
-    return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
-  }
-}
-
-Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
-  final cwebpPath = await _resolveCwebpPath();
-  if (cwebpPath == null) return null;
-
-  final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
-  try {
-    final input = File(p.join(tempDir.path, 'input.png'));
-    final output = File(p.join(tempDir.path, 'output.webp'));
-    input.writeAsBytesSync(pngBytes);
-
-    final result = await Process.run(cwebpPath, [
-      '-quiet',
-      '-q',
-      '$_reportScreenshotWebPQuality',
-      '-m',
-      '4',
-      '-metadata',
-      'none',
-      input.path,
-      '-o',
-      output.path,
-    ]);
-    if (result.exitCode != 0 || !output.existsSync()) {
-      return null;
+    if (bytes == null) {
+      throw EnsembleTestFailure('Failed to encode screenshot.');
     }
-    return output.readAsBytesSync();
-  } catch (_) {
-    return null;
-  } finally {
-    try {
-      tempDir.deleteSync(recursive: true);
-    } catch (_) {}
-  }
+    return encodePngAsWebp(
+      bytes,
+      benchmarkOperation: 'encodeWebP',
+      resizeWidth: _maxReportScreenshotWidth,
+      blendAlpha: '0x0a111f',
+    ).then((webPBytes) {
+      if (webPBytes == null) {
+        throw EnsembleTestFailure(
+          'Could not encode screenshot as WebP. Ensure the runner WebP encoder is available.',
+        );
+      }
+      return EncodedScreenshotImage(bytes: webPBytes, extension: 'webp');
+    });
+  });
 }
 
-Future<String?> _resolveCwebpPath() async {
-  if (_didResolveCwebpPath) return _cachedCwebpPath;
-  _didResolveCwebpPath = true;
-
-  final packageConfig = File(
-    p.join(Directory.current.path, '.dart_tool', 'package_config.json'),
-  );
-  if (!packageConfig.existsSync()) return null;
-
-  final packageConfigJson =
-      jsonDecode(packageConfig.readAsStringSync()) as Map<String, dynamic>;
-  final packages = packageConfigJson['packages'];
-  if (packages is! List) return null;
-
-  String? webpRootUri;
-  for (final package in packages) {
-    if (package is Map<String, dynamic> && package['name'] == 'webp') {
-      webpRootUri = package['rootUri'] as String?;
-      break;
-    }
-  }
-  if (webpRootUri == null) return null;
-
-  final packageRoot = p.normalize(
-    p.join(
-      packageConfig.parent.path,
-      p.fromUri(Uri.parse(webpRootUri)),
-    ),
-  );
-  final architecture = _webPArchitecture();
-  if (architecture == null) return null;
-
-  final executable = Platform.isWindows ? 'cwebp.exe' : 'cwebp';
-  final cwebp = File(p.join(packageRoot, architecture, executable));
-  if (!cwebp.existsSync()) return null;
-  _cachedCwebpPath = cwebp.path;
-  return _cachedCwebpPath;
-}
-
-String? _webPArchitecture() {
-  switch (Abi.current()) {
-    case Abi.macosArm64:
-      return 'mac-arm64';
-    case Abi.macosX64:
-      return 'mac-x86-64';
-    case Abi.linuxArm64:
-      return 'linux-aarch64';
-    case Abi.linuxX64:
-      return 'linux-x86-64';
-    case Abi.windowsX64:
-      return 'windows-x64';
-    default:
-      return null;
-  }
-}
+String _mimeTypeForExtension(String extension) => switch (extension) {
+      'webp' => 'image/webp',
+      _ => 'application/octet-stream',
+    };
 
 String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
 String _dedupedImageFileName(EncodedScreenshotImage image) {
-  final digest = sha256.convert(image.bytes).toString();
-  return 'shot_${image.bytes.length}_$digest.${image.extension}';
+  return RunnerBenchmark.sync('screenshot', 'dedupedImageFileName', () {
+    final digest = sha256.convert(image.bytes).toString();
+    return 'shot_${image.bytes.length}_$digest.${image.extension}';
+  });
 }

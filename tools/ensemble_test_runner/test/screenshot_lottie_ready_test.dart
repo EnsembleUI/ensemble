@@ -1,13 +1,28 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ensemble/widget/lottie/lottie.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lottie/lottie.dart';
 
 void main() {
+  testWidgets('screenshot stabilization skips an unnecessary quiet frame',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Text('ready')));
+    var pumps = 0;
+
+    await pumpScreenshotStabilityFrames(
+      tester,
+      onPump: () => pumps++,
+    );
+
+    expect(pumps, 1);
+  });
+
   test('compositionReady resets when source changes', () {
     final controller = LottieController();
     expect(controller.compositionReady, isFalse);
@@ -102,12 +117,44 @@ void main() {
       await waitForVisibleLottiesReady(
         tester,
         timeout: const Duration(seconds: 1),
-        pollInterval: const Duration(milliseconds: 10),
+        pollInterval: Duration.zero,
         progress: 0.4,
       );
 
       expect(areVisibleLottiesReady(tester), isTrue);
       expect(animation.value, closeTo(0.4, 1e-9));
+    },
+  );
+
+  testWidgets(
+    'Lottie readiness remains bounded when the live async lane is blocked',
+    (tester) async {
+      addTearDown(LiveAsyncCallSupport.reset);
+      LiveAsyncCallSupport.runner =
+          <T>(Future<T> Function() _) => Completer<T?>().future;
+      unawaited(LiveAsyncCallSupport.run<void>(() async {}));
+
+      final lottie = EnsembleLottie();
+      lottie.controller.updateSource('https://example.com/pending.json');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(width: 200, height: 200, child: lottie),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(areVisibleLottiesReady(tester), isFalse);
+
+      final elapsed = Stopwatch()..start();
+      await waitForVisibleLottiesReady(
+        tester,
+        timeout: const Duration(milliseconds: 60),
+        pollInterval: const Duration(milliseconds: 10),
+      );
+
+      expect(elapsed.elapsed, lessThan(const Duration(milliseconds: 300)));
+      expect(LiveAsyncCallSupport.hasPendingLiveCalls, isTrue);
     },
   );
 

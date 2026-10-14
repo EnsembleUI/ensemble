@@ -12,7 +12,7 @@ void main() {
     final inspection = EnsembleAppInspector(dir.path).inspect();
     final screen = inspection.screens.single;
 
-    expect(inspection.appPath, 'ensemble/apps/inhome');
+    expect(inspection.appPath, 'ensemble/apps/sample_app');
     expect(inspection.appHome, 'Login');
     expect(screen.name, 'Login');
     expect(screen.testIds, containsAll(['email_field', 'login_button']));
@@ -27,15 +27,15 @@ void main() {
 
 void _writeApp(Directory dir) {
   File('${dir.path}/pubspec.yaml').writeAsStringSync('name: sample_app');
-  Directory('${dir.path}/ensemble/apps/inhome/screens')
+  Directory('${dir.path}/ensemble/apps/sample_app/screens')
       .createSync(recursive: true);
   File('${dir.path}/ensemble/ensemble-config.yaml').writeAsStringSync('''
 definitions:
   local:
-    path: ensemble/apps/inhome
+    path: ensemble/apps/sample_app
     appHome: Login
 ''');
-  File('${dir.path}/ensemble/apps/inhome/screens/Login.yaml')
+  File('${dir.path}/ensemble/apps/sample_app/screens/Login.yaml')
       .writeAsStringSync('''
 Import:
   - common

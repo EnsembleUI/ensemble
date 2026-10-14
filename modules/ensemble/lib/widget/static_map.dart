@@ -139,6 +139,9 @@ class StaticMapMarker {
   }
 
   /// Static API can only do 6 digits 0xFFFFFF (no transparency)
+  // TODO(flutter-upgrade): on Flutter >= 3.35 use color.toARGB32()
+  // https://docs.flutter.dev/release/breaking-changes/wide-gamut-framework
+  // ignore: deprecated_member_use
   String toGoogleMapsColor(Color color) =>
       '0x${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
 

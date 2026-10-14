@@ -26,6 +26,9 @@ class APICallRecord {
   Map<String, dynamic>? resolvedParameters;
   dynamic resolvedBody;
 
+  /// Whether the invocation has produced either a response or an error.
+  bool get isCompleted => statusCode != null || error != null;
+
   APICallRecord({
     required this.name,
     required this.apiDefinition,
@@ -115,6 +118,16 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   void clearApiExceptions() => _forcedExceptions.clear();
 
   bool get hasPendingLiveCalls => LiveAsyncCallSupport.hasPendingLiveCalls;
+
+  int get pendingLiveCallCount => LiveAsyncCallSupport.pendingLiveCallCount;
+
+  int get completedLiveCallCount => LiveAsyncCallSupport.completedLiveCallCount;
+
+  DateTime? get lastLiveCallCompletedAt =>
+      LiveAsyncCallSupport.lastLiveCallCompletedAt;
+
+  Future<void>? pendingLiveCallsSnapshot() =>
+      LiveAsyncCallSupport.pendingLiveCallsSnapshot();
 
   Future<void> waitForLiveCalls() => LiveAsyncCallSupport.waitForLiveCalls();
 

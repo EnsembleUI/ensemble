@@ -1,11 +1,18 @@
-/// CLI output filtering for [runEnsembleYamlTestsCli].
+// Dart 3.8 reports deprecated_member_use at RegExp construction sites even though
+// the deprecation is specifically about implementing RegExp. Keep construction compatible
+// with this SDK without suppressing diagnostics in unrelated files.
+// ignore_for_file: deprecated_member_use
+/// CLI output filtering for [runEnsembleTestsCli].
 library;
 
-const suiteReportStart = '┌─ Ensemble YAML tests';
+const suiteReportStart = '┌─ Ensemble tests';
 const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
 const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 const junitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
+const artifactProtocolPrefix = 'ENSEMBLE_TEST_ARTIFACT_V1:';
+const observerProtocolPrefix = 'ENSEMBLE_TEST_OBSERVE_V1_';
+const observerScreenPrefix = 'Screen:';
 const flutterExceptionStart = '══╡ EXCEPTION CAUGHT BY ';
 const flutterTakeExceptionHint =
     '(The following exception is now available via WidgetTester.takeException:)';
@@ -21,6 +28,9 @@ class LiveFlutterTestOutputFilter {
     if (_suppressRest) return false;
     if (line.startsWith(jsonReportPrefix) ||
         line.startsWith(junitReportPrefix) ||
+        line.contains(artifactProtocolPrefix) ||
+        line.startsWith(observerProtocolPrefix) ||
+        line.startsWith(observerScreenPrefix) ||
         line.startsWith(flutterTakeExceptionHint)) {
       return false;
     }
@@ -105,8 +115,9 @@ String extractJunitReport(String output) {
 
 String _extractPrefixedReport(String output, String prefix) {
   for (final line in output.split('\n')) {
-    if (line.startsWith(prefix)) {
-      return line.substring(prefix.length);
+    final marker = line.indexOf(prefix);
+    if (marker >= 0) {
+      return line.substring(marker + prefix.length);
     }
   }
   return '';
@@ -122,24 +133,41 @@ List<String> flutterTestArguments(List<String> arguments) {
       continue;
     }
     if (a.startsWith('--input=')) continue;
+    if (a == '--plan-batch-file') {
+      i++;
+      continue;
+    }
+    if (a.startsWith('--plan-batch-file=')) continue;
     if (a.startsWith('--app-dir') ||
         a.startsWith('--report') ||
         a == '--doctor' ||
+        a == '--fix' ||
         a == '--inspect-app' ||
         a == '--validate-only' ||
         a == '--scaffold-test' ||
         a.startsWith('--scaffold-test=') ||
         a.startsWith('--screen=') ||
+        a == '--screen' ||
         a.startsWith('--id=') ||
         a.startsWith('--feature=') ||
         a.startsWith('--profile=') ||
         a.startsWith('--tag=') ||
         a.startsWith('--path=') ||
         a.startsWith('--device=') ||
+        a.startsWith('--device-id=') ||
+        a.startsWith('--host-address=') ||
+        a == '--reset-device-storage' ||
+        a == '--allow-device-storage-mutation' ||
+        a.startsWith('--mode=') ||
         a.startsWith('--jobs=') ||
         a.startsWith('--timeout=') ||
+        a.startsWith('--tests-dir') ||
+        a.startsWith('--test-entry') ||
         a == '--verbose' ||
         a == '--quiet') {
+      if (a == '--screen') {
+        i++;
+      }
       continue;
     }
     forwarded.add(a);

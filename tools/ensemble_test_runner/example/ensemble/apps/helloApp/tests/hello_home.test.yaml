@@ -1,8 +1,28 @@
 id: hello_home_navigation
 startScreen: Hello Home
+initialState:
+  storage:
+    greeting: ready
+  secureStorage:
+    onboardingComplete: true
+  keychain:
+    authToken: integration-fixture-token
+setup:
+  - httpRequest:
+      method: GET
+      url: ${services.fixture.url}/ready
 steps:
   - expectVisible:
       id: greeting_text
+  - expectStorage:
+      key: greeting
+      equals: ready
+  - enterText:
+      id: name_input
+      value: Ensemble
+  - expectValue:
+      id: name_input
+      equals: Ensemble
   - tap:
       id: navigate_button
   - waitForNavigation:

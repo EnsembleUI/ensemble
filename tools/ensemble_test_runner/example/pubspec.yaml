@@ -1,6 +1,7 @@
 name: ensemble_test_runner_example
 description: A minimal local Ensemble app tested with ensemble_test_runner.
 publish_to: none
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -9,10 +10,15 @@ environment:
 dependencies:
   ensemble:
     hosted: https://pub.dev
-    version: ">=1.2.53 <2.0.0"
+    version: ">=1.2.55 <2.0.0"
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
   ensemble_test_runner:
     path: ..
-  flutter:
+  flutter_lints: ^2.0.3
+  flutter_test:
     sdk: flutter
 
 flutter:

@@ -1,226 +1,180 @@
+import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/atomic_file.dart';
-import 'package:ensemble_test_runner/reporters/html_test_report_app_js.dart';
-import 'package:ensemble_test_runner/reporters/html_test_report_css.dart';
+import 'package:ensemble_test_runner/reporters/report_resources.dart';
+import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 import 'package:path/path.dart' as p;
 
-/// Writes a thin HTML report shell once; test data lives in results.json.gz.
+/// Writes the HTML report shell; the runner stores current run data in SQLite.
 class HtmlTestReporter {
-  /// Writes the HTML shell (if needed) and results.
-  ///
-  /// When [isSuiteRunning] is true: writes shell + loading results.
-  /// When false: writes complete results; writes shell only if missing.
-  String write(
+  /// Writes a complete report to the database and refreshes its HTML shell.
+  Future<String> write(
     EnsembleTestRunResult result, {
     String? artifactRoot,
     String? displayRoot,
     int? wallTimeMs,
     bool isSuiteRunning = false,
-  }) {
-    final root = artifactRoot ?? ensembleTestArtifactRoot;
-    final display = displayRoot ?? _defaultDisplayRoot;
-    final reportDir = Directory(p.join(root, 'report'));
-    reportDir.createSync(recursive: true);
-    final htmlFile = File(p.join(reportDir.path, 'index.html'));
+  }) async {
+    return await RunnerBenchmark.async('report', 'write', () async {
+      final root = artifactRoot ?? ensembleTestArtifactRoot;
+      final display = displayRoot ?? _defaultDisplayRoot;
 
-    if (isSuiteRunning) {
-      AtomicFile.writeStringSync(htmlFile, buildShellHtml());
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildLoading(wallTimeMs: wallTimeMs),
-      );
-    } else {
-      if (!htmlFile.existsSync()) {
-        AtomicFile.writeStringSync(htmlFile, buildShellHtml());
-      }
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildComplete(
-          result,
+      if (isSuiteRunning) {
+        await EnsembleTestHistoryStore.markReportLoading(artifactRoot: root);
+        writeShell(artifactRoot: root, displayRoot: display);
+      } else {
+        await EnsembleTestHistoryStore.recordCompletedRun(
+          appDir: Directory.current.path,
           artifactRoot: root,
-          displayRoot: display,
+          result: result,
           wallTimeMs: wallTimeMs,
-        ),
-      );
-      TestReportDocument.cleanTransientArtifacts(root);
-    }
+        );
+        writeShell(artifactRoot: root, displayRoot: display);
+        TestReportDocument.cleanTransientArtifacts(root);
+      }
 
-    return p.join(display, 'report', 'index.html').replaceAll('\\', '/');
+      return p.join(display, 'report', 'index.html').replaceAll('\\', '/');
+    });
   }
 
-  /// Updates results only (suite finished). Does not rewrite index.html.
-  String writeResultsOnly(
-    EnsembleTestRunResult result, {
+  /// Writes only the static shell. The CLI uses this because results are
+  /// persisted in the SQLite report row.
+  String writeShell({
     String? artifactRoot,
     String? displayRoot,
-    int? wallTimeMs,
+    bool cleanIntermediates = false,
   }) {
     final root = artifactRoot ?? ensembleTestArtifactRoot;
     final display = displayRoot ?? _defaultDisplayRoot;
-    final reportDir = Directory(p.join(root, 'report'));
-    reportDir.createSync(recursive: true);
+    final reportDir = Directory(p.join(root, 'report'))
+      ..createSync(recursive: true);
     final htmlFile = File(p.join(reportDir.path, 'index.html'));
-    if (!htmlFile.existsSync()) {
-      AtomicFile.writeStringSync(htmlFile, buildShellHtml());
-    }
-    TestReportDocument.writeResults(
-      reportDir,
-      TestReportDocument.buildComplete(
-        result,
-        artifactRoot: root,
-        displayRoot: display,
-        wallTimeMs: wallTimeMs,
-      ),
-    );
-    TestReportDocument.cleanTransientArtifacts(root);
-    return p
-        .join(display, 'report', TestReportDocument.resultsFileName)
-        .replaceAll('\\', '/');
+    AtomicFile.writeStringSync(htmlFile, buildShellHtml());
+    final obsoleteResults = File(p.join(reportDir.path, 'results.json.gz'));
+    if (obsoleteResults.existsSync()) obsoleteResults.deleteSync();
+    if (cleanIntermediates) TestReportDocument.cleanTransientArtifacts(root);
+    return p.join(display, 'report', 'index.html').replaceAll('\\', '/');
   }
 
   /// Thin HTML shell (no embedded test payload).
   String buildShellHtml() {
-    final buffer = StringBuffer()
-      ..writeln('<!DOCTYPE html>')
-      ..writeln('<html lang="en">')
-      ..writeln('<head>')
-      ..writeln('<meta charset="utf-8"/>')
-      ..writeln(
-          '<meta name="viewport" content="width=device-width, initial-scale=1"/>')
-      ..writeln('<title>Ensemble Test Runner Report</title>')
-      ..writeln('<link rel="preconnect" href="https://fonts.googleapis.com">')
-      ..writeln(
-          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
-      ..writeln(
-          '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">')
-      ..writeln('<style>$ensembleHtmlTestReportCss</style>')
-      ..writeln('</head>')
-      ..writeln('<body>')
-      ..writeln('<div class="grid-overlay"></div>')
-      ..writeln(
-          '<div id="report-error" style="display:none;padding:48px;color:var(--fail);font-family:var(--font-sans);"></div>')
-      ..writeln(
-          '<div id="report-loader" class="full-page-loader" style="display:flex;">')
-      ..writeln('  <div class="spinner"></div>')
-      ..writeln('  <h1>Ensemble Test Runner</h1>')
-      ..writeln('  <p class="subtitle">Test Suite Execution in Progress</p>')
-      ..writeln(
-          '  <div class="loader-progress-info">Running declarative tests. This page updates automatically when test results are ready.</div>')
-      ..writeln('  <div class="skeleton-line-full"></div>')
-      ..writeln('  <div class="skeleton-line-full"></div>')
-      ..writeln('  <div class="skeleton-line-full"></div>')
-      ..writeln('</div>')
-      ..writeln('<div id="report-app" style="display:none;">')
-      ..writeln('<header class="hero">')
-      ..writeln('  <div class="hero-header">')
-      ..writeln('    <h1>Ensemble Test Runner</h1>')
-      ..writeln('    <p class="summary" id="hero-summary"></p>')
-      ..writeln('  </div>')
-      ..writeln('  <div class="app-tab-navigation">')
-      ..writeln(
-          '    <button class="app-tab-btn active" data-app-tab="latest" onclick="switchAppTab(\'latest\')">Latest Run</button>')
-      ..writeln(
-          '    <button class="app-tab-btn" data-app-tab="history" onclick="switchAppTab(\'history\')">Run History</button>')
-      ..writeln('  </div>')
-      ..writeln('</header>')
-      ..writeln('<div id="app-tab-content-latest" class="app-tab-content">')
-      ..writeln('<section class="dashboard">')
-      ..writeln('  <div class="metrics-grid" id="metrics-grid"></div>')
-      ..writeln('</section>')
-      ..writeln('<section class="controls">')
-      ..writeln('  <div class="controls-bar">')
-      ..writeln('    <div class="search-wrapper">')
-      ..writeln(
-          '      <input type="text" id="search-input" placeholder="Search test cases by ID or name..." oninput="applySearchFilter()"/>')
-      ..writeln('    </div>')
-      ..writeln('    <div class="filter-tabs">')
-      ..writeln(
-          "      <button class=\"filter-btn active\" data-filter=\"all\" onclick=\"setFilter('all')\">All Tests</button>")
-      ..writeln(
-          "      <button class=\"filter-btn\" data-filter=\"failed\" onclick=\"setFilter('failed')\">Failed</button>")
-      ..writeln(
-          "      <button class=\"filter-btn\" data-filter=\"passed\" onclick=\"setFilter('passed')\">Passed</button>")
-      ..writeln('    </div>')
-      ..writeln('    <div class="sort-wrapper">')
-      ..writeln('      <span class="sort-label">Feature:</span>')
-      ..writeln(
-          '      <select id="feature-select" onchange="applyFeatureFilter()" class="sort-select">')
-      ..writeln('        <option value="all">All Features</option>')
-      ..writeln('      </select>')
-      ..writeln('    </div>')
-      ..writeln('    <div class="sort-wrapper">')
-      ..writeln('      <span class="sort-label">Profile:</span>')
-      ..writeln(
-          '      <select id="profile-select" onchange="applyProfileFilter()" class="sort-select">')
-      ..writeln('        <option value="all">All Profiles</option>')
-      ..writeln('      </select>')
-      ..writeln('    </div>')
-      ..writeln('    <div class="sort-wrapper">')
-      ..writeln('      <span class="sort-label">Sort:</span>')
-      ..writeln(
-          '      <select id="sort-select" onchange="applySort()" class="sort-select">')
-      ..writeln('        <option value="execution">Execution Order</option>')
-      ..writeln('        <option value="alphabetical">Name (A-Z)</option>')
-      ..writeln('        <option value="duration">Duration (Slowest)</option>')
-      ..writeln('        <option value="status">Status (Failed First)</option>')
-      ..writeln('      </select>')
-      ..writeln('    </div>')
-      ..writeln('  </div>')
-      ..writeln('</section>')
-      ..writeln('<div id="suite-artifacts-host"></div>')
-      ..writeln('<div class="dashboard-container">')
-      ..writeln('  <aside class="test-list-pane" id="test-list-pane"></aside>')
-      ..writeln(
-          '  <section class="test-detail-pane" id="test-detail-pane"></section>')
-      ..writeln('</div>')
-      ..writeln('</div>')
-      ..writeln(
-          '<div id="app-tab-content-history" class="app-tab-content" style="display:none;">')
-      ..writeln('  <div id="history-host"></div>')
-      ..writeln('</div>')
-      ..writeln('</div>')
-      ..writeln('<div class="chart-tooltip" id="chart-tooltip"></div>')
-      ..writeln(_modalMarkup())
-      ..writeln('<script>')
-      ..writeln(ensembleHtmlTestReportAppJs)
-      ..writeln('</script>')
-      ..writeln('</body>')
-      ..writeln('</html>');
-    return buffer.toString();
-  }
-
-  /// Kept for callers that still expect an HTML string; also writes results.
-  String buildHtml(
-    EnsembleTestRunResult result, {
-    required String artifactRoot,
-    required String displayRoot,
-    int? wallTimeMs,
-    bool isSuiteRunning = false,
-  }) {
-    final reportDir = Directory(p.join(artifactRoot, 'report'));
-    reportDir.createSync(recursive: true);
-    if (isSuiteRunning) {
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildLoading(wallTimeMs: wallTimeMs),
-      );
-    } else {
-      TestReportDocument.writeResults(
-        reportDir,
-        TestReportDocument.buildComplete(
-          result,
-          artifactRoot: artifactRoot,
-          displayRoot: displayRoot,
-          wallTimeMs: wallTimeMs,
-        ),
-      );
-      TestReportDocument.cleanTransientArtifacts(artifactRoot);
-    }
-    return buildShellHtml();
+    return RunnerBenchmark.sync('report', 'buildShellHtml', () {
+      final buffer = StringBuffer()
+        ..writeln('<!DOCTYPE html>')
+        ..writeln('<html lang="en">')
+        ..writeln('<head>')
+        ..writeln('<meta charset="utf-8"/>')
+        ..writeln(
+            '<meta name="viewport" content="width=device-width, initial-scale=1"/>')
+        ..writeln('<title>Ensemble Test Runner Report</title>')
+        ..writeln('<link rel="preconnect" href="https://fonts.googleapis.com">')
+        ..writeln(
+            '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
+        ..writeln(
+            '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">')
+        ..writeln('<style>${ReportResources.css}</style>')
+        ..writeln('</head>')
+        ..writeln('<body>')
+        ..writeln('<div class="grid-overlay"></div>')
+        ..writeln(
+            '<div id="report-error" style="display:none;padding:48px;color:var(--fail);font-family:var(--font-sans);"></div>')
+        ..writeln(
+            '<div id="report-loader" class="full-page-loader" style="display:flex;">')
+        ..writeln('  <div class="spinner"></div>')
+        ..writeln('  <h1>Ensemble Test Runner</h1>')
+        ..writeln('  <p class="subtitle">Test Suite Execution in Progress</p>')
+        ..writeln(
+            '  <div class="loader-progress-info">Waiting for a completed test report in ensemble_test.db. This page checks for updates automatically.</div>')
+        ..writeln('  <div class="skeleton-line-full"></div>')
+        ..writeln('  <div class="skeleton-line-full"></div>')
+        ..writeln('  <div class="skeleton-line-full"></div>')
+        ..writeln('</div>')
+        ..writeln('<div id="report-app" style="display:none;">')
+        ..writeln('<header class="hero">')
+        ..writeln('  <div class="hero-header">')
+        ..writeln('    <h1>Ensemble Test Runner</h1>')
+        ..writeln('    <p class="summary" id="hero-summary"></p>')
+        ..writeln('  </div>')
+        ..writeln('  <div class="app-tab-navigation">')
+        ..writeln(
+            '    <button class="app-tab-btn active" data-app-tab="latest" onclick="switchAppTab(\'latest\')">Latest Run</button>')
+        ..writeln(
+            '    <button class="app-tab-btn" data-app-tab="history" onclick="switchAppTab(\'history\')">Run History</button>')
+        ..writeln('  </div>')
+        ..writeln('</header>')
+        ..writeln('<div id="app-tab-content-latest" class="app-tab-content">')
+        ..writeln('<section class="dashboard">')
+        ..writeln('  <div class="metrics-grid" id="metrics-grid"></div>')
+        ..writeln('</section>')
+        ..writeln('<section class="controls">')
+        ..writeln('  <div class="controls-bar">')
+        ..writeln('    <div class="search-wrapper">')
+        ..writeln(
+            '      <input type="text" id="search-input" placeholder="Search test cases by ID or name..." oninput="applySearchFilter()"/>')
+        ..writeln('    </div>')
+        ..writeln('    <div class="filter-tabs">')
+        ..writeln(
+            "      <button class=\"filter-btn active\" data-filter=\"all\" onclick=\"setFilter('all')\">All Tests</button>")
+        ..writeln(
+            "      <button class=\"filter-btn\" data-filter=\"failed\" onclick=\"setFilter('failed')\">Failed</button>")
+        ..writeln(
+            "      <button class=\"filter-btn\" data-filter=\"passed\" onclick=\"setFilter('passed')\">Passed</button>")
+        ..writeln('    </div>')
+        ..writeln('    <div class="sort-wrapper">')
+        ..writeln('      <span class="sort-label">Feature:</span>')
+        ..writeln(
+            '      <select id="feature-select" onchange="applyFeatureFilter()" class="sort-select">')
+        ..writeln('        <option value="all">All Features</option>')
+        ..writeln('      </select>')
+        ..writeln('    </div>')
+        ..writeln('    <div class="sort-wrapper">')
+        ..writeln('      <span class="sort-label">Profile:</span>')
+        ..writeln(
+            '      <select id="profile-select" onchange="applyProfileFilter()" class="sort-select">')
+        ..writeln('        <option value="all">All Profiles</option>')
+        ..writeln('      </select>')
+        ..writeln('    </div>')
+        ..writeln('    <div class="sort-wrapper">')
+        ..writeln('      <span class="sort-label">Sort:</span>')
+        ..writeln(
+            '      <select id="sort-select" onchange="applySort()" class="sort-select">')
+        ..writeln('        <option value="execution">Execution Order</option>')
+        ..writeln('        <option value="alphabetical">Name (A-Z)</option>')
+        ..writeln(
+            '        <option value="duration">Duration (Slowest)</option>')
+        ..writeln(
+            '        <option value="status">Status (Failed First)</option>')
+        ..writeln('      </select>')
+        ..writeln('    </div>')
+        ..writeln('  </div>')
+        ..writeln('</section>')
+        ..writeln('<div id="suite-artifacts-host"></div>')
+        ..writeln('<div class="dashboard-container">')
+        ..writeln(
+            '  <aside class="test-list-pane" id="test-list-pane"></aside>')
+        ..writeln(
+            '  <section class="test-detail-pane" id="test-detail-pane"></section>')
+        ..writeln('</div>')
+        ..writeln('</div>')
+        ..writeln(
+            '<div id="app-tab-content-history" class="app-tab-content" style="display:none;">')
+        ..writeln('  <div id="history-host"></div>')
+        ..writeln('</div>')
+        ..writeln('</div>')
+        ..writeln('<div class="chart-tooltip" id="chart-tooltip"></div>')
+        ..writeln(_modalMarkup())
+        ..writeln('<script>')
+        ..writeln(ReportResources.javascript)
+        ..writeln('</script>')
+        ..writeln('</body>')
+        ..writeln('</html>');
+      return buffer.toString();
+    });
   }
 
   String _modalMarkup() {
@@ -236,6 +190,7 @@ class HtmlTestReporter {
       <button class="modal-close-btn" onclick="closeStepDialog(event)">&times;</button>
     </div>
     <div class="modal-body">
+      <div id="modal-step-error" class="modal-step-error" style="display: none;"></div>
       <div class="modal-tabs">
         <button class="modal-tab-btn active" data-tab="api" onclick="switchModalTab('api')">🌐 API Calls (<span id="modal-api-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="logs" onclick="switchModalTab('logs')">📝 Console Logs (<span id="modal-logs-count">0</span>)</button>
@@ -252,11 +207,30 @@ class HtmlTestReporter {
         <div id="modal-storage-list" class="modal-list logs-terminal"></div>
       </div>
       <div class="modal-tab-content" id="modal-tab-screenshots" style="display: none;">
-        <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
+        <div id="modal-screenshots-toolbar" class="screenshot-overlay-toolbar-host"></div>
+        <div class="screenshots-split">
+          <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
+          <aside id="modal-observer-side" class="modal-observer-side" hidden></aside>
+        </div>
       </div>
     </div>
   </div>
   <button class="modal-nav-btn next" onclick="navigateStep(1, event)">&#10095;</button>
+</div>
+
+<div id="observer-element-detail-overlay" class="modal-overlay observer-element-detail-overlay" style="display: none;" onclick="closeObserverElementDetail(event)">
+  <button type="button" class="modal-nav-btn prev" id="observer-element-detail-prev" onclick="navigateObserverElement(-1, event)" aria-label="Previous element">&#10094;</button>
+  <div class="observer-element-detail-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-badge">ELEMENT</span>
+        <h3 id="observer-element-detail-title"></h3>
+      </div>
+      <button class="modal-close-btn" onclick="closeObserverElementDetail(event)">&times;</button>
+    </div>
+    <div class="modal-body observer-element-detail-body" id="observer-element-detail-body"></div>
+  </div>
+  <button type="button" class="modal-nav-btn next" id="observer-element-detail-next" onclick="navigateObserverElement(1, event)" aria-label="Next element">&#10095;</button>
 </div>
 
 <div id="fullscreen-card-overlay" class="modal-overlay" style="display: none;" onclick="closeFullscreenCard(event)">
@@ -308,6 +282,7 @@ class HtmlTestReporter {
 
 /// True when this Flutter test process is a parallel CLI worker shard.
 bool isEnsembleTestParallelWorker() {
-  const suffix = String.fromEnvironment('ensembleTestWorkerSuffix');
+  final suffix =
+      RunnerRuntimeConfiguration.current.string('ensembleTestWorkerSuffix');
   return suffix.isNotEmpty;
 }

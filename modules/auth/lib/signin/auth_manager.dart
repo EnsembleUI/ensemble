@@ -258,29 +258,77 @@ class AuthManager with UserAuthentication {
     throw RuntimeError("Invalid Sign In Client");
   }
 
-  Future<FirebaseApp> _initializeFirebaseSignIn() async {
-    String? appId = await SignInUtils.getAppIdFromYaml();
-
-    FirebaseOptions? options;
-
+  FirebaseOptions? _firebaseOptionsForCurrentPlatform() {
+    final config = Ensemble().getAccount()?.firebaseConfig;
+    // Same order as Firestore: phone browsers report iOS/Android as
+    // defaultTargetPlatform even when kIsWeb is true, and accounts.firebase
+    // often has those blocks without a web block.
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return config?.iOSConfig;
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return config?.androidConfig;
+    }
     if (kIsWeb) {
-      options = Ensemble().getAccount()?.firebaseConfig?.webConfig;
-    } else if (Platform.isIOS) {
-      options = Ensemble().getAccount()?.firebaseConfig?.iOSConfig;
-    } else if (Platform.isAndroid) {
-      options = Ensemble().getAccount()?.firebaseConfig?.androidConfig;
+      return config?.webConfig;
     }
-    if (options == null || appId == null) {
-      throw ConfigError('Firebase is not configured for this platform.');
-    }
+    return null;
+  }
 
-    // if the Firebase app is already initialized by other modules with same options, return it
-    FirebaseApp? existingApp = Firebase.apps.firstWhereOrNull(
-      (app) => SignInUtils.areFirebaseOptionsEqual(app.options, options!),
+  bool _hasInitializedFirebaseApp() {
+    try {
+      return Firebase.apps.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  FirebaseApp? _matchingInitializedApp(FirebaseOptions options) {
+    return Firebase.apps.firstWhereOrNull((app) {
+      try {
+        return SignInUtils.areFirebaseOptionsEqual(app.options, options);
+      } catch (_) {
+        return false;
+      }
+    });
+  }
+
+  FirebaseApp _preferredInitializedApp() {
+    try {
+      return Firebase.app();
+    } catch (_) {
+      return Firebase.apps.first;
+    }
+  }
+
+  Future<FirebaseApp> _initializeFirebaseSignIn() async {
+    final options = _firebaseOptionsForCurrentPlatform();
+    final matchingApp =
+        options == null ? null : _matchingInitializedApp(options);
+    // The Ensemble studio id is only needed as a name when we have to create
+    // a second FirebaseApp. Native startup and Firestore may already have one.
+    final String? ensembleAppId = options != null && matchingApp == null
+        ? await SignInUtils.getAppIdFromYaml()
+        : null;
+
+    final plan = SignInUtils.planFirebaseSignIn(
+      hasPlatformOptions: options != null,
+      hasMatchingInitializedApp: matchingApp != null,
+      hasAnyInitializedApp: _hasInitializedFirebaseApp(),
+      ensembleAppId: ensembleAppId,
     );
 
-    return existingApp ??
-        await Firebase.initializeApp(name: appId, options: options);
+    switch (plan) {
+      case FirebaseSignInPlan.useExistingApp:
+        return matchingApp ?? _preferredInitializedApp();
+      case FirebaseSignInPlan.createNamedApp:
+        return Firebase.initializeApp(
+          name: ensembleAppId!,
+          options: options!,
+        );
+      case FirebaseSignInPlan.notConfigured:
+        throw ConfigError('Firebase is not configured for this platform.');
+    }
   }
 
   /// enrich the passed in User with information from Firebase

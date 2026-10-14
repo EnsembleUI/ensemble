@@ -1,0 +1,9 @@
+id: session_seed
+startScreen: Hello Home
+steps:
+  - setStorage:
+      key: session_value
+      value: retained
+  - expectStorage:
+      key: session_value
+      equals: retained

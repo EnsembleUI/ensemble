@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -8,6 +9,7 @@ import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
@@ -47,6 +49,87 @@ void main() {
     });
   });
 
+  group('consoleCaptureZone', () {
+    testWidgets('records debugPrint and print once each', (tester) async {
+      final runtime = TestRuntimeState();
+      runZoned(() {
+        debugPrint('host: Continue tapped');
+        print('plain print');
+      }, zoneSpecification: runtime.consoleCaptureZone);
+
+      expect(
+        runtime.consoleLogs
+            .where((line) => line.contains('host: Continue tapped')),
+        hasLength(1),
+      );
+      expect(
+        runtime.consoleLogs.where((line) => line.contains('plain print')),
+        hasLength(1),
+      );
+    });
+
+    testWidgets('captures debugPrint and async prints outside the test zone',
+        (tester) async {
+      final runtime = TestRuntimeState()..currentStepIndex = 2;
+      final restoreDebugPrint = runtime.captureDebugPrint();
+      try {
+        await tester.runAsync(() async {
+          debugPrint('async debugPrint');
+          print('async plain print');
+        });
+        await runtime.runAsyncWithConsoleCapture(tester, () async {
+          print('wrapped async plain print');
+        });
+      } finally {
+        restoreDebugPrint();
+      }
+
+      expect(
+        runtime.consoleLogs.where((line) => line.contains('async debugPrint')),
+        hasLength(1),
+      );
+      expect(
+        runtime.consoleLogs
+            .where((line) => line.endsWith('] async plain print')),
+        isEmpty,
+      );
+      expect(
+        runtime.consoleLogs
+            .where((line) => line.contains('wrapped async plain print')),
+        hasLength(1),
+      );
+      expect(runtime.consoleLogs.every((line) => line.contains('[step=2]')),
+          isTrue);
+    });
+
+    testWidgets('skips device artifact protocol lines from app console',
+        (tester) async {
+      final runtime = TestRuntimeState()..currentStepIndex = 0;
+      runZoned(() {
+        print(
+          '${ensembleTestArtifactProtocolPrefix}{"event":"chunk","data":"AAAA"}',
+        );
+        print('app: real console line');
+        print('${ensembleTestProgressProtocolPrefix}{"event":"step"}');
+      }, zoneSpecification: runtime.consoleCaptureZone);
+
+      expect(
+        runtime.consoleLogs
+            .any((line) => line.contains(ensembleTestArtifactProtocolPrefix)),
+        isFalse,
+      );
+      expect(
+        runtime.consoleLogs
+            .any((line) => line.contains(ensembleTestProgressProtocolPrefix)),
+        isFalse,
+      );
+      expect(
+        runtime.consoleLogs.where((line) => line.contains('app: real console')),
+        hasLength(1),
+      );
+    });
+  });
+
   group('groupLogsByStep', () {
     test('prefers stepIndex over timestamps', () {
       final grouped = groupLogsByStep(
@@ -79,6 +162,27 @@ void main() {
       );
     });
 
+    test('attaches unattributed console lines to the first step', () {
+      final grouped = groupLogsByStep(
+        stepsOutline: ['tap(login)', 'expectText(Home)'],
+        stepDurationsMs: [50, 20],
+        stepStartTimes: [
+          '2026-07-22T12:00:01.000',
+          '2026-07-22T12:00:01.050',
+        ],
+        apiEvents: const [],
+        rawConsoleLines: [
+          '[2026-07-22T12:00:00.100] Started login_shop_from_nav',
+        ],
+      );
+
+      expect(
+        (grouped[0]['appLogs'] as List).single,
+        contains('Started login_shop_from_nav'),
+      );
+      expect(grouped[1]['appLogs'], isEmpty);
+    });
+
     test('maps nested outline lines to parent top-level step', () {
       final grouped = groupLogsByStep(
         stepsOutline: [
@@ -93,7 +197,7 @@ void main() {
         ],
         apiEvents: [
           {
-            'name': 'getModemInfo',
+            'name': 'getDeviceInfo',
             'timestamp': '2026-07-22T12:00:01.010',
             'stepIndex': 1,
           },
@@ -104,7 +208,7 @@ void main() {
       expect(grouped, hasLength(3));
       expect(grouped[0]['apiCalls'], isEmpty);
       expect(grouped[1]['apiCalls'], isEmpty);
-      expect((grouped[2]['apiCalls'] as List).single['name'], 'getModemInfo');
+      expect((grouped[2]['apiCalls'] as List).single['name'], 'getDeviceInfo');
     });
 
     test('falls back to timestamp windows when stepIndex missing', () {
@@ -259,11 +363,74 @@ void main() {
       final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
       final decoded =
           json.decode(file.readAsStringSync()) as Map<String, dynamic>;
-      expect(decoded.containsKey('keys'), isTrue);
-      final steps = decoded['steps'] as List<dynamic>;
+      expect(decoded.containsKey('keys'), isFalse);
+      expect(decoded.containsKey('steps'), isFalse);
+      final storage = decoded['storage'] as Map<String, dynamic>;
+      expect(storage['keys'], {'existing': true});
+      final steps = storage['steps'] as List<dynamic>;
       expect(steps, hasLength(1));
       expect(steps.single['stepIndex'], 2);
       expect((steps.single['changes'] as List).single['change'], 'added');
+    });
+
+    test('redacts secure storage and includes keychain values', () async {
+      final logger = TestLogger();
+      final displayPath = await writeStorageLogFile(
+        logger: logger,
+        filePrefix: 'secure_values',
+        keys: const {'public': 'visible'},
+        keychainKeys: const {'adminPassword': 'test-keychain-password'},
+        secureStepDiffs: [
+          StorageStepDiff(
+            stepIndex: 1,
+            timestamp: DateTime.parse('2026-07-22T12:00:00.000'),
+            changes: const [
+              StorageKeyChange(
+                key: 'authToken',
+                change: 'modified',
+                before: 'old-secret',
+                after: {'token': 'new-secret'},
+              ),
+            ],
+          ),
+        ],
+        keychainStepDiffs: [
+          StorageStepDiff(
+            stepIndex: 2,
+            timestamp: DateTime.parse('2026-07-22T12:00:01.000'),
+            changes: const [
+              StorageKeyChange(
+                key: 'refreshToken',
+                change: 'added',
+                after: 'keychain-secret',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+      final content = file.readAsStringSync();
+      expect(content, contains(redactedSecureStorageValue));
+      expect(content, isNot(contains('old-secret')));
+      expect(content, isNot(contains('new-secret')));
+      expect(content, contains('keychain-secret'));
+      expect(content, contains('test-keychain-password'));
+
+      final decoded = json.decode(content) as Map<String, dynamic>;
+      final secureChange = ((decoded['secureStorage'] as Map)['steps'] as List)
+          .single['changes']
+          .single as Map;
+      expect(secureChange['before'], redactedSecureStorageValue);
+      expect(secureChange['after'], redactedSecureStorageValue);
+      final keychainChange = ((decoded['keychain'] as Map)['steps'] as List)
+          .single['changes']
+          .single as Map;
+      expect(keychainChange['after'], 'keychain-secret');
+      expect(
+        (decoded['keychain'] as Map)['keys'],
+        {'adminPassword': 'test-keychain-password'},
+      );
     });
   });
 

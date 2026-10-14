@@ -19,7 +19,25 @@ steps:
     final result = await EnsembleTestDoctor(dir.path).run();
 
     expect(result.hasErrors, isFalse);
-    expect(result.lines.join('\n'), contains('Found 1 YAML test file'));
+    expect(result.lines.join('\n'), contains('Found 1 declarative test file'));
+  });
+
+  test('doctor accepts test profile selectors', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'profiled.test.yaml', '''
+id: profiled
+startScreen: Login
+profiles: alternate
+steps:
+  - expectVisible:
+      id: login_button
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+
+    expect(result.hasErrors, isFalse);
+    expect(result.lines.join('\n'), isNot(contains('Unsupported root key')));
   });
 
   test('doctor reports missing tests cleanly', () async {
@@ -32,7 +50,7 @@ steps:
     expect(
       result.lines.join('\n'),
       contains(
-        'No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/',
+        'No declarative tests found. Add *.test.yaml files under ensemble/apps/sample_app/tests/',
       ),
     );
   });
@@ -84,6 +102,101 @@ steps:
       contains('Unsupported root key "unknownSetting"'),
     );
   });
+
+  test('doctor warns when integration iOS target is below 15.0', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'login_flow.test.yaml', '''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+    File('${dir.path}/ensemble/apps/sample_app/tests/config.yaml')
+        .writeAsStringSync('mode: integration\n');
+    File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n');
+    File('${dir.path}/ios/Podfile')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync("# platform :ios, '13.0'\n");
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+    expect(
+      result.lines.join('\n'),
+      contains('iOS deployment target is unset (defaults to 13.0)'),
+    );
+  });
+
+  test('doctor warns when integration config still has a devices matrix',
+      () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'login_flow.test.yaml', '''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+    File('${dir.path}/ensemble/apps/sample_app/tests/config.yaml')
+        .writeAsStringSync('''
+mode: integration
+devices:
+  - id: iphone
+    platform: ios
+    model: iPhone 15 Pro
+  - id: android
+    platform: android
+    model: Samsung Galaxy S20
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+    final output = result.lines.join('\n');
+    expect(
+      output,
+      contains(
+        '[WARN] Integration mode ignores devices[].model viewport and keeps entries',
+      ),
+    );
+    expect(
+      output,
+      isNot(contains('does not support the `devices` viewport matrix')),
+    );
+  });
+
+  test('doctor fixes platform requirements through platform support', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'login_flow.test.yaml', '''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+    File('${dir.path}/ensemble/apps/sample_app/tests/config.yaml')
+        .writeAsStringSync('mode: integration\n');
+    final gradle = File('${dir.path}/android/app/build.gradle.kts')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+android {
+    compileOptions {
+    }
+}
+dependencies {
+}
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run(fix: true);
+
+    expect(gradle.readAsStringSync(),
+        contains('isCoreLibraryDesugaringEnabled = true'));
+    expect(gradle.readAsStringSync(), contains('desugar_jdk_libs'));
+    expect(result.lines.join('\n'),
+        contains('Android core library desugaring is enabled'));
+  });
 }
 
 Directory _createApp() {
@@ -94,17 +207,17 @@ dev_dependencies:
   ensemble_test_runner:
     path: ../ensemble_test_runner
 ''');
-  Directory('${dir.path}/ensemble/apps/inhome/screens')
+  Directory('${dir.path}/ensemble/apps/sample_app/screens')
       .createSync(recursive: true);
-  Directory('${dir.path}/ensemble/apps/inhome/tests')
+  Directory('${dir.path}/ensemble/apps/sample_app/tests')
       .createSync(recursive: true);
   File('${dir.path}/ensemble/ensemble-config.yaml').writeAsStringSync('''
 definitions:
   local:
-    path: ensemble/apps/inhome
+    path: ensemble/apps/sample_app
     appHome: Login
 ''');
-  File('${dir.path}/ensemble/apps/inhome/screens/Login.yaml')
+  File('${dir.path}/ensemble/apps/sample_app/screens/Login.yaml')
       .writeAsStringSync('''
 View:
   body:
@@ -116,6 +229,6 @@ View:
 }
 
 void _writeTest(Directory dir, String name, String content) {
-  File('${dir.path}/ensemble/apps/inhome/tests/$name')
+  File('${dir.path}/ensemble/apps/sample_app/tests/$name')
       .writeAsStringSync(content);
 }

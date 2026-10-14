@@ -1,0 +1,9 @@
+id: session_consumer
+session: session_seed
+startScreen: Goodbye
+steps:
+  - expectVisible:
+      id: goodbye_text
+  - expectStorage:
+      key: session_value
+      equals: retained
