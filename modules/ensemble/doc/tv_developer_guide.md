@@ -289,6 +289,9 @@ These properties are set under `tvOptions.scrollbarOptions` on ListView widgets.
 | **radius**       | `int`    | `4`          | Border radius of scrollbar corners.                            |
 | **thumbHeight**  | `int`    | `40`         | Fixed height of scrollbar thumb in pixels.                     |
 | **autofocus**    | `bool`   | `false`      | Auto-focus scrollbar on mount (rarely needed).                 |
+| **focusHighlightColor** | `Color` | theme `focusColor` | Overlay painted behind the scrollbar while it has focus. Use `transparent` to hide it. |
+| **outside**      | `bool`   | `false`      | Place the scrollbar beside the ListView's box (background, border, clip) instead of inside it. Needs a bounded width and height. |
+| **gap**          | `number` | `0`          | Space between the box and the scrollbar when `outside` is `true`. |
 
 ### Row-Position Memory (`rememberRowPosition`)
 
@@ -761,6 +764,19 @@ Item (order 0) ←LEFT─  Item (order 1) ←LEFT─ ─┘
 - **Only on TV**: Scrollbar only renders on TV devices
 - **Position**: Use `position: left` for left-side scrollbar (navigation reverses)
 - **Multi-Column Safe**: Navigates through all columns before reaching scrollbar
+- **Outside the box**: With `outside: true` the scrollbar sits next to the ListView's background and rounded corners, so focused items can fill the full width. Its slot keeps `focusedWidth`, so the box does not resize when the scrollbar gains focus:
+
+```yaml
+ListView:
+  styles:
+    backgroundColor: 0xFF232323
+    borderRadius: 9
+    tvOptions:
+      scrollbarOptions:
+        outside: true
+        gap: 2
+        focusHighlightColor: transparent
+```
 
 ---
 
