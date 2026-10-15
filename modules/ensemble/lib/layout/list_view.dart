@@ -544,6 +544,7 @@ class ListViewState extends EWidgetState<ListView>
     }
 
     // TV: Add focusable scrollbar if configured
+    Widget? outsideScrollbar;
     if (Device().isTV && widget._controller.tvOptions?.scrollbarOptions != null) {
       final tvOptions = widget._controller.tvOptions!;
       final scrollbarOptions = tvOptions.scrollbarOptions!;
@@ -628,15 +629,18 @@ class ListViewState extends EWidgetState<ListView>
             crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
             children: isLeftPosition
                 ? [
-                    effectiveScrollbarWidget,
+                    if (!scrollbarOptions.outside) effectiveScrollbarWidget,
                     flutter.Expanded(child: scopedContent),
                   ]
                 : [
                     flutter.Expanded(child: scopedContent),
-                    effectiveScrollbarWidget,
+                    if (!scrollbarOptions.outside) effectiveScrollbarWidget,
                   ],
           ),
         );
+        if (scrollbarOptions.outside) {
+          outsideScrollbar = effectiveScrollbarWidget;
+        }
       }
     }
 
@@ -677,7 +681,7 @@ class ListViewState extends EWidgetState<ListView>
       }
     }
 
-    return BoxWrapper(
+    final boxedListView = BoxWrapper(
         boxController: widget._controller,
         ignoresTVFocus: widget._controller.tvOptions?.scrollbarOptions != null,
         widget: DefaultTextStyle.merge(
@@ -685,6 +689,32 @@ class ListViewState extends EWidgetState<ListView>
                 fontFamily: widget._controller.fontFamily,
                 fontSize: widget._controller.fontSize?.toDouble()),
             child: listView));
+    if (outsideScrollbar == null) {
+      return boxedListView;
+    }
+
+    // Scrollbar beside the box. Its slot keeps the focused width so the box
+    // does not resize when the scrollbar gains focus.
+    final scrollbarOptions = widget._controller.tvOptions!.scrollbarOptions!;
+    final isLeftPosition = scrollbarOptions.position == 'left';
+    final scrollbarSlot = flutter.SizedBox(
+      width: scrollbarOptions.focusedWidth > scrollbarOptions.width
+          ? scrollbarOptions.focusedWidth
+          : scrollbarOptions.width,
+      child: flutter.Align(
+        alignment: isLeftPosition
+            ? flutter.Alignment.centerRight
+            : flutter.Alignment.centerLeft,
+        child: outsideScrollbar,
+      ),
+    );
+    final gap = flutter.SizedBox(width: scrollbarOptions.gap);
+    return flutter.Row(
+      crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
+      children: isLeftPosition
+          ? [scrollbarSlot, gap, flutter.Flexible(child: boxedListView)]
+          : [flutter.Flexible(child: boxedListView), gap, scrollbarSlot],
+    );
   }
 
   // backward compatible

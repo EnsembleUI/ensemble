@@ -366,6 +366,7 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           child: InkWell(
             focusNode: _focusNode,
             autofocus: widget.options.autofocus,
+            focusColor: widget.options.focusHighlightColor,
             onTap: () {},
             onFocusChange: (hasFocus) {
               if (mounted) {

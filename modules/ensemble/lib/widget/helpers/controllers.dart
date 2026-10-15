@@ -587,6 +587,9 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
     radius = inputs['radius'];
     thumbHeight = inputs['thumbHeight'];
     autofocus = inputs['autofocus'];
+    focusHighlightColor = inputs['focusHighlightColor'];
+    outside = inputs['outside'];
+    gap = inputs['gap'];
   }
 
   /// Scrollbar position: 'left' or 'right' for vertical, 'top' or 'bottom' for horizontal
@@ -633,6 +636,24 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
   set autofocus(value) => _autofocus = Utils.getBool(value, fallback: false);
   bool get autofocus => _autofocus;
 
+  /// Overlay painted behind the scrollbar while it has focus. Defaults to the
+  /// theme's focusColor; use `transparent` to hide it.
+  Color? _focusHighlightColor;
+  set focusHighlightColor(value) =>
+      _focusHighlightColor = Utils.getColor(value);
+  Color? get focusHighlightColor => _focusHighlightColor;
+
+  /// Place the scrollbar beside the ListView's box (background, border and
+  /// clip) instead of inside it. Needs a bounded width and height.
+  bool _outside = false;
+  set outside(value) => _outside = Utils.getBool(value, fallback: false);
+  bool get outside => _outside;
+
+  /// Space between the ListView's box and the scrollbar when [outside] is true.
+  double _gap = 0.0;
+  set gap(value) => _gap = Utils.getDouble(value, fallback: 0.0);
+  double get gap => _gap;
+
   @override
   Map<String, Function> getters() => {
         'position': () => _position,
@@ -643,6 +664,9 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
         'radius': () => _radius,
         'thumbHeight': () => _thumbHeight,
         'autofocus': () => _autofocus,
+        'focusHighlightColor': () => _focusHighlightColor,
+        'outside': () => _outside,
+        'gap': () => _gap,
       };
 
   @override
@@ -655,6 +679,9 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
         'radius': (value) => radius = value,
         'thumbHeight': (value) => thumbHeight = value,
         'autofocus': (value) => autofocus = value,
+        'focusHighlightColor': (value) => focusHighlightColor = value,
+        'outside': (value) => outside = value,
+        'gap': (value) => gap = value,
       };
 
   @override
