@@ -105,9 +105,17 @@ void main() {
         Colors.transparent);
   });
 
-  testWidgets('outside places the scrollbar beside the box after the gap',
+  testWidgets('unknown placement falls back to inside', (tester) async {
+    await pump(tester, scrollbarList({'placement': 'sideways', 'gap': 4}));
+
+    expect(find.ancestor(of: find.byType(TVScrollbarWidget), matching: box()),
+        findsOneWidget);
+    expect(tester.getSize(box()).width, 200);
+  });
+
+  testWidgets('placement outside puts the scrollbar beside the box after gap',
       (tester) async {
-    await pump(tester, scrollbarList({'outside': true, 'gap': 4}));
+    await pump(tester, scrollbarList({'placement': 'outside', 'gap': 4}));
 
     expect(find.byType(TVScrollbarWidget), findsOneWidget);
     expect(find.ancestor(of: find.byType(TVScrollbarWidget), matching: box()),
@@ -122,7 +130,7 @@ void main() {
 
   testWidgets('outside box keeps its width when the scrollbar takes focus',
       (tester) async {
-    await pump(tester, scrollbarList({'outside': true, 'gap': 4}));
+    await pump(tester, scrollbarList({'placement': 'outside', 'gap': 4}));
     final before = tester.getRect(box());
     expect(before.width, 200 - 4 - 6);
 
@@ -137,8 +145,8 @@ void main() {
 
   testWidgets('outside with position left places the scrollbar first',
       (tester) async {
-    await pump(
-        tester, scrollbarList({'outside': true, 'gap': 4, 'position': 'left'}));
+    await pump(tester,
+        scrollbarList({'placement': 'outside', 'gap': 4, 'position': 'left'}));
 
     final boxRect = tester.getRect(box());
     final barRect = tester.getRect(scrollbarInkWell());

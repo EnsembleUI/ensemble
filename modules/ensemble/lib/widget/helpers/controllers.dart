@@ -574,6 +574,18 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       };
 }
 
+/// Where a ListView's TV scrollbar sits relative to the ListView's box.
+///
+/// Selected via `styles.tvOptions.scrollbarOptions.placement`.
+enum TVScrollbarPlacement {
+  /// Inside the box, beside the content (default, existing behavior).
+  inside,
+
+  /// Beside the box (background, border and clip), so content can use the
+  /// box's full width. Needs a bounded width and height.
+  outside,
+}
+
 /// Scrollbar options for TV navigation with focusable scrollbar.
 /// Nested under styles.tvOptions.scrollbarOptions
 /// If defined, scrollbar is automatically enabled.
@@ -588,7 +600,7 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
     thumbHeight = inputs['thumbHeight'];
     autofocus = inputs['autofocus'];
     focusHighlightColor = inputs['focusHighlightColor'];
-    outside = inputs['outside'];
+    placement = inputs['placement'];
     gap = inputs['gap'];
   }
 
@@ -643,13 +655,20 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
       _focusHighlightColor = Utils.getColor(value);
   Color? get focusHighlightColor => _focusHighlightColor;
 
-  /// Place the scrollbar beside the ListView's box (background, border and
-  /// clip) instead of inside it. Needs a bounded width and height.
-  bool _outside = false;
-  set outside(value) => _outside = Utils.getBool(value, fallback: false);
-  bool get outside => _outside;
+  /// Scrollbar placement relative to the ListView's box. Defaults to
+  /// [TVScrollbarPlacement.inside] so existing layouts are unchanged.
+  TVScrollbarPlacement _placement = TVScrollbarPlacement.inside;
+  set placement(value) {
+    final name = Utils.optionalString(value)?.trim().toLowerCase();
+    _placement = TVScrollbarPlacement.values.firstWhere(
+      (placement) => placement.name == name,
+      orElse: () => TVScrollbarPlacement.inside,
+    );
+  }
+  TVScrollbarPlacement get placement => _placement;
 
-  /// Space between the ListView's box and the scrollbar when [outside] is true.
+  /// Space between the ListView's box and the scrollbar when [placement] is
+  /// [TVScrollbarPlacement.outside].
   double _gap = 0.0;
   set gap(value) => _gap = Utils.getDouble(value, fallback: 0.0);
   double get gap => _gap;
@@ -665,7 +684,7 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
         'thumbHeight': () => _thumbHeight,
         'autofocus': () => _autofocus,
         'focusHighlightColor': () => _focusHighlightColor,
-        'outside': () => _outside,
+        'placement': () => _placement.name,
         'gap': () => _gap,
       };
 
@@ -680,7 +699,7 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
         'thumbHeight': (value) => thumbHeight = value,
         'autofocus': (value) => autofocus = value,
         'focusHighlightColor': (value) => focusHighlightColor = value,
-        'outside': (value) => outside = value,
+        'placement': (value) => placement = value,
         'gap': (value) => gap = value,
       };
 

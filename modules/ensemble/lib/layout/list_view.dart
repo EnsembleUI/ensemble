@@ -22,6 +22,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -592,6 +593,8 @@ class ListViewState extends EWidgetState<ListView>
 
         // Determine scrollbar position and which edge handler to use
         final isLeftPosition = scrollbarOptions.position == 'left';
+        final isOutside =
+            scrollbarOptions.placement == TVScrollbarPlacement.outside;
         final probedContent = tvOptions.row != null
             ? flutter.KeyedSubtree(
                 key: _contentFocusProbeKey,
@@ -629,16 +632,16 @@ class ListViewState extends EWidgetState<ListView>
             crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
             children: isLeftPosition
                 ? [
-                    if (!scrollbarOptions.outside) effectiveScrollbarWidget,
+                    if (!isOutside) effectiveScrollbarWidget,
                     flutter.Expanded(child: scopedContent),
                   ]
                 : [
                     flutter.Expanded(child: scopedContent),
-                    if (!scrollbarOptions.outside) effectiveScrollbarWidget,
+                    if (!isOutside) effectiveScrollbarWidget,
                   ],
           ),
         );
-        if (scrollbarOptions.outside) {
+        if (isOutside) {
           outsideScrollbar = effectiveScrollbarWidget;
         }
       }
