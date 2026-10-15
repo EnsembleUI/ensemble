@@ -11,6 +11,7 @@ import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/page_event_bus.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -66,6 +67,13 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   /// call when the screen is being disposed
   /// TODO: consolidate listeners, location, eventBus, ...
   void dispose() {
+    // NOTE: `isDisposed` means "this page's root scope was disposed". Child
+    // scopes share the page's event bus/timers, so disposing one must not mark
+    // the page disposed. (The shared-resource teardown split itself is handled
+    // by the binding-owner work, not here.)
+    if (_parent == null) {
+      pageData._disposed = true;
+    }
     // clear out all event listeners
     eventBus.destroy();
 
@@ -639,18 +647,15 @@ mixin PageBindingManager on IsScopeManager {
       //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
       listenerMap[destination.widget]![hash]!.cancel();
     }
-    StreamSubscription subscription =
-        eventBus.on<ModelChangeEvent>().listen((event) {
-      //log("EventBus ${eventBus.hashCode} listening: $event");
-      if ((bindingSource is DeferredBindingSource ||
+    StreamSubscription subscription = me.pageData.eventBus
+        .onIndexed<ModelChangeEvent>(bindingSource.modelId, (event) {
+      return (bindingSource is DeferredBindingSource ||
               event.source.runtimeType == bindingSource.runtimeType) &&
           event.source.modelId == bindingSource.modelId &&
           (event.source.property == null ||
               event.source.property == bindingSource.property) &&
-          (event.bindingScope == null || event.bindingScope == scopeManager)) {
-        onDataChange(event);
-      }
-    });
+          (event.bindingScope == null || event.bindingScope == scopeManager);
+    }).listen((event) => onDataChange(event));
 
     // save to the listener map so we can remove later
     if (listenerMap[destination.widget] == null) {
@@ -698,8 +703,16 @@ class PageData {
   }
 
   // we'll have 1 EventBus and listenerMap for each Page
-  final EventBus eventBus = EventBus();
+  final PageEventBus eventBus = PageEventBus(
+    modelIdOf: (event) =>
+        event is ModelChangeEvent ? event.source.modelId : null,
+  );
   final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
+  bool _disposed = false;
+
+  /// True once the owning page's root scope has been disposed. Used to
+  /// skip async work (e.g. API callbacks) that outlives the page.
+  bool get isDisposed => _disposed;
 
   // When repeating timers are created at the page level, we need to manage
   // duplicates as well as the ability to pause (navigate to new page) or

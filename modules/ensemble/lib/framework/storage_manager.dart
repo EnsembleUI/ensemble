@@ -83,11 +83,10 @@ mixin PublicStorage {
   Future<void> clearPublicStorage() async {
     const encryptedPrefix = 'enc_';
     final keys = GetStorage().getKeys().toList();
-    for (final key in keys) {
-      if (!key.startsWith(encryptedPrefix)) {
-        await GetStorage().remove(key);
-      }
-    }
+    await Future.wait([
+      for (final key in keys)
+        if (!key.startsWith(encryptedPrefix)) GetStorage().remove(key),
+    ]);
   }
 }
 
