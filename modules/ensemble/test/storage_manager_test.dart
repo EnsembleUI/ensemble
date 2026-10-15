@@ -1,6 +1,42 @@
+import 'dart:io';
+
+import 'package:ensemble/framework/storage_manager.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_storage/get_storage.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('clear removes public keys but retains encrypted keys', () async {
+    final directory = await Directory.systemTemp.createTemp('ensemble-storage-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => directory.path);
+    try {
+      final storage = StorageManager();
+      await storage.initPublicStorage();
+      await storage.write('clear_test_a', 'a');
+      await storage.write('clear_test_b', 'b');
+      await storage.write('enc_clear_test', 'secret');
+
+      await storage.clearPublicStorage();
+
+      expect(storage.getKeys(), isNot(contains('clear_test_a')));
+      expect(storage.getKeys(), isNot(contains('clear_test_b')));
+      expect(storage.read('enc_clear_test'), 'secret');
+      await storage.remove('enc_clear_test');
+      expect(storage.getKeys(), isNot(contains('enc_clear_test')));
+      await storage.write('clear_test_after', 'new');
+      expect(storage.read('clear_test_after'), 'new');
+    } finally {
+      await GetStorage().queue.add(() async {});
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      await directory.delete(recursive: true);
+    }
+  });
+
   test('clear logic filters out encrypted keys correctly', () {
     final storage = <String, dynamic>{
       'name': 'Alice',
