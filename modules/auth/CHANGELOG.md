@@ -1,3 +1,7 @@
+## 1.2.59
+
+ - **FEAT**(auth): refactor Firebase sign-in initialization and add plan decision logic ([#2373](https://github.com/ensembleUI/ensemble/issues/2373)). ([2d84f503](https://github.com/ensembleUI/ensemble/commit/2d84f50327c4ff97a69ebff622af6f701fc1ba59))
+
 ## 1.2.55
 
 ## 1.2.54

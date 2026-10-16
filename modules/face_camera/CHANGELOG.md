@@ -1,3 +1,7 @@
+## 1.2.59
+
+ - Bump "ensemble_face_camera" to `1.2.59`.
+
 ## 1.2.55
 
 ## 1.2.54

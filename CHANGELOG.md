@@ -3,6 +3,133 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-10-16
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.59`](#ensemble---v1259)
+ - [`ensemble_network_info` - `v1.2.59`](#ensemble_network_info---v1259)
+ - [`ensemble_stripe` - `v1.2.59`](#ensemble_stripe---v1259)
+ - [`ensemble_file_manager` - `v1.2.59`](#ensemble_file_manager---v1259)
+ - [`ensemble_chat` - `v1.2.59`](#ensemble_chat---v1259)
+ - [`ensemble_auth` - `v1.2.59`](#ensemble_auth---v1259)
+ - [`ensemble_bluetooth` - `v1.2.59`](#ensemble_bluetooth---v1259)
+ - [`ensemble_wifi` - `v1.2.59`](#ensemble_wifi---v1259)
+ - [`ensemble_face_camera` - `v1.2.59`](#ensemble_face_camera---v1259)
+ - [`ensemble_connect` - `v1.2.59`](#ensemble_connect---v1259)
+ - [`ensemble_contacts` - `v1.2.59`](#ensemble_contacts---v1259)
+ - [`ensemble_location` - `v1.2.59`](#ensemble_location---v1259)
+ - [`ensemble_camera` - `v1.2.59`](#ensemble_camera---v1259)
+ - [`ensemble_deeplink` - `v1.2.59`](#ensemble_deeplink---v1259)
+ - [`ensemble_remote_config` - `v1.2.59`](#ensemble_remote_config---v1259)
+ - [`ensemble_firebase_analytics` - `v1.2.59`](#ensemble_firebase_analytics---v1259)
+ - [`ensemble_qr_scanner` - `v1.2.59`](#ensemble_qr_scanner---v1259)
+ - [`ensemble_adobe_analytics` - `v1.2.59`](#ensemble_adobe_analytics---v1259)
+ - [`ensemble_moengage` - `v1.2.59`](#ensemble_moengage---v1259)
+ - [`ensemble_bracket` - `v1.2.59`](#ensemble_bracket---v1259)
+ - [`ensemble_test_runner` - `v1.3.8`](#ensemble_test_runner---v138)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.3.8`
+
+---
+
+#### `ensemble` - `v1.2.59`
+
+ - **FEAT**(runtime): page-scoped event bus, API disposal guards, storage cleanup. ([f5b5c613](https://github.com/ensembleUI/ensemble/commit/f5b5c613934ba7e66831334fe9900a992c5fe9b1))
+ - **FEAT**(ensemble_test_runner): add UI observation and improve test diagnostics ([#2375](https://github.com/ensembleUI/ensemble/issues/2375)). ([ba817c19](https://github.com/ensembleUI/ensemble/commit/ba817c19f3c04c4ffc8b411ec5b6e873c6e8bb39))
+ - **FEAT**(ensemble_test_runner): add ensemble test runner workflow and enh… ([#2371](https://github.com/ensembleUI/ensemble/issues/2371)). ([a8a80e1d](https://github.com/ensembleUI/ensemble/commit/a8a80e1d0dd7a4ab663dc941f7a6ded7ec504780))
+ - **FEAT**(ensemble_test_runner): add device-based integration testing mode ([#2367](https://github.com/ensembleUI/ensemble/issues/2367)). ([e91507ed](https://github.com/ensembleUI/ensemble/commit/e91507ed366fd82d3ddb97c35e6374917c209d1f))
+ - **FEAT**(chat): enhance chat loading state handling and add optional reas… ([#2360](https://github.com/ensembleUI/ensemble/issues/2360)). ([fbb13c22](https://github.com/ensembleUI/ensemble/commit/fbb13c227228b6d763844691b867158a396c11c1))
+
+#### `ensemble_network_info` - `v1.2.59`
+
+ - Bump "ensemble_network_info" to `1.2.59`.
+
+#### `ensemble_stripe` - `v1.2.59`
+
+ - Bump "ensemble_stripe" to `1.2.59`.
+
+#### `ensemble_file_manager` - `v1.2.59`
+
+ - Bump "ensemble_file_manager" to `1.2.59`.
+
+#### `ensemble_chat` - `v1.2.59`
+
+ - **FEAT**(chat): enhance chat loading state handling and add optional reas… ([#2360](https://github.com/ensembleUI/ensemble/issues/2360)). ([fbb13c22](https://github.com/ensembleUI/ensemble/commit/fbb13c227228b6d763844691b867158a396c11c1))
+
+#### `ensemble_auth` - `v1.2.59`
+
+ - **FEAT**(auth): refactor Firebase sign-in initialization and add plan decision logic ([#2373](https://github.com/ensembleUI/ensemble/issues/2373)). ([2d84f503](https://github.com/ensembleUI/ensemble/commit/2d84f50327c4ff97a69ebff622af6f701fc1ba59))
+
+#### `ensemble_bluetooth` - `v1.2.59`
+
+ - Bump "ensemble_bluetooth" to `1.2.59`.
+
+#### `ensemble_wifi` - `v1.2.59`
+
+ - Bump "ensemble_wifi" to `1.2.59`.
+
+#### `ensemble_face_camera` - `v1.2.59`
+
+ - Bump "ensemble_face_camera" to `1.2.59`.
+
+#### `ensemble_connect` - `v1.2.59`
+
+ - Bump "ensemble_connect" to `1.2.59`.
+
+#### `ensemble_contacts` - `v1.2.59`
+
+ - Bump "ensemble_contacts" to `1.2.59`.
+
+#### `ensemble_location` - `v1.2.59`
+
+ - Bump "ensemble_location" to `1.2.59`.
+
+#### `ensemble_camera` - `v1.2.59`
+
+ - Bump "ensemble_camera" to `1.2.59`.
+
+#### `ensemble_deeplink` - `v1.2.59`
+
+ - Bump "ensemble_deeplink" to `1.2.59`.
+
+#### `ensemble_remote_config` - `v1.2.59`
+
+ - Bump "ensemble_remote_config" to `1.2.59`.
+
+#### `ensemble_firebase_analytics` - `v1.2.59`
+
+ - Bump "ensemble_firebase_analytics" to `1.2.59`.
+
+#### `ensemble_qr_scanner` - `v1.2.59`
+
+ - Bump "ensemble_qr_scanner" to `1.2.59`.
+
+#### `ensemble_adobe_analytics` - `v1.2.59`
+
+ - Bump "ensemble_adobe_analytics" to `1.2.59`.
+
+#### `ensemble_moengage` - `v1.2.59`
+
+ - Bump "ensemble_moengage" to `1.2.59`.
+
+#### `ensemble_bracket` - `v1.2.59`
+
+ - Bump "ensemble_bracket" to `1.2.59`.
+
+
 ## 2026-09-14
 
 ### Changes

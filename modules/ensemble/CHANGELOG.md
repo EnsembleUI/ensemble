@@ -1,3 +1,11 @@
+## 1.2.59
+
+ - **FEAT**(runtime): page-scoped event bus, API disposal guards, storage cleanup. ([f5b5c613](https://github.com/ensembleUI/ensemble/commit/f5b5c613934ba7e66831334fe9900a992c5fe9b1))
+ - **FEAT**(ensemble_test_runner): add UI observation and improve test diagnostics ([#2375](https://github.com/ensembleUI/ensemble/issues/2375)). ([ba817c19](https://github.com/ensembleUI/ensemble/commit/ba817c19f3c04c4ffc8b411ec5b6e873c6e8bb39))
+ - **FEAT**(ensemble_test_runner): add ensemble test runner workflow and enh… ([#2371](https://github.com/ensembleUI/ensemble/issues/2371)). ([a8a80e1d](https://github.com/ensembleUI/ensemble/commit/a8a80e1d0dd7a4ab663dc941f7a6ded7ec504780))
+ - **FEAT**(ensemble_test_runner): add device-based integration testing mode ([#2367](https://github.com/ensembleUI/ensemble/issues/2367)). ([e91507ed](https://github.com/ensembleUI/ensemble/commit/e91507ed366fd82d3ddb97c35e6374917c209d1f))
+ - **FEAT**(chat): enhance chat loading state handling and add optional reas… ([#2360](https://github.com/ensembleUI/ensemble/issues/2360)). ([fbb13c22](https://github.com/ensembleUI/ensemble/commit/fbb13c227228b6d763844691b867158a396c11c1))
+
 ## 1.2.55
 
  - **FIX**: update device_info_plus dependency range. ([735a617a](https://github.com/ensembleUI/ensemble/commit/735a617a768f2a0440a0b9553cd48f54b6dc620e))

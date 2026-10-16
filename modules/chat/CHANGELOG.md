@@ -1,3 +1,7 @@
+## 1.2.59
+
+ - **FEAT**(chat): enhance chat loading state handling and add optional reas… ([#2360](https://github.com/ensembleUI/ensemble/issues/2360)). ([fbb13c22](https://github.com/ensembleUI/ensemble/commit/fbb13c227228b6d763844691b867158a396c11c1))
+
 ## 1.2.55
 
 ## 1.2.54
