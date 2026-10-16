@@ -106,7 +106,10 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
   /// inside another opted-in TabBar, Back walks out one tab level per press.
   KeyEventResult handleTabBodyBackKey(KeyEvent event) {
     if (_handledTabBackKeySequence) {
-      return handleTabBackKeySequence(event);
+      final result = handleTabBackKeySequence(event);
+      // A fresh key-down means the previous press's key-up never arrived; the
+      // flag is now cleared, so handle this press normally.
+      if (event is! KeyDownEvent) return result;
     }
     if (event is! KeyDownEvent ||
         event.logicalKey != LogicalKeyboardKey.goBack) {

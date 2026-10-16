@@ -148,6 +148,49 @@ void main() {
     expect(spy.events.whereType<KeyUpEvent>(), hasLength(1));
   });
 
+  testWidgets('missed Back key-up does not prevent the next focus return',
+      (tester) async {
+    final spy = BackSpy();
+    final outsideFocus = FocusNode(debugLabel: 'OutsideTabBar');
+    addTearDown(outsideFocus.dispose);
+    final tabBar = TabBarContainer()
+      ..setProperty('items', tabItems())
+      ..setProperty('tabFocusOnBack', true);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      spy.wrap(
+        Column(
+          children: [
+            tabBar,
+            Focus(focusNode: outsideFocus, child: const SizedBox(height: 20)),
+          ],
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await _focusBodyContent(tester);
+    await _pressBackDown(tester);
+    expect(_primaryLabel(tester), '${tabButtonFocusLabelPrefix}0');
+
+    // Move outside the TabBar before release, so its sequence handler misses
+    // the key-up and retains a stale handled flag.
+    outsideFocus.requestFocus();
+    await tester.pump();
+    expect(outsideFocus.hasFocus, isTrue);
+    await _releaseBack(tester);
+
+    final deliveredDowns = spy.events.whereType<KeyDownEvent>().length;
+    await _focusBodyContent(tester);
+    await _pressBackDown(tester);
+
+    // The fresh press clears the stale sequence and still receives ordinary
+    // body handling instead of escaping to page navigation.
+    expect(_primaryLabel(tester), '${tabButtonFocusLabelPrefix}0');
+    expect(spy.events.whereType<KeyDownEvent>(), hasLength(deliveredDowns));
+    await _releaseBack(tester);
+  });
+
   testWidgets('Back in tab content targets the selected tab, not the focused one',
       (tester) async {
     final spy = BackSpy();

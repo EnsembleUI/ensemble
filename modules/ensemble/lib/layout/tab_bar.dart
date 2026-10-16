@@ -360,7 +360,7 @@ class TabBarState extends BaseTabBarState {
       );
       if (widget._controller.tabFocusOnBack) {
         // Keep this Focus below the outer Expanded. Expanded must remain the
-        // direct Flex child when a TabBar sits in a Column (as on Tennis).
+        // direct Flex child when the TabBar sits in a Column with `expanded: true`.
         tabWidget = Focus(
           canRequestFocus: false,
           onKeyEvent: (_, event) => handleTabBackKeySequence(event),
