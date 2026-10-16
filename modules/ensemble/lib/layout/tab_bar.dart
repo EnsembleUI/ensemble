@@ -332,6 +332,19 @@ class TabBarState extends BaseTabBarState {
                 return buildSelectedTab();
               },
             );
+      // Opt-in TV Back handling (`styles.tabFocusOnBack: true`): while
+      // focus is inside this TabBar's content, Back moves focus to the selected
+      // tab instead of leaving the screen. The wrapper surrounds the content
+      // only, so the tab strip and everything outside this TabBar keep their
+      // existing Back behavior. Non-TV builds have no TV tab buttons
+      // registered, so handleTabBodyBackKey leaves the press to the platform.
+      if (widget._controller.tabFocusOnBack) {
+        tabContent = Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, KeyEvent event) => handleTabBodyBackKey(event),
+          child: tabContent,
+        );
+      }
       if (isExpanded) {
         tabContent = Expanded(child: tabContent);
       }
@@ -345,6 +358,15 @@ class TabBarState extends BaseTabBarState {
           tabContent,
         ],
       );
+      if (widget._controller.tabFocusOnBack) {
+        // Keep this Focus below the outer Expanded. Expanded must remain the
+        // direct Flex child when the TabBar sits in a Column with `expanded: true`.
+        tabWidget = Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => handleTabBackKeySequence(event),
+          child: tabWidget,
+        );
+      }
       // if Expanded is set, stretch our column to left-over height
       if (isExpanded) {
         tabWidget = Expanded(child: tabWidget);

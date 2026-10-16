@@ -42,6 +42,17 @@ class TabBarController extends BoxController {
   /// TV: reveal the whole TabBar when a tab receives focus.
   bool revealTabBarOnFocus = false;
 
+  /// TV: when true, pressing Back while focus is inside this TabBar's content
+  /// moves focus back to the selected tab instead of leaving the screen. The
+  /// next Back press (now on the tab strip) navigates as usual. Opt-in and
+  /// default false, so existing behavior is unchanged.
+  ///
+  /// Applies to `TabBar` (TabBarContainer) content. `TabBarOnly` has no content
+  /// to return from, and `ScrollableTabBar` selects by scroll position rather
+  /// than by a per-tab body, so both ignore this flag.
+  /// Set with `styles.tabFocusOnBack`.
+  bool tabFocusOnBack = false;
+
   /// Whether the TabBar body occupies the available flex height.
   bool get isStretched {
     if (flexMode == FlexMode.expanded ||
@@ -100,6 +111,8 @@ class TabBarController extends BoxController {
       'tvRow': (value) => tvRow = Utils.optionalDouble(value),
       'revealTabBarOnFocus': (value) =>
           revealTabBarOnFocus = Utils.getBool(value, fallback: false),
+      'tabFocusOnBack': (value) =>
+          tabFocusOnBack = Utils.getBool(value, fallback: false),
     });
     return setters;
   }

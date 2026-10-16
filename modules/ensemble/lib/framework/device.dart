@@ -91,6 +91,14 @@ class Device
   void openAppSettings([String? target]) {
     AppSettingAction.openAppSettings(target ?? 'settings');
   }
+
+  /// Test-only override of [DeviceInfoCapability.isTV] so widget tests can
+  /// exercise TV-only rendering without real Android device info.
+  /// Pass null to clear the override and fall back to platform detection.
+  @visibleForTesting
+  static void debugOverrideIsTV(bool? value) {
+    DeviceInfoCapability._isTVOverride = value;
+  }
 }
 
 mixin MediaQueryCapability {
@@ -132,11 +140,17 @@ mixin DeviceInfoCapability {
   // Android TV detection cache
   static bool? _isTV;
 
+  /// Test-only override consulted before device detection, so a test build can
+  /// pretend to run on a TV without populating [androidInfo]. Declared here (not
+  /// in [Device]) because [isTV] reads it. See [Device.debugOverrideIsTV].
+  static bool? _isTVOverride;
+
   DevicePlatform? get platform => _platform;
 
   /// Returns true if the device is an Android TV
   /// Checks for TV-specific system features
   bool get isTV {
+    if (_isTVOverride != null) return _isTVOverride!;
     if (_isTV != null) return _isTV!;
 
     // Web is never a TV, and it's known synchronously — safe to cache.

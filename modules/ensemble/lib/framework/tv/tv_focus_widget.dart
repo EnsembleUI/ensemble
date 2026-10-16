@@ -260,7 +260,8 @@ class TVFocusWidget extends StatelessWidget {
     }
 
     // Check if trying to exit at top boundary (UP and at first row in grid)
-    // Let the event propagate to native focus handling (e.g., sport tab)
+    // Let the event propagate to native focus handling (e.g., a native tab or
+    // screen hosting this Ensemble view)
     // so users can navigate back to native content from Ensemble content
     if (yOffset == -1 && y == 0) {
       if (topEdgeHandler != null) {

@@ -11,6 +11,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
 // =============================================================================
@@ -26,6 +27,99 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
   // execute when a tab has (already) changed. Use this to run extra logic (and don't modify the tabController again
   void onTabChanged(int index);
+
+  // ---------------------------------------------------------------------------
+  // TV: return focus to the selected tab on Back
+  // ---------------------------------------------------------------------------
+
+  /// The mounted TV tab buttons, keyed by visible tab index.
+  ///
+  /// Populated by [_TVTabButtonState] so [focusSelectedTab] can target the
+  /// selected tab directly, rather than through grid coordinates (whose
+  /// nearest-match fallback could land on a different control).
+  final Map<int, _TVTabFocusEntry> _tvTabFocusEntries = {};
+
+  void _registerTVTabFocusEntry(int index, _TVTabFocusEntry entry) {
+    _tvTabFocusEntries[index] = entry;
+  }
+
+  void _unregisterTVTabFocusEntry(int index, _TVTabFocusEntry entry) {
+    // Only drop the entry if it is still this one: a replacement button for the
+    // same index must not be removed by the outgoing one.
+    if (identical(_tvTabFocusEntries[index], entry)) {
+      _tvTabFocusEntries.remove(index);
+    }
+  }
+
+  /// Focuses the currently selected tab button, returning whether focus moved.
+  ///
+  /// Uses the index the strip itself treats as selected, and reveals the strip
+  /// explicitly: the first focus gain on a tab is intentionally not revealed
+  /// (legacy initial-autofocus guard), so a Back press from scrolled-away
+  /// content would otherwise move focus somewhere the user cannot see.
+  ///
+  /// Returns false when this TabBar has no TV tab buttons (mobile/web builds),
+  /// which leaves the Back press to the platform.
+  bool focusSelectedTab() {
+    final entry = _tvTabFocusEntries[tabController.index];
+    if (entry == null || entry.node.hasFocus || !entry.node.canRequestFocus) {
+      return false;
+    }
+    entry.node.requestFocus();
+    entry.reveal();
+    return true;
+  }
+
+  // A Back key-down handled by the content scope must also consume the paired
+  // key-up. Android tracks the down/up pair and can redispatch an unhandled up
+  // to Activity.onKeyUp, which may pop the route even though focus has moved.
+  bool _handledTabBackKeySequence = false;
+
+  KeyEventResult handleTabBackKeySequence(KeyEvent event) {
+    if (event.logicalKey != LogicalKeyboardKey.goBack ||
+        !_handledTabBackKeySequence) {
+      return KeyEventResult.ignored;
+    }
+
+    // A non-repeat down is a new physical press (normally preceded by the
+    // release); don't let a missing/cancelled up leave navigation disabled.
+    if (event is KeyDownEvent) {
+      _handledTabBackKeySequence = false;
+      return KeyEventResult.ignored;
+    }
+    if (event is KeyUpEvent) {
+      _handledTabBackKeySequence = false;
+    }
+    // Consume repeats and the paired release for the handled press.
+    return KeyEventResult.handled;
+  }
+
+  /// Key handler for the opt-in TabBar content wrapper
+  /// (`styles.tabFocusOnBack: true`).
+  ///
+  /// Consumes a plain Back key-down only when focus successfully moves. That
+  /// handled press's repeats and key-up are then consumed by the surrounding
+  /// TabBar scope, so they cannot re-trigger or navigate by themselves.
+  /// The wrapper surrounds the tab *content* only, so once focus is on this
+  /// TabBar's own strip the handler is no longer in the focus path and the next
+  /// Back press reaches normal navigation untouched. If this TabBar is nested
+  /// inside another opted-in TabBar, Back walks out one tab level per press.
+  KeyEventResult handleTabBodyBackKey(KeyEvent event) {
+    if (_handledTabBackKeySequence) {
+      final result = handleTabBackKeySequence(event);
+      // A fresh key-down means the previous press's key-up never arrived; the
+      // flag is now cleared, so handle this press normally.
+      if (event is! KeyDownEvent) return result;
+    }
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.goBack) {
+      return KeyEventResult.ignored;
+    }
+    if (!focusSelectedTab()) return KeyEventResult.ignored;
+
+    _handledTabBackKeySequence = true;
+    return KeyEventResult.handled;
+  }
 
   // common method for both scrollable and simple Tabbar
   bool evaluateCondition(ScopeManager scopeManager, String expression) {
@@ -232,6 +326,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 tabPadding: widget.controller.tabPadding,
                 scrollPadding: widget.controller.tvOptions?.verticalScrollPadding,
                 revealTabBarOnFocus: widget.controller.revealTabBarOnFocus,
+                registerFocusEntry: _registerTVTabFocusEntry,
+                unregisterFocusEntry: _unregisterTVTabFocusEntry,
                 onTap: () {
                   tabController.animateTo(index);
                   onTabChanged(index);
@@ -394,6 +490,16 @@ mixin TabBarAction on EWidgetState<BaseTabBar> {
   void changeTab(int index);
 }
 
+/// A mounted TV tab button, as seen by its owning TabBar: the focus node that
+/// Back should target, plus the reveal that makes it visible (the button only
+/// auto-reveals on a repeat focus gain, not on the first one).
+class _TVTabFocusEntry {
+  const _TVTabFocusEntry(this.node, this.reveal);
+
+  final FocusNode node;
+  final VoidCallback reveal;
+}
+
 /// TV-specific focusable tab button using row/order-based navigation.
 /// Each tab uses TVFocusOrder coordinates.
 /// If TabBar has tvRow set, tabs use that row in the main page grid.
@@ -418,6 +524,8 @@ class _TVTabButton extends StatefulWidget {
     this.tabPadding,
     this.scrollPadding,
     this.revealTabBarOnFocus = false,
+    required this.registerFocusEntry,
+    required this.unregisterFocusEntry,
   });
 
   final TabItem tabItem;
@@ -441,12 +549,18 @@ class _TVTabButton extends StatefulWidget {
   final double? scrollPadding;
   final bool revealTabBarOnFocus;
 
+  /// Registers/unregisters this button with the owning TabBar, so Back inside
+  /// the tab content can return focus to the selected tab.
+  final void Function(int index, _TVTabFocusEntry entry) registerFocusEntry;
+  final void Function(int index, _TVTabFocusEntry entry) unregisterFocusEntry;
+
   @override
   State<_TVTabButton> createState() => _TVTabButtonState();
 }
 
 class _TVTabButtonState extends State<_TVTabButton> {
   late final FocusNode _focusNode;
+  late final _TVTabFocusEntry _focusEntry;
   bool _hasReceivedFocus = false;
 
   @override
@@ -454,10 +568,13 @@ class _TVTabButtonState extends State<_TVTabButton> {
     super.initState();
     _focusNode = FocusNode(debugLabel: 'TVTabButton_${widget.index}');
     _focusNode.addListener(_onFocusChange);
+    _focusEntry = _TVTabFocusEntry(_focusNode, _scrollIntoView);
+    widget.registerFocusEntry(widget.index, _focusEntry);
   }
 
   @override
   void dispose() {
+    widget.unregisterFocusEntry(widget.index, _focusEntry);
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();

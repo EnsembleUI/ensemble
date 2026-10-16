@@ -21,6 +21,10 @@ renders only the tab navigation. Both are backed by `BaseTabBar`,
 | `navigateTo(index)` | Programmatically selects a tab. `changeTabItem(index)` is kept as a legacy alias. |
 | `useIndexedTab` | Builds each tab body on first visit and caches it for later tab switches. |
 | `persistentTabBar` | Wraps tab bodies in a scroll view so the tab bar remains pinned while body content scrolls. |
+| `styles.tabFocusOnBack` | TV-only, opt-in: the first Back press from tab content restores focus to the selected tab; a separate next press uses normal navigation. Defaults to `false`. |
+
+`tabFocusOnBack` applies to `TabBar` content; `TabBarOnly` has no body to return
+from, and `ScrollableTabBar` retains its scroll-driven selection behavior.
 
 ### Example
 
