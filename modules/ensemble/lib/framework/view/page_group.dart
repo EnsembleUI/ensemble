@@ -513,11 +513,12 @@ class PageGroupState extends State<PageGroup>
 
   Widget? _buildSidebarSeparator(Menu menu) {
     Color? borderColor = Utils.getColor(menu.runtimeStyles?['borderColor']);
-    int? borderWidth = Utils.optionalInt(menu.runtimeStyles?['borderWidth']);
+    double? borderWidth =
+        Utils.optionalDouble(menu.runtimeStyles?['borderWidth']);
     if (borderColor != null || borderWidth != null) {
       return VerticalDivider(
-          thickness: (borderWidth ?? 1).toDouble(),
-          width: (borderWidth ?? 1).toDouble(),
+          thickness: borderWidth ?? 1,
+          width: borderWidth ?? 1,
           color: borderColor);
     }
     return null;

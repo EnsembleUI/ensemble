@@ -103,7 +103,7 @@ abstract class SelectOne extends StatefulWidget
       'dropdownBorderColor': (value) =>
           _controller.dropdownBorderColor = Utils.getColor(value),
       'dropdownBorderWidth': (value) =>
-          _controller.dropdownBorderWidth = Utils.optionalInt(value),
+          _controller.dropdownBorderWidth = Utils.optionalDouble(value),
       'dropdownMaxHeight': (value) =>
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
       'createNewItem': (value) => _setCreateNewItem(value),
@@ -263,7 +263,7 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   int? dropdownOffsetY;
   Color? dropdownBackgroundColor;
   EBorderRadius? dropdownBorderRadius;
-  int? dropdownBorderWidth;
+  double? dropdownBorderWidth;
   Color? dropdownBorderColor;
   int? dropdownMaxHeight;
   TextStyleComposite? _textStyle;
@@ -411,8 +411,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     ? Border.all(
                         color: widget._controller.dropdownBorderColor ??
                             ThemeManager().getBorderColor(context),
-                        width: widget._controller.dropdownBorderWidth
-                                ?.toDouble() ??
+                        width: widget._controller.dropdownBorderWidth ??
                             ThemeManager().getBorderThickness(context),
                       )
                     : null),
@@ -772,7 +771,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       return getCustomBorder(
         originalBorder: inputDecoration.enabledBorder ?? baseBorder,
         borderColor: widget._controller.borderColor,
-        borderWidth: widget._controller.borderWidth?.toDouble(),
+        borderWidth: widget._controller.borderWidth,
         borderRadius: widget._controller.borderRadius?.getValue(),
       );
     }
@@ -788,7 +787,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     return getCustomBorder(
       originalBorder: inputDecoration.focusedBorder ?? baseBorder,
       borderColor: widget._controller.focusedBorderColor,
-      borderWidth: widget._controller.borderWidth?.toDouble(),
+      borderWidth: widget._controller.borderWidth,
       borderRadius: widget._controller.borderRadius?.getValue(),
     );
   }

@@ -86,6 +86,8 @@ class GridView extends StatefulWidget
           _controller.direction = Utils.optionalString(value),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'cacheExtent': (value) =>
+          controller.cacheExtent = Utils.optionalDouble(value),
     };
   }
 
@@ -112,6 +114,7 @@ class GridViewController extends BoxController {
   ScrollController? scrollController;
   String? direction;
   bool? shrinkWrap;
+  double? cacheExtent;
 
   PullToRefresh? pullToRefresh;
   @Deprecated("use pullToRefresh")
@@ -283,10 +286,11 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
               ? flutter.Axis.horizontal
               : flutter.Axis.vertical,
           // TODO(flutter-upgrade): on Flutter >= 3.44 use
-          //   scrollCacheExtent: const ScrollCacheExtent.pixels(cachedPixels)
+          //   scrollCacheExtent:
+          //       ScrollCacheExtent.pixels(widget._controller.cacheExtent ?? cachedPixels)
           // https://docs.flutter.dev/release/breaking-changes/scroll-cache-extent
           // ignore: deprecated_member_use
-          cacheExtent: cachedPixels,
+          cacheExtent: widget._controller.cacheExtent ?? cachedPixels,
           // if used inside CustomScrollView (scrollableView=true), the Grid will inject the top padding
           // to account for the titleBar's height https://github.com/flutter/flutter/issues/108222
           // We handle the titleBar ourselves already, so making sure the padding
@@ -329,15 +333,24 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
       ScreenController()
           .executeAction(context, widget._controller.onScrollEnd!);
     }
+
+    // Build widget first to handle null case (e.g., bad template data)
+    // before wrapping with gesture detector
+    Widget? itemWidget = buildWidgetForIndex(
+        context, _items, widget._controller.itemTemplate!, index);
+
+    if (itemWidget == null) {
+      return const SizedBox.shrink();
+    }
+
     if (widget._controller.onItemTap != null) {
-      return EnsembleGestureDetector(
+      itemWidget = EnsembleGestureDetector(
         onTap: (() => _onItemTap(index)),
-        child: buildWidgetForIndex(
-            context, _items, widget._controller.itemTemplate!, index),
+        child: itemWidget,
       );
     }
-    return buildWidgetForIndex(
-        context, _items, widget._controller.itemTemplate!, index);
+
+    return itemWidget;
   }
 
   void _onItemTap(int index) {

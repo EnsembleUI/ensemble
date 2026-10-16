@@ -148,8 +148,8 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
 
   Widget buildCheckbox(BuildContext context) {
     var theme = Theme.of(context);
-    int borderWidth = widget._controller.borderWidth ??
-        theme.checkboxTheme.side?.width.toInt() ??
+    double borderWidth = widget._controller.borderWidth ??
+        theme.checkboxTheme.side?.width ??
         2;
     Color borderColor = widget._controller.borderColor ??
         theme.checkboxTheme.side?.color ??
@@ -162,7 +162,7 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
               !states.contains(WidgetState.disabled) &&
               !states.contains(WidgetState.error)) {
             return BorderSide(
-                width: borderWidth.toDouble(), color: borderColor);
+                width: borderWidth, color: borderColor);
           }
           // fallback to theme, which fallback to default
           return null;
@@ -172,7 +172,7 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
             : RoundedRectangleBorder(
                 borderRadius: widget._controller.borderRadius!.getValue(),
                 side: BorderSide(
-                    width: borderWidth.toDouble(), color: borderColor)),
+                    width: borderWidth, color: borderColor)),
         activeColor: activeColor,
         checkColor: widget._controller.checkColor,
         fillColor:
