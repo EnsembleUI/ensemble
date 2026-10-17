@@ -753,7 +753,15 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     }
   }
 
-  /// Finds the nearest horizontal scrollable ancestor.
+  /// Finds the nearest horizontal scrollable ancestor that can reveal a focused
+  /// item by scrolling its offset.
+  ///
+  /// Page-snapping pagers are skipped (see [isPageSnappingScrollable]): their
+  /// offsets are whole pages owned by the pager's own controller, so the generic
+  /// "center the focused item" target would move the pager to a page the user
+  /// did not ask for - and, when the item gains focus during a page animation,
+  /// cancel that animation. The search continues upwards so an enclosing,
+  /// ordinary horizontal scrollable can still reveal the item.
   ScrollableState? _findHorizontalScrollable() {
     ScrollableState? scrollable;
 
@@ -763,6 +771,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         if (state is ScrollableState) {
           final axis = state.axisDirection;
           if (axis == AxisDirection.left || axis == AxisDirection.right) {
+            if (isPageSnappingScrollable(state)) {
+              return true; // Keep searching above the pager
+            }
             scrollable = state;
             return false; // Stop searching
           }
