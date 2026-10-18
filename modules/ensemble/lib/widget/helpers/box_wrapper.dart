@@ -708,6 +708,30 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       return;
     }
 
+    // A focused slide outside an idle snapping pager must be revealed by a
+    // whole-page move before ordinary horizontal focus scrolling is considered.
+    ScrollableState? pageSnappingScrollable;
+    context.visitAncestorElements((element) {
+      if (element.widget is Scrollable) {
+        final state = (element as StatefulElement).state;
+        if (state is ScrollableState && isPageSnappingScrollable(state)) {
+          pageSnappingScrollable = state;
+          return false;
+        }
+      }
+      return true;
+    });
+    if (pageSnappingScrollable != null) {
+      final horizontalCurve =
+          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
+      unawaited(revealInPageSnappingScrollable(
+        pageSnappingScrollable!,
+        itemBox,
+        duration: Duration(milliseconds: scrollAnimationDuration),
+        curve: horizontalCurve,
+      ));
+    }
+
     final horizontalScrollable = _findHorizontalScrollable();
 
     if (horizontalScrollable != null) {

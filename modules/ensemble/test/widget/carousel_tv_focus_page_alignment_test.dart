@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/layout/scroll_view.dart' as ensemble_layout;
 import 'package:ensemble/widget/carousel.dart' as ensemble;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -73,6 +74,7 @@ template:
     required YamlMap itemTemplate,
     String layout = 'single',
     double? singleItemWidthRatio,
+    bool interceptHorizontalNav = true,
     bool enableLoop = false,
     bool autoplay = false,
     int? autoplayInterval,
@@ -89,7 +91,7 @@ template:
       carousel.setProperty('autoplayInterval', autoplayInterval);
     }
     carousel.setProperty('tvOptions', {
-      'interceptHorizontalNav': true,
+      'interceptHorizontalNav': interceptHorizontalNav,
       'pauseAutoplayOnFocus': true,
       'restoreFocusOnPageChange': true,
     });
@@ -159,7 +161,7 @@ template:
     return (page - page.roundToDouble()).abs();
   }
 
-  testWidgets('focus reveal does not move a page-snapping pager off its page',
+  testWidgets('focus reveal moves an idle page-snapping pager by one page',
       (tester) async {
     useTestViewport(tester);
 
@@ -184,16 +186,55 @@ template:
     expect(pageAlignmentError(pager), lessThan(1e-6));
     expect(find.text('first'), findsOneWidget);
 
-    // Focus a control on the neighbouring slide, outside the pager viewport -
-    // the situation focus restoration creates while a slide is animating in.
+    // An idle pager should reveal a focused neighbouring slide by a whole page.
     controlFocusNode(tester, 'second').requestFocus();
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(pager.position.pixels, 0,
-        reason: 'focus gain must not drive a page-snapping pager');
+    expect(displayedPage(pager), 1,
+        reason: 'focus gain must reveal the off-screen slide');
     expect(pageAlignmentError(pager), lessThan(1e-6),
         reason: 'the pager must stay on a page boundary');
+    final box = controlFocusNode(tester, 'second').context!.findRenderObject()!
+        as RenderBox;
+    expect(box.localToGlobal(Offset.zero).dx + box.size.width,
+        lessThanOrEqualTo(1280));
+  });
+
+  testWidgets(
+      'D-pad onto a peeking slide without interceptHorizontalNav reveals it '
+      'on a page boundary', (tester) async {
+    useTestViewport(tester);
+    final carousel = makeCarousel(
+      itemTemplate: loadYaml(slideTemplate()),
+      singleItemWidthRatio: 0.8,
+      interceptHorizontalNav: false,
+    );
+    await tester.pumpWidget(host(SizedBox(
+      width: 1280,
+      height: 400,
+      child: carousel,
+    )));
+    await tester.pump();
+    await tester.pump();
+
+    final pager = pagerScrollable(tester);
+    controlFocusNode(tester, 'first').requestFocus();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    final secondControl = controlFocusNode(tester, 'second');
+    expect(secondControl.hasPrimaryFocus, isTrue);
+    final box = secondControl.context!.findRenderObject()! as RenderBox;
+    final left = box.localToGlobal(Offset.zero).dx;
+    expect(left, greaterThanOrEqualTo(0));
+    expect(left + box.size.width, lessThanOrEqualTo(1280),
+        reason: 'the focused control must be on screen');
+    expect(displayedPage(pager), 1,
+        reason: 'focus scrolling must reveal the slide by a whole page');
+    expect(pageAlignmentError(pager), lessThan(1e-6),
+        reason: 'the pager must still settle on a page boundary');
   });
 
   testWidgets(
@@ -295,7 +336,7 @@ template:
         reason: 'the reported slide must match the displayed page');
   });
 
-  testWidgets('keepVisible focus mode does not move a page-snapping pager',
+  testWidgets('keepVisible reveals an off-screen slide on a page boundary',
       (tester) async {
     useTestViewport(tester);
 
@@ -313,15 +354,61 @@ template:
     expect(tester.takeException(), isNull);
 
     final pager = pagerScrollable(tester);
-    expect(pager.position.pixels, 0);
-
     controlFocusNode(tester, 'second').requestFocus();
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(pager.position.pixels, 0,
-        reason: 'keepVisible must skip the page-snapping pager');
+    expect(displayedPage(pager), 1);
     expect(pageAlignmentError(pager), lessThan(1e-6));
+  });
+
+  testWidgets('fixedFocusScroll reveals through an idle snapping pager',
+      (tester) async {
+    useTestViewport(tester);
+    final carousel = makeCarousel(
+      itemTemplate: loadYaml(slideTemplate(fixedFocusScroll: true)),
+      singleItemWidthRatio: 0.8,
+    );
+    await tester.pumpWidget(host(SizedBox(
+      width: 1280,
+      height: 400,
+      child: carousel,
+    )));
+    await tester.pump();
+    await tester.pump();
+    final pager = pagerScrollable(tester);
+    controlFocusNode(tester, 'second').requestFocus();
+    await tester.pumpAndSettle();
+    expect(controlFocusNode(tester, 'second').hasPrimaryFocus, isTrue);
+    expect(displayedPage(pager), 1);
+    expect(pageAlignmentError(pager), lessThan(1e-6));
+  });
+
+  testWidgets('snapping ScrollView reveals an off-screen focused item',
+      (tester) async {
+    useTestViewport(tester);
+    final scrollView = ensemble_layout.ScrollView();
+    scrollView.setProperty('viewportFraction', 0.8);
+    scrollView.setItemTemplate(loadYaml(slideTemplate()));
+    await tester.pumpWidget(host(SizedBox(
+      width: 1280,
+      height: 400,
+      child: scrollView,
+    )));
+    await tester.pump();
+    await tester.pump();
+    final pager = pagerScrollable(tester);
+    controlFocusNode(tester, 'first').requestFocus();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    final second = controlFocusNode(tester, 'second');
+    expect(second.hasPrimaryFocus, isTrue);
+    expect(displayedPage(pager), 1);
+    expect(pageAlignmentError(pager), lessThan(1e-6));
+    final box = second.context!.findRenderObject()! as RenderBox;
+    expect(box.localToGlobal(Offset.zero).dx + box.size.width,
+        lessThanOrEqualTo(1280));
   });
 
   testWidgets(

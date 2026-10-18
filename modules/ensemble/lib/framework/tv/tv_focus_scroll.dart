@@ -193,6 +193,62 @@ bool isPageSnappingScrollable(ScrollableState scrollable) {
   return false;
 }
 
+/// Moves an idle page-snapping pager by whole pages when [target] is outside
+/// its viewport. In-flight page animations remain owned by the pager.
+Future<void> revealInPageSnappingScrollable(
+  ScrollableState scrollable,
+  RenderObject target, {
+  Duration duration = Duration.zero,
+  Curve curve = Curves.ease,
+}) async {
+  if (!scrollable.mounted ||
+      !isPageSnappingScrollable(scrollable) ||
+      scrollable.position.isScrollingNotifier.value) {
+    return;
+  }
+
+  final targetBox = target as RenderBox?;
+  final viewportBox = scrollable.context.findRenderObject() as RenderBox?;
+  final controller = scrollable.widget.controller;
+  final metrics = scrollable.position as PageMetrics;
+  if (targetBox == null ||
+      viewportBox == null ||
+      !targetBox.hasSize ||
+      !viewportBox.hasSize ||
+      controller is! PageController ||
+      !controller.hasClients ||
+      !scrollable.position.hasContentDimensions) {
+    return;
+  }
+
+  final targetRect = MatrixUtils.transformRect(
+    targetBox.getTransformTo(viewportBox),
+    Offset.zero & targetBox.size,
+  );
+  final viewportRect = Offset.zero & viewportBox.size;
+  if (targetRect.left >= viewportRect.left &&
+      targetRect.right <= viewportRect.right) {
+    return;
+  }
+
+  final pageExtent = metrics.viewportDimension * metrics.viewportFraction;
+  if (pageExtent <= 0) return;
+
+  final overflow = targetRect.right > viewportRect.right
+      ? targetRect.right - viewportRect.right
+      : targetRect.left - viewportRect.left;
+  final pageDelta = overflow > 0
+      ? (overflow / pageExtent).ceil()
+      : -(overflow.abs() / pageExtent).ceil();
+  final pageDirection = scrollable.axisDirection == AxisDirection.left ? -1 : 1;
+  final targetPage = metrics.page!.round() + pageDelta * pageDirection;
+  await controller.animateToPage(
+    targetPage,
+    duration: duration,
+    curve: curve,
+  );
+}
+
 /// Reveals [widgetContext] in every scrollable ancestor using each scrollable's
 /// own [ScrollPosition.ensureVisible] with keep-visible alignment policies.
 ///
@@ -241,13 +297,17 @@ Future<void> ensureWidgetVisible(
     final include = isHorizontal ? includeHorizontal : includeVertical;
 
     if (include) {
-      // A page-snapping pager owns its offsets (see [isPageSnappingScrollable]):
-      // leave it untouched and keep walking to its ancestors, exactly like an
-      // axis the caller excluded.
       final isPageSnappingPager =
           isHorizontal && isPageSnappingScrollable(scrollable);
       final position = scrollable.position;
-      if (!isPageSnappingPager && position.hasContentDimensions) {
+      if (isPageSnappingPager) {
+        await revealInPageSnappingScrollable(
+          scrollable,
+          revealRenderObject,
+          duration: duration,
+          curve: curve,
+        );
+      } else if (position.hasContentDimensions) {
         // Single reveal per scrollable, with the alignment policy chosen from
         // the item's current position (like Flutter's directional traversal).
         // Calling ensureVisible twice in series starts a second 200ms animation
