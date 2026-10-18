@@ -721,36 +721,52 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       }
       return true;
     });
+    void scrollHorizontalScrollable() {
+      final horizontalScrollable = _findHorizontalScrollable();
+
+      if (horizontalScrollable != null) {
+        final horizontalCurve =
+            _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
+        if (useFixedFocusScroll) {
+          // Netflix-style: focus stays at fixed left position
+          final fixedOffset =
+              tvOptions?.fixedFocusOffset ?? kTVFixedFocusOffset;
+          _scrollHorizontalWithFixedPosition(
+              horizontalScrollable, itemBox, fixedOffset,
+              animationDuration: scrollAnimationDuration,
+              curve: horizontalCurve);
+        } else {
+          // Default: ensure item is visible (centered when scrolling needed)
+          _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
+              padding: horizontalScrollPadding,
+              animationDuration: scrollAnimationDuration,
+              curve: horizontalCurve);
+        }
+      }
+    }
+
     if (pageSnappingScrollable != null) {
       final horizontalCurve =
           _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
+      // Scroll the enclosing lane only once the page move settles and has been
+      // laid out: measured before it, the lane would re-apply the same offset
+      // the page move already covers and push the item off screen. Skip it if
+      // focus has moved on meanwhile, so a stale item cannot fight the newer
+      // reveal.
       unawaited(revealInPageSnappingScrollable(
         pageSnappingScrollable!,
         itemBox,
         duration: Duration(milliseconds: scrollAnimationDuration),
         curve: horizontalCurve,
-      ));
+      ).then((_) => WidgetsBinding.instance.endOfFrame).then((_) {
+        if (mounted && _focusNode.hasFocus && itemBox.attached) {
+          scrollHorizontalScrollable();
+        }
+      }));
+      return;
     }
 
-    final horizontalScrollable = _findHorizontalScrollable();
-
-    if (horizontalScrollable != null) {
-      final horizontalCurve =
-          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
-      if (useFixedFocusScroll) {
-        // Netflix-style: focus stays at fixed left position
-        final fixedOffset = tvOptions?.fixedFocusOffset ?? kTVFixedFocusOffset;
-        _scrollHorizontalWithFixedPosition(
-            horizontalScrollable, itemBox, fixedOffset,
-            animationDuration: scrollAnimationDuration, curve: horizontalCurve);
-      } else {
-        // Default: ensure item is visible (centered when scrolling needed)
-        _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
-            padding: horizontalScrollPadding,
-            animationDuration: scrollAnimationDuration,
-            curve: horizontalCurve);
-      }
-    }
+    scrollHorizontalScrollable();
   }
 
   /// Resets the remembered page scroll to the top when this widget opts in via

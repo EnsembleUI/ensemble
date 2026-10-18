@@ -667,4 +667,45 @@ template:
           reason: 'D-pad back must step back exactly one slide');
     }
   });
+  testWidgets(
+      'D-pad onto a peeking slide inside a horizontal lane moves only the '
+      'pager, keeping focus on screen', (tester) async {
+    useTestViewport(tester);
+
+    final carousel = makeCarousel(
+      itemTemplate: loadYaml(slideTemplate()),
+      singleItemWidthRatio: 0.8,
+      interceptHorizontalNav: false,
+    );
+    await tester.pumpWidget(host(SizedBox(
+      height: 400,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(children: [
+          const SizedBox(width: 300),
+          SizedBox(width: 1280, height: 400, child: carousel),
+          const SizedBox(width: 900),
+        ]),
+      ),
+    )));
+    await tester.pump();
+    await tester.pump();
+
+    final pager = pagerScrollable(tester);
+    controlFocusNode(tester, 'first').requestFocus();
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    final secondControl = controlFocusNode(tester, 'second');
+    expect(secondControl.hasPrimaryFocus, isTrue);
+    final box = secondControl.context!.findRenderObject()! as RenderBox;
+    final left = box.localToGlobal(Offset.zero).dx;
+    expect(left, greaterThanOrEqualTo(0),
+        reason: 'the pager move and the lane scroll must not both apply');
+    expect(left + box.size.width, lessThanOrEqualTo(1280));
+    expect(displayedPage(pager), 1);
+    expect(pageAlignmentError(pager), lessThan(1e-6));
+  });
 }
