@@ -7,13 +7,18 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
-// the Controller for the TabBar
+// =============================================================================
+// TabBarController - State & Configuration for TabBar Widget
+// =============================================================================
+
+/// Controller for TabBar widgets. Manages styling, tab items, and selection state.
 class TabBarController extends BoxController {
   String? tabPosition;
   String? tabAlignment;
   String? indicatorSize;
   String? tabType;
   EdgeInsets? tabPadding;
+  EdgeInsets? tabBarPadding; // Padding around the entire tab bar row (not content)
   int? tabFontSize;
   FontWeight? tabFontWeight;
   Color? tabBackgroundColor;
@@ -22,7 +27,43 @@ class TabBarController extends BoxController {
   Color? activeTabBackgroundColor;
   Color? indicatorColor;
   Color? dividerColor;
+  int? dividerThickness;
+  EdgeInsets? dividerPadding;
+  bool? overlayIndicator;
+  Color? focusIndicatorColor; // TV D-pad: focus-state indicator color (fallback blue)
+  Color? focusTabColor; // TV D-pad: focus-state tab text color (fallback white)
   int? indicatorThickness;
+
+  /// TV Navigation: The row position for tab buttons in the focus grid.
+  /// If set, tabs participate in the main page focus grid at this row.
+  /// If not set, tabs are in an isolated focus group.
+  double? tvRow;
+
+  /// TV: reveal the whole TabBar when a tab receives focus.
+  bool revealTabBarOnFocus = false;
+
+  /// TV: when true, pressing Back while focus is inside this TabBar's content
+  /// moves focus back to the selected tab instead of leaving the screen. The
+  /// next Back press (now on the tab strip) navigates as usual. Opt-in and
+  /// default false, so existing behavior is unchanged.
+  ///
+  /// Applies to `TabBar` (TabBarContainer) content. `TabBarOnly` has no content
+  /// to return from, and `ScrollableTabBar` selects by scroll position rather
+  /// than by a per-tab body, so both ignore this flag.
+  /// Set with `styles.tabFocusOnBack`.
+  bool tabFocusOnBack = false;
+
+  /// Whether the TabBar body occupies the available flex height.
+  bool get isStretched {
+    if (flexMode == FlexMode.expanded ||
+        flexMode == FlexMode.flexible ||
+        (flex != null && flexMode != FlexMode.none)) {
+      return true;
+    }
+    // Preserve the legacy layout flag without adding deprecated accesses at
+    // each call site.
+    return (this as dynamic).expanded == true;
+  }
 
   EnsembleAction? onTabSelection;
   String? onTabSelectionHaptic;
@@ -67,6 +108,11 @@ class TabBarController extends BoxController {
     var setters = super.getBaseSetters();
     setters.addAll({
       'items': (values) => items = values,
+      'tvRow': (value) => tvRow = Utils.optionalDouble(value),
+      'revealTabBarOnFocus': (value) =>
+          revealTabBarOnFocus = Utils.getBool(value, fallback: false),
+      'tabFocusOnBack': (value) =>
+          tabFocusOnBack = Utils.getBool(value, fallback: false),
     });
     return setters;
   }

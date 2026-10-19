@@ -14,6 +14,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/radio/radio_button.dart';
 import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -355,14 +356,14 @@ class ViewUtil {
 
     Widget? w;
     Function? widgetInstance = WidgetRegistry().widgetMap[model.type];
+    final String? widgetId = model.props['id']?.toString();
+    final dynamic previousContext = widgetId != null
+        ? scopeNode.scope.dataContext.getContextById(widgetId)
+        : null;
     if (widgetInstance != null) {
       EnsembleController? previousController;
-      String? id = model.props['id']?.toString();
-      if (id != null) {
-        dynamic controller = scopeNode.scope.dataContext.getContextById(id);
-        if (controller is EnsembleController) {
-          previousController = controller;
-        }
+      if (previousContext is EnsembleController) {
+        previousController = previousContext;
       }
       w = Function.apply(widgetInstance, [previousController]);
     } else {
@@ -374,6 +375,22 @@ class ViewUtil {
         if (widgetInstance != null) {
           w = widgetInstance.call();
         }
+      }
+    }
+
+    // Preserve ID-bound TV focus styles while a focused widget is rebuilt.
+    // Only carry focus from a widget registered in THIS scope — an ancestor
+    // scope hit with the same id is a collision, not the widget being rebuilt.
+    if (widgetId != null &&
+        scopeNode.scope.dataContext.contextMap.containsKey(widgetId) &&
+        previousContext is HasController &&
+        w is HasController) {
+      final previousController = previousContext.controller;
+      final nextController = w.controller;
+      if (previousController is WidgetController &&
+          nextController is WidgetController &&
+          previousController.hasFocus) {
+        nextController.hasFocus = true;
       }
     }
 
@@ -393,6 +410,14 @@ class ViewUtil {
         String? id = model.props['id']?.toString();
         if (id != null) {
           invokable.id = id;
+          // Also set the ID on the controller so BoxWrapper can access it
+          // for TV focus binding dispatch
+          if (invokable is HasController) {
+            final controller = (invokable as HasController).controller;
+            if (controller is WidgetController) {
+              controller.id = id;
+            }
+          }
           currentScope.dataContext.addInvokableContext(id, invokable);
         }
 

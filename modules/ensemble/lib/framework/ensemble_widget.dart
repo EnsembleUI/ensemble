@@ -22,6 +22,25 @@ abstract class EnsembleWidget<C extends EnsembleController>
 }
 
 abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
+  ScopeManager? _registeredScope;
+  EnsembleController? _registeredController;
+
+  void _syncBindingOwner(ScopeManager? scope) {
+    final controller = widget.controller;
+    if (identical(_registeredScope, scope) &&
+        identical(_registeredController, controller)) {
+      return;
+    }
+
+    PageBindingManager.releaseBindingOwner(
+        _registeredScope, _registeredController);
+    _registeredScope = scope;
+    _registeredController = controller;
+    if (scope != null) {
+      PageBindingManager.retainBindingOwner(scope, controller);
+    }
+  }
+
   void _update() {
     setState(() {});
   }
@@ -36,12 +55,22 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   void didUpdateWidget(covariant W oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller.removeListener(_update);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      // Release the old controller immediately. The next build will register
+      // the replacement controller in the same scope.
+      PageBindingManager.releaseBindingOwner(
+          _registeredScope, _registeredController);
+      _registeredController = null;
+    }
     widget.controller.addListener(_update);
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(_update);
+    PageBindingManager.releaseBindingOwner(
+        _registeredScope, _registeredController,
+        preserveRegistration: true);
     super.dispose();
   }
 
@@ -49,6 +78,11 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
 
   @override
   Widget build(BuildContext context) {
+    // Cache the scope while the element is active; it can't be looked up in
+    // dispose(). Keep binding ownership scoped to this page and controller.
+    final scope = DataScopeWidget.getScope(context);
+    _syncBindingOwner(scope);
+    scope?.restoreBindingListeners(widget.controller, ownerScope: scope);
     if (widget.controller is EnsembleWidgetController) {
       EnsembleWidgetController widgetController =
           widget.controller as EnsembleWidgetController;

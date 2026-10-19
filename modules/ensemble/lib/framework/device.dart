@@ -57,6 +57,9 @@ class Device
       "macOsInfo": () => DeviceMacOsInfo(),
       "windowsInfo": () => DeviceWindowsInfo(),
 
+      // TV detection
+      "isTV": () => isTV,
+
       // @deprecated. backward compatibility
       DevicePlatform.web.name: () => DeviceWebInfo()
     };
@@ -70,6 +73,7 @@ class Device
       'isWeb': () => platform == DevicePlatform.web,
       'isMacOS': () => platform == DevicePlatform.macos,
       'isWindows': () => platform == DevicePlatform.windows,
+      'isTV': () => isTV,
 
       // deprecated. Should be using Action instead
       'openAppSettings': (target) => openAppSettings(target),
@@ -86,6 +90,14 @@ class Device
 
   void openAppSettings([String? target]) {
     AppSettingAction.openAppSettings(target ?? 'settings');
+  }
+
+  /// Test-only override of [DeviceInfoCapability.isTV] so widget tests can
+  /// exercise TV-only rendering without real Android device info.
+  /// Pass null to clear the override and fall back to platform detection.
+  @visibleForTesting
+  static void debugOverrideIsTV(bool? value) {
+    DeviceInfoCapability._isTVOverride = value;
   }
 }
 
@@ -125,7 +137,48 @@ mixin DeviceInfoCapability {
   static MacOsDeviceInfo? macOsInfo;
   static WindowsDeviceInfo? windowsInfo;
 
+  // Android TV detection cache
+  static bool? _isTV;
+
+  /// Test-only override consulted before device detection, so a test build can
+  /// pretend to run on a TV without populating [androidInfo]. Declared here (not
+  /// in [Device]) because [isTV] reads it. See [Device.debugOverrideIsTV].
+  static bool? _isTVOverride;
+
   DevicePlatform? get platform => _platform;
+
+  /// Returns true if the device is an Android TV
+  /// Checks for TV-specific system features
+  bool get isTV {
+    if (_isTVOverride != null) return _isTVOverride!;
+    if (_isTV != null) return _isTV!;
+
+    // Web is never a TV, and it's known synchronously — safe to cache.
+    if (kIsWeb) {
+      _isTV = false;
+      return false;
+    }
+
+    // Only Android devices can be TVs. androidInfo is populated
+    // asynchronously by initDeviceInfo(), and is only ever set on Android, so
+    // androidInfo == null means either a non-Android device or Android info
+    // that hasn't loaded yet. In both cases return false WITHOUT caching:
+    // caching here would permanently disable TV mode for the whole session if
+    // any widget reads isTV before initDeviceInfo() completes. Non-Android
+    // devices simply keep returning false cheaply; Android re-evaluates once
+    // androidInfo is available.
+    if (androidInfo == null) {
+      return false;
+    }
+
+    // Check for TV system features (result is now final — cache it).
+    final systemFeatures = androidInfo!.systemFeatures;
+    _isTV = systemFeatures.contains('android.hardware.type.television') ||
+        systemFeatures.contains('android.software.leanback') ||
+        systemFeatures.contains('android.software.leanback_only');
+
+    return _isTV!;
+  }
 
   /// initialize device info
   void initDeviceInfo() async {

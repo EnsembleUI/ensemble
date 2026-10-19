@@ -67,11 +67,24 @@
                 },
                 "flexibleMinHeight": {
                   "type": "integer",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                  "description": "Sets the header's compact height for scrollable headers and TV focus-collapsible fixed headers. It is ignored when smaller than titleBarHeight."
                 },
                 "flexibleMaxHeight": {
                   "type": "integer",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
+                  "description": "Sets the header's expanded height for scrollable headers and TV focus-collapsible fixed headers. It is ignored when smaller than flexibleMinHeight."
+                },
+                "collapsibleHeader": {
+                  "type": "object",
+                  "description": "Controls fixed-header collapse. When visible is set, it shows or hides the header. On TV, an enabled fixed header without visible expands while focus is in the header and collapses when focus moves to the body. TV focus collapse requires a focusable titleWidget or leadingWidget as the compact-header re-entry target.",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Enable collapsible header behavior. Default false."
+                    },
+                    "visible": {
+                      "description": "Expression that shows or hides a fixed header."
+                    }
+                  }
                 }
               }
             }
@@ -158,6 +171,10 @@
             },
             {
               "properties": {
+                "background": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "TV only. Optional widget rendered as the page's bottom-most background layer, behind the body. When set, backgroundColor, backgroundImage, and backgroundGradient are ignored; add any required color or image inside this widget. The background never takes TV D-pad focus and does not receive taps. Note: a childless Column/Row with only a background is not rendered; add a Spacer child (the app's convention for background-only layers)."
+                },
                 "useSafeArea": {
                   "type": "boolean",
                   "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
@@ -2057,7 +2074,7 @@
                 "$ref": "#/$defs/type-color"
               },
               "dropdownBorderWidth": {
-                "type": "integer",
+                "type": "number",
                 "minimum": 0,
                 "description": "The thickness of the dropdown border"
               },
@@ -3253,6 +3270,14 @@
             "children": {
               "$ref": "#/$defs/Widgets"
             },
+            "direction": {
+              "type": "string",
+              "description": "The direction in which the list scrolls. Default is vertical.",
+              "enum": [
+                "vertical",
+                "horizontal"
+              ]
+            },
             "onItemTap": {
               "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
               "$ref": "#/$defs/Action-payload"
@@ -3322,6 +3347,10 @@
                     "reverse": {
                       "type": "boolean",
                       "description": "Show list in reverse order. Default is false"
+                    },
+                    "minHeight": {
+                      "type": "integer",
+                      "description": "Minimum height of the list"
                     }
                   }
                 }
@@ -3460,6 +3489,14 @@
                     "indicatorPadding": {
                       "$ref": "#/$defs/Padding-payload",
                       "description": "The padding around the indicator"
+                    },
+                    "indicatorLeadingWidget": {
+                      "type": "object",
+                      "description": "Widget displayed before the indicator row or column"
+                    },
+                    "indicatorTrailingWidget": {
+                      "type": "object",
+                      "description": "Widget displayed after the indicator row or column"
                     }
                   }
                 }
@@ -3590,12 +3627,19 @@
                   "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderRadius": {
-                  "type": "integer",
-                  "minimum": 0,
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  ],
                   "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderWidth": {
-                  "type": "integer",
+                  "type": "number",
                   "minimum": 0,
                   "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
@@ -5565,7 +5609,7 @@
                   "$ref": "#/$defs/type-color"
                 },
                 "borderWidth": {
-                  "type": "integer"
+                  "type": "number"
                 },
                 "itemDisplay": {
                   "type": "string",
@@ -6771,6 +6815,10 @@
                   "$ref": "#/$defs/type-color",
                   "description": "The color of the tabbar divider color"
                 },
+                "overlayIndicator": {
+                  "type": "boolean",
+                  "description": "Whether the indicator overlaps the divider"
+                },
                 "inactiveTabColor": {
                   "$ref": "#/$defs/type-color",
                   "description": "The color of the un-selected tabs' text"
@@ -6786,6 +6834,10 @@
                 "indicatorThickness": {
                   "type": "integer",
                   "description": "The thickness of the selected tab's indicator"
+                },
+                "revealTabBarOnFocus": {
+                  "type": "boolean",
+                  "description": "Reveal the whole TabBar when a tab receives focus"
                 }
               }
             },
@@ -7316,12 +7368,12 @@
               "type": "string"
             },
             {
-              "title": "integer",
-              "type": "integer"
+              "title": "number",
+              "type": "number"
             }
           ],
           "minimum": 0,
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+          "description": "Border Radius with CSS-like notation (1 to 4 numbers)"
         }
       }
     },
@@ -7841,7 +7893,7 @@
               "description": "Border color, starting with '0xFF' for full opacity"
             },
             "borderWidth": {
-              "type": "integer",
+              "type": "number",
               "minimum": 0,
               "description": "The thickness of the border"
             }

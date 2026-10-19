@@ -33,6 +33,23 @@ void main() {
     expect(checkbox.value, true);
   });
 
+  testWidgets('checkbox preserves decimal border styles', (tester) async {
+    final widget = EnsembleCheckbox()
+      ..setProperty('borderWidth', 1.5)
+      ..setProperty('borderRadius', 2.5);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidget(widget));
+
+    final checkbox = tester.firstWidget<Checkbox>(find.byType(Checkbox));
+    final side = WidgetStateProperty.resolveAs<BorderSide?>(
+      checkbox.side,
+      const <WidgetState>{},
+    );
+    expect(side?.width, 1.5);
+    expect((checkbox.shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.circular(2.5));
+  });
+
   testWidgets("switch", (tester) async {
     EnsembleSwitch widget = EnsembleSwitch();
     widget.setProperty('value', true);

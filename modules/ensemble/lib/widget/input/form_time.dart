@@ -227,7 +227,7 @@ class AndroidTimePickerStyle {
 }
 
 class _BorderStyle {
-  final int borderWidth;
+  final double borderWidth;
   final BorderRadius borderRadius;
   final Color borderColor;
 
@@ -329,7 +329,7 @@ class TimeState extends FormFieldWidgetState<Time> {
     final themeDecoration = Theme.of(context).inputDecorationTheme;
 
     final borderWidth = widget._controller.borderWidth ??
-        (themeDecoration.border?.borderSide.width.toInt() ?? 1);
+        (themeDecoration.border?.borderSide.width ?? 1);
 
     BorderRadius? _themeBorderRadius;
     if (themeDecoration.border is OutlineInputBorder) {
@@ -612,7 +612,7 @@ class TimeState extends FormFieldWidgetState<Time> {
           borderRadius: borderStyle.borderRadius,
           border: Border.all(
             color: borderStyle.borderColor,
-            width: borderStyle.borderWidth.toDouble(),
+            width: borderStyle.borderWidth,
           ),
         ),
         padding: widget._controller.contentPadding ??
