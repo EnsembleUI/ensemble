@@ -6,6 +6,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:ensemble/widget/webview/webview_javascript_bridge_security.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -221,7 +222,16 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           for (var channel in widget.controller.javascriptChannels) {
             controller.addJavaScriptHandler(
               handlerName: channel.name,
-              callback: (args) {
+              callback: (args) async {
+                final currentUrl = await controller.getUrl();
+                final allowedOrigin =
+                    webViewAllowedOriginFromUrl(widget.controller.url);
+                if (!isAllowedWebViewJavaScriptMessageOrigin(
+                  messageOrigin: currentUrl?.origin,
+                  allowedOrigin: allowedOrigin,
+                )) {
+                  return null;
+                }
                 if (channel.onMessageReceived != null) {
                   String message = '';
                   if (args.isNotEmpty) {
