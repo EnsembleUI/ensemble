@@ -708,25 +708,65 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       return;
     }
 
-    final horizontalScrollable = _findHorizontalScrollable();
+    // A focused slide outside an idle snapping pager must be revealed by a
+    // whole-page move before ordinary horizontal focus scrolling is considered.
+    ScrollableState? pageSnappingScrollable;
+    context.visitAncestorElements((element) {
+      if (element.widget is Scrollable) {
+        final state = (element as StatefulElement).state;
+        if (state is ScrollableState && isPageSnappingScrollable(state)) {
+          pageSnappingScrollable = state;
+          return false;
+        }
+      }
+      return true;
+    });
+    void scrollHorizontalScrollable() {
+      final horizontalScrollable = _findHorizontalScrollable();
 
-    if (horizontalScrollable != null) {
-      final horizontalCurve =
-          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
-      if (useFixedFocusScroll) {
-        // Netflix-style: focus stays at fixed left position
-        final fixedOffset = tvOptions?.fixedFocusOffset ?? kTVFixedFocusOffset;
-        _scrollHorizontalWithFixedPosition(
-            horizontalScrollable, itemBox, fixedOffset,
-            animationDuration: scrollAnimationDuration, curve: horizontalCurve);
-      } else {
-        // Default: ensure item is visible (centered when scrolling needed)
-        _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
-            padding: horizontalScrollPadding,
-            animationDuration: scrollAnimationDuration,
-            curve: horizontalCurve);
+      if (horizontalScrollable != null) {
+        final horizontalCurve =
+            _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
+        if (useFixedFocusScroll) {
+          // Netflix-style: focus stays at fixed left position
+          final fixedOffset =
+              tvOptions?.fixedFocusOffset ?? kTVFixedFocusOffset;
+          _scrollHorizontalWithFixedPosition(
+              horizontalScrollable, itemBox, fixedOffset,
+              animationDuration: scrollAnimationDuration,
+              curve: horizontalCurve);
+        } else {
+          // Default: ensure item is visible (centered when scrolling needed)
+          _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
+              padding: horizontalScrollPadding,
+              animationDuration: scrollAnimationDuration,
+              curve: horizontalCurve);
+        }
       }
     }
+
+    if (pageSnappingScrollable != null) {
+      final horizontalCurve =
+          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
+      // Scroll the enclosing lane only once the page move settles and has been
+      // laid out: measured before it, the lane would re-apply the same offset
+      // the page move already covers and push the item off screen. Skip it if
+      // focus has moved on meanwhile, so a stale item cannot fight the newer
+      // reveal.
+      unawaited(revealInPageSnappingScrollable(
+        pageSnappingScrollable!,
+        itemBox,
+        duration: Duration(milliseconds: scrollAnimationDuration),
+        curve: horizontalCurve,
+      ).then((_) => WidgetsBinding.instance.endOfFrame).then((_) {
+        if (mounted && _focusNode.hasFocus && itemBox.attached) {
+          scrollHorizontalScrollable();
+        }
+      }));
+      return;
+    }
+
+    scrollHorizontalScrollable();
   }
 
   /// Resets the remembered page scroll to the top when this widget opts in via
@@ -753,7 +793,15 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     }
   }
 
-  /// Finds the nearest horizontal scrollable ancestor.
+  /// Finds the nearest horizontal scrollable ancestor that can reveal a focused
+  /// item by scrolling its offset.
+  ///
+  /// Page-snapping pagers are skipped (see [isPageSnappingScrollable]): their
+  /// offsets are whole pages owned by the pager's own controller, so the generic
+  /// "center the focused item" target would move the pager to a page the user
+  /// did not ask for - and, when the item gains focus during a page animation,
+  /// cancel that animation. The search continues upwards so an enclosing,
+  /// ordinary horizontal scrollable can still reveal the item.
   ScrollableState? _findHorizontalScrollable() {
     ScrollableState? scrollable;
 
@@ -763,6 +811,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         if (state is ScrollableState) {
           final axis = state.axisDirection;
           if (axis == AxisDirection.left || axis == AxisDirection.right) {
+            if (isPageSnappingScrollable(state)) {
+              return true; // Keep searching above the pager
+            }
             scrollable = state;
             return false; // Stop searching
           }

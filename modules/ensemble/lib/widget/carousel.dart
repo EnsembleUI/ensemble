@@ -315,6 +315,15 @@ class CarouselState extends EWidgetState<Carousel>
       (templatedChildren?.length ?? 0);
 
   /// Navigate to previous slide with focus restoration
+  ///
+  /// Always steps one page in the pressed direction. The loop boundary must not
+  /// use an absolute target (`animateToPage(_slideCount - 1)`): carousel_slider
+  /// resolves an absolute page from the *fractional* physical page
+  /// (`page.toInt()`) plus a closest-route search, while [onPageChanged]
+  /// publishes the reported index before the previous animation settles. A
+  /// press arriving in that window could therefore resolve to a route that
+  /// animates the wrong way. `previousPage()` derives its target from
+  /// `page.round() - 1`, so it always moves left.
   void _navigateToPreviousSlide() {
     if (_slideCount == 0) return;
 
@@ -322,17 +331,20 @@ class CarouselState extends EWidgetState<Carousel>
         widget._controller.tvOptions?.restoreFocusOnPageChange == true;
 
     final currentIndex = widget._controller.currentIndex;
-    if (currentIndex == 0) {
-      // Loop to last slide if enabled
-      if (widget._controller.enableLoop == true) {
-        widget._controller._carouselController.animateToPage(_slideCount - 1);
-      }
-    } else {
-      widget._controller._carouselController.previousPage();
+    if (currentIndex == 0 && widget._controller.enableLoop != true) {
+      // Finite carousel: there is no previous slide to move to.
+      return;
     }
+    widget._controller._carouselController.previousPage();
   }
 
   /// Navigate to next slide with focus restoration
+  ///
+  /// Always steps one page in the pressed direction; see
+  /// [_navigateToPreviousSlide] for why the loop boundary does not use
+  /// `animateToPage(0)`. `nextPage()` derives its target from
+  /// `page.round() + 1`, so a wrap to the first slide never becomes a backward
+  /// sweep through the last one.
   void _navigateToNextSlide() {
     if (_slideCount == 0) return;
 
@@ -340,14 +352,12 @@ class CarouselState extends EWidgetState<Carousel>
         widget._controller.tvOptions?.restoreFocusOnPageChange == true;
 
     final currentIndex = widget._controller.currentIndex;
-    if (currentIndex == _slideCount - 1) {
-      // Loop to first slide if enabled
-      if (widget._controller.enableLoop == true) {
-        widget._controller._carouselController.animateToPage(0);
-      }
-    } else {
-      widget._controller._carouselController.nextPage();
+    if (currentIndex == _slideCount - 1 &&
+        widget._controller.enableLoop != true) {
+      // Finite carousel: there is no next slide to move to.
+      return;
     }
+    widget._controller._carouselController.nextPage();
   }
 
   /// Check if this is a TV platform
