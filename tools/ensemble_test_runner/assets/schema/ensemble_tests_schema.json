@@ -173,18 +173,7 @@
           "minLength": 1
         },
         "text": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1
-            }
-          ]
+          "type": "string"
         },
         "label": {
           "type": "string"
@@ -1398,18 +1387,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1
-            }
-          ]
+          "type": "string"
         },
         "times": {
           "type": "integer"
@@ -1423,7 +1401,7 @@
       ],
       "additionalProperties": false,
       "title": "waitForApi",
-      "description": "Wait until N calls to the named API complete successfully",
+      "description": "Wait until N calls to the named API complete",
       "examples": [
         {
           "name": "login",
@@ -3974,7 +3952,7 @@
         {
           "type": "object",
           "title": "waitForApi",
-          "description": "Wait until N calls to the named API complete successfully",
+          "description": "Wait until N calls to the named API complete",
           "examples": [
             {
               "waitForApi": {
@@ -3990,7 +3968,7 @@
           "properties": {
             "waitForApi": {
               "$ref": "#/$defs/args_waitForApi",
-              "description": "Wait until N calls to the named API complete successfully",
+              "description": "Wait until N calls to the named API complete",
               "examples": [
                 {
                   "name": "login",
