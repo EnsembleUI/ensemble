@@ -269,11 +269,10 @@ class AppModel {
 
   // Check if artifact refresh is enabled via environment variable
   bool get _isArtifactRefreshEnabled {
-    String? enableRefresh = appConfig?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
-    if (enableRefresh != null) {
-      return enableRefresh.toLowerCase() == 'true';
-    }
-    return false; // Default: disabled
+    final value = appConfig?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
+    if (value is bool) return value;
+    if (value is String) return value.toLowerCase() == 'true';
+    return false;
   }
 
   // Get the last checked time from persistent storage

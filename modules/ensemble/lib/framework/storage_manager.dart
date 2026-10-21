@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 import "package:universal_html/html.dart";
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
@@ -68,11 +70,12 @@ mixin PublicStorage {
   }
 
   /// read from public storage
-  T? read<T>(String key) => GetStorage().read<T>(key);
+  T? read<T>(String key) =>
+      restorePublicStorageValue(GetStorage().read<dynamic>(key)) as T?;
 
   /// write to public storage
   Future<void> write(String key, dynamic value) =>
-      GetStorage().write(key, value);
+      GetStorage().write(key, encodePublicStorageValue(value));
 
   Future<void> remove(String key) => GetStorage().remove(key);
 
@@ -89,6 +92,64 @@ mixin PublicStorage {
     ]);
   }
 }
+
+const String _storageValueTypeKey = '__ensemble_storage_value_type__';
+const String _firestoreTimestampStorageType = 'firestore_timestamp_v1';
+
+/// Encodes Firestore timestamps as tagged JSON maps so persistent storage can
+/// serialize them without losing their type. Maps and lists are copied
+/// recursively because Firestore values are commonly nested in cached data.
+dynamic encodePublicStorageValue(dynamic value) {
+  if (value is FirestoreTimestamp) {
+    return _encodeFirestoreTimestamp(value.timestamp);
+  }
+  if (value is Timestamp) {
+    return _encodeFirestoreTimestamp(value);
+  }
+  if (value is Map) {
+    return value.map<dynamic, dynamic>(
+      (key, nestedValue) => MapEntry<dynamic, dynamic>(
+        key,
+        encodePublicStorageValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(encodePublicStorageValue).toList();
+  }
+  return value;
+}
+
+/// Restores tagged Firestore timestamps whenever data is read from public
+/// storage, including timestamps nested in maps and lists.
+dynamic restorePublicStorageValue(dynamic value) {
+  if (value is Map) {
+    if (value.length == 3 &&
+        value[_storageValueTypeKey] == _firestoreTimestampStorageType &&
+        value['seconds'] is int &&
+        value['nanoseconds'] is int) {
+      return FirestoreTimestamp(
+        Timestamp(value['seconds'] as int, value['nanoseconds'] as int),
+      );
+    }
+    return value.map<dynamic, dynamic>(
+      (key, nestedValue) => MapEntry<dynamic, dynamic>(
+        key,
+        restorePublicStorageValue(nestedValue),
+      ),
+    );
+  }
+  if (value is List) {
+    return value.map(restorePublicStorageValue).toList();
+  }
+  return value;
+}
+
+Map<String, dynamic> _encodeFirestoreTimestamp(Timestamp timestamp) => {
+      _storageValueTypeKey: _firestoreTimestampStorageType,
+      'seconds': timestamp.seconds,
+      'nanoseconds': timestamp.nanoseconds,
+    };
 
 /// secure storage. These are async so really only use-able
 /// at the system-level (all our Javascript are synchronous)

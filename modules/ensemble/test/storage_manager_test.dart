@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +10,37 @@ import 'package:get_storage/get_storage.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('clear removes public keys but retains encrypted keys', () async {
+  test('public storage normalizes Firestore timestamps recursively', () {
+    final timestamp = FirestoreTimestamp(Timestamp(123, 456789000));
+    final nativeTimestamp = Timestamp(456, 789123000);
+
+    final encoded = encodePublicStorageValue({
+      'lastUpdated': timestamp,
+      'items': [
+        {'createdAt': nativeTimestamp},
+      ],
+    });
+    final restored = restorePublicStorageValue(encoded) as Map;
+
+    expect(restored['lastUpdated'], isA<FirestoreTimestamp>());
+    expect(
+      (restored['lastUpdated'] as FirestoreTimestamp).timestamp,
+      timestamp.timestamp,
+    );
+    expect(
+      ((restored['items'] as List).single as Map)['createdAt'],
+      isA<FirestoreTimestamp>(),
+    );
+    expect(
+      (((restored['items'] as List).single as Map)['createdAt']
+              as FirestoreTimestamp)
+          .timestamp,
+      nativeTimestamp,
+    );
+  });
+
+  test('public storage serializes Firestore timestamps and clears correctly',
+      () async {
     final directory = await Directory.systemTemp.createTemp('ensemble-storage-');
     const channel = MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -19,6 +51,26 @@ void main() {
       await storage.write('clear_test_a', 'a');
       await storage.write('clear_test_b', 'b');
       await storage.write('enc_clear_test', 'secret');
+      await storage.write('timestamp_test', {
+        'lastUpdated': FirestoreTimestamp(Timestamp(123, 456789000)),
+        'items': [
+          {'createdAt': Timestamp(456, 789123000)},
+        ],
+      });
+
+      final storedTimestamp = storage.read<Map>('timestamp_test')!;
+      expect(storedTimestamp['lastUpdated'], isA<FirestoreTimestamp>());
+      expect(
+        (storedTimestamp['lastUpdated'] as FirestoreTimestamp)
+            .timestamp
+            .millisecondsSinceEpoch,
+        123456,
+      );
+      final storedItems = storedTimestamp['items'] as List;
+      expect(
+        (storedItems.single as Map)['createdAt'],
+        isA<FirestoreTimestamp>(),
+      );
 
       await storage.clearPublicStorage();
 

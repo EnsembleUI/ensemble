@@ -143,5 +143,29 @@ definitions:
       expect(envVariables, {'apiURL': 'https://dummyjson.com'});
       expect(LocalAssetsService.localAssets, isEmpty);
     });
+
+    test('ignores non-string configuration values while scanning assets',
+        () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMessageHandler('flutter/assets', (_) async => null);
+
+      final Map<String, dynamic> envVariables = {
+        'remoteLogo': 'https://example.com/logo.png',
+        'remote_config_minimum_fetch_interval': 0,
+        'featureEnabled': true,
+      };
+      final YamlMap definitions = loadYaml('''
+definitions:
+  from: local
+  local:
+    path: ensemble/apps/configuredAssetsApp
+''');
+
+      await LocalAssetsService.initialize(envVariables, definitions);
+
+      expect(envVariables['remote_config_minimum_fetch_interval'], 0);
+      expect(envVariables['featureEnabled'], isTrue);
+      expect(LocalAssetsService.localAssets, isEmpty);
+    });
   });
 }

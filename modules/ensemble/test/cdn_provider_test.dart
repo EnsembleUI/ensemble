@@ -123,6 +123,26 @@ void main() {
     });
   });
 
+  group('CDN artifact refresh config', () {
+    test('accepts a JSON boolean value', () async {
+      final provider = CdnDefinitionProvider('artifact-refresh-bool-app');
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithoutNewKey(), value: true),
+      );
+
+      expect(provider.isArtifactRefreshEnabled(), isTrue);
+    });
+
+    test('continues to accept string values', () async {
+      final provider = CdnDefinitionProvider('artifact-refresh-string-app');
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithoutNewKey(), value: 'true'),
+      );
+
+      expect(provider.isArtifactRefreshEnabled(), isTrue);
+    });
+  });
+
   group('CDN translation runtime refresh', () {
     testWidgets('picks up newly added translation keys without app restart',
         (tester) async {
@@ -371,14 +391,17 @@ void main() {
   });
 }
 
-Map<String, dynamic> _manifestWithArtifactRefresh(Map<String, dynamic> manifest) {
+Map<String, dynamic> _manifestWithArtifactRefresh(
+  Map<String, dynamic> manifest, {
+  Object value = 'true',
+}) {
   final artifacts =
       Map<String, dynamic>.from(manifest['artifacts'] as Map<String, dynamic>);
   final config =
       Map<String, dynamic>.from(artifacts['config'] as Map? ?? <String, dynamic>{});
   final envVariables = Map<String, dynamic>.from(
       config['envVariables'] as Map? ?? <String, dynamic>{});
-  envVariables['ENABLE_ARTIFACT_REFRESH'] = 'true';
+  envVariables['ENABLE_ARTIFACT_REFRESH'] = value;
   config['envVariables'] = envVariables;
   artifacts['config'] = config;
   return {'artifacts': artifacts};
