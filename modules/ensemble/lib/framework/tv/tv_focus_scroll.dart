@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 // =============================================================================
 // TV Focus - Scroll Into View
@@ -45,6 +46,21 @@ Curve curveFromName(String? curveName, {Curve defaultCurve = Curves.easeOut}) {
     default:
       return defaultCurve;
   }
+}
+
+/// Finds the nearest lazy list (ListView/GridView sliver) above [object],
+/// optionally only one that scrolls in [direction].
+RenderSliverMultiBoxAdaptor? findLazyListSliver(
+  RenderObject? object, {
+  AxisDirection? direction,
+}) {
+  for (var node = object; node != null; node = node.parent) {
+    if (node is RenderSliverMultiBoxAdaptor &&
+        (direction == null || node.constraints.axisDirection == direction)) {
+      return node;
+    }
+  }
+  return null;
 }
 
 /// Finds the nearest vertical scrollable ancestor.
