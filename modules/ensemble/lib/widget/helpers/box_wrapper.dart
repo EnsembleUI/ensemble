@@ -622,11 +622,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final focused = FocusManager.instance.primaryFocus?.context;
     final list = findLazyListSliver(context.findRenderObject());
     if (list == null || focused == null || !focused.mounted) return false;
-    var node = focused.findRenderObject();
-    while (node != null && !identical(node, list)) {
-      node = node.parent;
-    }
-    return node != null;
+    return isInsideRenderObject(focused.findRenderObject(), list);
   }
 
   void _onFocusChange() {

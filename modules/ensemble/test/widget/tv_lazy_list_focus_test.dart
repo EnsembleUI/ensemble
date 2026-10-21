@@ -74,6 +74,32 @@ void main() {
       ),
     }));
 
+  /// Rows of a header item plus a nested vertical list holding one item.
+  ensemble.ListView nestedLists() => ensemble.ListView()
+    ..initChildren(
+        itemTemplate: YamlMap.wrap({
+      'data': List.generate(20, (i) => i),
+      'name': 'n',
+      'indexId': 'i',
+      'template': {
+        'Column': {
+          'children': [
+            item(label: r'Head ${i}', row: r'${1 + 2 * i}'),
+            {
+              'ListView': {
+                'styles': {'height': 100},
+                'item-template': {
+                  'data': [0],
+                  'name': 'x',
+                  'template': item(label: r'Inner ${i}', row: r'${2 + 2 * i}'),
+                },
+              },
+            },
+          ],
+        },
+      },
+    }));
+
   Widget screen(Widget list) => TestUtils.wrapTestWidgetWithScope(Column(
         children: [
           SizedBox(height: 100, child: header()),
@@ -166,6 +192,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(focusedLabel(tester), 'Item 57');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('DOWN moves into a list nested in the focused list',
+      (tester) async {
+    useTestViewport(tester);
+    await tester.pumpWidget(screen(nestedLists()));
+    await tester.pumpAndSettle();
+    focusItem(tester, 'Head 0');
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    expect(focusedLabel(tester), 'Inner 0');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    expect(focusedLabel(tester), 'Head 1');
     expect(tester.takeException(), isNull);
   });
 

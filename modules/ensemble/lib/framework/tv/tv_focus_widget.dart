@@ -437,13 +437,11 @@ class TVFocusWidget extends StatelessWidget {
   /// toward [yOffset], or [current] is still off screen, scroll the list and
   /// keep focus in it instead of moving to [target] outside it.
   bool _keepFocusInLazyList(FocusNode current, FocusNode? target, int yOffset) {
-    RenderSliverMultiBoxAdaptor? listOf(FocusNode? node) => findLazyListSliver(
-      node?.context?.findRenderObject(),
-      direction: AxisDirection.down,
-    );
     final box = current.context?.findRenderObject();
-    final sliver = listOf(current);
-    if (box is! RenderBox || sliver == null || listOf(target) == sliver) {
+    final sliver = findLazyListSliver(box, direction: AxisDirection.down);
+    if (box is! RenderBox ||
+        sliver == null ||
+        isInsideRenderObject(target?.context?.findRenderObject(), sliver)) {
       return false;
     }
     final viewport = RenderAbstractViewport.maybeOf(sliver);

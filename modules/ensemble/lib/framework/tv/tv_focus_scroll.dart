@@ -63,6 +63,14 @@ RenderSliverMultiBoxAdaptor? findLazyListSliver(
   return null;
 }
 
+/// Whether [object] is [ancestor] or lies inside it.
+bool isInsideRenderObject(RenderObject? object, RenderObject ancestor) {
+  for (var node = object; node != null; node = node.parent) {
+    if (identical(node, ancestor)) return true;
+  }
+  return false;
+}
+
 /// Finds the nearest vertical scrollable ancestor.
 ScrollableState? findNearestVerticalScrollable(BuildContext context) {
   ScrollableState? scrollable;
