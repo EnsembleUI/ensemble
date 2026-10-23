@@ -14,6 +14,7 @@ renders only the tab navigation. Both are backed by `BaseTabBar`,
 | EDL field or method | Behavior |
 | --- | --- |
 | `items` | List of tab definitions. Each item must provide at least one of `label`, `icon`, or `tabWidget`. |
+| `testId` | Optional stable test key on a tab item. Test actions can target it without wrapping the label in a custom widget. |
 | `body`, `widget`, `bodyWidget` | Aliases for the body rendered when the tab is selected. |
 | `tabWidget`, `tabItem` | Aliases for a custom tab label widget. |
 | `selectedIndex` | Initial and current selected tab index. Out-of-range values are reset to `0` when tabs are rebuilt. |
@@ -44,6 +45,7 @@ View:
                   Text:
                     text: Account overview
               - label: Activity
+                testId: activityTab
                 visible: ${account.showActivity == true}
                 body:
                   ListView:

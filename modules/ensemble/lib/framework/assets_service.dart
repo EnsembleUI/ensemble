@@ -40,8 +40,15 @@ class LocalAssetsService {
     List<String> foundAssets = [];
     if (assetEnvVariables.isNotEmpty) {
       for (var entry in assetEnvVariables.entries) {
-        String assetName =
-            Utils.getAssetName(entry.value); // Get the asset name
+        // App configuration may include numeric and boolean settings alongside
+        // asset URLs. Only string values can name an asset; passing another
+        // value to getAssetName throws during otherwise normal app startup.
+        if (entry.value is! String || entry.value.isEmpty) continue;
+        String assetName = Utils.getAssetName(entry.value as String);
+        // A base URL such as `https://.../assets/` has no filename. Treating
+        // its empty last path segment as a bundled asset can mark the assets
+        // directory itself as an image and later try to decode that directory.
+        if (assetName.isEmpty) continue;
         String provider = definations['definitions']?['from'];
         String path = definations['definitions']?['local']['path'];
         String assetPath = provider == 'local'
