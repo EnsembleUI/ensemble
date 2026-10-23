@@ -209,6 +209,16 @@ class FirestoreTimestamp
   FirestoreTimestamp.fromDate(Date date)
       : timestamp = Timestamp.fromDate(date.dateTime);
 
+  /// Lets JSON-backed storage serialize timestamps even when an app adds one
+  /// through a nested mutable storage reference (which does not call the
+  /// top-level storage setter). StorageManager recognizes this tagged shape
+  /// and restores the FirestoreTimestamp on reads.
+  Map<String, dynamic> toJson() => {
+        '__ensemble_storage_value_type__': 'firestore_timestamp_v1',
+        'seconds': timestamp.seconds,
+        'nanoseconds': timestamp.nanoseconds,
+      };
+
   @override
   Map<String, Function> getters() {
     return {

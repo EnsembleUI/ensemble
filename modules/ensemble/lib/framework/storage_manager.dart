@@ -97,8 +97,9 @@ const String _storageValueTypeKey = '__ensemble_storage_value_type__';
 const String _firestoreTimestampStorageType = 'firestore_timestamp_v1';
 
 /// Encodes Firestore timestamps as tagged JSON maps so persistent storage can
-/// serialize them without losing their type. Maps and lists are copied
-/// recursively because Firestore values are commonly nested in cached data.
+/// serialize them without losing their type. Containers without timestamps
+/// keep their identity so existing mutable public-storage behavior is
+/// preserved; only containers on paths containing a timestamp are copied.
 dynamic encodePublicStorageValue(dynamic value) {
   if (value is FirestoreTimestamp) {
     return _encodeFirestoreTimestamp(value.timestamp);
@@ -107,21 +108,34 @@ dynamic encodePublicStorageValue(dynamic value) {
     return _encodeFirestoreTimestamp(value);
   }
   if (value is Map) {
-    return value.map<dynamic, dynamic>(
-      (key, nestedValue) => MapEntry<dynamic, dynamic>(
-        key,
-        encodePublicStorageValue(nestedValue),
-      ),
-    );
+    Map<dynamic, dynamic>? encoded;
+    for (final entry in value.entries) {
+      final next = encodePublicStorageValue(entry.value);
+      if (!identical(next, entry.value)) {
+        encoded ??= Map<dynamic, dynamic>.from(value);
+        encoded[entry.key] = next;
+      }
+    }
+    return encoded ?? value;
   }
   if (value is List) {
-    return value.map(encodePublicStorageValue).toList();
+    List<dynamic>? encoded;
+    for (var i = 0; i < value.length; i++) {
+      final next = encodePublicStorageValue(value[i]);
+      if (!identical(next, value[i])) {
+        encoded ??= List<dynamic>.from(value);
+        encoded[i] = next;
+      }
+    }
+    return encoded ?? value;
   }
   return value;
 }
 
 /// Restores tagged Firestore timestamps whenever data is read from public
-/// storage, including timestamps nested in maps and lists.
+/// storage, including timestamps nested in maps and lists. Containers that do
+/// not contain encoded timestamps retain their identity to preserve the
+/// existing mutable public-storage behavior.
 dynamic restorePublicStorageValue(dynamic value) {
   if (value is Map) {
     if (value.length == 3 &&
@@ -132,15 +146,26 @@ dynamic restorePublicStorageValue(dynamic value) {
         Timestamp(value['seconds'] as int, value['nanoseconds'] as int),
       );
     }
-    return value.map<dynamic, dynamic>(
-      (key, nestedValue) => MapEntry<dynamic, dynamic>(
-        key,
-        restorePublicStorageValue(nestedValue),
-      ),
-    );
+    Map<dynamic, dynamic>? restored;
+    for (final entry in value.entries) {
+      final next = restorePublicStorageValue(entry.value);
+      if (!identical(next, entry.value)) {
+        restored ??= Map<dynamic, dynamic>.from(value);
+        restored[entry.key] = next;
+      }
+    }
+    return restored ?? value;
   }
   if (value is List) {
-    return value.map(restorePublicStorageValue).toList();
+    List<dynamic>? restored;
+    for (var i = 0; i < value.length; i++) {
+      final next = restorePublicStorageValue(value[i]);
+      if (!identical(next, value[i])) {
+        restored ??= List<dynamic>.from(value);
+        restored[i] = next;
+      }
+    }
+    return restored ?? value;
   }
   return value;
 }

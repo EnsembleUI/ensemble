@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -81,6 +82,46 @@ void main() {
       expect(storage.getKeys(), isNot(contains('enc_clear_test')));
       await storage.write('clear_test_after', 'new');
       expect(storage.read('clear_test_after'), 'new');
+    } finally {
+      await GetStorage().queue.add(() async {});
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+      await directory.delete(recursive: true);
+    }
+  });
+
+  test('public storage preserves mutable containers without timestamps',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('ensemble-storage-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (_) async => directory.path);
+    try {
+      final storage = StorageManager();
+      await storage.initPublicStorage();
+      final nested = <String, dynamic>{'items': <dynamic>[]};
+      await storage.write('mutable_containers', nested);
+      await GetStorage().queue.add(() async {});
+
+      final readValue = storage.read<Map>('mutable_containers')!;
+      expect(identical(readValue, nested), isTrue);
+      expect(identical(readValue['items'], nested['items']), isTrue);
+      (readValue['items'] as List)
+        ..add('mutated')
+        ..add(FirestoreTimestamp(Timestamp(789, 123456000)));
+      // This is the same JSON operation GetStorage uses while flushing. The
+      // timestamp was inserted through a nested mutable reference, so it did
+      // not pass through StorageManager.write.
+      final persistedJson = jsonEncode(
+        GetStorage().read<Map>('mutable_containers'),
+      );
+      expect(persistedJson, contains('firestore_timestamp_v1'));
+      await GetStorage().queue.add(() async {});
+      final restored =
+          restorePublicStorageValue(jsonDecode(persistedJson)) as Map;
+      expect((restored['items'] as List).first, 'mutated');
+      expect((restored['items'] as List).last, isA<FirestoreTimestamp>());
     } finally {
       await GetStorage().queue.add(() async {});
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
