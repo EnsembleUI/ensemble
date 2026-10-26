@@ -115,10 +115,47 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         event.logicalKey != LogicalKeyboardKey.goBack) {
       return KeyEventResult.ignored;
     }
+    final focusedContext = FocusManager.instance.primaryFocus?.context;
     if (!focusSelectedTab()) return KeyEventResult.ignored;
+    _scrollTabContentToTop(focusedContext);
 
     _handledTabBackKeySequence = true;
     return KeyEventResult.handled;
+  }
+
+  /// Scrolls the vertical scrollables between [focusedContext] and this TabBar
+  /// back to their start, so the tab content shows its top again. Scrollables
+  /// outside this TabBar and horizontal lanes keep their position.
+  void _scrollTabContentToTop(BuildContext? focusedContext) {
+    if (focusedContext == null || !focusedContext.mounted) return;
+    final scrollables = <ScrollableState>[];
+    var insideTabBar = false;
+    focusedContext.visitAncestorElements((element) {
+      if (identical(element, context)) {
+        insideTabBar = true;
+        return false;
+      }
+      if (element is StatefulElement && element.state is ScrollableState) {
+        final scrollable = element.state as ScrollableState;
+        if (axisDirectionToAxis(scrollable.axisDirection) == Axis.vertical) {
+          scrollables.add(scrollable);
+        }
+      }
+      return true;
+    });
+    if (!insideTabBar) return;
+    for (final scrollable in scrollables) {
+      final position = scrollable.position;
+      if (position.hasContentDimensions &&
+          (position.pixels - position.minScrollExtent).abs() >
+              kTVScrollThreshold) {
+        position.animateTo(
+          position.minScrollExtent,
+          duration: const Duration(milliseconds: kTVScrollAnimationDurationMs),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
   }
 
   // common method for both scrollable and simple Tabbar

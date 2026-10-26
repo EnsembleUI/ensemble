@@ -414,6 +414,57 @@ void main() {
     expect(tester.getRect(find.text('Tab 1')).top, greaterThanOrEqualTo(0));
   });
 
+  testWidgets('Back scrolls the tab content back to its top', (tester) async {
+    final spy = BackSpy();
+    final tabBar = TabBarContainer()
+      ..setProperty(
+          'items',
+          YamlList.wrap([
+            {
+              'label': 'Tab 1',
+              'body': {
+                'Column': {
+                  'styles': {'scrollable': true},
+                  'children': [
+                    {
+                      'Spacer': {
+                        'styles': {'size': 1500},
+                      },
+                    },
+                    bodyDefinition('Bottom'),
+                  ],
+                },
+              },
+            },
+          ]))
+      ..setProperty('expanded', true)
+      ..setProperty('tabFocusOnBack', true);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      spy.wrap(SizedBox(height: 400, child: Column(children: [tabBar]))),
+    ));
+    await tester.pumpAndSettle();
+
+    final content = tester
+        .stateList<ScrollableState>(find.descendant(
+            of: find.byType(TabBarContainer),
+            matching: find.byType(Scrollable)))
+        .firstWhere((state) =>
+            axisDirectionToAxis(state.axisDirection) == Axis.vertical);
+
+    await _focusBodyContent(tester);
+    content.position.jumpTo(content.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    expect(content.position.pixels, greaterThan(0));
+
+    await _pressBackDown(tester);
+    await tester.pumpAndSettle();
+
+    expect(_primaryLabel(tester), '${tabButtonFocusLabelPrefix}0');
+    expect(content.position.pixels, content.position.minScrollExtent);
+    expect(spy.events, isEmpty);
+  });
+
   testWidgets('Back works with indexed tab content', (tester) async {
     final spy = BackSpy();
     final tabBar = TabBarContainer()
