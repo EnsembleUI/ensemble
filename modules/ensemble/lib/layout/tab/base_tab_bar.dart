@@ -125,7 +125,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
   /// Scrolls the vertical scrollables between [focusedContext] and this TabBar
   /// back to their start, so the tab content shows its top again. Scrollables
-  /// outside this TabBar and horizontal lanes keep their position.
+  /// outside this TabBar, horizontal lanes, and pagers keep their position.
   void _scrollTabContentToTop(BuildContext? focusedContext) {
     if (focusedContext == null || !focusedContext.mounted) return;
     final scrollables = <ScrollableState>[];
@@ -146,7 +146,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     if (!insideTabBar) return;
     for (final scrollable in scrollables) {
       final position = scrollable.position;
-      if (position.hasContentDimensions &&
+      if (position is! PageMetrics && position.hasContentDimensions &&
           (position.pixels - position.minScrollExtent).abs() >
               kTVScrollThreshold) {
         position.animateTo(
