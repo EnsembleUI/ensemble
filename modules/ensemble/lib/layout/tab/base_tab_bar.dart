@@ -117,16 +117,20 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     }
     final focusedContext = FocusManager.instance.primaryFocus?.context;
     if (!focusSelectedTab()) return KeyEventResult.ignored;
-    _scrollTabContentToTop(focusedContext);
+    _scrollTabContentToStart(focusedContext);
 
     _handledTabBackKeySequence = true;
     return KeyEventResult.handled;
   }
 
-  /// Scrolls the vertical scrollables between [focusedContext] and this TabBar
-  /// back to their start, so the tab content shows its top again. Scrollables
-  /// outside this TabBar, horizontal lanes, and pagers keep their position.
-  void _scrollTabContentToTop(BuildContext? focusedContext) {
+  /// Jumps the vertical scrollables between [focusedContext] and this TabBar
+  /// back to their start (`minScrollExtent`, the visual bottom of a reversed
+  /// list), so the tab content shows its beginning again. Scrollables outside
+  /// this TabBar, horizontal lanes, and pagers keep their position.
+  ///
+  /// A jump, not an animation: focus is already on the tab strip, and the next
+  /// focus move into the content would cancel an animation half-way.
+  void _scrollTabContentToStart(BuildContext? focusedContext) {
     if (focusedContext == null || !focusedContext.mounted) return;
     final scrollables = <ScrollableState>[];
     var insideTabBar = false;
@@ -149,11 +153,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
       if (position is! PageMetrics && position.hasContentDimensions &&
           (position.pixels - position.minScrollExtent).abs() >
               kTVScrollThreshold) {
-        position.animateTo(
-          position.minScrollExtent,
-          duration: const Duration(milliseconds: kTVScrollAnimationDurationMs),
-          curve: Curves.easeInOut,
-        );
+        position.jumpTo(position.minScrollExtent);
       }
     }
   }

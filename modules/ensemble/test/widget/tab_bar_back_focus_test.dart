@@ -490,6 +490,90 @@ void main() {
     expect(spy.events, isEmpty);
   });
 
+  testWidgets('Back reset is not cancelled by focusing content mid-reset',
+      (tester) async {
+    final tabBar = TabBarContainer()
+      ..setProperty(
+          'items',
+          YamlList.wrap([
+            {
+              'label': 'Tab 1',
+              'body': {
+                'Column': {
+                  'styles': {'scrollable': true},
+                  'children': [
+                    for (var i = 0; i < 40; i++)
+                      {
+                        'Row': {
+                          'styles': {
+                            'tvOptions': {'row': 9, 'order': 0},
+                            'height': 100,
+                          },
+                          'onTap': {'navigateBack': <String, dynamic>{}},
+                          'children': [
+                            {
+                              'Text': {'text': 'Item $i'},
+                            },
+                          ],
+                        },
+                      },
+                  ],
+                },
+              },
+            },
+          ]))
+      ..setProperty('expanded', true)
+      ..setProperty('tabFocusOnBack', true);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(height: 500, child: Column(children: [tabBar])),
+    ));
+    await tester.pumpAndSettle();
+
+    final content = tester
+        .stateList<ScrollableState>(find.descendant(
+            of: find.byType(TabBarContainer),
+            matching: find.byType(Scrollable)))
+        .firstWhere((state) =>
+            axisDirectionToAxis(state.axisDirection) == Axis.vertical);
+    final viewportBox = content.context.findRenderObject()! as RenderBox;
+
+    // Focus node of the first item that lies fully inside the content viewport.
+    FocusNode topVisibleItem() {
+      final viewport = viewportBox.localToGlobal(Offset.zero) & viewportBox.size;
+      for (var i = 0; i < 40; i++) {
+        final text = find.text('Item $i');
+        if (text.evaluate().isEmpty) continue;
+        final node = tester
+            .widgetList<InkWell>(
+                find.ancestor(of: text, matching: find.byType(InkWell)))
+            .firstWhere((widget) => widget.focusNode != null)
+            .focusNode!;
+        if (node.rect.top >= viewport.top &&
+            node.rect.bottom <= viewport.bottom) {
+          return node;
+        }
+      }
+      throw StateError('no fully visible item');
+    }
+
+    content.position.jumpTo(2000);
+    await tester.pumpAndSettle();
+    topVisibleItem().requestFocus();
+    await tester.pumpAndSettle();
+
+    await _pressBackDown(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    // Arrow keys don't drive TV traversal in widget tests, so stand in for
+    // pressing Down from the tab by focusing the top visible item directly.
+    topVisibleItem().requestFocus();
+    await tester.pumpAndSettle();
+
+    expect(content.position.pixels, content.position.minScrollExtent);
+  });
+
   testWidgets('Back leaves a vertical carousel on its selected slide',
       (tester) async {
     final tabBar = TabBarContainer()
