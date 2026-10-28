@@ -459,6 +459,15 @@ item-template:
                     order: ${itemIndex % 4} # 0, 1, 2, 3, 0, 1, 2, 3...
 ```
 
+In a vertical `ListView`/`GridView` only the rows near the viewport are built. While
+the list still has unbuilt rows in the pressed direction, or the focused edge row is
+still off screen, UP/DOWN keep focus in the list and scroll it, so a held key walks the
+whole list before focus moves to the widget above or below it.
+
+`autofocus` on an item (for example `autofocus: ${itemIndex == 0}`) is applied when the
+item is first built, unless focus is already on another item of the same list. Scrolling
+that item back into range does not take focus back to it.
+
 ### Pattern 5: Passing tvOptions to Custom Widgets
 
 **Widget Definition:**
