@@ -115,10 +115,47 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         event.logicalKey != LogicalKeyboardKey.goBack) {
       return KeyEventResult.ignored;
     }
+    final focusedContext = FocusManager.instance.primaryFocus?.context;
     if (!focusSelectedTab()) return KeyEventResult.ignored;
+    _scrollTabContentToStart(focusedContext);
 
     _handledTabBackKeySequence = true;
     return KeyEventResult.handled;
+  }
+
+  /// Jumps the vertical scrollables between [focusedContext] and this TabBar
+  /// back to their start (`minScrollExtent`, the visual bottom of a reversed
+  /// list), so the tab content shows its beginning again. Scrollables outside
+  /// this TabBar, horizontal lanes, and pagers keep their position.
+  ///
+  /// A jump, not an animation: focus is already on the tab strip, and the next
+  /// focus move into the content would cancel an animation half-way.
+  void _scrollTabContentToStart(BuildContext? focusedContext) {
+    if (focusedContext == null || !focusedContext.mounted) return;
+    final scrollables = <ScrollableState>[];
+    var insideTabBar = false;
+    focusedContext.visitAncestorElements((element) {
+      if (identical(element, context)) {
+        insideTabBar = true;
+        return false;
+      }
+      if (element is StatefulElement && element.state is ScrollableState) {
+        final scrollable = element.state as ScrollableState;
+        if (axisDirectionToAxis(scrollable.axisDirection) == Axis.vertical) {
+          scrollables.add(scrollable);
+        }
+      }
+      return true;
+    });
+    if (!insideTabBar) return;
+    for (final scrollable in scrollables) {
+      final position = scrollable.position;
+      if (position is! PageMetrics && position.hasContentDimensions &&
+          (position.pixels - position.minScrollExtent).abs() >
+              kTVScrollThreshold) {
+        position.jumpTo(position.minScrollExtent);
+      }
+    }
   }
 
   // common method for both scrollable and simple Tabbar

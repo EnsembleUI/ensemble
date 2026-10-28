@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:ensemble/widget/carousel.dart' as ensemble;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -412,6 +413,216 @@ void main() {
     expect(_primaryLabel(tester), '${tabButtonFocusLabelPrefix}0');
     // The strip is revealed, so the focus ring is actually visible.
     expect(tester.getRect(find.text('Tab 1')).top, greaterThanOrEqualTo(0));
+  });
+
+  testWidgets('Back scrolls the tab content back to its top', (tester) async {
+    final spy = BackSpy();
+    final page = ScrollController();
+    addTearDown(page.dispose);
+    final tabBar = TabBarContainer()
+      ..setProperty(
+          'items',
+          YamlList.wrap([
+            {
+              'label': 'Tab 1',
+              'body': {
+                'Column': {
+                  'styles': {'scrollable': true},
+                  'children': [
+                    {
+                      'Spacer': {'styles': {'size': 1500}},
+                    },
+                    {
+                      'Row': {
+                        'styles': {'scrollable': true},
+                        'children': [
+                          {'Spacer': {'styles': {'size': 1500}}},
+                          bodyDefinition('Bottom'),
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ]))
+      ..setProperty('expanded', true)
+      ..setProperty('tabFocusOnBack', true);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      spy.wrap(SizedBox(
+        height: 400,
+        child: SingleChildScrollView(
+          controller: page,
+          child: Column(children: [
+            const SizedBox(height: 100),
+            SizedBox(height: 300, child: Column(children: [tabBar])),
+            const SizedBox(height: 1000),
+          ]),
+        ),
+      )),
+    ));
+    await tester.pumpAndSettle();
+
+    final scrollables = tester.stateList<ScrollableState>(find.descendant(
+        of: find.byType(TabBarContainer),
+        matching: find.byType(Scrollable)));
+    final content = scrollables.firstWhere((state) =>
+        axisDirectionToAxis(state.axisDirection) == Axis.vertical);
+    final lane = scrollables.lastWhere((state) =>
+        axisDirectionToAxis(state.axisDirection) == Axis.horizontal);
+
+    await _focusBodyContent(tester);
+    lane.position.jumpTo(lane.position.maxScrollExtent);
+    content.position.jumpTo(content.position.maxScrollExtent);
+    page.jumpTo(50);
+    await tester.pumpAndSettle();
+    expect(content.position.pixels, greaterThan(0));
+    expect(lane.position.pixels, greaterThan(0));
+
+    await _pressBackDown(tester);
+    await tester.pumpAndSettle();
+
+    expect(_primaryLabel(tester), '${tabButtonFocusLabelPrefix}0');
+    expect(content.position.pixels, content.position.minScrollExtent);
+    expect(lane.position.pixels, lane.position.maxScrollExtent);
+    expect(page.offset, 50);
+    expect(spy.events, isEmpty);
+  });
+
+  testWidgets('Back reset is not cancelled by focusing content mid-reset',
+      (tester) async {
+    final tabBar = TabBarContainer()
+      ..setProperty(
+          'items',
+          YamlList.wrap([
+            {
+              'label': 'Tab 1',
+              'body': {
+                'Column': {
+                  'styles': {'scrollable': true},
+                  'children': [
+                    for (var i = 0; i < 40; i++)
+                      {
+                        'Row': {
+                          'styles': {
+                            'tvOptions': {'row': 9, 'order': 0},
+                            'height': 100,
+                          },
+                          'onTap': {'navigateBack': <String, dynamic>{}},
+                          'children': [
+                            {
+                              'Text': {'text': 'Item $i'},
+                            },
+                          ],
+                        },
+                      },
+                  ],
+                },
+              },
+            },
+          ]))
+      ..setProperty('expanded', true)
+      ..setProperty('tabFocusOnBack', true);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(height: 500, child: Column(children: [tabBar])),
+    ));
+    await tester.pumpAndSettle();
+
+    final content = tester
+        .stateList<ScrollableState>(find.descendant(
+            of: find.byType(TabBarContainer),
+            matching: find.byType(Scrollable)))
+        .firstWhere((state) =>
+            axisDirectionToAxis(state.axisDirection) == Axis.vertical);
+    final viewportBox = content.context.findRenderObject()! as RenderBox;
+
+    // Focus node of the first item that lies fully inside the content viewport.
+    FocusNode topVisibleItem() {
+      final viewport = viewportBox.localToGlobal(Offset.zero) & viewportBox.size;
+      for (var i = 0; i < 40; i++) {
+        final text = find.text('Item $i');
+        if (text.evaluate().isEmpty) continue;
+        final node = tester
+            .widgetList<InkWell>(
+                find.ancestor(of: text, matching: find.byType(InkWell)))
+            .firstWhere((widget) => widget.focusNode != null)
+            .focusNode!;
+        if (node.rect.top >= viewport.top &&
+            node.rect.bottom <= viewport.bottom) {
+          return node;
+        }
+      }
+      throw StateError('no fully visible item');
+    }
+
+    content.position.jumpTo(2000);
+    await tester.pumpAndSettle();
+    topVisibleItem().requestFocus();
+    await tester.pumpAndSettle();
+
+    await _pressBackDown(tester);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    // Arrow keys don't drive TV traversal in widget tests, so stand in for
+    // pressing Down from the tab by focusing the top visible item directly.
+    topVisibleItem().requestFocus();
+    await tester.pumpAndSettle();
+
+    expect(content.position.pixels, content.position.minScrollExtent);
+  });
+
+  testWidgets('Back leaves a vertical carousel on its selected slide',
+      (tester) async {
+    final tabBar = TabBarContainer()
+      ..setProperty(
+          'items',
+          YamlList.wrap([
+            {
+              'label': 'Tab 1',
+              'body': {
+                'Carousel': {
+                  'styles': {
+                    'layout': 'single',
+                    'direction': 'vertical',
+                    'height': 250,
+                    'enableLoop': false,
+                  },
+                  'children': [
+                    bodyDefinition('Slide 1'),
+                    bodyDefinition('Slide 2'),
+                  ],
+                },
+              },
+            },
+          ]))
+      ..setProperty('tabFocusOnBack', true);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(tabBar));
+    await tester.pumpAndSettle();
+
+    final carousel = tester.widget<ensemble.Carousel>(find.byType(ensemble.Carousel));
+    final pager = tester.stateList<ScrollableState>(find.byType(Scrollable))
+        .firstWhere((state) => state.position is PageMetrics);
+    pager.position.jumpTo(pager.position.viewportDimension);
+    await tester.pumpAndSettle();
+    final slideFocus = tester
+        .widgetList<InkWell>(find.ancestor(
+            of: find.text('Slide 2'), matching: find.byType(InkWell)))
+        .firstWhere((widget) => widget.focusNode != null)
+        .focusNode!;
+    slideFocus.requestFocus();
+    await tester.pumpAndSettle();
+    expect(carousel.controller.currentIndex, 1);
+
+    await _pressBackDown(tester);
+    await tester.pumpAndSettle();
+
+    expect(_primaryLabel(tester), '${tabButtonFocusLabelPrefix}0');
+    expect(carousel.controller.currentIndex, 1);
+    expect((pager.position as PageMetrics).page, closeTo(1, 0.01));
   });
 
   testWidgets('Back works with indexed tab content', (tester) async {
