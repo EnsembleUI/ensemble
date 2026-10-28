@@ -84,6 +84,8 @@ class TVScrollbarWidget extends StatefulWidget {
 class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   late final FocusNode _focusNode;
   bool _isFocused = false;
+  // Content node that held focus when the edge handoff moved focus here.
+  FocusNode? _returnFocusNode;
   double _thumbOffset = 0.0;
   double _thumbHeight = 0.0;
   bool _isScrollable = false;
@@ -132,7 +134,48 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
   /// Public method to request focus on this scrollbar (called from ListView)
   void requestFocusOnScrollbar() {
+    _returnFocusNode = FocusManager.instance.primaryFocus;
     _focusNode.requestFocus();
+  }
+
+  /// Moves focus back into the list: to the node the scrollbar was entered
+  /// from while it is fully visible, else to the topmost fully visible TV
+  /// target, nearest the scrollbar on a tie. Flutter's directional search
+  /// can't do this: it ignores the TV grid and can't land on a focus-only row
+  /// (a scope without a leaf).
+  bool _returnFocusToContent() {
+    final returnNode = _returnFocusNode;
+    if (returnNode == null || !widget.scrollController.hasClients) return false;
+    final viewportBox = widget.scrollController.position.context.storageContext
+        .findRenderObject();
+    if (viewportBox is! RenderBox || !viewportBox.hasSize) return false;
+    final viewport =
+        (viewportBox.localToGlobal(Offset.zero) & viewportBox.size).inflate(1);
+    bool isVisible(FocusNode node) {
+      if (node.context?.mounted != true || !node.canRequestFocus) return false;
+      final rect = node.rect;
+      return viewport.contains(rect.topLeft) &&
+          viewport.contains(rect.bottomRight);
+    }
+
+    var target = isVisible(returnNode) ? returnNode : null;
+    if (target == null) {
+      final barX = _focusNode.rect.center.dx;
+      final candidates = TVFocusOrderNode.collectInScope(
+        route: ModalRoute.of(context),
+      ).values.map((node) => node.focus).where(isVisible).toList()
+        ..sort((a, b) {
+          final byTop = a.rect.top.round().compareTo(b.rect.top.round());
+          if (byTop != 0) return byTop;
+          return (a.rect.center.dx - barX)
+              .abs()
+              .compareTo((b.rect.center.dx - barX).abs());
+        });
+      if (candidates.isNotEmpty) target = candidates.first;
+    }
+    if (target == null) return false;
+    target.requestFocus();
+    return true;
   }
 
   @override
@@ -351,16 +394,20 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
               return KeyEventResult.handled;
             }
 
+            final exitKey = widget.options.position == 'left'
+                ? LogicalKeyboardKey.arrowRight
+                : LogicalKeyboardKey.arrowLeft;
+            if (event.logicalKey == exitKey && _returnFocusToContent()) {
+              return KeyEventResult.handled;
+            }
+
             if (_isFallbackFocusTarget &&
                 (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
                     event.logicalKey == LogicalKeyboardKey.arrowRight)) {
               return KeyEventResult.handled;
             }
 
-            // LEFT/RIGHT are intentionally not consumed: leaving them unhandled
-            // lets the focus system move focus back to the content (the
-            // scrollbar sits beside the list, so horizontal nav naturally exits
-            // it). UP/DOWN above are the only keys this scrollbar handles.
+            // Anything else is left to the focus system.
             return KeyEventResult.ignored;
           },
           child: InkWell(
@@ -373,6 +420,7 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 setState(() {
                   _isFocused = hasFocus;
                 });
+                if (!hasFocus) _returnFocusNode = null;
                 // Reveal the scrollbar in its enclosing scrollable when it
                 // gains focus (same scroll-into-view rule as other focusables).
                 // Re-check `_isFocused` at callback time in case focus has

@@ -685,7 +685,7 @@ The scrollbar uses **edge handlers** integrated into the TVFocusWidget grid syst
 2. When at the rightmost item (e.g., order=1), pressing RIGHT triggers `onRightEdge`
 3. `onRightEdge` callback requests focus on the scrollbar
 4. Scrollbar receives focus and handles UP/DOWN for scrolling
-5. LEFT returns focus back to content
+5. LEFT returns focus back to content: to the item the scrollbar was entered from, or, if scrolling moved that item out of view, to the topmost fully visible item (nearest the scrollbar). A left-side scrollbar uses RIGHT.
 
 ### Basic Usage
 
