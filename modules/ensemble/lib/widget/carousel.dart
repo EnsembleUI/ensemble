@@ -238,6 +238,11 @@ class CarouselState extends EWidgetState<Carousel>
   /// Set true when slide change triggered by D-pad navigation.
   bool _pendingFocusRestore = false;
 
+  /// Set while a slide is settling; restored if focus arrives mid-animation.
+  bool _restoreFocusOnSettle = false;
+  List<Widget> _builtItems = const [];
+  bool _settleRestoreForward = true;
+
   /// Owns the slider controller that carousel_slider attached to this state.
   late final e.CarouselSliderController _sliderController;
 
@@ -413,6 +418,7 @@ class CarouselState extends EWidgetState<Carousel>
     bool singleView = isSingleView();
 
     List<Widget> items = buildItems();
+    _builtItems = items;
     int buildOnDemandLength = widget._controller.buildOnDemandLength ?? 6;
     bool isBuildOnDemand = widget._controller.buildOnDemand == true &&
         items.length >= buildOnDemandLength;
@@ -431,6 +437,17 @@ class CarouselState extends EWidgetState<Carousel>
             carouselController: _sliderController,
             items: items,
           );
+
+    carousel = NotificationListener<ScrollEndNotification>(
+      onNotification: (notification) {
+        if (notification.depth == 0 && _restoreFocusOnSettle) {
+          _restoreFocusOnSettle = false;
+          _restoreFocusToCurrentSlide();
+        }
+        return false;
+      },
+      child: carousel,
+    );
 
     // show indicators
     if (widget._controller.indicatorType != null &&
@@ -654,6 +671,7 @@ class CarouselState extends EWidgetState<Carousel>
       viewportFraction: widget._controller.singleItemWidthRatio ?? 1,
       onPageChanged: (index, reason) {
         final isAutoplay = reason == CarouselPageChangedReason.timed;
+        final previousIndex = widget._controller.currentIndex;
 
         _onItemChange(index);
         setState(() {
@@ -661,7 +679,8 @@ class CarouselState extends EWidgetState<Carousel>
           widget._controller.selectedItemIndex = index;
         });
 
-        // Handle focus restoration after page change
+        // Focus may enter mid-slide; retry once the page settles.
+        _prepareFocusRestore(index, previousIndex, isAutoplay);
         _handleFocusRestoration(index, isAutoplay);
       },
     );
@@ -675,6 +694,7 @@ class CarouselState extends EWidgetState<Carousel>
         viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
         onPageChanged: (index, reason) {
           final isAutoplay = reason == CarouselPageChangedReason.timed;
+          final previousIndex = widget._controller.currentIndex;
 
           setState(() {
             widget._controller.currentIndex = index;
@@ -682,7 +702,8 @@ class CarouselState extends EWidgetState<Carousel>
             updateIndicatorIndex();
           });
 
-          // Handle focus restoration after page change
+          // Focus may enter mid-slide; retry once the page settles.
+          _prepareFocusRestore(index, previousIndex, isAutoplay);
           _handleFocusRestoration(index, isAutoplay);
         });
   }
@@ -710,6 +731,7 @@ class CarouselState extends EWidgetState<Carousel>
     if (!_pendingFocusRestore && !isAutoplay) return;
 
     _pendingFocusRestore = false;
+    _restoreFocusOnSettle = false;
 
     // Wait one frame for new slide widgets to be built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -719,6 +741,46 @@ class CarouselState extends EWidgetState<Carousel>
       // Land focus on the first focusable of the new slide (Flutter's default
       // forward traversal). This is the intended behavior for both directions.
       _carouselFocusScopeNode.nextFocus();
+    });
+  }
+
+  void _prepareFocusRestore(int index, int previousIndex, bool isAutoplay) {
+    // Multi-view keeps several items on screen, so the focused one need not be
+    // the current page.
+    _restoreFocusOnSettle = isSingleView() &&
+        widget._controller.tvOptions?.restoreFocusOnPageChange == true;
+    _settleRestoreForward = isAutoplay || index > previousIndex;
+  }
+
+  /// Focus that entered after [onPageChanged] sits on the slide that just
+  /// moved away; move it to the current slide once the page settles.
+  void _restoreFocusToCurrentSlide() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_carouselFocusScopeNode.hasFocus) return;
+
+      final focusedContext = FocusManager.instance.primaryFocus?.context;
+      final current = widget._controller.currentIndex;
+      if (focusedContext == null ||
+          current < 0 ||
+          current >= _builtItems.length) {
+        return;
+      }
+
+      var onCurrentSlide = false;
+      focusedContext.visitAncestorElements((element) {
+        if (identical(element.widget, _builtItems[current])) {
+          onCurrentSlide = true;
+          return false;
+        }
+        return true;
+      });
+      if (onCurrentSlide) return;
+
+      if (_settleRestoreForward) {
+        _carouselFocusScopeNode.nextFocus();
+      } else {
+        _carouselFocusScopeNode.previousFocus();
+      }
     });
   }
 
