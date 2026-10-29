@@ -18,6 +18,7 @@ import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class Carousel extends StatefulWidget
@@ -84,6 +85,10 @@ class Carousel extends StatefulWidget
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
       'selectedIndicatorWidget': (widget) =>
           _controller.selectedIndicatorWidget = widget,
+      'indicatorLeadingWidget': (widget) =>
+          _controller.indicatorLeadingWidget = widget,
+      'indicatorTrailingWidget': (widget) =>
+          _controller.indicatorTrailingWidget = widget,
       'aspectRatio': (value) =>
           _controller.aspectRatio = Utils.optionalDouble(value),
       'autoPlayAnimationDuration': (value) =>
@@ -191,6 +196,8 @@ class MyController extends BoxController {
   // Custom Widget
   dynamic indicatorWidget;
   dynamic selectedIndicatorWidget;
+  dynamic indicatorLeadingWidget;
+  dynamic indicatorTrailingWidget;
 
   // for single view the current item index is dispatched,
   // for multi view this dispatch when clicking on a card
@@ -203,7 +210,7 @@ class MyController extends BoxController {
   int selectedItemIndex = 0;
   int? indicatorMaxCount;
 
-  final e.CarouselSliderController _carouselController = e.CarouselSliderController();
+  e.CarouselSliderController _carouselController = e.CarouselSliderController();
 }
 
 class CarouselState extends EWidgetState<Carousel>
@@ -212,12 +219,37 @@ class CarouselState extends EWidgetState<Carousel>
 
   Widget? customIndicator;
   Widget? selectedCustomIndicator;
+  Widget? leadingIndicatorWidget;
+  Widget? trailingIndicatorWidget;
 
   int indicatorIndex = 0;
+
+  // ===========================================================================
+  // TV Focus Handling
+  // Enables: interceptHorizontalNav, pauseAutoplayOnFocus, restoreFocusOnPageChange
+  // ===========================================================================
+
+  /// FocusScope for the entire carousel. Receives delegated horizontal key events.
+  final FocusScopeNode _carouselFocusScopeNode = FocusScopeNode(debugLabel: 'CarouselScope');
+
+  /// Tracks autoplay pause state for pauseAutoplayOnFocus feature.
+  bool _isAutoplayPaused = false;
+
+  /// Set true when slide change triggered by D-pad navigation.
+  bool _pendingFocusRestore = false;
+
+  /// Set while a slide is settling; restored if focus arrives mid-animation.
+  bool _restoreFocusOnSettle = false;
+  List<Widget> _builtItems = const [];
+  bool _settleRestoreForward = true;
+
+  /// Owns the slider controller that carousel_slider attached to this state.
+  late final e.CarouselSliderController _sliderController;
 
   @override
   void initState() {
     super.initState();
+    _sliderController = widget._controller._carouselController;
     // Deprecated - Assigning selectedItemIndex to currentIndex for the deprecated property (selectedItemIndex)
     // If currentIndex has value it skip setting the selectedItemIndex to currentIndex
     // NOTE: If both property has value, then it uses the newly introduced property instead of selectedItemIndex
@@ -225,7 +257,133 @@ class CarouselState extends EWidgetState<Carousel>
         widget._controller.currentIndex == 0) {
       widget._controller.currentIndex = widget._controller.selectedItemIndex;
     }
+
+    // Set up focus listener for pauseAutoplayOnFocus feature
+    _carouselFocusScopeNode.addListener(_onCarouselFocusChanged);
   }
+
+  @override
+  void didUpdateWidget(Carousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // The widget is rebuilt with a fresh controller; keep the attached slider
+    // controller and the indices the old one published.
+    widget._controller._carouselController = _sliderController;
+    widget._controller.currentIndex = oldWidget._controller.currentIndex;
+    widget._controller.selectedIndex = oldWidget._controller.selectedIndex;
+    widget._controller.selectedItemIndex =
+        oldWidget._controller.selectedItemIndex;
+  }
+
+  /// Handle focus changes for pauseAutoplayOnFocus feature
+  void _onCarouselFocusChanged() {
+    final hasFocus = _carouselFocusScopeNode.hasFocus;
+
+    if (widget._controller.tvOptions?.pauseAutoplayOnFocus != true) return;
+    if (widget._controller.autoplay != true) return;
+
+    if (hasFocus && !_isAutoplayPaused) {
+      // Focus gained - pause autoplay
+      _isAutoplayPaused = true;
+      _sliderController.stopAutoPlay();
+    } else if (!hasFocus && _isAutoplayPaused) {
+      // Focus lost - resume autoplay
+      _isAutoplayPaused = false;
+      _sliderController.startAutoPlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    _carouselFocusScopeNode.removeListener(_onCarouselFocusChanged);
+    _carouselFocusScopeNode.dispose();
+    super.dispose();
+  }
+
+  /// Handle TV D-pad key events for interceptHorizontalNav
+  /// When a horizontal key event reaches this handler (via lockHorizontalNavigation
+  /// delegation from children), switch slides.
+  KeyEventResult _handleTVKeyEvent(FocusNode node, KeyEvent event) {
+    if (widget._controller.tvOptions?.interceptHorizontalNav != true) {
+      return KeyEventResult.ignored;
+    }
+
+    // Only handle key down events (not repeats)
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final isLeft = event.logicalKey == LogicalKeyboardKey.arrowLeft;
+    final isRight = event.logicalKey == LogicalKeyboardKey.arrowRight;
+
+    if (!isLeft && !isRight) {
+      return KeyEventResult.ignored;
+    }
+
+    // If a horizontal key event reached this handler, it means the focused child
+    // delegated it (via delegateHorizontalNavigation). Switch slides.
+    if (isLeft) {
+      _navigateToPreviousSlide();
+    } else {
+      _navigateToNextSlide();
+    }
+    return KeyEventResult.handled;
+  }
+
+  /// Number of slides — cheap count from the sources, without rebuilding every
+  /// slide widget via buildItems() (which addGesture/Container-wraps 1:1).
+  int get _slideCount =>
+      (widget._controller.children?.length ?? 0) +
+      (templatedChildren?.length ?? 0);
+
+  /// Navigate to previous slide with focus restoration
+  ///
+  /// Always steps one page in the pressed direction. The loop boundary must not
+  /// use an absolute target (`animateToPage(_slideCount - 1)`): carousel_slider
+  /// resolves an absolute page from the *fractional* physical page
+  /// (`page.toInt()`) plus a closest-route search, while [onPageChanged]
+  /// publishes the reported index before the previous animation settles. A
+  /// press arriving in that window could therefore resolve to a route that
+  /// animates the wrong way. `previousPage()` derives its target from
+  /// `page.round() - 1`, so it always moves left.
+  void _navigateToPreviousSlide() {
+    if (_slideCount == 0) return;
+
+    _pendingFocusRestore =
+        widget._controller.tvOptions?.restoreFocusOnPageChange == true;
+
+    final currentIndex = widget._controller.currentIndex;
+    if (currentIndex == 0 && widget._controller.enableLoop != true) {
+      // Finite carousel: there is no previous slide to move to.
+      return;
+    }
+    _sliderController.previousPage();
+  }
+
+  /// Navigate to next slide with focus restoration
+  ///
+  /// Always steps one page in the pressed direction; see
+  /// [_navigateToPreviousSlide] for why the loop boundary does not use
+  /// `animateToPage(0)`. `nextPage()` derives its target from
+  /// `page.round() + 1`, so a wrap to the first slide never becomes a backward
+  /// sweep through the last one.
+  void _navigateToNextSlide() {
+    if (_slideCount == 0) return;
+
+    _pendingFocusRestore =
+        widget._controller.tvOptions?.restoreFocusOnPageChange == true;
+
+    final currentIndex = widget._controller.currentIndex;
+    if (currentIndex == _slideCount - 1 &&
+        widget._controller.enableLoop != true) {
+      // Finite carousel: there is no next slide to move to.
+      return;
+    }
+    _sliderController.nextPage();
+  }
+
+  /// Check if this is a TV platform
+  bool get _isTVPlatform => Device().isTV;
 
   @override
   void didChangeDependencies() {
@@ -251,11 +409,16 @@ class CarouselState extends EWidgetState<Carousel>
         _buildIndicatorWidget(widget._controller.indicatorWidget, scopeManager);
     selectedCustomIndicator = _buildIndicatorWidget(
         widget._controller.selectedIndicatorWidget, scopeManager);
+    leadingIndicatorWidget = _buildIndicatorWidget(
+        widget._controller.indicatorLeadingWidget, scopeManager);
+    trailingIndicatorWidget = _buildIndicatorWidget(
+        widget._controller.indicatorTrailingWidget, scopeManager);
 
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
     List<Widget> items = buildItems();
+    _builtItems = items;
     int buildOnDemandLength = widget._controller.buildOnDemandLength ?? 6;
     bool isBuildOnDemand = widget._controller.buildOnDemand == true &&
         items.length >= buildOnDemandLength;
@@ -264,20 +427,55 @@ class CarouselState extends EWidgetState<Carousel>
         ? CarouselSlider.builder(
             itemCount: items.length,
             itemBuilder: (context, itemIndex, pageIndex) => items[itemIndex],
+            carouselController: _sliderController,
             options:
                 singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
           )
         : CarouselSlider(
             options:
                 singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
-            carouselController: widget._controller._carouselController,
+            carouselController: _sliderController,
             items: items,
           );
+
+    carousel = NotificationListener<ScrollEndNotification>(
+      onNotification: (notification) {
+        if (notification.depth == 0 && _restoreFocusOnSettle) {
+          _restoreFocusOnSettle = false;
+          _restoreFocusToCurrentSlide();
+        }
+        return false;
+      },
+      child: carousel,
+    );
 
     // show indicators
     if (widget._controller.indicatorType != null &&
         widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = buildIndicators(items);
+      final bool isVertical =
+          widget._controller.direction == Axis.vertical.name;
+      final Widget indicatorRow = isVertical
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: indicators,
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: indicators,
+            );
+
+      final List<Widget> indicatorChildren = [];
+
+      if (leadingIndicatorWidget != null) {
+        indicatorChildren.add(leadingIndicatorWidget!);
+      }
+
+      indicatorChildren.add(indicatorRow);
+
+      if (trailingIndicatorWidget != null) {
+        indicatorChildren.add(trailingIndicatorWidget!);
+      }
 
       List<Widget> children = [
         carousel,
@@ -287,15 +485,19 @@ class CarouselState extends EWidgetState<Carousel>
                 widget._controller.indicatorPosition ?? Alignment.bottomCenter,
             child: Padding(
               padding: widget._controller.indicatorPadding ?? EdgeInsets.zero,
-              child: widget._controller.direction == Axis.vertical.name
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: indicators,
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: indicators,
-                    ),
+              child: indicatorChildren.length == 1
+                  ? indicatorChildren.first
+                  : widget._controller.direction == Axis.vertical.name
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: indicatorChildren,
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: indicatorChildren,
+                        ),
             ),
           ),
         )
@@ -304,12 +506,35 @@ class CarouselState extends EWidgetState<Carousel>
       carousel = Stack(clipBehavior: Clip.none, children: children);
     }
 
+    // Wrap with TV focus handling if on TV platform and TV features enabled
+    if (_isTVPlatform && _hasTVCarouselFeatures()) {
+      carousel = _wrapWithTVFocus(carousel);
+    }
+
     return BoxWrapper(
       widget: carousel,
       boxController: widget._controller,
       ignoresPadding: true,
       ignoresDimension:
           true, // width/height shouldn't be apply in the container
+    );
+  }
+
+  /// Check if any TV carousel features are enabled
+  bool _hasTVCarouselFeatures() {
+    final tvOptions = widget._controller.tvOptions;
+    return tvOptions?.interceptHorizontalNav == true ||
+        tvOptions?.pauseAutoplayOnFocus == true ||
+        tvOptions?.restoreFocusOnPageChange == true;
+  }
+
+  /// Wrap the carousel with TV focus handling
+  Widget _wrapWithTVFocus(Widget carousel) {
+    // FocusScope with onKeyEvent - key events from children bubble up
+    return FocusScope(
+      node: _carouselFocusScopeNode,
+      onKeyEvent: _handleTVKeyEvent,
+      child: carousel,
     );
   }
 
@@ -361,7 +586,7 @@ class CarouselState extends EWidgetState<Carousel>
           _onItemChange(index);
         }
 
-        widget._controller._carouselController.animateToPage(index);
+        _sliderController.animateToPage(index);
       },
     );
   }
@@ -445,11 +670,18 @@ class CarouselState extends EWidgetState<Carousel>
       padEnds: false,
       viewportFraction: widget._controller.singleItemWidthRatio ?? 1,
       onPageChanged: (index, reason) {
+        final isAutoplay = reason == CarouselPageChangedReason.timed;
+        final previousIndex = widget._controller.currentIndex;
+
         _onItemChange(index);
         setState(() {
           widget._controller.currentIndex = index;
           widget._controller.selectedItemIndex = index;
         });
+
+        // Focus may enter mid-slide; retry once the page settles.
+        _prepareFocusRestore(index, previousIndex, isAutoplay);
+        _handleFocusRestoration(index, isAutoplay);
       },
     );
   }
@@ -460,13 +692,96 @@ class CarouselState extends EWidgetState<Carousel>
         padEnds: false,
         pageSnapping: false,
         viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
-        onPageChanged: (index, _) {
+        onPageChanged: (index, reason) {
+          final isAutoplay = reason == CarouselPageChangedReason.timed;
+          final previousIndex = widget._controller.currentIndex;
+
           setState(() {
             widget._controller.currentIndex = index;
             widget._controller.selectedItemIndex = index;
             updateIndicatorIndex();
           });
+
+          // Focus may enter mid-slide; retry once the page settles.
+          _prepareFocusRestore(index, previousIndex, isAutoplay);
+          _handleFocusRestoration(index, isAutoplay);
         });
+  }
+
+  /// Restores focus to the new slide after page change.
+  ///
+  /// Called after slide animation completes. Only runs if:
+  /// - restoreFocusOnPageChange is enabled
+  /// - Carousel currently has focus
+  ///
+  /// Focus lands on the first focusable of the new slide (Flutter's default
+  /// forward traversal) regardless of navigation direction.
+  void _handleFocusRestoration(int newIndex, bool isAutoplay) {
+    if (!_isTVPlatform) return;
+    if (widget._controller.tvOptions?.restoreFocusOnPageChange != true) return;
+
+    // Only restore if carousel has focus (prevents stealing focus during autoplay)
+    final carouselHasFocus = _carouselFocusScopeNode.hasFocus;
+    if (!carouselHasFocus) {
+      _pendingFocusRestore = false;
+      return;
+    }
+
+    // Manual nav needs _pendingFocusRestore, autoplay always restores if has focus
+    if (!_pendingFocusRestore && !isAutoplay) return;
+
+    _pendingFocusRestore = false;
+    _restoreFocusOnSettle = false;
+
+    // Wait one frame for new slide widgets to be built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_carouselFocusScopeNode.hasFocus) return;
+
+      // Land focus on the first focusable of the new slide (Flutter's default
+      // forward traversal). This is the intended behavior for both directions.
+      _carouselFocusScopeNode.nextFocus();
+    });
+  }
+
+  void _prepareFocusRestore(int index, int previousIndex, bool isAutoplay) {
+    // Multi-view keeps several items on screen, so the focused one need not be
+    // the current page.
+    _restoreFocusOnSettle = isSingleView() &&
+        widget._controller.tvOptions?.restoreFocusOnPageChange == true;
+    _settleRestoreForward = isAutoplay || index > previousIndex;
+  }
+
+  /// Focus that entered after [onPageChanged] sits on the slide that just
+  /// moved away; move it to the current slide once the page settles.
+  void _restoreFocusToCurrentSlide() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_carouselFocusScopeNode.hasFocus) return;
+
+      final focusedContext = FocusManager.instance.primaryFocus?.context;
+      final current = widget._controller.currentIndex;
+      if (focusedContext == null ||
+          current < 0 ||
+          current >= _builtItems.length) {
+        return;
+      }
+
+      var onCurrentSlide = false;
+      focusedContext.visitAncestorElements((element) {
+        if (identical(element.widget, _builtItems[current])) {
+          onCurrentSlide = true;
+          return false;
+        }
+        return true;
+      });
+      if (onCurrentSlide) return;
+
+      if (_settleRestoreForward) {
+        _carouselFocusScopeNode.nextFocus();
+      } else {
+        _carouselFocusScopeNode.previousFocus();
+      }
+    });
   }
 
   /// This method will increment the indicator based on the indicatorMaxCount property
