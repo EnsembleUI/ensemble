@@ -210,7 +210,7 @@ class MyController extends BoxController {
   int selectedItemIndex = 0;
   int? indicatorMaxCount;
 
-  final e.CarouselSliderController _carouselController = e.CarouselSliderController();
+  e.CarouselSliderController _carouselController = e.CarouselSliderController();
 }
 
 class CarouselState extends EWidgetState<Carousel>
@@ -238,9 +238,13 @@ class CarouselState extends EWidgetState<Carousel>
   /// Set true when slide change triggered by D-pad navigation.
   bool _pendingFocusRestore = false;
 
+  /// Owns the slider controller that carousel_slider attached to this state.
+  late final e.CarouselSliderController _sliderController;
+
   @override
   void initState() {
     super.initState();
+    _sliderController = widget._controller._carouselController;
     // Deprecated - Assigning selectedItemIndex to currentIndex for the deprecated property (selectedItemIndex)
     // If currentIndex has value it skip setting the selectedItemIndex to currentIndex
     // NOTE: If both property has value, then it uses the newly introduced property instead of selectedItemIndex
@@ -253,6 +257,19 @@ class CarouselState extends EWidgetState<Carousel>
     _carouselFocusScopeNode.addListener(_onCarouselFocusChanged);
   }
 
+  @override
+  void didUpdateWidget(Carousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // The widget is rebuilt with a fresh controller; keep the attached slider
+    // controller and the indices the old one published.
+    widget._controller._carouselController = _sliderController;
+    widget._controller.currentIndex = oldWidget._controller.currentIndex;
+    widget._controller.selectedIndex = oldWidget._controller.selectedIndex;
+    widget._controller.selectedItemIndex =
+        oldWidget._controller.selectedItemIndex;
+  }
+
   /// Handle focus changes for pauseAutoplayOnFocus feature
   void _onCarouselFocusChanged() {
     final hasFocus = _carouselFocusScopeNode.hasFocus;
@@ -263,11 +280,11 @@ class CarouselState extends EWidgetState<Carousel>
     if (hasFocus && !_isAutoplayPaused) {
       // Focus gained - pause autoplay
       _isAutoplayPaused = true;
-      widget._controller._carouselController.stopAutoPlay();
+      _sliderController.stopAutoPlay();
     } else if (!hasFocus && _isAutoplayPaused) {
       // Focus lost - resume autoplay
       _isAutoplayPaused = false;
-      widget._controller._carouselController.startAutoPlay();
+      _sliderController.startAutoPlay();
     }
   }
 
@@ -335,7 +352,7 @@ class CarouselState extends EWidgetState<Carousel>
       // Finite carousel: there is no previous slide to move to.
       return;
     }
-    widget._controller._carouselController.previousPage();
+    _sliderController.previousPage();
   }
 
   /// Navigate to next slide with focus restoration
@@ -357,7 +374,7 @@ class CarouselState extends EWidgetState<Carousel>
       // Finite carousel: there is no next slide to move to.
       return;
     }
-    widget._controller._carouselController.nextPage();
+    _sliderController.nextPage();
   }
 
   /// Check if this is a TV platform
@@ -404,13 +421,14 @@ class CarouselState extends EWidgetState<Carousel>
         ? CarouselSlider.builder(
             itemCount: items.length,
             itemBuilder: (context, itemIndex, pageIndex) => items[itemIndex],
+            carouselController: _sliderController,
             options:
                 singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
           )
         : CarouselSlider(
             options:
                 singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
-            carouselController: widget._controller._carouselController,
+            carouselController: _sliderController,
             items: items,
           );
 
@@ -551,7 +569,7 @@ class CarouselState extends EWidgetState<Carousel>
           _onItemChange(index);
         }
 
-        widget._controller._carouselController.animateToPage(index);
+        _sliderController.animateToPage(index);
       },
     );
   }
