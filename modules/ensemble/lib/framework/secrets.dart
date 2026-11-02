@@ -35,16 +35,25 @@ class SecretsStore with Invokable {
         if (provider == 'local') {
           String path =
               EnsembleConfigService.config["definitions"]?['local']?["path"];
-          final secretsString =
-              await rootBundle.loadString('${path}/config/secrets.json');
-          final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
-          appSecretsMap["secrets"].forEach((key, value) {
-            secrets![key] = value;
-          });
+          // The legacy JSON file is optional. Keep its failure isolated so a
+          // missing config/secrets.json does not prevent loading .env.secrets.
+          try {
+            final secretsString =
+                await rootBundle.loadString('${path}/config/secrets.json');
+            final Map<String, dynamic> appSecretsMap =
+                json.decode(secretsString);
+            final appSecrets = appSecretsMap['secrets'];
+            if (appSecrets is Map) {
+              appSecrets.forEach((key, value) {
+                secrets[key.toString()] = value;
+              });
+            }
+          } catch (_) {}
 
-          // add secrets from ${path}/.env.secrets file
-          await dotenv.load(fileName: '${path}/.env.secrets');
-          secrets.addAll(dotenv.env);
+          try {
+            await dotenv.load(fileName: '${path}/.env.secrets');
+            secrets.addAll(dotenv.env);
+          } catch (_) {}
         }
       } catch (_) {}
       // add secrets from .env.secrets file in ensemble folder

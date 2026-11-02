@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 import "package:universal_html/html.dart";
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
@@ -68,11 +70,12 @@ mixin PublicStorage {
   }
 
   /// read from public storage
-  T? read<T>(String key) => GetStorage().read<T>(key);
+  T? read<T>(String key) =>
+      restorePublicStorageValue(GetStorage().read<dynamic>(key)) as T?;
 
   /// write to public storage
   Future<void> write(String key, dynamic value) =>
-      GetStorage().write(key, value);
+      GetStorage().write(key, encodePublicStorageValue(value));
 
   Future<void> remove(String key) => GetStorage().remove(key);
 
@@ -88,6 +91,127 @@ mixin PublicStorage {
         if (!key.startsWith(encryptedPrefix)) GetStorage().remove(key),
     ]);
   }
+}
+
+const String _storageValueTypeKey = '__ensemble_storage_value_type__';
+const String _firestoreTimestampStorageType = 'firestore_timestamp_v1';
+
+/// Encodes Firestore timestamps as tagged JSON maps so persistent storage can
+/// serialize them without losing their type. Ensemble timestamps use their
+/// `toJson` representation so maps and lists holding them retain their identity
+/// in GetStorage. Native Firebase timestamps are normalized to the same wrapper.
+dynamic encodePublicStorageValue(dynamic value) {
+  if (value is FirestoreTimestamp) {
+    // FirestoreTimestamp.toJson emits the tagged JSON representation when
+    // GetStorage flushes. Keep the object in memory so reads retain the same
+    // mutable map/list references as values without timestamps.
+    return value;
+  }
+  if (value is Timestamp) {
+    return FirestoreTimestamp(value);
+  }
+  if (value is Map) {
+    Map<dynamic, dynamic>? encoded;
+    for (final key in value.keys.toList(growable: false)) {
+      final nestedValue = value[key];
+      final next = encodePublicStorageValue(nestedValue);
+      if (!identical(next, nestedValue)) {
+        try {
+          value[key] = next;
+        } on UnsupportedError {
+          encoded ??= _copyStorageMap(value);
+          encoded[key] = next;
+        } on TypeError {
+          encoded ??= _copyStorageMap(value);
+          encoded[key] = next;
+        }
+      }
+    }
+    return encoded ?? value;
+  }
+  if (value is List) {
+    List<dynamic>? encoded;
+    for (var i = 0; i < value.length; i++) {
+      final nestedValue = value[i];
+      final next = encodePublicStorageValue(nestedValue);
+      if (!identical(next, nestedValue)) {
+        try {
+          value[i] = next;
+        } on UnsupportedError {
+          encoded ??= List<dynamic>.from(value);
+          encoded[i] = next;
+        } on TypeError {
+          encoded ??= List<dynamic>.from(value);
+          encoded[i] = next;
+        }
+      }
+    }
+    return encoded ?? value;
+  }
+  return value;
+}
+
+/// Restores tagged Firestore timestamps whenever data is read from public
+/// storage, including timestamps nested in maps and lists. Mutable containers
+/// are restored in place so reads preserve public storage's reference behavior.
+dynamic restorePublicStorageValue(dynamic value) {
+  if (value is Map) {
+    if (value.length == 3 &&
+        value[_storageValueTypeKey] == _firestoreTimestampStorageType &&
+        value['seconds'] is int &&
+        value['nanoseconds'] is int) {
+      return FirestoreTimestamp(
+        Timestamp(value['seconds'] as int, value['nanoseconds'] as int),
+      );
+    }
+    Map<dynamic, dynamic>? restored;
+    for (final key in value.keys.toList(growable: false)) {
+      final nestedValue = value[key];
+      final next = restorePublicStorageValue(nestedValue);
+      if (!identical(next, nestedValue)) {
+        try {
+          // GetStorage returns its in-memory object. Restore nested timestamp
+          // tags in place to preserve public storage's mutable-reference
+          // behavior, including for typed string-keyed maps.
+          value[key] = next;
+        } on UnsupportedError {
+          restored ??= _copyStorageMap(value);
+          restored[key] = next;
+        } on TypeError {
+          restored ??= _copyStorageMap(value);
+          restored[key] = next;
+        }
+      }
+    }
+    return restored ?? value;
+  }
+  if (value is List) {
+    List<dynamic>? restored;
+    for (var i = 0; i < value.length; i++) {
+      final nestedValue = value[i];
+      final next = restorePublicStorageValue(nestedValue);
+      if (!identical(next, nestedValue)) {
+        try {
+          value[i] = next;
+        } on UnsupportedError {
+          restored ??= List<dynamic>.from(value);
+          restored[i] = next;
+        } on TypeError {
+          restored ??= List<dynamic>.from(value);
+          restored[i] = next;
+        }
+      }
+    }
+    return restored ?? value;
+  }
+  return value;
+}
+
+Map<dynamic, dynamic> _copyStorageMap(Map value) {
+  if (value.keys.every((key) => key is String)) {
+    return Map<String, dynamic>.from(value);
+  }
+  return Map<dynamic, dynamic>.from(value);
 }
 
 /// secure storage. These are async so really only use-able

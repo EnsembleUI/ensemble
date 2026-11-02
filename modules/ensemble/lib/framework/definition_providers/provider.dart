@@ -61,11 +61,10 @@ abstract class DefinitionProvider {
   // Check if artifact refresh is enabled via environment variable
   // Default: false (disabled) - apps must explicitly enable it
   bool isArtifactRefreshEnabled() {
-    String? enableRefresh = getAppConfig()?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
-    if (enableRefresh != null) {
-      return enableRefresh.toLowerCase() == 'true';
-    }
-    return false; // Default: disabled
+    final value = getAppConfig()?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
+    if (value is bool) return value;
+    if (value is String) return value.toLowerCase() == 'true';
+    return false;
   }
 
   // build the definition model from YAML

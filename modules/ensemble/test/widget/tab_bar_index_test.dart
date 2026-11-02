@@ -1,5 +1,6 @@
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
@@ -23,6 +24,37 @@ YamlList twoTabItems() {
 }
 
 void main() {
+  testWidgets('TabBar item testId identifies and taps the tab', (tester) async {
+    final tabBar = TabBarContainer();
+    tabBar.setProperty(
+        'items',
+        YamlList.wrap([
+          {
+            'label': 'One',
+            'body': {
+              'Text': {'text': 'Tab One'},
+            },
+          },
+          {
+            'label': 'Two',
+            'testId': 'secondTab',
+            'body': {
+              'Text': {'text': 'Tab Two'},
+            },
+          },
+        ]));
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(tabBar));
+    await tester.pumpAndSettle();
+
+    final tabFinder = find.byKey(const ValueKey('secondTab'));
+    expect(tabFinder, findsOneWidget);
+    await tester.tap(tabFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Tab Two'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('useIndexedTab renders the selected tab body', (tester) async {
     final tabBar = TabBarContainer();
     tabBar.setProperty('items', twoTabItems());
@@ -39,21 +71,23 @@ void main() {
   testWidgets('resets selectedIndex when visible items shrink below it',
       (tester) async {
     final tabBar = TabBarContainer();
-    tabBar.setProperty('items', YamlList.wrap([
-      {
-        'label': 'Always',
-        'body': {
-          'Text': {'text': 'Always visible'},
-        },
-      },
-      {
-        'label': 'Hidden',
-        'visible': false,
-        'body': {
-          'Text': {'text': 'Hidden tab'},
-        },
-      },
-    ]));
+    tabBar.setProperty(
+        'items',
+        YamlList.wrap([
+          {
+            'label': 'Always',
+            'body': {
+              'Text': {'text': 'Always visible'},
+            },
+          },
+          {
+            'label': 'Hidden',
+            'visible': false,
+            'body': {
+              'Text': {'text': 'Hidden tab'},
+            },
+          },
+        ]));
     tabBar.setProperty('selectedIndex', 1);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(tabBar));

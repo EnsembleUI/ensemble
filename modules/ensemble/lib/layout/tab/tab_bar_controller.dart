@@ -43,6 +43,7 @@ class TabBarController extends BoxController {
         _originalItems.add(TabItem(
           icon: Utils.getIcon(item['icon']),
           label: Utils.optionalString(item['label']),
+          testId: Utils.optionalString(item['testId']),
           tabWidget: item['tabWidget'] ?? item['tabItem'],
           bodyWidget: item['bodyWidget'] ?? item['widget'] ?? item['body'],
           isVisible: _setVisible(item['visible']),
@@ -83,6 +84,7 @@ class TabItem {
   TabItem(
       {this.icon,
       this.label,
+      this.testId,
       this.tabWidget,
       this.bodyWidget,
       this.isVisible}) {
@@ -94,6 +96,7 @@ class TabItem {
 
   IconModel? icon;
   String? label;
+  String? testId;
   dynamic tabWidget; // custom tab widget
   dynamic bodyWidget; // tab's body widget
   Visible? isVisible;

@@ -114,15 +114,20 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
   }
 
   Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
+    final activeScope = scopeManager!;
     final tabWidget = tabItem.tabWidget;
-    final label = scopeManager!.dataContext.eval(tabItem.label);
-    if (scopeManager != null && tabWidget != null) {
-      final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
+    final label = activeScope.dataContext.eval(tabItem.label);
+    final key =
+        tabItem.testId?.isNotEmpty == true ? ValueKey(tabItem.testId!) : null;
+    if (tabWidget != null) {
+      final customWidget = activeScope.buildWidgetFromDefinition(tabWidget);
       return Tab(
+        key: key,
         child: customWidget,
       );
     }
     return Tab(
+      key: key,
       text: label,
       icon:
           tabItem.icon != null ? ensemble.Icon.fromModel(tabItem.icon!) : null,
