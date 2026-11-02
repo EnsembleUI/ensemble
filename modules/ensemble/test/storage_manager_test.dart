@@ -15,13 +15,13 @@ void main() {
     final timestamp = FirestoreTimestamp(Timestamp(123, 456789000));
     final nativeTimestamp = Timestamp(456, 789123000);
 
-    final encoded = encodePublicStorageValue({
+    final encoded = encodePublicStorageValue(<String, dynamic>{
       'lastUpdated': timestamp,
       'items': [
         {'createdAt': nativeTimestamp},
       ],
     });
-    final restored = restorePublicStorageValue(encoded) as Map;
+    final restored = restorePublicStorageValue(encoded) as Map<String, dynamic>;
 
     expect(restored['lastUpdated'], isA<FirestoreTimestamp>());
     expect(
@@ -40,7 +40,7 @@ void main() {
     );
   });
 
-  test('public storage serializes Firestore timestamps and clears correctly',
+  test('public storage preserves timestamp types, references, and clear logic',
       () async {
     final directory = await Directory.systemTemp.createTemp('ensemble-storage-');
     const channel = MethodChannel('plugins.flutter.io/path_provider');
@@ -52,14 +52,26 @@ void main() {
       await storage.write('clear_test_a', 'a');
       await storage.write('clear_test_b', 'b');
       await storage.write('enc_clear_test', 'secret');
-      await storage.write('timestamp_test', {
+      final timestampValue = <String, dynamic>{
+        'name': 'Alice',
         'lastUpdated': FirestoreTimestamp(Timestamp(123, 456789000)),
-        'items': [
-          {'createdAt': Timestamp(456, 789123000)},
+        'items': <dynamic>[
+          {'createdAt': FirestoreTimestamp(Timestamp(456, 789123000))},
         ],
-      });
+      };
+      await storage.write('timestamp_test', timestampValue);
+      final nativeTimestampValue = <String, dynamic>{
+        'createdAt': Timestamp(789, 123456000),
+      };
+      await storage.write('native_timestamp_test', nativeTimestampValue);
 
-      final storedTimestamp = storage.read<Map>('timestamp_test')!;
+      final storedTimestamp =
+          storage.read<Map<String, dynamic>>('timestamp_test')!;
+      expect(identical(storedTimestamp, timestampValue), isTrue);
+      expect(
+        identical(storedTimestamp['items'], timestampValue['items']),
+        isTrue,
+      );
       expect(storedTimestamp['lastUpdated'], isA<FirestoreTimestamp>());
       expect(
         (storedTimestamp['lastUpdated'] as FirestoreTimestamp)
@@ -71,6 +83,21 @@ void main() {
       expect(
         (storedItems.single as Map)['createdAt'],
         isA<FirestoreTimestamp>(),
+      );
+      storedTimestamp['name'] = 'Bob';
+      storedItems.add('mutated through the stored list reference');
+      expect(GetStorage().read<Map>('timestamp_test')!['name'], 'Bob');
+      expect(
+        (GetStorage().read<Map>('timestamp_test')!['items'] as List).last,
+        'mutated through the stored list reference',
+      );
+      final nativeTimestamp =
+          storage.read<Map<String, dynamic>>('native_timestamp_test')!;
+      expect(identical(nativeTimestamp, nativeTimestampValue), isTrue);
+      expect(nativeTimestamp['createdAt'], isA<FirestoreTimestamp>());
+      expect(
+        (nativeTimestamp['createdAt'] as FirestoreTimestamp).timestamp,
+        Timestamp(789, 123456000),
       );
 
       await storage.clearPublicStorage();
