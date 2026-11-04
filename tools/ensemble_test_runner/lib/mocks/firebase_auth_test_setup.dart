@@ -112,7 +112,7 @@ void ensureLiveFirebaseAuthForTest() {
       final app = _decodeApp(args[0]);
       final session = _sessionForApp(app);
       return <Object?>[
-        PigeonIdTokenResult(
+        InternalIdTokenResult(
           token: session.idToken,
           expirationTimestamp: session.expiresAtMs,
           authTimestamp: DateTime.now().millisecondsSinceEpoch,
