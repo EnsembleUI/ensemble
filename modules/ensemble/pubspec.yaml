@@ -91,7 +91,7 @@ dependencies:
   js_widget: ^1.0.4
   flutter_markdown: ^0.7.7+1
   provider: ^6.0.3
-  cloud_firestore: ^7.1.0
+  cloud_firestore: ^6.10.1
   get_storage: ^2.0.3
   flutter_html: ^3.0.0
   # html 0.15.7 removed the internal qs.matches API that flutter_html 3.0.0 still uses.
@@ -116,8 +116,8 @@ dependencies:
   get_it: ^8.0.0
   custom_image_crop: ^0.1.1
   open_settings_plus: ^0.4.0
-  firebase_messaging: ^17.0.1
-  firebase_core: ^5.1.0
+  firebase_messaging: ^16.0.3
+  firebase_core: ^4.15.1
   custom_refresh_indicator: ^4.0.1
   youtube_player_iframe: ^5.2.1
   youtube_player_iframe_web: ^3.1.2
@@ -154,8 +154,8 @@ dependencies:
   connectivity_plus: ^7.0.0
   flutter_security_checker: ^3.2.1
   safe_device: ^1.2.1
-  firebase_app_check: ^0.5.1
-  cloud_functions: ^7.0.1
+  firebase_app_check: ^0.4.1+1
+  cloud_functions: ^6.0.3
   wakelock_plus: ^1.4.0
 
 dev_dependencies:
