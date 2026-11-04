@@ -8,7 +8,7 @@ void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
 
   try {
-    addDependency('firebase_performance', '^0.11.1');
+    addDependency('firebase_performance', '^0.12.1');
 
     if (platforms.contains('android')) {
       addClasspathDependency(

@@ -51,8 +51,8 @@ dependencies:
   moengage_cards: ^5.0.0
   moengage_geofence: ^4.1.0
   moengage_inbox: ^7.1.0
-  firebase_core: ^4.2.0
-  firebase_messaging: ^16.4.1
+  firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
   permission_handler: ^12.0.3
 
 dev_dependencies:
