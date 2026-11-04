@@ -1,3 +1,7 @@
+## 1.2.60
+
+ - **FEAT**(tabs): add testId property for tab items and improve asset loadi… ([#2392](https://github.com/ensembleUI/ensemble/issues/2392)). ([3226a591](https://github.com/ensembleUI/ensemble/commit/3226a59125a8129ce0b2752409a890e1af14e5b8))
+
 ## 1.2.59
 
  - **FEAT**(runtime): page-scoped event bus, API disposal guards, storage cleanup. ([f5b5c613](https://github.com/ensembleUI/ensemble/commit/f5b5c613934ba7e66831334fe9900a992c5fe9b1))

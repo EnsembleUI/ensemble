@@ -3,6 +3,129 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-11-04
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.60`](#ensemble---v1260)
+ - [`ensemble_network_info` - `v1.2.60`](#ensemble_network_info---v1260)
+ - [`ensemble_stripe` - `v1.2.60`](#ensemble_stripe---v1260)
+ - [`ensemble_file_manager` - `v1.2.60`](#ensemble_file_manager---v1260)
+ - [`ensemble_chat` - `v1.2.60`](#ensemble_chat---v1260)
+ - [`ensemble_auth` - `v1.2.60`](#ensemble_auth---v1260)
+ - [`ensemble_bluetooth` - `v1.2.60`](#ensemble_bluetooth---v1260)
+ - [`ensemble_wifi` - `v1.2.60`](#ensemble_wifi---v1260)
+ - [`ensemble_face_camera` - `v1.2.60`](#ensemble_face_camera---v1260)
+ - [`ensemble_connect` - `v1.2.60`](#ensemble_connect---v1260)
+ - [`ensemble_contacts` - `v1.2.60`](#ensemble_contacts---v1260)
+ - [`ensemble_location` - `v1.2.60`](#ensemble_location---v1260)
+ - [`ensemble_camera` - `v1.2.60`](#ensemble_camera---v1260)
+ - [`ensemble_deeplink` - `v1.2.60`](#ensemble_deeplink---v1260)
+ - [`ensemble_remote_config` - `v1.2.60`](#ensemble_remote_config---v1260)
+ - [`ensemble_firebase_analytics` - `v1.2.60`](#ensemble_firebase_analytics---v1260)
+ - [`ensemble_qr_scanner` - `v1.2.60`](#ensemble_qr_scanner---v1260)
+ - [`ensemble_adobe_analytics` - `v1.2.60`](#ensemble_adobe_analytics---v1260)
+ - [`ensemble_moengage` - `v1.2.60`](#ensemble_moengage---v1260)
+ - [`ensemble_bracket` - `v1.2.60`](#ensemble_bracket---v1260)
+ - [`ensemble_test_runner` - `v1.3.9`](#ensemble_test_runner---v139)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.3.9`
+
+---
+
+#### `ensemble` - `v1.2.60`
+
+ - **FEAT**(tabs): add testId property for tab items and improve asset loadi… ([#2392](https://github.com/ensembleUI/ensemble/issues/2392)). ([3226a591](https://github.com/ensembleUI/ensemble/commit/3226a59125a8129ce0b2752409a890e1af14e5b8))
+
+#### `ensemble_network_info` - `v1.2.60`
+
+ - Bump "ensemble_network_info" to `1.2.60`.
+
+#### `ensemble_stripe` - `v1.2.60`
+
+ - Bump "ensemble_stripe" to `1.2.60`.
+
+#### `ensemble_file_manager` - `v1.2.60`
+
+ - Bump "ensemble_file_manager" to `1.2.60`.
+
+#### `ensemble_chat` - `v1.2.60`
+
+ - Bump "ensemble_chat" to `1.2.60`.
+
+#### `ensemble_auth` - `v1.2.60`
+
+ - Bump "ensemble_auth" to `1.2.60`.
+
+#### `ensemble_bluetooth` - `v1.2.60`
+
+ - Bump "ensemble_bluetooth" to `1.2.60`.
+
+#### `ensemble_wifi` - `v1.2.60`
+
+ - Bump "ensemble_wifi" to `1.2.60`.
+
+#### `ensemble_face_camera` - `v1.2.60`
+
+ - Bump "ensemble_face_camera" to `1.2.60`.
+
+#### `ensemble_connect` - `v1.2.60`
+
+ - Bump "ensemble_connect" to `1.2.60`.
+
+#### `ensemble_contacts` - `v1.2.60`
+
+ - Bump "ensemble_contacts" to `1.2.60`.
+
+#### `ensemble_location` - `v1.2.60`
+
+ - Bump "ensemble_location" to `1.2.60`.
+
+#### `ensemble_camera` - `v1.2.60`
+
+ - Bump "ensemble_camera" to `1.2.60`.
+
+#### `ensemble_deeplink` - `v1.2.60`
+
+ - Bump "ensemble_deeplink" to `1.2.60`.
+
+#### `ensemble_remote_config` - `v1.2.60`
+
+ - Bump "ensemble_remote_config" to `1.2.60`.
+
+#### `ensemble_firebase_analytics` - `v1.2.60`
+
+ - Bump "ensemble_firebase_analytics" to `1.2.60`.
+
+#### `ensemble_qr_scanner` - `v1.2.60`
+
+ - Bump "ensemble_qr_scanner" to `1.2.60`.
+
+#### `ensemble_adobe_analytics` - `v1.2.60`
+
+ - Bump "ensemble_adobe_analytics" to `1.2.60`.
+
+#### `ensemble_moengage` - `v1.2.60`
+
+ - Bump "ensemble_moengage" to `1.2.60`.
+
+#### `ensemble_bracket` - `v1.2.60`
+
+ - Bump "ensemble_bracket" to `1.2.60`.
+
+
 ## 2026-10-16
 
 ### Changes
