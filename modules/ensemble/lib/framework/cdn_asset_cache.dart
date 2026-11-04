@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' as io;
 
+import 'package:ensemble/framework/tv/apple_tv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
@@ -644,7 +645,10 @@ class CdnAssetCache {
 
   static Future<io.Directory?> _defaultStorageDirectoryProvider() async {
     if (kIsWeb) return null;
-    return getApplicationSupportDirectory();
+    // Application Support can't be created on a physical Apple TV. Assets in
+    // Caches may be purged by the system; they are downloaded again then.
+    return await appleTVStorageDirectory() ??
+        await getApplicationSupportDirectory();
   }
 }
 

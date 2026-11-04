@@ -3,6 +3,7 @@ import 'dart:developer';
 import "package:universal_html/html.dart";
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
+import 'package:ensemble/framework/tv/apple_tv.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
@@ -38,7 +39,7 @@ mixin SystemStorage {
   late final GetStorage _systemStorage;
 
   initSystemStorage() async {
-    await GetStorage.init(_systemStorageId);
+    await _initGetStorage(_systemStorageId);
     _systemStorage = GetStorage(_systemStorageId);
   }
 
@@ -66,7 +67,7 @@ mixin SystemStorage {
 /// non-secure storage available to AppDevs
 mixin PublicStorage {
   initPublicStorage() async {
-    await GetStorage.init();
+    await _initGetStorage();
   }
 
   /// read from public storage
@@ -296,4 +297,13 @@ Future<Map<String, dynamic>> getAllFromKeychain() async {
     }
     return value;
   }
+}
+
+/// get_storage keeps its files in Documents, which a physical Apple TV can't
+/// write to. There, create the box in Ensemble's Apple TV directory first;
+/// GetStorage() then returns that same box everywhere.
+Future<void> _initGetStorage([String container = 'GetStorage']) async {
+  final dir = await appleTVStorageDirectory();
+  if (dir != null) GetStorage(container, dir.path);
+  await GetStorage.init(container);
 }

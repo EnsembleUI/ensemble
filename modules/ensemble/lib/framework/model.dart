@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/image.dart' show EnsembleImageCacheManager;
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
@@ -78,7 +79,7 @@ class BackgroundImage {
         imageUrl: _source,
         fit: _fit,
         alignment: _alignment,
-        cacheManager: _cacheManager,
+        cacheManager: _cacheManager ?? EnsembleImageCacheManager.forPlatform,
         placeholder: loadingWidget != null ? (_, __) => loadingWidget : null,
         errorWidget:
             fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,

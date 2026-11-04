@@ -18,6 +18,7 @@ import 'package:ensemble/framework/event/change_locale_events.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
+import 'package:ensemble/framework/tv/apple_tv.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -188,7 +189,11 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
     // Initialize native features.
     if (!kIsWeb) {
-      Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      // Workmanager has no Apple TV implementation, and nothing that uses it
+      // (background upload, Bluetooth) applies to a TV.
+      if (!isAppleTV) {
+        Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      }
       initDeepLink(AppLifecycleState.resumed);
     }
     _themeChangeSubscription =
