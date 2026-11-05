@@ -187,42 +187,8 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
       );
     }
 
-    // environment variable overrides
-    // Load all sources, then merge with precedence:
-    // 1) environmentVariables in ensemble-config.yaml
-    // 2) .env.config
-    // 3) appConfig.json envVariables
-    final Map<String, dynamic> envOverrides = {};
-    try {
-      dynamic path = yamlMap["definitions"]?['local']?["path"];
-      final configString =
-          await rootBundle.loadString('${path}/config/appConfig.json');
-      final Map<String, dynamic> configMap = json.decode(configString);
-      if (configMap["envVariables"] != null) {
-        configMap["envVariables"].forEach((key, value) {
-          envOverrides[key] = value;
-        });
-      }
-    } catch (e) {
-      // ignore missing/invalid appConfig.json
-    }
-
-    // 2) .env.config (middle priority)
-    dynamic localPath = yamlMap["definitions"]?['local']?["path"];
-    if (localPath is String && localPath.isNotEmpty) {
-      _mergeWithOverwrite(
-          envOverrides, await _loadDotEnvConfigFile('$localPath/.env.config'));
-    }
-    _mergeWithOverwrite(
-        envOverrides, await _loadDotEnvConfigFile('.env.config'));
-    _mergeWithOverwrite(
-        envOverrides, await _loadDotEnvConfigFile('ensemble/.env.config'));
-
-    // 1) environmentVariables from ensemble-config.yaml (highest priority)
-    dynamic env = yamlMap['environmentVariables'];
-    if (env is YamlMap) {
-      env.forEach((key, value) => envOverrides[key.toString()] = value);
-    }
+    final Map<String, dynamic> envOverrides =
+        await loadEnvironmentOverrides(yamlMap);
 
     DefinitionProvider definitionProvider = DefinitionProvider.from(yamlMap);
     _config = EnsembleConfig(
@@ -232,6 +198,13 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
+    // Keep the resolved environment available to runtime services too. EnvConfig
+    // already resolves these values from envOverrides, but API provider
+    // initialization reads UserAppConfig.envVariables directly. Without this
+    // merge, values supplied only in .env.config (or the app-level YAML) work
+    // in bindings while provider configuration silently falls back to the
+    // possibly stale appConfig.json copy.
+    applyEnvironmentOverrides(_config!, envOverrides);
     // Initializing Local Assets Service to store available local assets names
     if (!LocalAssetsService.isInitialized) {
       await LocalAssetsService.initialize(
@@ -251,6 +224,58 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     return yamlMap['definitions']?['ensemble']?['appId'];
   }
 
+  /// Resolves environment values for runtime startup and host test harnesses.
+  /// Precedence is appConfig.json, app-scoped/root .env.config, then the
+  /// environmentVariables map in ensemble-config.yaml.
+  Future<Map<String, dynamic>> loadEnvironmentOverrides(
+      YamlMap yamlMap) async {
+    final Map<String, dynamic> envOverrides = {};
+    try {
+      final path = yamlMap['definitions']?['local']?['path'];
+      if (path is String && path.isNotEmpty) {
+        final configString =
+            await rootBundle.loadString('$path/config/appConfig.json');
+        final Map<String, dynamic> configMap = json.decode(configString);
+        final variables = configMap['envVariables'];
+        if (variables is Map) {
+          variables.forEach((key, value) {
+            envOverrides[key.toString()] = value;
+          });
+        }
+      }
+    } catch (_) {
+      // appConfig.json is optional; continue with the other env sources.
+    }
+
+    final localPath = yamlMap['definitions']?['local']?['path'];
+    if (localPath is String && localPath.isNotEmpty) {
+      _mergeWithOverwrite(envOverrides,
+          await _loadLocalDotEnvConfigFile(localPath, yamlMap));
+    }
+    _mergeWithOverwrite(
+        envOverrides, await _loadDotEnvConfigFile('.env.config'));
+    _mergeWithOverwrite(
+        envOverrides, await _loadDotEnvConfigFile('ensemble/.env.config'));
+
+    final env = yamlMap['environmentVariables'];
+    if (env is YamlMap) {
+      env.forEach((key, value) => envOverrides[key.toString()] = value);
+    }
+    return envOverrides;
+  }
+
+  /// Makes resolved environment values available to both bindings and runtime
+  /// services that read directly from [UserAppConfig].
+  void applyEnvironmentOverrides(
+      EnsembleConfig config, Map<String, dynamic> envOverrides) {
+    config.updateEnvOverrides(envOverrides);
+    final appConfig = config.definitionProvider.getAppConfig();
+    if (appConfig != null && envOverrides.isNotEmpty) {
+      appConfig.envVariables ??= <String, dynamic>{};
+      appConfig.envVariables!.addAll(envOverrides);
+    }
+  }
+
   Future<Map<String, String>> _loadDotEnvConfigFile(String fileName) async {
     try {
       final String content = await rootBundle.loadString(fileName);
@@ -258,6 +283,51 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     } catch (_) {
       return {};
     }
+  }
+
+  /// Loads the dotenv file for locally bundled definitions.
+  ///
+  /// `definitions.local.path` may point at a directory containing multiple
+  /// apps (for example `ensemble/apps/`) rather than the active app directory.
+  /// In that case, select the app-specific file from `local.appId` when it is
+  /// bundled, or use a nested file only when there is exactly one candidate.
+  /// This avoids silently combining environment values from unrelated apps.
+  Future<Map<String, String>> _loadLocalDotEnvConfigFile(
+      String localPath, YamlMap yamlMap) async {
+    final root = localPath.endsWith('/') ? localPath : '$localPath/';
+    final directPath = '${root}.env.config';
+    final directValues = await _loadDotEnvConfigFile(directPath);
+    if (directValues.isNotEmpty) {
+      return directValues;
+    }
+
+    try {
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final assets = manifest.listAssets();
+      final localConfig = yamlMap['definitions']?['local'];
+      final appId = localConfig is YamlMap ? localConfig['appId'] : null;
+      if (appId is String && appId.isNotEmpty) {
+        final appPath = '$root$appId/.env.config';
+        if (assets.contains(appPath)) {
+          return _loadDotEnvConfigFile(appPath);
+        }
+      }
+
+      final candidates = assets
+          .where((asset) =>
+              asset.startsWith(root) &&
+              asset.endsWith('/.env.config') &&
+              asset != directPath)
+          .toList();
+      if (candidates.length == 1) {
+        return _loadDotEnvConfigFile(candidates.single);
+      }
+    } catch (_) {
+      // Asset-manifest discovery is best-effort; preserve the other config
+      // sources if the manifest is unavailable on a platform.
+    }
+
+    return {};
   }
 
   void _mergeWithOverwrite(

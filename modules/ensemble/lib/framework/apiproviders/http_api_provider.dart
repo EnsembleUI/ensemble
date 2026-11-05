@@ -471,6 +471,9 @@ class HttpResponse extends Response {
     try {
       body = json.decode(response.body);
     } on FormatException catch (_, e) {
+      // Keep non-JSON payloads available to callers and diagnostics instead
+      // of discarding the actual server response.
+      body = response.body;
       log('Warning - Only JSON response is supported');
     }
     super.apiState = apiState;

@@ -1,3 +1,11 @@
+## 1.2.60
+
+ - Bump "ensemble_adobe_analytics" to `1.2.60`.
+
+## 1.2.59
+
+ - Bump "ensemble_adobe_analytics" to `1.2.59`.
+
 ## 1.2.55
 
  - Bump "ensemble_adobe_analytics" to `1.2.55`.

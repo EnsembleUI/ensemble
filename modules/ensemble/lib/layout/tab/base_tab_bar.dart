@@ -506,9 +506,12 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
   Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
     final tabWidget = tabItem.tabWidget;
+    final key =
+        tabItem.testId?.isNotEmpty == true ? ValueKey(tabItem.testId!) : null;
     if (scopeManager != null && tabWidget != null) {
       final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
       return Tab(
+        key: key,
         child: customWidget,
       );
     }
@@ -516,6 +519,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     // label degrades to null rather than crashing on a force-unwrap.
     final label = scopeManager?.dataContext.eval(tabItem.label);
     return Tab(
+      key: key,
       text: label,
       icon:
           tabItem.icon != null ? ensemble.Icon.fromModel(tabItem.icon!) : null,

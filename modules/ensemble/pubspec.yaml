@@ -34,7 +34,7 @@ false_secrets:
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 1.2.55
+version: 1.2.60
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -91,7 +91,7 @@ dependencies:
   js_widget: ^1.0.4
   flutter_markdown: ^0.7.7+1
   provider: ^6.0.3
-  cloud_firestore: ^6.0.3
+  cloud_firestore: ^6.10.1
   get_storage: ^2.0.3
   flutter_html: ^3.0.0
   # html 0.15.7 removed the internal qs.matches API that flutter_html 3.0.0 still uses.
@@ -117,7 +117,7 @@ dependencies:
   custom_image_crop: ^0.1.1
   open_settings_plus: ^0.4.0
   firebase_messaging: ^16.0.3
-  firebase_core: ^4.2.0
+  firebase_core: ^4.15.1
   custom_refresh_indicator: ^4.0.1
   youtube_player_iframe: ^5.2.1
   youtube_player_iframe_web: ^3.1.2
