@@ -253,13 +253,25 @@ abstract class EWidgetState<W extends HasController>
   @override
   void didUpdateWidget(covariant W oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget, widget) && oldWidget is Invokable) {
-      PageBindingManager.releaseBindingOwner(
-          _bindingOwnerScope, oldWidget as Invokable);
+    if (identical(oldWidget, widget) || oldWidget is! Invokable) return;
+    if (widget is Invokable) {
+      // This State outlives the widget instance it subscribed with (e.g. a
+      // Conditional whose parent rebuilt its subtree). Keep its direct
+      // listen() subscriptions alive under the new instance so the surviving
+      // State keeps reacting; ownership moves with them, so dispose() still
+      // finds and releases them.
+      PageBindingManager.transferBindingOwner(
+          _bindingOwnerScope, oldWidget as Invokable, widget as Invokable);
       if (identical(_bindingOwnerDestination, oldWidget)) {
-        _bindingOwnerScope = null;
-        _bindingOwnerDestination = null;
+        _bindingOwnerDestination = widget as Invokable;
       }
+      return;
+    }
+    PageBindingManager.releaseBindingOwner(
+        _bindingOwnerScope, oldWidget as Invokable);
+    if (identical(_bindingOwnerDestination, oldWidget)) {
+      _bindingOwnerScope = null;
+      _bindingOwnerDestination = null;
     }
   }
 
