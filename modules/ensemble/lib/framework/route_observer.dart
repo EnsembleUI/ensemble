@@ -1,6 +1,7 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/navigation/ensemble_navigation_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:flutter/cupertino.dart';
 
 // handle the listeners to listen for Route changes
@@ -13,6 +14,9 @@ mixin EnsembleRouteObserver on WithEnsemble {
 
   // Screen tracking observer
   late final ScreenTrackingNavigatorObserver _screenTrackingObserver;
+
+  // Frees TVFocusWidget's per-route row-position memory on route exit
+  late final TVFocusRouteObserver _tvFocusRouteObserver;
 
   final List<NavigatorObserver> routeObservers = [];
 
@@ -29,6 +33,9 @@ mixin EnsembleRouteObserver on WithEnsemble {
     // Register last so tracking observes the same Navigator event before the
     // manager publishes its canonical history snapshot.
     routeObservers.add(EnsembleNavigationManager.instance.observer);
+
+    _tvFocusRouteObserver = TVFocusRouteObserver();
+    routeObservers.add(_tvFocusRouteObserver);
   }
 
   // return the current top-most Route for our App

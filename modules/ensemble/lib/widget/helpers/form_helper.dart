@@ -26,6 +26,9 @@ class FormFieldController extends WidgetController {
 
   bool? enabled;
   bool required = false;
+
+  /// TV/Accessibility: Coordinate-based navigation for form fields
+  TVOptionsComposite? tvOptions;
   String? requiredMessage;
   TextStyle? errorStyle;
   IconModel? icon;
@@ -37,7 +40,7 @@ class FormFieldController extends WidgetController {
   Color? fillColor;
 
   EBorderRadius? borderRadius;
-  int? borderWidth;
+  double? borderWidth;
   Color? borderColor;
 
   Color? enabledBorderColor;
@@ -74,7 +77,7 @@ class FormFieldController extends WidgetController {
       'filled': (value) => filled = Utils.optionalBool(value),
       'fillColor': (value) => fillColor = Utils.getColor(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
-      'borderWidth': (value) => borderWidth = Utils.optionalInt(value, min: 0),
+      'borderWidth': (value) => borderWidth = Utils.optionalDouble(value, min: 0),
       'borderColor': (color) => borderColor = Utils.getColor(color),
       'enabledBorderColor': (color) =>
           enabledBorderColor = Utils.getColor(color),
@@ -93,6 +96,9 @@ class FormFieldController extends WidgetController {
       'labelText': (value) => labelText = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
+      // TV/Accessibility: Coordinate-based navigation for form fields
+      'tvOptions': (value) =>
+          tvOptions = value is Map ? TVOptionsComposite(this, inputs: value) : null,
     });
     return setters;
   }
@@ -163,12 +169,12 @@ abstract class FormFieldWidgetState<W extends HasController>
       InputVariant? variant = myController.variant ?? _themeVariant;
 
       // resolve borderWidth
-      int? _themeBorderWidth = themeDecoration.border?.borderSide.width.toInt();
+      double? _themeBorderWidth = themeDecoration.border?.borderSide.width;
       if (myController.borderWidth != null &&
           myController.borderWidth != _themeBorderWidth) {
         redrawAllBorders = true;
       }
-      int borderWidth = myController.borderWidth ?? _themeBorderWidth ?? 1;
+      double borderWidth = myController.borderWidth ?? _themeBorderWidth ?? 1;
 
       // resolve borderRadius
       BorderRadius? _themeBorderRadius =

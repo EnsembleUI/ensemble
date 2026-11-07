@@ -1,8 +1,22 @@
+import 'dart:io';
+
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'test_utils.dart';
+
+class _RedirectResponseClient extends http.BaseClient {
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    return http.StreamedResponse(
+      const Stream<List<int>>.empty(),
+      HttpStatus.movedTemporarily,
+      headers: {HttpHeaders.locationHeader: '/image.gif'},
+    );
+  }
+}
 
 void main() {
   group('EnsembleImage headers', () {
@@ -26,6 +40,30 @@ void main() {
       image.setProperty('headers', null);
 
       expect(image.controller.headers, isNull);
+    });
+  });
+
+  group('EnsembleImage redirects', () {
+    test('allowRedirect defaults to true and can be disabled', () {
+      final image = EnsembleImage();
+
+      expect(image.controller.allowRedirect, isTrue);
+
+      image.setProperty('allowRedirect', false);
+
+      expect(image.controller.allowRedirect, isFalse);
+    });
+
+    test('redirect-blocking client throws on redirects', () async {
+      final client =
+          RedirectBlockingHttpClient(client: _RedirectResponseClient());
+
+      addTearDown(client.close);
+
+      expect(
+        () => client.get(Uri.parse('https://example.com/redirect.png')),
+        throwsA(isA<http.ClientException>()),
+      );
     });
   });
 

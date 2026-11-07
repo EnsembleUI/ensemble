@@ -10,8 +10,8 @@ View:
         - TextInput:
             value: updated style
             styles:
-              borderRadius: 10
-              borderWidth: 2
+              borderRadius: 10.5
+              borderWidth: 2.5
               borderColor: 0xFFCFA17B
               focusedBorderColor: 0xFF86BAA6
 
@@ -19,4 +19,5 @@ View:
             value: box style
             styles:
               variant: box
-              borderRadius: 99
+              borderRadius: 99.5
+              borderWidth: 0.5
