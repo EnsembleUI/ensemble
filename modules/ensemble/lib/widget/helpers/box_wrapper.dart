@@ -603,6 +603,28 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     super.dispose();
   }
 
+  bool _tvAutofocusScheduled = false;
+
+  /// Applies `autofocus` once after the first frame. Lazy lists rebuild items
+  /// scrolled back into range; skip it then, so autofocus does not take focus
+  /// from the item the user is on (each item has its own focus scope).
+  void _scheduleTVAutofocus() {
+    if (_tvAutofocusScheduled) return;
+    _tvAutofocusScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isFocusInSameLazyList()) return;
+      _focusNode.enclosingScope?.autofocus(_focusNode);
+    });
+  }
+
+  /// Whether focus is on another item of the lazy list holding this one.
+  bool _isFocusInSameLazyList() {
+    final focused = FocusManager.instance.primaryFocus?.context;
+    final list = findLazyListSliver(context.findRenderObject());
+    if (list == null || focused == null || !focused.mounted) return false;
+    return isInsideRenderObject(focused.findRenderObject(), list);
+  }
+
   void _onFocusChange() {
     final hasFocus = _focusNode.hasFocus;
 
@@ -984,7 +1006,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final tvRow = tvOptions.row!;
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
-    final autofocus = widget.boxController.autofocus;
+    if (widget.boxController.autofocus) _scheduleTVAutofocus();
     final focusGroup = resolveTVFocusGroup(context, tvOptions);
     final rememberRowPosition =
         resolveTVRememberRowPosition(context, tvOptions);
@@ -1019,7 +1041,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
     Widget inkWell = InkWell(
       focusNode: _focusNode,
-      autofocus: autofocus,
       splashColor: Colors.transparent,
       hoverColor: Colors.transparent,
       focusColor: Colors.transparent,
