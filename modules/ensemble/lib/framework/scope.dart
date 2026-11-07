@@ -641,6 +641,57 @@ mixin PageBindingManager on IsScopeManager {
     }
   }
 
+  /// Hand the bindings a surviving [State] owns over from [from] to [to].
+  ///
+  /// Flutter keeps a [State] alive when its parent rebuilds and supplies a new
+  /// widget instance of the same type at the same position. Widgets that
+  /// subscribe through a direct [listen] call (Conditional, TabBar, item
+  /// templates) register those subscriptions once, keyed on the widget
+  /// instance they had at that time. Cancelling them in
+  /// [State.didUpdateWidget] would leave the still-mounted State deaf to every
+  /// later data change, so they are re-keyed to the new instance instead.
+  ///
+  /// Managed bindings (from [registerBindingListener]) are not moved: [to] was
+  /// given its own while it was built, so the ones still keyed on [from] would
+  /// only write to a dead instance. They are cancelled here.
+  static void transferBindingOwner(
+      ScopeManager? ownerScope, Invokable? from, Invokable? to) {
+    if (ownerScope == null || from == null || to == null) return;
+    if (identical(from, to)) return;
+
+    final registrations = _bindingRegistrations[from];
+    if (registrations != null) {
+      for (final registration in registrations) {
+        ownerScope._removeRegistrationSubscriptions(
+            BindingDestination(from, registration.setterProperty),
+            registration);
+      }
+      clearBindingRegistrations(from);
+    }
+
+    final directSubscriptions = ownerScope.listenerMap.remove(from);
+    if (directSubscriptions != null && directSubscriptions.isNotEmpty) {
+      final target = ownerScope.listenerMap.putIfAbsent(to, () => {});
+      for (final entry in directSubscriptions.entries) {
+        if (target.containsKey(entry.key)) {
+          entry.value.cancel();
+        } else {
+          target[entry.key] = entry.value;
+        }
+      }
+    }
+
+    // The State retained [from] as owner; dispose() will release [to].
+    final destinations = _bindingOwnerCounts[ownerScope.pageData];
+    final movedScopes = destinations?.remove(from);
+    if (movedScopes != null) {
+      final target = destinations!.putIfAbsent(to, () => {});
+      movedScopes.forEach((scope, count) {
+        target[scope] = (target[scope] ?? 0) + count;
+      });
+    }
+  }
+
   static void clearBindingRegistrations(Invokable destinationWidget) {
     _bindingRegistrations[destinationWidget]?.clear();
     _bindingRegistrations[destinationWidget] = null;

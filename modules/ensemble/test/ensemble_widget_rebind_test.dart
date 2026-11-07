@@ -769,6 +769,81 @@ Column:
         reason: 'direct listen() subscriptions must be cancelled on dispose');
     expect(scope.listenerMap, isNot(contains(widget)));
   });
+
+  testWidgets(
+      'nested Conditional keeps reacting after its parent rebuilds it with a new widget instance',
+      (tester) async {
+    late ScopeManager scope;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(builder: (context) {
+        scope = ScopeManager(DataContext(buildContext: context), PageData());
+        final root = scope.buildWidgetFromDefinition(loadYaml(r"""
+Column:
+  children:
+    - Text:
+        id: outer
+        text: first
+    - Text:
+        id: inner
+        text: show
+    - Conditional:
+        conditions:
+          - if: ${outer.text != ''}
+            widget:
+              Column:
+                children:
+                  - Text:
+                      text: managed-${inner.text}
+                  - Conditional:
+                      conditions:
+                        - if: ${inner.text == 'show'}
+                          widget:
+                            Text:
+                              text: inner-visible
+"""));
+        return DataScopeWidget(
+            scopeManager: scope, child: Scaffold(body: root));
+      }),
+    ));
+    await tester.pump();
+    expect(find.text('inner-visible'), findsOneWidget);
+
+    // The outer Conditional re-evaluates to the same branch but rebuilds its
+    // subtree from the model, so Flutter keeps the inner Conditional's State
+    // and hands it a new widget instance through didUpdateWidget. The inner
+    // State subscribed through listen() keyed on its original widget instance.
+    final outer = scope.dataContext.getContextById('outer') as Invokable;
+    InvokableController.setProperty(outer, 'text', 'second');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('inner-visible'), findsOneWidget);
+    expect(find.text('managed-show'), findsOneWidget);
+
+    // Repeated parent rebuilds must neither accumulate subscriptions (the
+    // managed binding of the rebuilt Text) nor drop the Conditional's.
+    final listenersAfterRebuild = scope.listenerMap.length;
+    for (final value in ['third', 'fourth', 'fifth']) {
+      InvokableController.setProperty(outer, 'text', value);
+      await tester.pump();
+      await tester.pump();
+    }
+    expect(scope.listenerMap.length, listenersAfterRebuild);
+
+    final inner = scope.dataContext.getContextById('inner') as Invokable;
+    InvokableController.setProperty(inner, 'text', 'hide');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('inner-visible'), findsNothing,
+        reason:
+            'inner Conditional stopped listening after its parent rebuilt it');
+    expect(find.text('managed-hide'), findsOneWidget);
+
+    // Handing the subscriptions to the new widget instance must not leak
+    // them: unmounting the page releases everything the States owned.
+    await tester.pumpWidget(const MaterialApp(home: Placeholder()));
+    expect(scope.listenerMap, isEmpty);
+    expect(PageBindingManager.debugBindingOwnerCount(scope.pageData), 0);
+  });
 }
 
 class _BindingOwnerProbe extends EnsembleWidget<EnsembleWidgetController> {
