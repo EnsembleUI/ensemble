@@ -1,3 +1,7 @@
+## 1.2.61
+
+ - Bump "ensemble_remote_config" to `1.2.61`.
+
 ## 1.2.60
 
  - Bump "ensemble_remote_config" to `1.2.60`.
