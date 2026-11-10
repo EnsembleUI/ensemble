@@ -3,6 +3,129 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-11-10
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.61`](#ensemble---v1261)
+ - [`ensemble_network_info` - `v1.2.61`](#ensemble_network_info---v1261)
+ - [`ensemble_stripe` - `v1.2.61`](#ensemble_stripe---v1261)
+ - [`ensemble_file_manager` - `v1.2.61`](#ensemble_file_manager---v1261)
+ - [`ensemble_chat` - `v1.2.61`](#ensemble_chat---v1261)
+ - [`ensemble_auth` - `v1.2.61`](#ensemble_auth---v1261)
+ - [`ensemble_bluetooth` - `v1.2.61`](#ensemble_bluetooth---v1261)
+ - [`ensemble_wifi` - `v1.2.61`](#ensemble_wifi---v1261)
+ - [`ensemble_face_camera` - `v1.2.61`](#ensemble_face_camera---v1261)
+ - [`ensemble_connect` - `v1.2.61`](#ensemble_connect---v1261)
+ - [`ensemble_contacts` - `v1.2.61`](#ensemble_contacts---v1261)
+ - [`ensemble_location` - `v1.2.61`](#ensemble_location---v1261)
+ - [`ensemble_camera` - `v1.2.61`](#ensemble_camera---v1261)
+ - [`ensemble_deeplink` - `v1.2.61`](#ensemble_deeplink---v1261)
+ - [`ensemble_remote_config` - `v1.2.61`](#ensemble_remote_config---v1261)
+ - [`ensemble_firebase_analytics` - `v1.2.61`](#ensemble_firebase_analytics---v1261)
+ - [`ensemble_qr_scanner` - `v1.2.61`](#ensemble_qr_scanner---v1261)
+ - [`ensemble_adobe_analytics` - `v1.2.61`](#ensemble_adobe_analytics---v1261)
+ - [`ensemble_moengage` - `v1.2.61`](#ensemble_moengage---v1261)
+ - [`ensemble_bracket` - `v1.2.61`](#ensemble_bracket---v1261)
+ - [`ensemble_test_runner` - `v1.3.10`](#ensemble_test_runner---v1310)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.3.10`
+
+---
+
+#### `ensemble` - `v1.2.61`
+
+ - **FIX**(navigation): only mirror managed route pops to browser history. ([29155b80](https://github.com/ensembleUI/ensemble/commit/29155b805eb5961336ce16a2dbf0d4c24891344b))
+
+#### `ensemble_network_info` - `v1.2.61`
+
+ - Bump "ensemble_network_info" to `1.2.61`.
+
+#### `ensemble_stripe` - `v1.2.61`
+
+ - Bump "ensemble_stripe" to `1.2.61`.
+
+#### `ensemble_file_manager` - `v1.2.61`
+
+ - Bump "ensemble_file_manager" to `1.2.61`.
+
+#### `ensemble_chat` - `v1.2.61`
+
+ - Bump "ensemble_chat" to `1.2.61`.
+
+#### `ensemble_auth` - `v1.2.61`
+
+ - Bump "ensemble_auth" to `1.2.61`.
+
+#### `ensemble_bluetooth` - `v1.2.61`
+
+ - Bump "ensemble_bluetooth" to `1.2.61`.
+
+#### `ensemble_wifi` - `v1.2.61`
+
+ - Bump "ensemble_wifi" to `1.2.61`.
+
+#### `ensemble_face_camera` - `v1.2.61`
+
+ - Bump "ensemble_face_camera" to `1.2.61`.
+
+#### `ensemble_connect` - `v1.2.61`
+
+ - Bump "ensemble_connect" to `1.2.61`.
+
+#### `ensemble_contacts` - `v1.2.61`
+
+ - Bump "ensemble_contacts" to `1.2.61`.
+
+#### `ensemble_location` - `v1.2.61`
+
+ - Bump "ensemble_location" to `1.2.61`.
+
+#### `ensemble_camera` - `v1.2.61`
+
+ - Bump "ensemble_camera" to `1.2.61`.
+
+#### `ensemble_deeplink` - `v1.2.61`
+
+ - Bump "ensemble_deeplink" to `1.2.61`.
+
+#### `ensemble_remote_config` - `v1.2.61`
+
+ - Bump "ensemble_remote_config" to `1.2.61`.
+
+#### `ensemble_firebase_analytics` - `v1.2.61`
+
+ - Bump "ensemble_firebase_analytics" to `1.2.61`.
+
+#### `ensemble_qr_scanner` - `v1.2.61`
+
+ - Bump "ensemble_qr_scanner" to `1.2.61`.
+
+#### `ensemble_adobe_analytics` - `v1.2.61`
+
+ - Bump "ensemble_adobe_analytics" to `1.2.61`.
+
+#### `ensemble_moengage` - `v1.2.61`
+
+ - Bump "ensemble_moengage" to `1.2.61`.
+
+#### `ensemble_bracket` - `v1.2.61`
+
+ - Bump "ensemble_bracket" to `1.2.61`.
+
+
 ## 2026-11-04
 
 ### Changes

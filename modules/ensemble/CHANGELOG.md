@@ -1,3 +1,7 @@
+## 1.2.61
+
+ - **FIX**(navigation): only mirror managed route pops to browser history. ([29155b80](https://github.com/ensembleUI/ensemble/commit/29155b805eb5961336ce16a2dbf0d4c24891344b))
+
 ## 1.2.60
 
  - **FEAT**(tabs): add testId property for tab items and improve asset loadi… ([#2392](https://github.com/ensembleUI/ensemble/issues/2392)). ([3226a591](https://github.com/ensembleUI/ensemble/commit/3226a59125a8129ce0b2752409a890e1af14e5b8))

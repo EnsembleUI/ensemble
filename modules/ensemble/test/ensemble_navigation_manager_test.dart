@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/navigation/browser/navigation_browser_history.dart';
@@ -421,6 +423,61 @@ void main() {
     );
   });
 
+  testWidgets('overlay route pop does not move browser history',
+      (tester) async {
+    final browserHistory = _CountingBrowserHistory();
+    await pumpApp(
+      tester,
+      browserHistory: browserHistory,
+    );
+
+    final context = tester.element(find.text('Home'));
+    unawaited(showDialog<void>(
+      context: context,
+      builder: (_) => const AlertDialog(title: Text('dialog')),
+    ));
+    await tester.pumpAndSettle();
+    expect(browserHistory.pops, 0);
+
+    Navigator.of(context, rootNavigator: true).pop();
+    await tester.pumpAndSettle();
+
+    expect(browserHistory.pops, 0);
+  });
+
+  testWidgets('managed route pop still moves browser history', (tester) async {
+    final browserHistory = _CountingBrowserHistory();
+    final navigatorKey = await pumpApp(
+      tester,
+      browserHistory: browserHistory,
+    );
+
+    navigatorKey.currentState!.push(routeFor(descriptor('Settings')));
+    await tester.pumpAndSettle();
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+
+    expect(browserHistory.pops, 1);
+  });
+
+  testWidgets('managed pop during browser Back does not mirror another back',
+      (tester) async {
+    final browserHistory = _CountingBrowserHistory();
+    final navigatorKey = await pumpApp(
+      tester,
+      browserHistory: browserHistory,
+    );
+
+    navigatorKey.currentState!.push(routeFor(descriptor('Settings')));
+    await tester.pumpAndSettle();
+
+    browserHistory.handling = true;
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+
+    expect(browserHistory.pops, 0);
+  });
+
   testWidgets('browser snapshot preserves inputs of a wildcard-retained route',
       (tester) async {
     final browserHistory = _RecordingBrowserHistory();
@@ -464,6 +521,17 @@ class _TestBrowserHistory implements NavigationBrowserHistory {
 
   @override
   void replaceInitial(List<EnsembleRouteDescriptor> snapshot) {}
+}
+
+class _CountingBrowserHistory extends _TestBrowserHistory {
+  int pops = 0;
+  bool handling = false;
+
+  @override
+  bool get isHandlingPopState => handling;
+
+  @override
+  void recordPop() => pops++;
 }
 
 class _RecordingBrowserHistory extends _TestBrowserHistory {

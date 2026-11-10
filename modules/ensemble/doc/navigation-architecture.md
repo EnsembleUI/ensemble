@@ -418,8 +418,9 @@ inputs, remains in an in-memory map keyed by that token.
 
 - The first managed route replaces the current browser entry.
 - A normal route push adds a browser entry containing the new snapshot token.
-- A normal Flutter pop calls browser `back()` unless it originated from
-`popstate`.
+- A normal pop of a managed Ensemble route calls browser `back()` unless it
+originated from `popstate`; overlay routes (dropdowns, dialogs, sheets) are not
+published and never move browser history.
 
 
 
