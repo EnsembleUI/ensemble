@@ -1,0 +1,11 @@
+# Store text files with LF line endings.
+#
+# The android_TV_implementation branch (PR #2173) had its whole tree rewritten
+# from LF to CRLF by a bad merge, which inflated the PR diff from ~13k to
+# ~101k lines. These rules keep the repository contents normalised to LF so a
+# CRLF rewrite cannot produce whole-file diffs again.
+* text=auto eol=lf
+
+# JavaScript parser test fixtures are stored with their original line endings
+# (mixed CRLF/LF) and must never be normalised.
+packages/parsejs_null_safety/test/testcases/** -text

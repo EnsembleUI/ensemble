@@ -316,6 +316,11 @@ class SinglePageModel extends PageModel with HasStyles {
   final String type = 'View';
   ScreenOptions? screenOptions;
   WidgetModel? rootWidgetModel;
+
+  /// Optional widget-based page background (`View.styles.background`).
+  /// Rendered as the bottom-most layer, behind the body, and kept
+  /// non-focusable/non-interactive by the page.
+  WidgetModel? backgroundWidget;
   FooterItems? footer;
 
   @override
@@ -348,6 +353,15 @@ class SinglePageModel extends PageModel with HasStyles {
         if (viewMap['styles'] is YamlMap) {
           inlineStyles = {};
           (viewMap['styles'] as YamlMap).forEach((key, value) {
+            // `background` is a widget-based page background (like the
+            // header's flexibleBackground), not a style token. Build it as a
+            // widget model here and keep it out of theme/style resolution.
+            if (key == 'background' &&
+                ViewUtil.isViewModel(value, customViewDefinitions)) {
+              backgroundWidget =
+                  ViewUtil.buildModel(value, customViewDefinitions);
+              return;
+            }
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
