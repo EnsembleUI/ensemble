@@ -3,6 +3,7 @@ import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 // =============================================================================
@@ -264,6 +265,9 @@ class TVFocusWidget extends StatelessWidget {
     // screen hosting this Ensemble view)
     // so users can navigate back to native content from Ensemble content
     if (yOffset == -1 && y == 0) {
+      if (_keepFocusInLazyList(current, null, yOffset)) {
+        return true;
+      }
       if (topEdgeHandler != null) {
         topEdgeHandler();
         return true;
@@ -354,6 +358,12 @@ class TVFocusWidget extends StatelessWidget {
     final oldTarget = grid[y][x].focus;
     final target = grid[newY][newX].focus;
 
+    if (yOffset != 0 &&
+        _keepFocusInLazyList(
+            current, target == oldTarget ? null : target, yOffset)) {
+      return true;
+    }
+
     // Check if we're at a boundary (focus wouldn't move)
     if (oldTarget == target) {
       // Check for edge handlers before letting event propagate
@@ -420,6 +430,56 @@ class TVFocusWidget extends StatelessWidget {
     }
     // No entry point found
     return -1;
+  }
+
+  /// A held key moves focus faster than a lazy list (ListView/GridView) scrolls
+  /// and builds rows. While the list holding [current] still has unbuilt rows
+  /// toward [yOffset], or [current] is still off screen, scroll the list and
+  /// keep focus in it instead of moving to [target] outside it.
+  bool _keepFocusInLazyList(FocusNode current, FocusNode? target, int yOffset) {
+    final box = current.context?.findRenderObject();
+    final sliver = findLazyListSliver(box, direction: AxisDirection.down);
+    if (box is! RenderBox ||
+        sliver == null ||
+        isInsideRenderObject(target?.context?.findRenderObject(), sliver)) {
+      return false;
+    }
+    final viewport = RenderAbstractViewport.maybeOf(sliver);
+    if (viewport is! RenderViewportBase) return false;
+    final position = viewport.offset;
+    final first = sliver.firstChild;
+    final last = sliver.lastChild;
+    if (position is! ScrollPosition || first == null || last == null) {
+      return false;
+    }
+
+    final hasUnbuiltRows = yOffset < 0
+        ? sliver.indexOf(first) > 0
+        : sliver.childScrollOffset(last)! + last.size.height <
+            sliver.geometry!.scrollExtent - 0.5;
+    final revealAt = viewport
+        .getOffsetToReveal(box, yOffset < 0 ? 0.0 : 1.0)
+        .offset
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    final isOffScreen = yOffset < 0
+        ? position.pixels > revealAt + 0.5
+        : position.pixels < revealAt - 0.5;
+    if (!hasUnbuiltRows && !isOffScreen) return false;
+
+    // A scroll in progress builds the next rows; a later press moves focus.
+    if (!position.isScrollingNotifier.value) {
+      position.animateTo(
+        hasUnbuiltRows
+            ? (revealAt + yOffset * box.size.height).clamp(
+                position.minScrollExtent,
+                position.maxScrollExtent,
+              )
+            : revealAt,
+        duration: const Duration(milliseconds: kTVScrollAnimationDurationMs),
+        curve: Curves.easeInOut,
+      );
+    }
+    return true;
   }
 
   /// Find the nearest row in the specified direction.
