@@ -1,3 +1,7 @@
+## 1.3.0
+
+ - Bump "ensemble_file_manager" to `1.3.0`.
+
 ## 1.2.61
 
  - Bump "ensemble_file_manager" to `1.2.61`.
