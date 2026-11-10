@@ -315,8 +315,14 @@ class EnsembleNavigationManager {
 
   void _didPop(Route<dynamic> route) {
     _exitReasons[route] ??= EnsembleRouteExitReason.back;
+    // Only managed routes have a browser entry. Overlay routes (dropdown
+    // menus, dialogs, bottom sheets) share the Navigator but are never
+    // published, so mirroring their pop would walk the browser back.
+    final wasManaged =
+        _history.any((managed) => identical(managed.route, route));
     _history.removeWhere((managed) => identical(managed.route, route));
-    if (!_isCommitting &&
+    if (wasManaged &&
+        !_isCommitting &&
         !_browserRestoring &&
         !_browserHistory.isHandlingPopState) {
       _browserHistory.recordPop();
