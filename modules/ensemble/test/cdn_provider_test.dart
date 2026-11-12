@@ -356,6 +356,35 @@ void main() {
         'v1',
       );
     });
+
+    test(
+        'applyStaleRefreshOutcome neither refreshes nor defers during the '
+        'startup update check', () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithResourceVersion('v1')),
+      );
+      await config.updateAppBundle();
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithArtifactRefresh(_manifestWithResourceVersion('v2')),
+      );
+
+      provider.isStartupCheckRunningForTesting = true;
+      await provider.applyStaleRefreshOutcomeForTesting();
+
+      // No pending update, so the next resume won't reload screens.
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+      // No immediate refresh either: the app bundle is built from the new
+      // manifest when init() returns, not synced here.
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v1',
+      );
+    });
   });
 
   group('CDN pending update ordering', () {

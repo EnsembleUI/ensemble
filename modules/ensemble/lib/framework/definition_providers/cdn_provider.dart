@@ -55,6 +55,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Background update tracking
   bool _hasPendingUpdate = false;
 
+  // True only while init() waits on the startup update check.
+  bool _isStartupCheckRunning = false;
+
   // Serialize overlapping refresh calls (cold start + lifecycle background).
   Future<void> _refreshSerial = Future.value();
 
@@ -83,7 +86,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
       if (!CdnAssetCache.instance.hasAssetManifest) {
         await _fetchAndSaveAssetManifest();
       }
-      unawaited(_refreshIfStale());
+      // Load any CDN update before the first render, so screens don't reload
+      // once it arrives.
+      _isStartupCheckRunning = true;
+      try {
+        await _refreshIfStale();
+      } finally {
+        _isStartupCheckRunning = false;
+      }
       return this;
     }
 
@@ -227,6 +237,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
       artifactRefreshEnabled && hasEnsembleConfig;
 
   Future<void> _applyStaleRefreshOutcome() async {
+    // Nothing has rendered yet, so there is nothing to refresh or defer.
+    if (_isStartupCheckRunning) return;
+
     if (shouldApplyCdnStaleRefreshImmediately(
       artifactRefreshEnabled: isArtifactRefreshEnabled(),
       hasEnsembleConfig: Ensemble().getConfig() != null,
@@ -1155,6 +1168,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
   @visibleForTesting
   Future<void> applyStaleRefreshOutcomeForTesting() =>
       _applyStaleRefreshOutcome();
+
+  @visibleForTesting
+  set isStartupCheckRunningForTesting(bool value) =>
+      _isStartupCheckRunning = value;
 
   @visibleForTesting
   bool get hasPendingUpdateForTesting => _hasPendingUpdate;
