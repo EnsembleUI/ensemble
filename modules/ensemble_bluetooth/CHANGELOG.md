@@ -1,3 +1,7 @@
+## 1.3.2
+
+ - Bump "ensemble_bluetooth" to `1.3.2`.
+
 ## 1.3.1
 
  - Bump "ensemble_bluetooth" to `1.3.1`.

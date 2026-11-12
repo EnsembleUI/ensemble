@@ -1,3 +1,8 @@
+## 1.3.2
+
+ - **FIX**(cdn): drop startup update check timeout. ([2e0d2a52](https://github.com/ensembleUI/ensemble/commit/2e0d2a5265aaba9754dcce1babe2c7cfb588f462))
+ - **FIX**(cdn): load available update before first render on cold start. ([617796e0](https://github.com/ensembleUI/ensemble/commit/617796e05b24ca17f71527d365ee98699c8ed863))
+
 ## 1.3.1
 
  - **FEAT**(tab_bar): enhance tab selection logic to preserve selected tab d… ([#2402](https://github.com/ensembleUI/ensemble/issues/2402)). ([cc1a70b2](https://github.com/ensembleUI/ensemble/commit/cc1a70b22077c9edc09cdcb46075a9a89575de9c))

@@ -15,6 +15,130 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble` - `v1.3.2`](#ensemble---v132)
+ - [`ensemble_network_info` - `v1.3.2`](#ensemble_network_info---v132)
+ - [`ensemble_stripe` - `v1.3.2`](#ensemble_stripe---v132)
+ - [`ensemble_file_manager` - `v1.3.2`](#ensemble_file_manager---v132)
+ - [`ensemble_chat` - `v1.3.2`](#ensemble_chat---v132)
+ - [`ensemble_auth` - `v1.3.2`](#ensemble_auth---v132)
+ - [`ensemble_bluetooth` - `v1.3.2`](#ensemble_bluetooth---v132)
+ - [`ensemble_wifi` - `v1.3.2`](#ensemble_wifi---v132)
+ - [`ensemble_face_camera` - `v1.3.2`](#ensemble_face_camera---v132)
+ - [`ensemble_connect` - `v1.3.2`](#ensemble_connect---v132)
+ - [`ensemble_contacts` - `v1.3.2`](#ensemble_contacts---v132)
+ - [`ensemble_location` - `v1.3.2`](#ensemble_location---v132)
+ - [`ensemble_camera` - `v1.3.2`](#ensemble_camera---v132)
+ - [`ensemble_deeplink` - `v1.3.2`](#ensemble_deeplink---v132)
+ - [`ensemble_remote_config` - `v1.3.2`](#ensemble_remote_config---v132)
+ - [`ensemble_firebase_analytics` - `v1.3.2`](#ensemble_firebase_analytics---v132)
+ - [`ensemble_qr_scanner` - `v1.3.2`](#ensemble_qr_scanner---v132)
+ - [`ensemble_adobe_analytics` - `v1.3.2`](#ensemble_adobe_analytics---v132)
+ - [`ensemble_moengage` - `v1.3.2`](#ensemble_moengage---v132)
+ - [`ensemble_bracket` - `v1.3.2`](#ensemble_bracket---v132)
+ - [`ensemble_test_runner` - `v1.4.2`](#ensemble_test_runner---v142)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.4.2`
+
+---
+
+#### `ensemble` - `v1.3.2`
+
+ - **FIX**(cdn): drop startup update check timeout. ([2e0d2a52](https://github.com/ensembleUI/ensemble/commit/2e0d2a5265aaba9754dcce1babe2c7cfb588f462))
+ - **FIX**(cdn): load available update before first render on cold start. ([617796e0](https://github.com/ensembleUI/ensemble/commit/617796e05b24ca17f71527d365ee98699c8ed863))
+
+#### `ensemble_network_info` - `v1.3.2`
+
+ - Bump "ensemble_network_info" to `1.3.2`.
+
+#### `ensemble_stripe` - `v1.3.2`
+
+ - Bump "ensemble_stripe" to `1.3.2`.
+
+#### `ensemble_file_manager` - `v1.3.2`
+
+ - Bump "ensemble_file_manager" to `1.3.2`.
+
+#### `ensemble_chat` - `v1.3.2`
+
+ - Bump "ensemble_chat" to `1.3.2`.
+
+#### `ensemble_auth` - `v1.3.2`
+
+ - Bump "ensemble_auth" to `1.3.2`.
+
+#### `ensemble_bluetooth` - `v1.3.2`
+
+ - Bump "ensemble_bluetooth" to `1.3.2`.
+
+#### `ensemble_wifi` - `v1.3.2`
+
+ - Bump "ensemble_wifi" to `1.3.2`.
+
+#### `ensemble_face_camera` - `v1.3.2`
+
+ - Bump "ensemble_face_camera" to `1.3.2`.
+
+#### `ensemble_connect` - `v1.3.2`
+
+ - Bump "ensemble_connect" to `1.3.2`.
+
+#### `ensemble_contacts` - `v1.3.2`
+
+ - Bump "ensemble_contacts" to `1.3.2`.
+
+#### `ensemble_location` - `v1.3.2`
+
+ - Bump "ensemble_location" to `1.3.2`.
+
+#### `ensemble_camera` - `v1.3.2`
+
+ - Bump "ensemble_camera" to `1.3.2`.
+
+#### `ensemble_deeplink` - `v1.3.2`
+
+ - Bump "ensemble_deeplink" to `1.3.2`.
+
+#### `ensemble_remote_config` - `v1.3.2`
+
+ - Bump "ensemble_remote_config" to `1.3.2`.
+
+#### `ensemble_firebase_analytics` - `v1.3.2`
+
+ - Bump "ensemble_firebase_analytics" to `1.3.2`.
+
+#### `ensemble_qr_scanner` - `v1.3.2`
+
+ - Bump "ensemble_qr_scanner" to `1.3.2`.
+
+#### `ensemble_adobe_analytics` - `v1.3.2`
+
+ - Bump "ensemble_adobe_analytics" to `1.3.2`.
+
+#### `ensemble_moengage` - `v1.3.2`
+
+ - Bump "ensemble_moengage" to `1.3.2`.
+
+#### `ensemble_bracket` - `v1.3.2`
+
+ - Bump "ensemble_bracket" to `1.3.2`.
+
+
+## 2026-11-12
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble_test_runner` - `v1.4.1`](#ensemble_test_runner---v141)
 
 ---
