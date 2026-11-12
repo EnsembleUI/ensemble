@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble_test_runner` - `v1.3.13`](#ensemble_test_runner---v1313)
+
+---
+
+#### `ensemble_test_runner` - `v1.3.13`
+
+ - Bump "ensemble_test_runner" to `1.3.13`.
+
+
+## 2026-11-12
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble` - `v1.3.1`](#ensemble---v131)
  - [`ensemble_network_info` - `v1.3.1`](#ensemble_network_info---v131)
  - [`ensemble_stripe` - `v1.3.1`](#ensemble_stripe---v131)

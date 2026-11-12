@@ -1,3 +1,7 @@
+## 1.3.13
+
+ - Bump "ensemble_test_runner" to `1.3.13`.
+
 ## 1.3.12
 
  - Update a dependency to the latest release.
