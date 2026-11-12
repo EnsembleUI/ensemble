@@ -1,3 +1,7 @@
+## 1.4.0
+
+ - Bump "ensemble_test_runner" to `1.4.0`.
+
 ## 1.3.13
 
  - Bump "ensemble_test_runner" to `1.3.13`.

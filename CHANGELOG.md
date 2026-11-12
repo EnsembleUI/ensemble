@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble_test_runner` - `v1.4.0`](#ensemble_test_runner---v140)
+
+---
+
+#### `ensemble_test_runner` - `v1.4.0`
+
+ - Bump "ensemble_test_runner" to `1.4.0`.
+
+
+## 2026-11-12
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble_test_runner` - `v1.3.13`](#ensemble_test_runner---v1313)
 
 ---
