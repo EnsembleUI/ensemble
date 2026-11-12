@@ -48,6 +48,8 @@ class Device
       "orientation": () => screenOrientation,
       "safeAreaTop": () => safeAreaTop,
       "safeAreaBottom": () => safeAreaBottom,
+      "safeAreaLeft": () => safeAreaLeft,
+      "safeAreaRight": () => safeAreaRight,
 
       // Misc Info
       "platform": () => platform?.name,
@@ -111,6 +113,8 @@ mixin MediaQueryCapability {
   String get screenOrientation => _getData().orientation.name;
   int get safeAreaTop => _getData().padding.top.toInt();
   int get safeAreaBottom => _getData().padding.bottom.toInt();
+  int get safeAreaLeft => _getData().padding.left.toInt();
+  int get safeAreaRight => _getData().padding.right.toInt();
 }
 
 /// This mixin can access user's location
