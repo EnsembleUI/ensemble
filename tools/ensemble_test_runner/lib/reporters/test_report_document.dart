@@ -2,6 +2,7 @@
 // the deprecation is specifically about implementing RegExp. Keep construction compatible
 // with this SDK without suppressing diagnostics in unrelated files.
 // ignore_for_file: deprecated_member_use
+import 'dart:collection';
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -137,9 +138,8 @@ class TestReportDocument {
       if (ref.label == 'htmlReport' ||
           ref.label == 'results' ||
           ref.label == 'appPerformance' ||
-          ref.label == 'dumpTree' ||
           ref.label == 'history') {
-        // htmlReport/results are top-level links; appPerformance/dumpTree are
+        // htmlReport/results are top-level links; appPerformance is
         // screen-scoped inside each test report (legacy suite labels ignored);
         // history is the sqlite db file and is skipped from logs UI download list.
         continue;
@@ -212,8 +212,19 @@ class TestReportDocument {
                 const [],
             screenshotFrames: frames,
           );
+    final attributedApiEvents = HashSet<Map>.identity();
+    for (final step in steps) {
+      final events = step['apiCalls'];
+      if (events is List) {
+        attributedApiEvents.addAll(events.whereType<Map>());
+      }
+    }
+    final apiCallsOutsideSteps = apiEvents
+        .where((event) => !attributedApiEvents.contains(event))
+        .where((event) => event['phase'] == 'completed')
+        .toList();
 
-    // Performance / dumpTree live under report.screens only.
+    // Performance data lives under report.screens only.
     // Keep end-of-test storage keys snapshot only (diffs live in steps).
     return {
       'id': test.testId,
@@ -265,6 +276,8 @@ class TestReportDocument {
             : <String, dynamic>{},
       },
       'steps': steps,
+      if (apiCallsOutsideSteps.isNotEmpty)
+        'apiCallsOutsideSteps': apiCallsOutsideSteps,
     };
   }
 

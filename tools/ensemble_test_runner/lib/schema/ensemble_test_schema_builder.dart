@@ -167,7 +167,16 @@ class EnsembleTestSchemaBuilder {
           'additionalProperties': false,
           'properties': {
             'id': {'type': 'string', 'minLength': 1},
-            'text': {'type': 'string'},
+            'text': {
+              'oneOf': [
+                {'type': 'string'},
+                {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                  'minItems': 1,
+                },
+              ],
+            },
             'label': {'type': 'string'},
             'role': {
               'type': 'string',
@@ -531,13 +540,6 @@ class EnsembleTestSchemaBuilder {
                   'minimum': 0,
                 },
               },
-            },
-          },
-          'dumpTree': {
-            'type': 'object',
-            'additionalProperties': false,
-            'properties': {
-              'enabled': {'type': 'boolean'},
             },
           },
           'logApiCalls': {

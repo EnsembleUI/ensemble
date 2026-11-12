@@ -30,7 +30,10 @@ void main() {
       );
 
       expect(formatStepBrief(step), 'optional(tap(dismiss_banner))');
-      expect(outlineSteps([step]), ['optional(tap(dismiss_banner))']);
+      expect(
+        outlineSteps([step]),
+        ['optional (1 steps)', '  tap(dismiss_banner)'],
+      );
     });
   });
 
@@ -210,7 +213,6 @@ void main() {
                 'storage: build/ensemble_test_runner/logs/api_log_test_storage.json',
                 'appLogs: build/ensemble_test_runner/logs/api_log_test_app_console.log',
                 'screenshotFrames: build/ensemble_test_runner/frames/api_log_test_frames.json',
-                'dumpTree: build/ensemble_test_runner/logs/api_log_test_dump_tree.txt',
               ],
             ),
           ],

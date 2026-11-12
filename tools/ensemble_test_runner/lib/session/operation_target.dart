@@ -30,7 +30,9 @@ class ElementBounds {
 /// A semantic or structural description of an element in the current view.
 class ElementLocator {
   final String? id;
-  final String? text;
+
+  /// A string for an exact match, or a list of accepted strings.
+  final Object? text;
   final String? label;
   final String? role;
   final ElementLocator? within;
@@ -46,6 +48,8 @@ class ElementLocator {
     this.occurrence,
     this.bounds,
   });
+
+  String? get exactText => text is String ? text as String : null;
 
   bool get isEmpty =>
       id == null &&
@@ -68,7 +72,9 @@ class ElementLocator {
 
   factory ElementLocator.fromJson(Map<String, dynamic> json) => ElementLocator(
         id: json['id']?.toString(),
-        text: json['text']?.toString(),
+        text: json['text'] is List
+            ? (json['text'] as List).map((value) => value.toString()).toList()
+            : json['text']?.toString(),
         label: json['label']?.toString(),
         role: json['role']?.toString(),
         within: json['within'] is Map

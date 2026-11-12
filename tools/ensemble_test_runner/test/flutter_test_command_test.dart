@@ -103,6 +103,25 @@ void main() {
     expect(oversized.existsSync(), isFalse);
   });
 
+  test('refreshes the generated Flutter unit-test asset bundle', () {
+    final project = Directory.systemTemp.createTempSync('runner-test-assets-');
+    addTearDown(() => project.deleteSync(recursive: true));
+    final staleTest = File(p.join(
+      project.path,
+      'build',
+      'unit_test_assets',
+      'ensemble',
+      'apps',
+      'old.test.yaml',
+    ))..createSync(recursive: true);
+    staleTest.writeAsStringSync('id: deleted-case');
+
+    refreshFlutterTestAssetBundle(project);
+
+    expect(Directory(p.join(project.path, 'build', 'unit_test_assets'))
+        .existsSync(), isFalse);
+  });
+
   test('identifies only the runner package as owning its build cache', () {
     final project = Directory.systemTemp.createTempSync('runner-cache-owner-');
     addTearDown(() => project.deleteSync(recursive: true));

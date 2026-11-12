@@ -5,7 +5,6 @@ import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
-import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/diagnostic_ui_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_filters.dart';
@@ -89,7 +88,7 @@ final class TestVisualArtifacts {
         // frame, then advance once more only when rendering still has scheduled
         // work. A fixed six-frame wait adds up to 300ms for already-painted
         // destinations without improving those captures.
-        await pumpScreenshotStabilityFrames(executor.tester);
+        await executor.tester.pump(const Duration(milliseconds: 50));
         if (isTargetVisible() && areVisibleLottiesReady(executor.tester)) {
           seekVisibleLottiesForScreenshot(executor.tester);
           await executor.tester.pump();
@@ -386,13 +385,6 @@ final class TestVisualArtifacts {
       final screenName = ScreenTracker().getCurrentScreenIdentifier();
       if (screenName == null || screenName.isEmpty) return;
 
-      String? debugTree;
-      if (ctx.config.dumpTree.enabled) {
-        try {
-          debugTree = captureDebugDumpApp();
-        } catch (_) {}
-      }
-
       Map<String, dynamic>? performance;
       if (ctx.config.performance.enabled) {
         try {
@@ -400,14 +392,18 @@ final class TestVisualArtifacts {
             screenName: screenName,
             frames: ctx.runtime.appFrameTimings,
             markers: ctx.runtime.performanceMarkers,
+            apiCalls: ctx.apiOverlay.calls,
+            storageChanges: ctx.runtime.storageStepDiffs,
+            secureStorageChanges: ctx.runtime.secureStorageStepDiffs,
+            keychainChanges: ctx.runtime.keychainStepDiffs,
+            storageDiagnosticsEnabled: ctx.config.logStorage.enabled,
           );
         } catch (_) {}
       }
 
-      if (debugTree != null || performance != null) {
+      if (performance != null) {
         ctx.runtime.screenArtifacts[screenName] = {
-          if (debugTree != null) 'debugTree': debugTree,
-          if (performance != null) 'performance': performance,
+          'performance': performance,
         };
       }
     });

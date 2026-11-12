@@ -43,7 +43,7 @@ List<UiElement> _flattenElements(List<UiElement> roots) {
 }
 
 void main() {
-  testWidgets('session observe redacts password fields', (tester) async {
+  testWidgets('session observe includes password field values', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -78,10 +78,7 @@ void main() {
     final password =
         obs.elements.firstWhere((e) => e.testId == 'password_field');
     expect(password.state.secure, isTrue);
-    expect(password.text, isNull);
-
-    final caps = await session.getCapabilities();
-    expect(caps.secureFieldRedaction, isTrue);
+    expect(password.text, 'secret');
 
     await session.close();
     expect(() => session.observe(), throwsA(isA<TestExecutionError>()));

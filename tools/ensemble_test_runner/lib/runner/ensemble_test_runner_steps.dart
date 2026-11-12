@@ -25,8 +25,9 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
       );
       final executor = session.executor;
       var kernelOwnsSession = false;
-      final stepDurationsMs = <int>[];
-      final stepStartTimes = <String>[];
+      final indexedSteps = flattenTestSteps(test.steps);
+      final stepDurationsMs = List<int>.filled(indexedSteps.length, -1);
+      final stepStartTimes = List<String>.filled(indexedSteps.length, '');
       final stepTiming = StepTimingSubscriber();
       final storageDiffs = StorageStepDiffSubscriber(
         enabled: ctx.config.logStorage.enabled,
@@ -40,18 +41,18 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
       _ActiveStep? activeStep;
       final stepEvidence = StepEvidenceSubscriber(
           shouldCaptureStep: (stepIndex) => ctx.config.screenshots
-              .shouldCaptureStep(test.steps[stepIndex].type),
+              .shouldCaptureStep(indexedSteps[stepIndex].type),
           capture: (stepIndex) async {
             return _visuals.captureStepArtifacts(
               executor: executor,
-              step: test.steps[stepIndex],
+              step: indexedSteps[stepIndex],
               stepIndex: stepIndex,
               options:
-                  StepScreenshotOptions.afterCondition(test.steps[stepIndex]),
+                  StepScreenshotOptions.afterCondition(indexedSteps[stepIndex]),
             );
           },
           captureBeforeMutation: (event) async {
-            final step = test.steps[event.stepIndex!];
+            final step = indexedSteps[event.stepIndex!];
             switch (StepEvidencePolicy.classify(event.detail)) {
               case StepEvidenceBoundary.condition:
                 return _visuals.captureStepArtifacts(
@@ -100,10 +101,8 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
 
       void recordStepDuration(_ActiveStep state) {
         if (state.durationRecorded) return;
-        stepDurationsMs.add(
-          stepTiming.durationFor(state.index) ??
-              stepTiming.elapsedMsFor(state.index),
-        );
+        stepDurationsMs[state.index] = stepTiming.durationFor(state.index) ??
+            stepTiming.elapsedMsFor(state.index);
         state.durationRecorded = true;
       }
 
@@ -113,8 +112,8 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
           testId: test.id,
           stepIndex: state.index + 1,
           label:
-              '${test.id} step ${state.index + 1} ${formatStepBrief(test.steps[state.index])}',
-          phase: _phaseForStep(test.steps[state.index]),
+              '${test.id} step ${state.index + 1} ${formatStepBrief(indexedSteps[state.index])}',
+          phase: _phaseForStep(indexedSteps[state.index]),
           startFrame: state.startFrame,
           startTime: state.startTime,
         );
@@ -127,11 +126,14 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
           if (state?.index == stepIndex) recordStepPerformance(state!);
         },
       );
-      final attemptArtifacts = AttemptArtifactSubscriber(
-        publish: () => _artifactCoordinator.attachLogArtifactsOnce(ctx),
-      );
       final stepContext = StepContextSubscriber(
         onStepStarted: (index) => ctx.runtime.currentStepIndex = index,
+        onStepFinished: (index) {
+          ctx.apiOverlay.recorder.observeStepEnd(index);
+          if (ctx.runtime.currentStepIndex == index) {
+            ctx.runtime.currentStepIndex = null;
+          }
+        },
       );
 
       Future<void> beginStep(int index) async {
@@ -141,8 +143,8 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
           startTime: DateTime.now(),
         );
         activeStep = state;
-        stepStartTimes.add(stepTiming.startTimeFor(index) ??
-            state.startTime.toIso8601String());
+        stepStartTimes[index] =
+            stepTiming.startTimeFor(index) ?? state.startTime.toIso8601String();
         _drainFlutterExceptions(tester);
       }
 
@@ -151,7 +153,7 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
         if (state == null || state.index != index) {
           throw StateError('Step boundary $index finished without starting.');
         }
-        final step = test.steps[index];
+        final step = indexedSteps[index];
         if (ctx.config.screenshots.enabled && isUserActionStep(step)) {
           await _visuals.paintAfterUserAction(executor, ctx);
         }
@@ -180,7 +182,7 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
           SourceLocation? failureSource,
           TestFailureDetails? failureDetails,
           List<TestFailureDetails> secondaryFailures = const []}) async {
-        final step = test.steps[index];
+        final step = indexedSteps[index];
         final state = activeStep;
         if (state != null) {
           recordStepDuration(state);
@@ -199,7 +201,6 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
                   ),
               enabled: ctx.config.screenshots.shouldCaptureStep(step.type));
         }
-        await _settleLiveApiWorkBestEffort(tester, ctx);
         final failureMessage = error.toString();
         await _flushPendingScreenshots(
           ctx,
@@ -291,10 +292,6 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
                 handle: performanceEvidence.call,
               ),
             EventSubscription(
-              kinds: {ExecutionEventKind.attemptFinished},
-              handle: attemptArtifacts.call,
-            ),
-            EventSubscription(
               kinds: {
                 ExecutionEventKind.stepStarted,
                 ExecutionEventKind.stepFinished,
@@ -338,11 +335,11 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
                     error.toString(),
                     phase: 'execution',
                     target: {
-                      if (test.steps[index].args['id'] != null)
-                        'id': test.steps[index].args['id'],
-                      if (test.steps[index].args['target'] is Map)
+                      if (indexedSteps[index].args['id'] != null)
+                        'id': indexedSteps[index].args['id'],
+                      if (indexedSteps[index].args['target'] is Map)
                         'target': Map<String, dynamic>.from(
-                          test.steps[index].args['target'] as Map,
+                          indexedSteps[index].args['target'] as Map,
                         ),
                     },
                   )
@@ -352,12 +349,12 @@ extension _EnsembleTestRunnerSteps on EnsembleTestRunner {
                 .toList(growable: false),
           );
         }
-        ctx.runtime.currentStepIndex = null;
-
         await ctx.navigationFlow.flushPending();
         final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
         final idleStartTime = DateTime.now();
-        await _settleLiveApiWorkBestEffort(tester, ctx);
+        // Do not wait for unrelated live APIs at test completion. Calls that
+        // are still in flight are captured as PENDING in the diagnostic report.
+        ctx.runtime.currentStepIndex = null;
         _drainFlutterExceptions(tester);
         await _flushPendingScreenshots(
           ctx,

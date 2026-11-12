@@ -10,8 +10,23 @@ import 'package:yaml/yaml.dart';
 final class TestAppMetadata {
   const TestAppMetadata._();
 
+  static String? _versionOverrideForTest;
+
+  /// Overrides only the reported application version for host-driven tests.
+  /// This lets an application test its YAML's version-gated behavior even when
+  /// the test host wrapper has an unrelated package version.
+  static void setVersionOverrideForTest(String? version) {
+    _versionOverrideForTest = version?.trim().isEmpty == true
+        ? null
+        : version?.trim();
+  }
+
   static Map<String, String> packageInfo(String appDir) =>
-      _resolvePackageInfo(Directory(appDir));
+      _resolvePackageInfo(Directory(appDir))
+        ..update(
+          'version',
+          (value) => _versionOverrideForTest ?? value,
+        );
 
   static Map<String, String> _resolvePackageInfo(Directory appDir) {
     final pubspec = _readPubspec(appDir);

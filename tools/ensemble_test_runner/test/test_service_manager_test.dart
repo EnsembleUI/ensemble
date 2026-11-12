@@ -23,6 +23,7 @@ void main() {
 
     final temp = await Directory.systemTemp.createTemp('ensemble_service_test');
     final script = File('${temp.path}/server.dart');
+    final requestsFile = File('${temp.path}/requests.log');
     await script.writeAsString('''
 import 'dart:io';
 Future<void> main(List<String> args) async {
@@ -31,6 +32,7 @@ Future<void> main(List<String> args) async {
     int.parse(Platform.environment['PORT']!),
   );
   await for (final request in server) {
+    File('${requestsFile.path}').writeAsStringSync('ready\\n', mode: FileMode.append);
     request.response.write('ready');
     await request.response.close();
   }
@@ -50,6 +52,7 @@ Future<void> main(List<String> args) async {
 
     try {
       await manager.startAll();
+      expect(requestsFile.readAsStringSync(), contains('ready'));
       final response = await http.get(Uri.parse('http://127.0.0.1:$port'));
       expect(response.body, 'ready');
     } finally {

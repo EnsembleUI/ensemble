@@ -223,7 +223,7 @@ class BenchmarkFixtures {
   final Directory root;
   late EnsembleTestContext context;
   late LocalTestExecutionSession session;
-  late TextEditingController controller;
+  TextEditingController controller = TextEditingController();
   ui.Image? image;
   final storage = FixtureStorage();
   final navigation = FixtureNavigation();
@@ -254,6 +254,7 @@ class BenchmarkFixtures {
     session = LocalTestExecutionSession.attach(
         tester: tester, context: context, harness: harness);
     sessionReady = true;
+    controller.dispose();
     controller = TextEditingController();
   }
 
@@ -269,6 +270,7 @@ class BenchmarkFixtures {
       image!.dispose();
       image = null;
     }
+    controller.dispose();
     controller = TextEditingController(text: 'value');
     context = EnsembleTestContext.fromTestCase(
         const EnsembleTestCase(id: 'benchmark', steps: []),
@@ -381,6 +383,7 @@ class BenchmarkFixtures {
     sessionReady = false;
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();
+    controller = TextEditingController();
     context.runtime.clear();
   }
 
@@ -1552,8 +1555,8 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       () async => calculateAutomaticWorkerCount(
           testCount: 20,
           logicalProcessorCount: 10,
-          totalMemoryBytes: 16 * 1024 * 1024 * 1024),
-      verify: (r) => require(r == 4, 'Capacity mismatch')));
+          availableMemoryBytes: 16 * 1024 * 1024 * 1024),
+      verify: (r) => require(r == 3, 'Capacity mismatch')));
   for (final workers in [1, 2, 4]) {
     cases.add(BenchmarkCase('worker.shards.$workers', 'worker',
         () async => planShardRunIdsForTest(appDir: f.root.path, jobs: workers),
@@ -1665,7 +1668,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
   final capacity = calculateAutomaticWorkerCount(
       testCount: 8,
       logicalProcessorCount: Platform.numberOfProcessors,
-      totalMemoryBytes: detectTotalMemoryBytes());
+      availableMemoryBytes: detectAvailableMemoryBytes());
   for (final workers in [1, 2, 4]) {
     for (final fail in [false, true]) {
       final project =
@@ -2105,12 +2108,6 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
       frame.image.dispose();
     await f.cleanup();
   }, verify: (r) => require(r == 1, 'Step observer missing')));
-  cases.add(uiCase(
-      'diagnostic.dump',
-      'diagnostic',
-      () => f.tester.runAsync(() => writeDumpTreeLogFile(
-          logger: f.context.logger, filePrefix: 'fixture')),
-      verify: (r) => require(r is String, 'Debug dump missing')));
   cases.add(BenchmarkCase(
       'parser.config',
       'parser',
@@ -2170,7 +2167,11 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
           type: 'waitForNavigation', args: {'screen': 'Home', 'timeoutMs': 100})
     ]);
     final previous = LiveAsyncCallSupport.runner;
-    LiveAsyncCallSupport.runner = f.tester.runAsync;
+    // Keep this synthetic unresolved call out of WidgetTester.runAsync:
+    // the benchmark needs a pending-call signal, not a real async lane.
+    // Holding runAsync open prevents the widget test from pumping the
+    // bounded navigation timeout that this workload is measuring.
+    LiveAsyncCallSupport.runner = <T>(call) => call();
     try {
       return await EnsembleTestRunner(harness: harness).runPlan(
           const EnsembleTestExecutionPlan(
@@ -2416,10 +2417,7 @@ List<BenchmarkCase> buildCases(BenchmarkFixtures f, {String mode = 'widget'}) {
               stepDurationsMs: List.filled(count, 1),
               screens: {
                 for (var i = 0; i < count; i++)
-                  'Screen$i': {
-                    'debugTree': 'debug/$i.txt',
-                    'screenshot': 'screenshots/$i.png'
-                  }
+                  'Screen$i': {'screenshot': 'screenshots/$i.png'}
               }))
     ]);
     cases.add(BenchmarkCase('report.rich.$count', 'report', () async {

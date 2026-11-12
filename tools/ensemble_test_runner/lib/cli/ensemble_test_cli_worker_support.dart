@@ -110,6 +110,6 @@ int _autoWorkerCount(int fileCount) {
   return calculateAutomaticWorkerCount(
     testCount: fileCount,
     logicalProcessorCount: Platform.numberOfProcessors,
-    totalMemoryBytes: detectTotalMemoryBytes(),
+    availableMemoryBytes: detectAvailableMemoryBytes(),
   );
 }

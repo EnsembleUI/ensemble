@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
-import 'package:ensemble_test_runner/runner/diagnostic_redaction.dart';
 import 'package:path/path.dart' as p;
 
 /// Owns the optional application console artifact produced by a child run.
@@ -46,7 +45,7 @@ final class CliAppConsoleLog {
     final path = file.path;
     if (_disabledPaths.contains(path)) return;
 
-    final entry = '[$stream] ${redactDiagnosticText(line)}\n';
+    final entry = '[$stream] $line\n';
     final bytes = utf8.encode(entry).length;
     final currentBytes = _bytesByPath[path] ?? file.lengthSync();
     if (currentBytes + bytes > maxBytes) {

@@ -32,6 +32,7 @@ enum TestStepArgKind {
   screenRequired,
   expectVisited,
   apiName,
+  apiWait,
   storageKey,
   group,
   repeat,
@@ -372,6 +373,24 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(
           properties: {
             'name': _string,
+            'times': _integer,
+            'timeoutMs': _integer,
+          },
+          required: ['name'],
+        );
+      case TestStepArgKind.apiWait:
+        return _object(
+          properties: {
+            'name': {
+              'oneOf': [
+                _string,
+                {
+                  'type': 'array',
+                  'items': _string,
+                  'minItems': 1,
+                },
+              ],
+            },
             'times': _integer,
             'timeoutMs': _integer,
           },

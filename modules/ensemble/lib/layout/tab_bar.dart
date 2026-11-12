@@ -9,6 +9,7 @@ import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // =============================================================================
@@ -204,6 +205,13 @@ class TabBarState extends BaseTabBarState {
     ScopeManager? scopeManager = ScreenController().getScopeManager(context);
     if (scopeManager == null) return;
 
+    final currentItems = widget.controller.items;
+    final selectedIndex = widget.controller.selectedIndex;
+    final selectedItem =
+        selectedIndex >= 0 && selectedIndex < currentItems.length
+            ? currentItems[selectedIndex]
+            : null;
+
     final visibleItems = <TabItem>[];
     for (var item in widget.controller.originalItems) {
       if (item.isVisible == null) {
@@ -224,7 +232,23 @@ class TabBarState extends BaseTabBarState {
       }
     }
 
+    // A conditional tab can be inserted after an asynchronous value changes
+    // (for example, a News tab appearing after its request completes). Keep
+    // the selected tab by item identity so the insertion does not silently
+    // navigate the user back to a different tab.
+    if (listEquals(currentItems, visibleItems)) return;
+
+    // Keep the same tab selected when visibility changes shift its index.
     widget.controller.updateVisibleItems(visibleItems);
+    final preservedIndex =
+        selectedItem == null ? -1 : visibleItems.indexOf(selectedItem);
+    widget._controller.selectedIndex = visibleItems.isEmpty
+        ? 0
+        : preservedIndex >= 0
+            ? preservedIndex
+            : selectedIndex < visibleItems.length
+                ? selectedIndex
+                : visibleItems.length - 1;
     _reinitializeTabController();
   }
 
@@ -244,7 +268,37 @@ class TabBarState extends BaseTabBarState {
   void didUpdateWidget(covariant BaseTabBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.tabBarAction = this;
-    widget.controller.items = oldWidget.controller.items;
+
+    final oldSelectedIndex = oldWidget.controller.selectedIndex;
+    final newItems = widget.controller.items;
+    var selectedIndex = oldSelectedIndex;
+    if (oldSelectedIndex >= 0 &&
+        oldSelectedIndex < oldWidget.controller.items.length) {
+      final selectedTestId =
+          oldWidget.controller.items[oldSelectedIndex].testId;
+      if (selectedTestId?.isNotEmpty == true) {
+        final matchingIndex =
+            newItems.indexWhere((item) => item.testId == selectedTestId);
+        if (matchingIndex >= 0) selectedIndex = matchingIndex;
+      }
+    }
+    if (selectedIndex < 0 || selectedIndex >= newItems.length) {
+      selectedIndex = 0;
+    }
+    widget._controller.selectedIndex = selectedIndex;
+
+    if (widget.controller.useIndexedTab) {
+      _cache = List<Widget?>.filled(newItems.length, null);
+    }
+
+    if (tabController.length != newItems.length ||
+        tabController.index != selectedIndex) {
+      _reinitializeTabController();
+    }
+
+    if (newItems.any((item) => item.isVisible != null)) {
+      handleConditionalTabs();
+    }
   }
 
   // extra logic when a tab has been changed

@@ -9,20 +9,20 @@ void main() {
       calculateAutomaticWorkerCount(
         testCount: 1,
         logicalProcessorCount: 24,
-        totalMemoryBytes: 64 * _gibibyte,
+        availableMemoryBytes: 64 * _gibibyte,
       ),
       1,
     );
   });
 
-  test('selects four workers for a 10-core 16 GiB machine', () {
+  test('uses three workers when memory covers three worker budgets', () {
     expect(
       calculateAutomaticWorkerCount(
         testCount: 60,
         logicalProcessorCount: 10,
-        totalMemoryBytes: 16 * _gibibyte,
+        availableMemoryBytes: 16 * _gibibyte,
       ),
-      4,
+      3,
     );
   });
 
@@ -31,20 +31,20 @@ void main() {
       calculateAutomaticWorkerCount(
         testCount: 60,
         logicalProcessorCount: 16,
-        totalMemoryBytes: 8 * _gibibyte,
+        availableMemoryBytes: 8 * _gibibyte,
       ),
       1,
     );
   });
 
-  test('scales beyond the old five-worker ceiling', () {
+  test('caps automatic concurrency to protect the host', () {
     expect(
       calculateAutomaticWorkerCount(
         testCount: 60,
         logicalProcessorCount: 24,
-        totalMemoryBytes: 64 * _gibibyte,
+        availableMemoryBytes: 64 * _gibibyte,
       ),
-      11,
+      4,
     );
   });
 
@@ -53,19 +53,30 @@ void main() {
       calculateAutomaticWorkerCount(
         testCount: 3,
         logicalProcessorCount: 24,
-        totalMemoryBytes: 64 * _gibibyte,
+        availableMemoryBytes: 64 * _gibibyte,
       ),
       3,
     );
   });
 
-  test('falls back to the CPU budget when memory is unavailable', () {
+  test('falls back to one worker when memory is unavailable', () {
     expect(
       calculateAutomaticWorkerCount(
         testCount: 60,
         logicalProcessorCount: 12,
       ),
-      5,
+      1,
+    );
+  });
+
+  test('keeps one worker when memory covers less than two worker budgets', () {
+    expect(
+      calculateAutomaticWorkerCount(
+        testCount: 60,
+        logicalProcessorCount: 24,
+        availableMemoryBytes: 10 * _gibibyte,
+      ),
+      1,
     );
   });
 }

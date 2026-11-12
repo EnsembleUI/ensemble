@@ -22,6 +22,7 @@ final class LocalActionExecutor {
             allowEmpty: allowEmpty,
             allowOffscreen: allowOffscreen,
           );
+      executor.invalidateResolvedFinders = resolver.invalidateResolvedFinders;
     }
   }
 

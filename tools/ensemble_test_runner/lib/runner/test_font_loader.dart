@@ -12,6 +12,8 @@ import 'package:flutter/services.dart';
 class TestFontLoader {
   static bool _loaded = false;
 
+  static bool get isLoaded => _loaded;
+
   static Future<void> ensureLoaded() async {
     if (_loaded) return;
     _loaded = true;

@@ -16,6 +16,8 @@ import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/test_session.dart';
+import 'package:ensemble_test_runner/session/local/flutter_target_resolver.dart';
+import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/src/core/operation.dart';
 import 'support/session_operation.dart';
@@ -183,7 +185,6 @@ void main() {
       context: context,
       assertions: AssertionEngine(tester: tester, context: context),
     );
-
     await executor.execute(const TestStep(
       type: 'waitForApi',
       args: {'name': 'getRooms', 'timeoutMs': 1000},
@@ -192,6 +193,107 @@ void main() {
     expect(record.isCompleted, isTrue);
     expect(find.text('Rooms'), findsOneWidget);
     response.dispose();
+  });
+
+  testWidgets('waitForApi accepts a completed call from any listed name',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'api_wait_names', steps: []),
+    );
+    context.apiOverlay.calls.add(
+      APICallRecord(
+        name: 'getAllSoccerTeams_nlIfChanged',
+        apiDefinition: YamlMap.wrap(const {'type': 'firestore'}),
+        timestamp: DateTime(2026),
+      )..completed = true,
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+    );
+
+    await executor.execute(const TestStep(
+      type: 'waitForApi',
+      args: {
+        'name': ['getAllSoccerTeams_nl', 'getAllSoccerTeams_nlIfChanged'],
+      },
+    ));
+  });
+
+  testWidgets('waitForApi waits for the newest matching call', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'api_wait_newest', steps: []),
+    );
+    context.apiOverlay.calls.add(
+      APICallRecord(
+        name: 'getAllSoccerTeamsIfChanged',
+        apiDefinition: YamlMap.wrap(const {'type': 'firestore'}),
+        timestamp: DateTime(2025),
+        statusCode: 200,
+      ),
+    );
+    final currentCall = APICallRecord(
+      name: 'getAllSoccerTeamsIfChanged',
+      apiDefinition: YamlMap.wrap(const {'type': 'firestore'}),
+      timestamp: DateTime(2026),
+    );
+    context.apiOverlay.calls.add(currentCall);
+    Timer(const Duration(milliseconds: 32), () {
+      currentCall
+        ..statusCode = 200
+        ..completed = true
+        ..markCompleted();
+    });
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+    );
+
+    await executor.execute(const TestStep(
+      type: 'waitForApi',
+      args: {'name': 'getAllSoccerTeamsIfChanged'},
+    ));
+
+    expect(currentCall.isCompleted, isTrue);
+  });
+
+  testWidgets('waitForApi reports API failure by default', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'api_wait_success', steps: []),
+    );
+    context.apiOverlay.calls.add(
+      APICallRecord(
+        name: 'getVodContent',
+        apiDefinition: YamlMap.wrap(const {'url': 'https://example.test'}),
+        timestamp: DateTime(2026),
+        error: 'permission-denied',
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+    );
+
+    await expectLater(
+      executor.execute(const TestStep(
+        type: 'waitForApi',
+        args: {
+          'name': 'getVodContent',
+          'timeoutMs': 100,
+        },
+      )),
+      throwsA(isA<EnsembleTestFailure>().having(
+        (failure) => failure.message,
+        'message',
+        allOf(contains('getVodContent'), contains('permission-denied')),
+      )),
+    );
   });
 
   testWidgets('waitForGone publishes one matched-state boundary',
@@ -308,16 +410,20 @@ void main() {
         'expectBodyContains': 'ready',
       };
       const handler = HttpRequestOperationHandler();
-      await handler.execute(TestStep(type: 'httpRequest', args: input));
-      await handler.execute(TestOperation(
-        id: 'compiled-http-request',
-        name: 'httpRequest',
-        kind: OperationKind.environment,
-        handlerKey: operationRegistry.lookup('httpRequest')!.handlerKey,
-        input: input,
-        source:
-            const SourceLocation('http-request-dispatch-parity', 'steps[0]'),
-      ));
+      await EnsembleTestHarness.runWithRealNetworkHttpOverrides(() async {
+        await handler.execute(TestStep(type: 'httpRequest', args: input));
+        await handler.execute(TestOperation(
+          id: 'compiled-http-request',
+          name: 'httpRequest',
+          kind: OperationKind.environment,
+          handlerKey: operationRegistry.lookup('httpRequest')!.handlerKey,
+          input: input,
+          source: const SourceLocation(
+            'http-request-dispatch-parity',
+            'steps[0]',
+          ),
+        ));
+      });
       expect(receivedBodies, [
         {'state': 'ready'},
         {'state': 'ready'}
@@ -518,6 +624,62 @@ void main() {
 
     expect(find.byKey(const ValueKey('item_25')), findsOneWidget);
     expect(matched, ['scrollUntilVisible']);
+  });
+
+  testWidgets('scrollUntilVisible preserves occurrence for repeated targets',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: ListView(
+          key: const ValueKey('repeated_items'),
+          children: [
+            for (var index = 0; index < 12; index++)
+              SizedBox(
+                height: 96,
+                child: Center(
+                  child: KeyedSubtree(
+                    key: const ValueKey('repeated_item'),
+                    child: Text('Item $index'),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ));
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'scroll_repeated_target', steps: []),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+    );
+    executor.resolveTargetFinder = FlutterTargetResolver(
+      tester: tester,
+      assertions: executor.assertions,
+      registry: ObservationRegistry(),
+    ).resolveFinder;
+
+    await executor.execute(const TestStep(
+      type: 'scrollUntilVisible',
+      args: {
+        'target': {'id': 'repeated_item', 'occurrence': 7},
+        'scrollableId': 'repeated_items',
+        'timeoutMs': 1000,
+      },
+    ));
+
+    final selected = find.text('Item 7');
+    final viewport = tester.getRect(find.byKey(
+      const ValueKey('repeated_items'),
+    ));
+    expect(tester.getRect(selected).overlaps(viewport), isTrue);
+    expect(tester.getTopLeft(selected).dy, greaterThanOrEqualTo(viewport.top));
+    expect(
+      tester.getTopLeft(selected).dy,
+      lessThan(viewport.bottom),
+    );
   });
 
   testWidgets('gesture steps use registered handlers and capture evidence',
@@ -1144,7 +1306,7 @@ void main() {
     expect(showReady, isTrue);
   });
 
-  testWidgets('expectVisible waits for visibility when timeoutMs is provided',
+  testWidgets('expectVisible accepts list text alongside id when waiting',
       (tester) async {
     var showReady = false;
     late void Function(VoidCallback) changeState;
@@ -1155,11 +1317,7 @@ void main() {
             changeState = setState;
             return Scaffold(
               body: showReady
-                  ? const SizedBox(
-                      key: ValueKey('ready_target'),
-                      width: 100,
-                      height: 100,
-                    )
+                  ? const Text('Ready', key: ValueKey('ready_target'))
                   : null,
             );
           },
@@ -1181,7 +1339,11 @@ void main() {
     await executor.execute(
       const TestStep(
         type: 'expectVisible',
-        args: {'id': 'ready_target', 'timeoutMs': 1000},
+        args: {
+          'id': 'ready_target',
+          'text': ['Ready', 'Prêt'],
+          'timeoutMs': 1000,
+        },
       ),
     );
 
@@ -1768,6 +1930,54 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('tap on an already-visible nested tab label switches tabs',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                const SliverToBoxAdapter(
+                  child: TabBar(
+                    tabs: [
+                      Tab(text: 'Overview'),
+                      Tab(text: 'Matches'),
+                    ],
+                  ),
+                ),
+              ],
+              body: const TabBarView(
+                children: [
+                  Text('Summary cards'),
+                  Text('Future match cards'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'tap_nested_tab', steps: []),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    await executor.tapFinderForOperation(
+      find.text('Matches'),
+      onBeforeTap: () async {},
+    );
+
+    expect(find.text('Future match cards'), findsOneWidget);
+  });
+
   testWidgets('tap waits until widget becomes hit-testable', (tester) async {
     var tapped = false;
     await tester.pumpWidget(
@@ -2009,6 +2219,46 @@ void main() {
     );
     expect(waitSpan.counters['pollingAttempts'], isNull);
   });
+
+  testWidgets(
+    'waitFor remains bounded while unrelated live API work is pending',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final pendingCall = Completer<void>();
+      final context = EnsembleTestContext.fromTestCase(
+        const EnsembleTestCase(id: 'wait_for_pending_api', steps: []),
+        apiOverlay: _PendingNavigationApiOverlay(pending: pendingCall),
+      );
+      final executor = TestStepExecutor(
+        tester: tester,
+        context: context,
+        assertions: AssertionEngine(tester: tester, context: context),
+        executionConfig: const TestExecutionConfig(
+          waitPollInterval: Duration(milliseconds: 5),
+          settleStepDuration: Duration(milliseconds: 5),
+        ),
+      );
+      final stopwatch = Stopwatch()..start();
+
+      EnsembleTestFailure? failure;
+      try {
+        await executor.execute(const TestStep(
+          type: 'waitFor',
+          args: {'id': 'never_rendered', 'timeoutMs': 40},
+        ));
+      } on EnsembleTestFailure catch (error) {
+        failure = error;
+      }
+
+      expect(failure?.message, contains('Timed out after 40ms'));
+      expect(context.apiOverlay.hasPendingLiveCalls, isTrue);
+      expect(
+        stopwatch.elapsed,
+        lessThan(const Duration(seconds: 1)),
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
 
   testWidgets('setDevice updates the render surface size', (tester) async {
     await tester.pumpWidget(
@@ -2296,12 +2546,21 @@ void main() {
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: Semantics(
-          key: ValueKey('continue_button'),
-          label: 'Continue',
-          child: ExcludeSemantics(
-            child: SizedBox(width: 100, height: 40, child: Text('Continue')),
-          ),
+        body: Column(
+          children: [
+            Semantics(
+              key: ValueKey('continue_button'),
+              label: 'Continue',
+              child: ExcludeSemantics(
+                child: SizedBox(
+                  width: 100,
+                  height: 40,
+                  child: Text('Continue'),
+                ),
+              ),
+            ),
+            Text('Signal strength: -51 dBm', key: ValueKey('signal_strength')),
+          ],
         ),
       ),
     ));
@@ -2328,10 +2587,20 @@ void main() {
       ),
     );
     await executor.execute(
+      const TestStep(
+        type: 'expectSemanticsLabel',
+        args: {
+          'id': 'signal_strength',
+          'label': 'Signal strength: -51 dBm',
+        },
+      ),
+    );
+    await executor.execute(
       const TestStep(type: 'expectNoOverflow', args: {'id': 'continue_button'}),
     );
     expect(matched, [
       'expectAccessible',
+      'expectSemanticsLabel',
       'expectSemanticsLabel',
       'expectNoOverflow',
     ]);

@@ -9,8 +9,24 @@ import 'package:ensemble_test_runner/runner/test_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  testWidgets('registers FFI as the widget-test sqflite default',
+      (tester) async {
+    final originalFactory = databaseFactoryOrNull;
+    databaseFactory = null;
+    addTearDown(() => databaseFactory = originalFactory);
+
+    EnsembleTestHarness.ensureTestPlugins();
+
+    expect(databaseFactoryOrNull, same(databaseFactoryFfi));
+    await tester.runAsync(() async {
+      final database = await openDatabase(inMemoryDatabasePath);
+      await database.close();
+    });
+  });
+
   test('removes only stale runner-owned storage directories', () async {
     final root = Directory.systemTemp.createTempSync('ensemble_storage_sweep_');
     addTearDown(() => root.deleteSync(recursive: true));

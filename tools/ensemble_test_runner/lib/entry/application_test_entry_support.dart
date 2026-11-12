@@ -44,6 +44,7 @@ EnsembleTestReportDetails hostReport(
   ApplicationTestServices? services, {
   List<int> stepDurationsMs = const [],
   List<String> stepStartTimes = const [],
+  Map<String, Map<String, dynamic>> screens = const {},
 }) {
   final navigation = services?.navigation;
   final history = navigation?.routeHistory ?? const <String>[];
@@ -56,6 +57,10 @@ EnsembleTestReportDetails hostReport(
     stepsOutline: outlineSteps(test.steps),
     stepDurationsMs: stepDurationsMs,
     stepStartTimes: stepStartTimes,
+    screens: {
+      for (final entry in screens.entries)
+        entry.key: Map<String, dynamic>.from(entry.value),
+    },
   );
 }
 
@@ -184,8 +189,13 @@ Future<bool> captureHostStepReportArtifactsSafely({
         },
       );
       return captured;
-    } catch (_) {
+    } catch (error) {
       // Report capture must never replace the real test failure.
+      context.runtime.consoleLogs.add(
+        context.runtime.formatConsoleLine(
+          '[Screenshot] Step $stepIndex artifact capture failed: $error',
+        ),
+      );
       return false;
     }
   });

@@ -411,6 +411,63 @@ void main() {
     await session.close();
   });
 
+  testWidgets(
+      'target-only waitFor re-resolves an id after an async child replacement',
+      (tester) async {
+    final session = _session(
+      tester,
+      executionConfig: const TestExecutionConfig(
+        defaultWaitTimeout: Duration(milliseconds: 300),
+        waitPollInterval: Duration(milliseconds: 1),
+        settleStepDuration: Duration(milliseconds: 1),
+      ),
+    );
+    await tester.pumpWidget(const MaterialApp(home: _ReplacingTarget()));
+
+    await session.executor.execute(const TestStep(
+      type: 'waitFor',
+      args: {
+        'target': {'id': 'appears-after-rebuild'},
+        'timeoutMs': 300,
+      },
+    ));
+
+    expect(find.byKey(const ValueKey('appears-after-rebuild')), findsOneWidget);
+    expect(find.text('Ready'), findsOneWidget);
+    await session.close();
+  });
+
+  testWidgets('target-only waitFor does not match retained offstage targets',
+      (tester) async {
+    final session = _session(
+      tester,
+      executionConfig: const TestExecutionConfig(
+        defaultWaitTimeout: Duration(milliseconds: 20),
+        waitPollInterval: Duration(milliseconds: 1),
+        settleStepDuration: Duration(milliseconds: 1),
+      ),
+    );
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: Offstage(
+          offstage: true,
+          child: Text('Retained target', key: ValueKey('appears')),
+        ),
+      ),
+    ));
+
+    final result = await session.waitFor(
+      sessionOperation('waitFor', input: const {
+        'target': {'id': 'appears'},
+        'timeoutMs': 20,
+      }),
+    );
+
+    expect(result.status, WaitStatus.timedOut);
+    await session.close();
+  });
+
   testWidgets('structured target waits publish equivalent match evidence',
       (tester) async {
     final session = _session(
@@ -692,5 +749,35 @@ class _TimedTargetState extends State<_TimedTarget>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+}
+
+class _ReplacingTarget extends StatefulWidget {
+  const _ReplacingTarget();
+
+  @override
+  State<_ReplacingTarget> createState() => _ReplacingTargetState();
+}
+
+class _ReplacingTargetState extends State<_ReplacingTarget> {
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 20), () {
+      if (mounted) setState(() => _visible = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_visible) {
+      return const Text('Ready', key: ValueKey('appears-after-rebuild'));
+    }
+    return const Offstage(
+      offstage: true,
+      child: Text('Loading', key: ValueKey('appears-after-rebuild')),
+    );
   }
 }

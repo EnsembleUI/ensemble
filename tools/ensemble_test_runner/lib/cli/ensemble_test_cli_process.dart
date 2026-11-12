@@ -82,12 +82,15 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
   required bool streamOutput,
   required bool verbose,
   String? appLogFile,
+  String? progressFile,
   Duration? timeout,
   bool timeoutAfterIntegrationStartup = false,
   Map<String, String>? environment,
 }) async {
   return await RunnerBenchmark.async('worker', 'runFlutterTestProcess',
       () async {
+    flutter_test_command
+        .refreshFlutterTestAssetBundle(Directory(workingDirectory));
     final resolvedExecutable = executable == 'flutter'
         ? resolveFlutterExecutable(workingDirectory)
         : executable;
@@ -118,6 +121,10 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
     final liveFilter = LiveFlutterTestOutputFilter();
     final integrationWorkloadReady = Completer<void>();
     var integrationWorkloadStarted = !timeoutAfterIntegrationStartup;
+    var processDone = false;
+    final progressPoller = progressFile != null && streamOutput && !verbose
+        ? _pollWorkerProgress([progressFile], isDone: () => processDone)
+        : Future<void>.value();
     final elapsed = Stopwatch()..start();
     final integrationExecutionElapsed = Stopwatch();
     var lastLiveOutput = DateTime.now();
@@ -257,6 +264,12 @@ Future<_WorkerProcessResult> _runFlutterTestProcess(
         timedOut: managedExit.timedOut,
       );
     } finally {
+      processDone = true;
+      await progressPoller;
+      if (progressFile != null) {
+        final file = File(progressFile);
+        if (file.existsSync()) file.deleteSync();
+      }
       if (benchmarkBootstrap?.span.endUs == null) {
         benchmarkBootstrap?.span.outcome = 'workload-not-ready';
         benchmarkBootstrap?.finish();

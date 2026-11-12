@@ -28,7 +28,13 @@ EnsembleTestReportDetails buildTestReportDetails(
     stepsOutline: outlineSteps(testCase.steps),
     stepDurationsMs: stepDurationsMs,
     stepStartTimes: stepStartTimes,
-    screens: screens,
+    // Runtime cleanup clears its screenArtifacts map after the attempt. Keep a
+    // report-owned snapshot so screen performance/debug data survives until
+    // the HTML report serializes the completed result.
+    screens: {
+      for (final entry in screens.entries)
+        entry.key: Map<String, dynamic>.from(entry.value),
+    },
   );
   return details;
 }
@@ -56,14 +62,17 @@ List<String> outlineSteps(List<TestStep> steps) {
 }
 
 List<String> _outlineStep(TestStep step) {
-  if ((step.type == 'optional' || step.type == 'ifVisible') &&
-      step.nestedSteps.length == 1) {
-    return [formatStepBrief(step)];
-  }
   if (step.nestedSteps.isNotEmpty) {
     final nested = outlineSteps(step.nestedSteps);
+    final target = step.args['target'];
+    final targetId = step.type == 'ifVisible'
+        ? step.args['id'] ?? (target is Map ? target['id'] : null)
+        : null;
+    final heading = targetId == null
+        ? '${step.type} (${nested.length} steps)'
+        : 'ifVisible($targetId) (${nested.length} steps)';
     return [
-      '${step.type} (${nested.length} steps)',
+      heading,
       ...nested.map((line) => '  $line'),
     ];
   }

@@ -13,6 +13,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('id on a non-rendering wrapper resolves its visible text field',
+      (tester) async {
+    final controller = TextEditingController();
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: KeyedSubtree(
+          key: const ValueKey('searchInput'),
+          child: TextField(controller: controller),
+        ),
+      ),
+    ));
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      context: EnsembleTestContext(
+        testCase: const EnsembleTestCase(id: 'keyed-text-input', steps: []),
+        apiOverlay: TestApiProviderOverlay(mocks: const {}),
+        logger: TestLogger(),
+        setup: const EnsembleTestSetup(),
+      ),
+    );
+    addTearDown(() async {
+      await session.close();
+      controller.dispose();
+    });
+
+    await session.executor.execute(const TestStep(
+      type: 'waitFor',
+      args: {'id': 'searchInput'},
+    ));
+    await session.executor.execute(const TestStep(
+      type: 'enterText',
+      args: {
+        'target': {'id': 'searchInput'},
+        'value': 'Ajax',
+      },
+    ));
+
+    expect(controller.text, 'Ajax');
+  });
+
   testWidgets(
       'toggle and enterText preserve the default target wait on both routes',
       (tester) async {
@@ -1179,7 +1219,7 @@ void main() {
     }
   });
 
-  testWidgets('raw and registered taps treat disabled ID targets as no-ops',
+  testWidgets('raw and registered taps fail for disabled ID targets',
       (tester) async {
     var tapCount = 0;
     await tester.pumpWidget(MaterialApp(
@@ -1202,16 +1242,24 @@ void main() {
     );
     addTearDown(session.close);
 
-    await session.executor.execute(const TestStep(
-      type: 'tap',
-      args: {'id': 'disabled-action-target'},
-    ));
+    Object? rawFailure;
+    try {
+      await session.executor.execute(const TestStep(
+        type: 'tap',
+        args: {'id': 'disabled-action-target', 'timeoutMs': 50},
+      ));
+    } catch (error) {
+      rawFailure = error;
+    }
+    expect(rawFailure, isNotNull);
+    expect(rawFailure.toString(), contains('Timed out after 50ms'));
 
     final registered = await session.act(sessionOperation(
       'tap',
-      input: const {'id': 'disabled-action-target'},
+      input: const {'id': 'disabled-action-target', 'timeoutMs': 50},
     ));
-    expect(registered.succeeded, isTrue);
+    expect(registered.succeeded, isFalse);
+    expect(registered.error?.message, rawFailure.toString());
     expect(tapCount, 0);
   });
 

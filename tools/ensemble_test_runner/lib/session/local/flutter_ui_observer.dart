@@ -11,6 +11,7 @@ import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observer.dart';
 import 'package:ensemble_test_runner/runner/event_driven_settler.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -199,9 +200,14 @@ class FlutterUiObserver implements UiObserver {
 
   ScreenObservation _screenObservation() {
     final nav = navigation;
-    if (nav == null) return ScreenObservation.unknown();
-    final route = visibleScreenIdentifier(tester) ?? nav.currentRoute;
-    final history = List<String>.from(nav.routeHistory);
+    // Application-provided hosts may not expose the runner's navigation
+    // service. The mounted Ensemble Screen still provides a reliable identity
+    // for the current observation, so resolve it before treating the screen as
+    // unknown.
+    final route = visibleScreenIdentifier(tester) ??
+        ScreenTracker().getCurrentScreenIdentifier() ??
+        nav?.currentRoute;
+    final history = List<String>.from(nav?.routeHistory ?? const <String>[]);
     if ((route == null || route.trim().isEmpty) && history.isEmpty) {
       return ScreenObservation.unknown();
     }

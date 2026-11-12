@@ -4,6 +4,8 @@
 
 name: Release Ensemble Version
 
+run-name: Release Ensemble Version ${{ inputs.version }}
+
 on:
   workflow_dispatch:
     inputs:

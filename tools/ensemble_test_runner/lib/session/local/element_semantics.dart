@@ -86,7 +86,7 @@ UiElement describeElement({
     final checked = readChecked(semanticsSource);
     final selected =
         useSemantics ? readSelected(tester, semanticsSource) : null;
-    var text = secure ? null : readText(semanticsSource);
+    var text = readText(semanticsSource);
     var label = useSemantics
         ? readControlLabel(semanticsSource, tester)
         : readControlLabelWithoutSemantics(semanticsSource);

@@ -17,6 +17,11 @@ dependencies:
     path: ../local_dep
 ''');
     File('${app.path}/main.dart').writeAsStringSync('void main() {}');
+    Directory('${app.path}/test').createSync();
+    File('${app.path}/test/entry.dart').writeAsStringSync(
+      "import 'helper.dart';\nvoid main() => helper();\n",
+    );
+    File('${app.path}/test/helper.dart').writeAsStringSync('void helper() {}');
     Directory('${app.path}/.dart_tool').createSync();
     File('${app.path}/.dart_tool/package_config.json').writeAsStringSync(
       json.encode({
@@ -33,10 +38,21 @@ dependencies:
       testsDirRelative: 'tests',
     );
     final workspace = CliWorkerWorkspace(app.path);
-    final worker = Directory(workspace.prepare(0, timerPlan));
+    final worker = Directory(workspace.prepare(
+      0,
+      timerPlan,
+      testEntryRelativePath: 'test/entry.dart',
+    ));
 
     expect(worker.existsSync(), isTrue);
     expect(Link('${worker.path}/main.dart').existsSync(), isTrue);
+    expect(Link('${worker.path}/test').existsSync(), isFalse);
+    expect(File('${worker.path}/test/entry.dart').existsSync(), isTrue);
+    expect(File('${worker.path}/test/helper.dart').existsSync(), isTrue);
+    expect(
+      File('${worker.path}/test/entry.dart').readAsStringSync(),
+      contains("import 'helper.dart'"),
+    );
     expect(
       File('${worker.path}/pubspec.yaml').readAsStringSync(),
       contains('path: "${Directory(app.path).parent.path}/local_dep"'),
@@ -66,6 +82,75 @@ dependencies:
     expect(frontendCache.existsSync(), isFalse);
   });
 
+  test('copies platform projects for isolated integration builds', () {
+    final app = Directory.systemTemp.createTempSync('cli_worker_platforms_');
+    addTearDown(() => app.deleteSync(recursive: true));
+    File('${app.path}/pubspec.yaml').writeAsStringSync('name: sample\n');
+    for (final path in [
+      '.dart_tool/package_config.json',
+      'android/gradle.properties',
+      'android/app/build.gradle',
+      'android/local.properties',
+      'android/.gradle/cache.bin',
+      'android/app/build/cache.bin',
+      'ios/Runner.xcodeproj/project.pbxproj',
+      'ios/Pods/Manifest.lock',
+      'ios/Flutter/Generated.xcconfig',
+      'ios/build/cache.bin',
+    ]) {
+      final file = File('${app.path}/$path')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync('fixture');
+      if (path == '.dart_tool/package_config.json') {
+        file.writeAsStringSync(json.encode({
+          'configVersion': 2,
+          'packages': [
+            {'name': 'sample', 'rootUri': '../'},
+          ],
+        }));
+      } else if (path == 'android/gradle.properties') {
+        file.writeAsStringSync(
+          'org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G\n',
+        );
+      }
+    }
+
+    final workspace = CliWorkerWorkspace(app.path);
+    final workerPath = workspace.prepare(
+      0,
+      TestTimerRewritePlan.forApp(
+        appDir: app.path,
+        testsDirRelative: null,
+      ),
+      testEntryRelativePath: 'test/entry.dart',
+      copyPlatformProjects: true,
+    );
+    addTearDown(workspace.clean);
+
+    expect(Link('$workerPath/android').existsSync(), isFalse);
+    expect(File('$workerPath/android/app/build.gradle').existsSync(), isTrue);
+    expect(File('$workerPath/android/local.properties').existsSync(), isTrue);
+    expect(
+      File('$workerPath/android/gradle.properties').readAsStringSync(),
+      contains('org.gradle.jvmargs=-Xmx3G -XX:MaxMetaspaceSize=1G'),
+    );
+    expect(
+      File('${app.path}/android/gradle.properties').readAsStringSync(),
+      'org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G\n',
+    );
+    expect(Directory('$workerPath/android/.gradle').existsSync(), isFalse);
+    expect(
+        File('$workerPath/android/app/build/cache.bin').existsSync(), isFalse);
+    expect(Link('$workerPath/ios').existsSync(), isFalse);
+    expect(
+        File('$workerPath/ios/Runner.xcodeproj/project.pbxproj').existsSync(),
+        isTrue);
+    expect(File('$workerPath/ios/Flutter/Generated.xcconfig').existsSync(),
+        isTrue);
+    expect(Directory('$workerPath/ios/Pods').existsSync(), isFalse);
+    expect(File('$workerPath/ios/build/cache.bin').existsSync(), isFalse);
+  });
+
   test('removes partial worker files when preparation fails', () {
     final app = Directory.systemTemp.createTempSync('cli_worker_failed_');
     addTearDown(() => app.deleteSync(recursive: true));
@@ -84,6 +169,7 @@ dependencies:
           appDir: app.path,
           testsDirRelative: null,
         ),
+        testEntryRelativePath: 'test/entry.dart',
       ),
       throwsFormatException,
     );
@@ -122,6 +208,7 @@ dependencies:
         appDir: app.path,
         testsDirRelative: null,
       ),
+      testEntryRelativePath: 'test/entry.dart',
     );
     addTearDown(workspace.clean);
 
@@ -158,7 +245,11 @@ dependencies:
       testsDirRelative: 'tests',
     );
     final workspace = CliWorkerWorkspace(app.path);
-    final workerPath = workspace.prepare(0, timerPlan);
+    final workerPath = workspace.prepare(
+      0,
+      timerPlan,
+      testEntryRelativePath: 'test/entry.dart',
+    );
     addTearDown(workspace.clean);
     final packages = (json.decode(
       File('$workerPath/.dart_tool/package_config.json').readAsStringSync(),

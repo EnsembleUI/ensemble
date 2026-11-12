@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
 Future<String> writeAppPerformanceLog(EnsembleTestContext context) {
@@ -21,6 +22,11 @@ Map<String, dynamic> buildScreenPerformanceJson({
   required String screenName,
   required List<AppFrameTimingEntry> frames,
   required List<PerformanceMarker> markers,
+  List<APICallRecord> apiCalls = const [],
+  List<StorageStepDiff> storageChanges = const [],
+  List<StorageStepDiff> secureStorageChanges = const [],
+  List<StorageStepDiff> keychainChanges = const [],
+  bool storageDiagnosticsEnabled = false,
 }) {
   return RunnerBenchmark.sync('diagnostic', 'buildScreenPerformanceJson', () {
     final screenMarkers = markers.where((m) => m.screen == screenName).toList();
@@ -30,19 +36,169 @@ Map<String, dynamic> buildScreenPerformanceJson({
     }).toList();
 
     final jankyFrames = screenFrames.where((frame) => frame.isJanky).length;
+    final attributedCalls = apiCalls
+        .where((call) => screenMarkers.any((marker) {
+              final stepMatches = marker.stepIndex != null &&
+                  call.stepIndex != null &&
+                  marker.stepIndex == call.stepIndex! + 1;
+              return stepMatches || marker.overlaps(call.timestamp);
+            }))
+        .toList(growable: false);
+    final durations = attributedCalls
+        .map((call) => call.providerDurationMs)
+        .whereType<int>()
+        .map((duration) => duration.toDouble())
+        .toList(growable: false);
+    final sortedDurations = durations.toList()..sort();
+    List<StorageStepDiff> changesForScreen(
+            List<StorageStepDiff> changes) =>
+        changes
+            .where((diff) => screenMarkers.any((marker) =>
+                marker.stepIndex != null &&
+                diff.stepIndex + 1 == marker.stepIndex))
+            .toList(growable: false);
+    final publicChanges = changesForScreen(storageChanges);
+    final privateChanges = changesForScreen(secureStorageChanges);
+    final keychainDiffs = changesForScreen(keychainChanges);
+    final screenSteps = <int, PerformanceMarker>{};
+    for (final marker in screenMarkers) {
+      final stepIndex = marker.stepIndex;
+      if (stepIndex == null) continue;
+      screenSteps.putIfAbsent(stepIndex, () => marker);
+    }
+    final stepTimeline = screenSteps.entries.map((entry) {
+      final marker = entry.value;
+      final stepFrames = screenFrames
+          .where((frame) => marker.containsFrame(frame.frameNumber))
+          .toList(growable: false);
+      final prefix =
+          marker.testId + ' step ' + marker.stepIndex.toString() + ' ';
+      return {
+        'stepIndex': entry.key,
+        'label': marker.label.startsWith(prefix)
+            ? marker.label.substring(prefix.length)
+            : marker.label,
+        'phase': marker.phase,
+        'durationMs':
+            marker.endTime.difference(marker.startTime).inMilliseconds,
+        'startFrame': marker.startFrame,
+        'endFrame': marker.endFrame,
+        'framesObserved': stepFrames.length,
+        'slowFrames': stepFrames.where((frame) => frame.isJanky).length,
+      };
+    }).toList()
+      ..sort(
+          (a, b) => (a['startFrame'] as int).compareTo(b['startFrame'] as int));
+    final frameTimeline = screenFrames.map((frame) {
+      final marker = _markerForFrame(frame, markers);
+      return {
+        ...frame.toJson(),
+        if (marker?.stepIndex != null) 'stepIndex': marker!.stepIndex,
+      };
+    }).toList(growable: false);
     return {
       'screen': screenName,
+      'steps': stepTimeline,
+      'timeline': {
+        'frames': frameTimeline,
+      },
       'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
       'totalFrames': screenFrames.length,
       'jankyFrames': jankyFrames,
       'jankyFrameRate': _ratio(jankyFrames, screenFrames.length),
       'averageBuildMs': _average(screenFrames.map((frame) => frame.buildMs)),
+      'maxBuildMs': _max(screenFrames.map((frame) => frame.buildMs)),
       'averageRasterMs': _average(screenFrames.map((frame) => frame.rasterMs)),
       'averageTotalSpanMs':
           _average(screenFrames.map((frame) => frame.totalSpanMs)),
-      'markers': screenMarkers.map((m) => _markerJson(m)).toList(),
+      'framePercentilesMs': {
+        'p50': _percentile(screenFrames.map((frame) => frame.totalSpanMs), .50),
+        'p95': _percentile(screenFrames.map((frame) => frame.totalSpanMs), .95),
+      },
+      'rasterTimingAvailable': screenFrames.any((frame) => frame.rasterMs > 0),
+      'network': {
+        'requests': attributedCalls.length,
+        'completed': attributedCalls.where((call) => call.isCompleted).length,
+        'failed': attributedCalls
+            .where((call) =>
+                call.error != null ||
+                (call.statusCode != null && call.statusCode! >= 400))
+            .length,
+        'pendingAtStepEnd':
+            attributedCalls.where((call) => call.wasPendingAtStepEnd).length,
+        'timedRequests': durations.length,
+        'p95ProviderMs': _percentile(sortedDurations, .95),
+        'maxProviderMs': _max(durations),
+        'peakConcurrentRequests': _peakConcurrentRequests(
+          attributedCalls,
+          screenMarkers,
+        ),
+      },
+      'storage': {
+        'captured': storageDiagnosticsEnabled,
+        'publicMutations': publicChanges.fold<int>(
+            0, (sum, diff) => sum + diff.changes.length),
+        'secureMutations': privateChanges.fold<int>(
+            0, (sum, diff) => sum + diff.changes.length),
+        'keychainMutations': keychainDiffs.fold<int>(
+            0, (sum, diff) => sum + diff.changes.length),
+      },
     };
   });
+}
+
+double _percentile(Iterable<double> values, double percentile) {
+  final sorted = values.toList()..sort();
+  if (sorted.isEmpty) return 0;
+  final position = (sorted.length - 1) * percentile;
+  final lowerIndex = position.floor();
+  final upperIndex = position.ceil();
+  if (lowerIndex == upperIndex) return _round(sorted[lowerIndex]);
+  final fraction = position - lowerIndex;
+  return _round(
+    sorted[lowerIndex] + (sorted[upperIndex] - sorted[lowerIndex]) * fraction,
+  );
+}
+
+int _peakConcurrentRequests(
+  List<APICallRecord> calls,
+  List<PerformanceMarker> markers,
+) {
+  final events = <({DateTime at, int delta})>[];
+  for (final call in calls) {
+    final matchingMarkers = markers.where((candidate) {
+      final stepMatches = candidate.stepIndex != null &&
+          call.stepIndex != null &&
+          candidate.stepIndex == call.stepIndex! + 1;
+      return stepMatches || candidate.overlaps(call.timestamp);
+    });
+    if (matchingMarkers.isEmpty) continue;
+    final marker = matchingMarkers.first;
+    final started = call.timestamp.isBefore(marker.startTime)
+        ? marker.startTime
+        : call.timestamp;
+    final completed = call.completedAt;
+    final ended = completed == null || completed.isAfter(marker.endTime)
+        ? marker.endTime
+        : completed;
+    if (ended.isBefore(started)) continue;
+    events
+      ..add((at: started, delta: 1))
+      ..add((at: ended, delta: -1));
+  }
+  events.sort((a, b) {
+    final byTime = a.at.compareTo(b.at);
+    // A request completing at the exact time another starts is not
+    // considered concurrent.
+    return byTime != 0 ? byTime : a.delta.compareTo(b.delta);
+  });
+  var active = 0;
+  var peak = 0;
+  for (final event in events) {
+    active += event.delta;
+    if (active > peak) peak = active;
+  }
+  return peak;
 }
 
 Future<String> writePerformanceLog({

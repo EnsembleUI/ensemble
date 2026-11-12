@@ -1,5 +1,8 @@
 library;
 
+import 'dart:ui' as ui;
+
+import 'package:ensemble/framework/screen_tracker.dart';
 export 'application_test_entry_support.dart'
     show ensureHostFixturesSupported, hostProcessServiceConfigs;
 
@@ -19,8 +22,13 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_isolation.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
-import 'package:ensemble_test_runner/runner/test_service_manager.dart';
+import 'package:ensemble_test_runner/runner/app_performance_log.dart';
+import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:ensemble_test_runner/mocks/firebase_remote_config_test_setup.dart';
+import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifact_coordinator.dart';
+import 'package:ensemble_test_runner/src/integrations/firebase/firebase_test_registration.dart';
+import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/retry_execution.dart';
 import 'package:ensemble_test_runner/runner/attempt_lifecycle_coordinator.dart';
 import 'package:ensemble_test_runner/runner/setup_step_executor.dart';
@@ -36,11 +44,12 @@ import 'package:ensemble_test_runner/src/core/execution_kernel_runner.dart';
 import 'package:ensemble_test_runner/runner/suite_case_coordinator.dart';
 import 'package:ensemble_test_runner/src/runtime/step_evidence_subscriber.dart';
 import 'package:ensemble_test_runner/src/runtime/step_evidence_policy.dart';
-import 'package:ensemble_test_runner/src/core/attempt_artifact_subscriber.dart';
 import 'package:ensemble_test_runner/src/core/step_execution_tracker.dart';
+import 'package:ensemble_test_runner/src/core/step_context_subscriber.dart';
 import 'package:ensemble_test_runner/runtime/serialized_plan_batch_loader.dart';
 import 'package:ensemble_test_runner/src/runtime/flutter_test_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Registers and executes declarative tests against an application-provided driver.
 ///
@@ -78,6 +87,20 @@ Future<void> registerApplicationTests({
   );
 
   final resolved = resolveExecutionMode(mode);
+  // Match the standard Ensemble entry point: Firebase is ready by default for
+  // widget-mode host apps. Integration mode uses the native host plugins.
+  EnsembleTestHarness.configureTestIntegrations(
+    resolved == ExecutionMode.widget
+        ? const [firebaseTestIntegration]
+        : const [],
+  );
+  if (resolved == ExecutionMode.integration) {
+    // Keep integration runs deterministic and offline-capable for Remote
+    // Config, just like widget runs. The adapter preserves app defaults and
+    // avoids Firebase Installations network calls that are unrelated to the
+    // UI under test.
+    ensureRemoteConfigForTest();
+  }
   configureArtifactTransport(resolved);
   final transport = resolved == ExecutionMode.integration;
   var transportCompleted = false;
@@ -89,63 +112,75 @@ Future<void> registerApplicationTests({
 
   // Uncaught plugin errors can finish the Flutter test before the suite
   // `finally` runs. tearDown still emits complete so the CLI gets a report.
-  tearDown(completeTransportIfNeeded);
+  tearDown(() {
+    completeTransportIfNeeded();
+    EnsembleTestHarness.disposeTestStorage();
+  });
 
   testWidgets('Application *.test.yaml', (tester) async {
-    await withFlutterErrorIsolation(() async {
-      if (transport) {
-        emitEnsembleTestArtifactTransportBegin();
-      }
-      try {
-        final workerBatch = await workerBatchFromEnvironment();
-        final plan = workerBatch?.plan ??
-            await FlutterTestExecutionPlanner.build(
-              testsAssetPrefix: prefix,
-              inputs: testInputsFromEnvironment(),
-              selection: testSelectionFromEnvironment(),
+    await EnsembleTestHarness.runWithRealNetworkHttpOverrides(() =>
+        withFlutterErrorIsolation(() async {
+          if (transport) {
+            emitEnsembleTestArtifactTransportBegin();
+          }
+          var emittedResult = false;
+          try {
+            final workerBatch = await workerBatchFromEnvironment();
+            final plan = workerBatch?.plan ??
+                await FlutterTestExecutionPlanner.build(
+                  testsAssetPrefix: prefix,
+                  inputs: testInputsFromEnvironment(),
+                  selection: testSelectionFromEnvironment(),
+                );
+            final serializedPlans = workerBatch?.serializedPlans ?? const {};
+            final runResult = await runApplicationTestPlan(
+              driver: driver,
+              plan: plan,
+              tester: tester,
+              mode: resolved,
+              serializedPlans: serializedPlans,
+              onTestStart: emitTestProgressStart,
+              onTestComplete: emitTestProgressComplete,
             );
-        final serializedPlans = workerBatch?.serializedPlans ?? const {};
-        final runResult = await runApplicationTestPlan(
-          driver: driver,
-          plan: plan,
-          tester: tester,
-          mode: resolved,
-          serializedPlans: serializedPlans,
-          onTestStart: emitTestProgressStart,
-        );
-        final reporter = TestReporter();
-        print(
-          reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'),
-        );
-        emitMachineTestReport(runResult);
-        if (runResult.failedCount > 0) {
-          fail(reporter.formatFailureSummary(runResult));
-        }
-      } catch (error, stackTrace) {
-        final runResult = EnsembleTestRunResult(
-          results: [
-            EnsembleSingleTestResult.failed(
-              testId: 'test-process',
-              durationMs: 0,
-              message: error.toString(),
-              stackTrace: stackTrace.toString(),
-            ),
-          ],
-          suiteLogs: const [],
-          metadata: {
-            'mode': resolved.name,
-            'launchKind': 'applicationProvided',
-          },
-        );
-        final reporter = TestReporter();
-        print(
-            reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'));
-        emitMachineTestReport(runResult);
-        fail(reporter.formatFailureSummary(runResult));
-      } finally {
-        completeTransportIfNeeded();
-      }
-    });
+            final reporter = TestReporter();
+            print(
+              reporter.formatSummary(runResult, testFile: '$prefix*.test.yaml'),
+            );
+            emitMachineTestReport(runResult);
+            emittedResult = true;
+            if (runResult.failedCount > 0) {
+              fail(reporter.formatFailureSummary(runResult));
+            }
+          } catch (error, stackTrace) {
+            // A failing case is intentionally surfaced to flutter_test after its
+            // detailed result has been emitted. Do not replace that report with a
+            // synthetic test-process row when catching the assertion used to fail
+            // the suite.
+            if (emittedResult) rethrow;
+            final runResult = EnsembleTestRunResult(
+              results: [
+                EnsembleSingleTestResult.failed(
+                  testId: 'test-process',
+                  durationMs: 0,
+                  message: error.toString(),
+                  stackTrace: stackTrace.toString(),
+                ),
+              ],
+              suiteLogs: const [],
+              metadata: {
+                'mode': resolved.name,
+                'launchKind': 'applicationProvided',
+              },
+            );
+            final reporter = TestReporter();
+            print(reporter.formatSummary(runResult,
+                testFile: '$prefix*.test.yaml'));
+            emitMachineTestReport(runResult);
+            fail(reporter.formatFailureSummary(runResult));
+          } finally {
+            completeTransportIfNeeded();
+          }
+        }));
   });
 }
 
@@ -181,6 +216,10 @@ Future<EnsembleTestRunResult> _runApplicationTestPlanIsolated({
 }) async {
   return await RunnerBenchmark.async(
       'workflow', 'runApplicationTestPlanIsolated', () async {
+    // Direct host-plan execution must initialize the same runtime adapter as
+    // the registered test entry. In widget mode this installs the plugin
+    // channel doubles used by artifact capture (including secure storage).
+    EnsembleTestHarness.runtimeAdapterFor(mode).initialize();
     validateHostPlan(plan, driver);
     final selectedIds =
         plan.ordered.map((definition) => definition.testCase.id).toSet();
@@ -361,6 +400,14 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     final attemptContext = lifecycle.attemptContext;
     final launchContext = attemptContext.launch;
     final context = attemptContext.runtime;
+    void Function(List<ui.FrameTiming>)? timingsCallback;
+    final stopTimingsCallback = lifecycle.registerCleanupAfterStart(() async {
+      final callback = timingsCallback;
+      if (callback != null) {
+        SchedulerBinding.instance.removeTimingsCallback(callback);
+      }
+    });
+    final performanceStarts = <int, ({int startFrame, DateTime startTime})>{};
     TestApplicationHandle? handle;
     LocalTestExecutionSession? session;
     StepEvidenceSubscriber? stepEvidence;
@@ -382,11 +429,28 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
         if (!kernelOwnsSession) await session?.close();
       },
     );
+    final indexedSteps = flattenTestSteps(test.steps);
     var failedStepIndex = -1;
     final stepTracker = StepExecutionTracker(
       onStepStarted: (index) {
         failedStepIndex = index;
-        context.runtime.currentStepIndex = index;
+      },
+    );
+    final artifactCoordinator = const TestArtifactCoordinator();
+    final storageDiffs = StorageStepDiffSubscriber(
+      enabled: config.logStorage.enabled,
+      recordDiff: (stepIndex, before) =>
+          artifactCoordinator.recordStorageStepDiff(
+        context: context,
+        stepIndex: stepIndex,
+        before: before,
+      ),
+    );
+    final stepContext = StepContextSubscriber(
+      onStepStarted: (index) => context.runtime.currentStepIndex = index,
+      onStepFinished: (index) {
+        context.apiOverlay.recorder.observeStepEnd(index);
+        context.runtime.currentStepIndex = null;
       },
     );
     context.runtime.consoleLogs.add(
@@ -395,9 +459,19 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
     final attemptOutcome =
         await lifecycle.runCaptured<void, ExecutionKernelRunner, void>(
       prepare: () async {
+        if (config.performance.enabled) {
+          timingsCallback =
+              (timings) => context.runtime.addFrameTimings(timings);
+          SchedulerBinding.instance.addTimingsCallback(timingsCallback!);
+          stopTimingsCallback();
+        }
         await applyHostScreenshotViewport(tester, context, mode: mode);
-        await context.runtime.runAsyncWithConsoleCapture(
-            tester, EnsembleTestHarness.ensureAppFontsLoaded);
+        if (!EnsembleTestHarness.appFontsLoaded) {
+          await context.runtime.runAsyncWithConsoleCapture(
+            tester,
+            EnsembleTestHarness.ensureAppFontsLoaded,
+          );
+        }
         markDriverSetupStarted();
         await driver.prepareTest(launchContext);
         if (checkpoint != null) {
@@ -408,10 +482,22 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
         }
         await const SetupStepExecutor().executeAttemptSetup(
           test,
-          afterSteps: () => context.runtime.runAsyncWithConsoleCapture(
-            tester,
-            () => EnsembleTestHarness.applyInPlaceSetup(context),
-          ),
+          afterSteps: () {
+            final setup = context.setup;
+            final requiresPlatformAsync =
+                (setup.initialPublicStorage?.isNotEmpty ?? false) ||
+                    (setup.initialSecureStorage?.isNotEmpty ?? false) ||
+                    (setup.initialKeychain?.isNotEmpty ?? false);
+            final applySetup =
+                () => EnsembleTestHarness.applyInPlaceSetup(context);
+            // App launches can already have live network/plugin work using
+            // WidgetTester.runAsync. Avoid opening a second runAsync scope for
+            // the common empty setup (or env/mock-only setup); reserve it for
+            // storage seeding, which may cross platform channels.
+            return requiresPlatformAsync
+                ? context.runtime.runAsyncWithConsoleCapture(tester, applySetup)
+                : applySetup();
+          },
         );
         // Ensemble overlay path can be verified before launch. Pure Flutter
         // ApiMockingTestService attachment is confirmed right after launch.
@@ -446,13 +532,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
         session = attached;
         markSessionSetupStarted();
         stepEvidence = StepEvidenceSubscriber(
-          shouldCaptureStep: (stepIndex) =>
-              config.screenshots.shouldCaptureStep(test.steps[stepIndex].type),
+          shouldCaptureStep: (stepIndex) => config.screenshots
+              .shouldCaptureStep(indexedSteps[stepIndex].type),
           capture: (stepIndex) => captureHostStepReportArtifactsSafely(
             tester: tester,
             context: context,
             session: attached,
-            step: test.steps[stepIndex],
+            step: indexedSteps[stepIndex],
             stepIndex: stepIndex,
             secondaryFailures: secondaryFailures,
           ),
@@ -460,7 +546,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             if (StepEvidencePolicy.classify(event.detail) ==
                 StepEvidenceBoundary.navigation) {
               final stepIndex = event.stepIndex!;
-              final step = test.steps[stepIndex];
+              final step = indexedSteps[stepIndex];
               return captureHostStepReportArtifactsSafely(
                 tester: tester,
                 context: context,
@@ -479,17 +565,12 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
               tester: tester,
               context: context,
               session: attached,
-              step: test.steps[event.stepIndex!],
+              step: indexedSteps[event.stepIndex!],
               stepIndex: event.stepIndex!,
               secondaryFailures: secondaryFailures,
               atCurrentFrame: true,
             );
           },
-        );
-        final attemptArtifacts = AttemptArtifactSubscriber(
-          publish: () => const TestArtifactCoordinator().attachLogArtifactsOnce(
-            context,
-          ),
         );
         final hostPlan = planReuse.plan;
         final kernel = ExecutionKernelRunner(
@@ -503,6 +584,22 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
               },
               handle: stepTracker.call,
             ),
+            if (config.logStorage.enabled)
+              EventSubscription(
+                kinds: {
+                  ExecutionEventKind.stepStarted,
+                  ExecutionEventKind.stepFinished,
+                  ExecutionEventKind.attemptFinished,
+                },
+                handle: storageDiffs.call,
+              ),
+            EventSubscription(
+              kinds: {
+                ExecutionEventKind.stepStarted,
+                ExecutionEventKind.stepFinished,
+              },
+              handle: stepContext.call,
+            ),
             if (config.screenshots.enabled)
               EventSubscription(
                 kinds: {
@@ -511,10 +608,65 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 },
                 handle: stepEvidence!.call,
               ),
-            EventSubscription(
-              kinds: {ExecutionEventKind.attemptFinished},
-              handle: attemptArtifacts.call,
-            ),
+            if (config.performance.enabled)
+              EventSubscription(
+                kinds: {
+                  ExecutionEventKind.stepStarted,
+                  ExecutionEventKind.stepFinished,
+                },
+                handle: (event) {
+                  final stepIndex = event.stepIndex;
+                  if (stepIndex == null) return;
+                  if (event.kind == ExecutionEventKind.stepStarted) {
+                    performanceStarts[stepIndex] = (
+                      startFrame: context.runtime.appFrameTimings.length + 1,
+                      startTime: DateTime.now(),
+                    );
+                    return;
+                  }
+
+                  final started = performanceStarts.remove(stepIndex);
+                  if (started == null) return;
+                  final endedAt = DateTime.now();
+                  final endFrame = context.runtime.appFrameTimings.length;
+                  final screenName =
+                      ScreenTracker().getCurrentScreenIdentifier() ??
+                          handle?.services.navigation?.currentRoute;
+                  if (screenName == null || screenName.isEmpty) return;
+                  if (endFrame >= started.startFrame) {
+                    context.runtime.recordPerformanceMarker(
+                      PerformanceMarker(
+                        testId: test.id,
+                        stepIndex: stepIndex + 1,
+                        label: '${test.id} step ${stepIndex + 1} '
+                            '${formatStepBrief(indexedSteps[stepIndex])}',
+                        screen: screenName,
+                        phase: 'step',
+                        startFrame: started.startFrame,
+                        endFrame: endFrame,
+                        startTime: started.startTime,
+                        endTime: endedAt,
+                      ),
+                    );
+                  }
+                  final current = context.runtime.screenArtifacts[screenName] ??
+                      <String, dynamic>{};
+                  context.runtime.screenArtifacts[screenName] = {
+                    ...current,
+                    'performance': buildScreenPerformanceJson(
+                      screenName: screenName,
+                      frames: context.runtime.appFrameTimings,
+                      markers: context.runtime.performanceMarkers,
+                      apiCalls: context.apiOverlay.calls,
+                      storageChanges: context.runtime.storageStepDiffs,
+                      secureStorageChanges:
+                          context.runtime.secureStorageStepDiffs,
+                      keychainChanges: context.runtime.keychainStepDiffs,
+                      storageDiagnosticsEnabled: config.logStorage.enabled,
+                    ),
+                  };
+                },
+              ),
           ],
         );
         // Once run starts, ExecutionKernel closes the runtime (and thus
@@ -546,13 +698,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
                 tester: tester,
                 context: context,
                 session: session!,
-                step: test.steps[index],
+                step: indexedSteps[index],
                 stepIndex: index,
                 observationDetail: ObservationDetailLevel.diagnostic,
                 secondaryFailures: secondaryFailures,
               ),
               enabled: config.screenshots.shouldCaptureStep(
-                test.steps[index].type,
+                indexedSteps[index].type,
               ),
             );
             stepTracker.recordActiveDuration();
@@ -566,7 +718,6 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
           );
         }
         failedStepIndex = -1;
-        context.runtime.currentStepIndex = null;
         if (captureCheckpoint) {
           final checkpointDriver = driver as ApplicationCheckpointDriver;
           onCheckpoint(
@@ -576,12 +727,13 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       },
       beforeClose: (bodyError, __) async {
         try {
+          context.runtime.currentStepIndex = null;
           if (bodyError != null &&
               handle != null &&
               (failedStepIndex < 0 ||
                   failedStepIndex >= test.steps.length ||
                   config.screenshots.shouldCaptureStep(
-                    test.steps[failedStepIndex].type,
+                    indexedSteps[failedStepIndex].type,
                   )) &&
               context.runtime.screenshotSheetFrames.isEmpty) {
             try {
@@ -610,7 +762,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
             failedStepIndex: failedStepIndex < 0 ? null : failedStepIndex,
             failedStepLabel: failedStepIndex < 0
                 ? null
-                : formatStepBrief(test.steps[failedStepIndex]),
+                : formatStepBrief(indexedSteps[failedStepIndex]),
             failureMessage: bodyError?.toString(),
           );
         } catch (_) {}
@@ -624,6 +776,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
       handle?.services,
       stepDurationsMs: stepTracker.stepDurationsMs,
       stepStartTimes: stepTracker.stepStartTimes,
+      screens: context.runtime.screenArtifacts,
     );
     EnsembleSingleTestResult result;
     if (bodyError == null) {
@@ -647,7 +800,7 @@ Future<EnsembleSingleTestResult> _runHostAttempt({
         metadata: test.metadataJson,
         durationMs: stopwatch.elapsedMilliseconds,
         failedStepIndex: failedStepIndex < 0 ? null : failedStepIndex,
-        failedStep: failedStepIndex < 0 ? null : test.steps[failedStepIndex],
+        failedStep: failedStepIndex < 0 ? null : indexedSteps[failedStepIndex],
         message: bodyError.toString(),
         stackTrace: attemptOutcome.bodyStackTrace?.toString() ??
             StackTrace.current.toString(),

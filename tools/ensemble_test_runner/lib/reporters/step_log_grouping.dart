@@ -1,22 +1,16 @@
-/// Pure helpers for attributing API/console/storage logs to top-level test steps.
+/// Pure helpers for attributing evidence to authored test steps.
 ///
 /// Kept free of Flutter imports so unit tests and the CLI can use them.
 
-/// Walks [stepsOutline] and yields each line with its top-level step index.
-///
-/// Nested outline lines (indented with two spaces) inherit the parent index.
+/// Walks [stepsOutline] using the pre-order indexes shared by compiled step
+/// boundaries. Nested rows keep their own index.
 Iterable<({String line, int topLevelIndex, bool nested})>
     stepOutlineTopLevelIndexes(
   List<String> stepsOutline,
 ) sync* {
-  var topLevelIndex = -1;
-  for (final line in stepsOutline) {
-    final nested = line.startsWith('  ');
-    if (!nested) {
-      topLevelIndex++;
-    }
-    if (topLevelIndex < 0) continue;
-    yield (line: line, topLevelIndex: topLevelIndex, nested: nested);
+  for (var index = 0; index < stepsOutline.length; index++) {
+    final line = stepsOutline[index];
+    yield (line: line, topLevelIndex: index, nested: line.startsWith('  '));
   }
 }
 
@@ -55,7 +49,7 @@ Iterable<({String line, int topLevelIndex, bool nested})>
   return (timestamp: timestamp, stepIndex: stepIndex, message: message);
 }
 
-/// Groups API events, console lines, and storage diffs by top-level step outline index.
+/// Groups events and artifacts by authored step outline index.
 ///
 /// Prefers explicit `stepIndex` on events / `[step=N]` on console lines.
 /// Falls back to [stepStartTimes] + [stepDurationsMs] time windows when
@@ -75,9 +69,7 @@ List<Map<String, dynamic>> groupLogsByStep({
   if (stepsOutline.isEmpty) return result;
 
   final indexes = stepOutlineTopLevelIndexes(stepsOutline).toList();
-  final topLevelCount = indexes.isEmpty
-      ? 0
-      : indexes.map((e) => e.topLevelIndex).reduce((a, b) => a > b ? a : b) + 1;
+  final stepCount = indexes.length;
 
   final buckets = List.generate(
     stepsOutline.length,
@@ -93,42 +85,38 @@ List<Map<String, dynamic>> groupLogsByStep({
     },
   );
 
-  DateTime? windowStart(int topLevelIndex) {
-    if (topLevelIndex < 0 || topLevelIndex >= stepStartTimes.length) {
+  DateTime? windowStart(int stepIndex) {
+    if (stepIndex < 0 || stepIndex >= stepStartTimes.length) {
       return null;
     }
     try {
-      return DateTime.parse(stepStartTimes[topLevelIndex]);
+      return DateTime.parse(stepStartTimes[stepIndex]);
     } catch (_) {
       return null;
     }
   }
 
-  DateTime? windowEnd(int topLevelIndex, DateTime start) {
-    if (topLevelIndex < 0 || topLevelIndex >= stepDurationsMs.length) {
+  DateTime? windowEnd(int stepIndex, DateTime start) {
+    if (stepIndex < 0 || stepIndex >= stepDurationsMs.length) {
       return null;
     }
-    return start.add(Duration(milliseconds: stepDurationsMs[topLevelIndex]));
+    final durationMs = stepDurationsMs[stepIndex];
+    if (durationMs < 0) return null;
+    return start.add(Duration(milliseconds: durationMs));
   }
 
-  bool inWindow(DateTime t, int topLevelIndex) {
-    final start = windowStart(topLevelIndex);
+  bool inWindow(DateTime t, int stepIndex) {
+    final start = windowStart(stepIndex);
     if (start == null) return false;
-    final end = windowEnd(topLevelIndex, start);
+    final end = windowEnd(stepIndex, start);
     if (end == null) return false;
     final lo = start.subtract(const Duration(milliseconds: 50));
     final hi = end.add(const Duration(milliseconds: 50));
     return !t.isBefore(lo) && !t.isAfter(hi);
   }
 
-  int? outlineIndexForTopLevel(int topLevelIndex) {
-    for (var i = 0; i < indexes.length; i++) {
-      if (!indexes[i].nested && indexes[i].topLevelIndex == topLevelIndex) {
-        return i;
-      }
-    }
-    return null;
-  }
+  int? outlineIndexForTopLevel(int stepIndex) =>
+      stepIndex >= 0 && stepIndex < buckets.length ? stepIndex : null;
 
   int? resolveTopLevel(Map<String, dynamic> ev) {
     final stepIndexRaw = ev['stepIndex'];
@@ -139,7 +127,7 @@ List<Map<String, dynamic>> groupLogsByStep({
     if (timestampStr == null) return null;
     try {
       final t = DateTime.parse(timestampStr);
-      for (var ti = 0; ti < topLevelCount; ti++) {
+      for (var ti = 0; ti < stepCount; ti++) {
         if (inWindow(t, ti)) return ti;
       }
     } catch (_) {}
@@ -147,6 +135,10 @@ List<Map<String, dynamic>> groupLogsByStep({
   }
 
   for (final ev in apiEvents) {
+    // A completion outside an authored step must remain outside the step
+    // timeline. Timestamp fallback would otherwise attach a just-after-boundary
+    // response to the step that already observed the request as pending.
+    if (ev['phase'] == 'completed' && ev['stepIndex'] == null) continue;
     final targetTopLevel = resolveTopLevel(ev);
     if (targetTopLevel == null) continue;
     final outlineIndex = outlineIndexForTopLevel(targetTopLevel);
@@ -158,7 +150,7 @@ List<Map<String, dynamic>> groupLogsByStep({
     final parsed = parseConsoleLogLine(line);
     int? targetTopLevel = parsed.stepIndex;
     if (targetTopLevel == null && parsed.timestamp != null) {
-      for (var ti = 0; ti < topLevelCount; ti++) {
+      for (var ti = 0; ti < stepCount; ti++) {
         if (inWindow(parsed.timestamp!, ti)) {
           targetTopLevel = ti;
           break;
@@ -214,23 +206,8 @@ List<Map<String, dynamic>> groupLogsByStep({
     (buckets[outlineIndex]['screenshots'] as List).add(frame);
   }
 
-  // Nested outline rows keep stepText only — payloads stay on the parent
-  // non-nested step (viewers expand/inherit when rendering Step Details).
   for (var i = 0; i < indexes.length; i++) {
-    if (!indexes[i].nested) {
-      result.add(buckets[i]);
-      continue;
-    }
-    result.add({
-      'stepText': indexes[i].line,
-      'apiCalls': <Map<String, dynamic>>[],
-      'appLogs': <String>[],
-      'storageChanges': <Map<String, dynamic>>[],
-      'secureStorageChanges': <Map<String, dynamic>>[],
-      'keychainChanges': <Map<String, dynamic>>[],
-      'screenshots': <Map<String, dynamic>>[],
-      'observer': null,
-    });
+    result.add(buckets[i]);
   }
 
   return result;

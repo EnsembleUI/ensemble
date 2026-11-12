@@ -45,8 +45,10 @@ class FlutterDevice {
   }
 }
 
-Future<List<FlutterDevice>> discoverFlutterDevices() async {
-  final result = await Process.run('flutter', ['devices', '--machine']);
+Future<List<FlutterDevice>> discoverFlutterDevices({
+  String executable = 'flutter',
+}) async {
+  final result = await Process.run(executable, ['devices', '--machine']);
   if (result.exitCode != 0) {
     throw StateError(
       'Could not discover Flutter devices:\n${result.stderr.toString().trim()}',

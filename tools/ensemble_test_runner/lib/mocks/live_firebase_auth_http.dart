@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/mocks/real_network_http_client.dart';
+
 /// Signs in with a Firebase custom token via the Identity Toolkit REST API.
 Future<Map<String, dynamic>> postIdentityToolkitSignInWithCustomToken({
   required String customToken,
@@ -41,7 +43,7 @@ Future<Map<String, dynamic>> _postIdentityToolkitSignInOnce({
   final uri = Uri.parse(
     'https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=$apiKey',
   );
-  final client = HttpClient();
+  final client = createRealNetworkHttpClient();
   client.connectionTimeout = const Duration(seconds: 60);
   try {
     final request = await client.postUrl(uri);

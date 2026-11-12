@@ -135,8 +135,6 @@ steps:
         [
           ExecutionEventKind.attemptStarted,
           ExecutionEventKind.directiveSelected,
-          ExecutionEventKind.stepStarted,
-          ExecutionEventKind.directiveSelected,
           ExecutionEventKind.attemptFinished,
         ],
       );

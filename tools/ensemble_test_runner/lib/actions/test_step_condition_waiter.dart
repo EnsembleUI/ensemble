@@ -1,12 +1,11 @@
+import 'dart:async';
+
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/actions/test_step_runtime.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
-import 'package:ensemble_test_runner/runner/event_driven_settler.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/operation_target.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Evaluates visual conditions for a step without coupling them to action
@@ -16,14 +15,15 @@ class TestStepConditionWaiter {
   final AssertionEngine assertions;
   final TestExecutionConfig config;
   final TestStepRuntime runtime;
-  final EnsembleTestContext context;
-  final Finder? Function(ElementTarget target)? resolveTargetFinder;
+  final Finder? Function(
+    ElementTarget target, {
+    bool requireInteractive,
+  })? resolveTargetFinder;
 
   TestStepConditionWaiter({
     required this.assertions,
     required this.config,
     required this.runtime,
-    required this.context,
     this.resolveTargetFinder,
   });
 
@@ -34,7 +34,7 @@ class TestStepConditionWaiter {
     List<String> anyOf = const [],
     ElementTarget? target,
     required int timeoutMs,
-    bool requireHitTestable = true,
+    bool requireHitTestable = false,
     Future<void> Function(String matchedText)? onMatched,
   }) async {
     final textCandidates = <String>[
@@ -58,53 +58,26 @@ class TestStepConditionWaiter {
       return;
     }
 
-    var eventWaitTimedOut = false;
-    if (context.apiOverlay.hasPendingLiveCalls) {
-      String? matchedText;
-      try {
-        await EventDrivenSettler(
-          tester: runtime.tester,
-          hasExternalWork: () => context.apiOverlay.hasPendingLiveCalls,
-          waitForExternalWork: context.apiOverlay.waitForLiveCalls,
-          externalWorkPollTimeout: config.waitPollInterval,
-          activeFrameDuration: config.settleStepDuration,
-        ).waitFor(
-          timeout: Duration(milliseconds: timeoutMs),
-          condition: () {
-            if (id != null && _idMatches(id, target, requireHitTestable)) {
-              return true;
-            }
-            matchedText = firstVisibleText(textCandidates, target: target);
-            return matchedText != null;
-          },
-        );
-      } on FlutterError catch (error) {
-        if (!error.toString().contains('timed out')) rethrow;
-        eventWaitTimedOut = true;
-      }
-      if (matchedText != null) {
-        await _notifyTextMatched(matchedText!, onMatched);
-        return;
-      }
-      if (id != null && _idMatches(id, target, requireHitTestable)) {
-        return;
-      }
-    }
-
-    final stopwatch = Stopwatch()..start();
-    while (!eventWaitTimedOut && stopwatch.elapsedMilliseconds < timeoutMs) {
-      await runtime.pump(
-        duration: config.waitPollInterval,
-        label: 'waitFor',
-      );
-      if (id != null && _idMatches(id, target, requireHitTestable)) {
-        return;
-      }
+    final pollInterval = config.waitPollInterval <= Duration.zero
+        ? const Duration(milliseconds: 1)
+        : config.waitPollInterval;
+    // DateTime.now() is controlled by Flutter's fake-async test clock, so it
+    // advances only when pump() runs. On expensive app screens each pump may
+    // take much longer than its simulated duration, making a 15s timeout take
+    // minutes of wall-clock time. Stopwatch measures the actual elapsed wait.
+    final stopwatch = Zone.root.run(() => Stopwatch()..start());
+    while (Zone.root.run(() => stopwatch.elapsedMilliseconds) < timeoutMs) {
+      await runtime.tester.pump(pollInterval);
+      runtime.drainTransientFlutterDiagnostics();
+      if (id != null && _idMatches(id, target, requireHitTestable)) return;
       final matchedText = firstVisibleText(textCandidates, target: target);
       if (matchedText != null) {
         await _notifyTextMatched(matchedText, onMatched);
         return;
       }
+    }
+    if (id != null && _idMatches(id, target, requireHitTestable)) {
+      return;
     }
 
     final textLabel = textCandidates.isEmpty
@@ -137,7 +110,19 @@ class TestStepConditionWaiter {
     bool requireHitTestable,
   ) {
     if (target?.normalizedLocator?.bounds != null) return false;
-    final finder = assertions.finderForId(id);
+    Finder finder = assertions.finderForId(id);
+    if (target != null) {
+      try {
+        finder = resolveTargetFinder?.call(
+              target,
+              requireInteractive: false,
+            ) ??
+            finder;
+      } on TestExecutionError catch (error) {
+        if (error.code != TestExecutionErrorCode.elementNotFound) rethrow;
+        return false;
+      }
+    }
     return requireHitTestable
         ? finder.hitTestable().evaluate().isNotEmpty
         : assertions.hasVisibleElement(finder);

@@ -90,25 +90,11 @@ class LiveSignInWithCustomToken implements SignInWithCustomToken {
           action.onError!,
           event: EnsembleEvent(
             null,
-            error: {'error': _redactSecrets(error.toString())},
+            error: {'error': error.toString()},
           ),
         );
       }
     }
-  }
-
-  /// Avoid dumping JWTs / refresh tokens into test logs via onError.
-  static String _redactSecrets(String message) {
-    return message
-        .replaceAllMapped(
-          RegExp(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
-          (_) => '[redacted-jwt]',
-        )
-        .replaceAllMapped(
-          RegExp(r'(refreshToken|idToken|accessToken|token)["\s:=]+[^\s,"}]+',
-              caseSensitive: false),
-          (match) => '${match.group(1)}=[redacted]',
-        );
   }
 
   Future<Map<String, dynamic>> _signInOverHttp({

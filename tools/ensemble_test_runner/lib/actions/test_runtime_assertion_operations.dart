@@ -180,13 +180,15 @@ final class TestRuntimeAssertionOperations {
   }
 
   Future<bool> _expectEnabled(OperationInput step) async {
-    assertions.expectEnabledFinder(finderForTargetStep(step));
+    assertions.expectEnabledFinder(
+      finderForTargetStep(step, requireInteractive: false),
+    );
     return true;
   }
 
   Future<bool> _expectDisabled(OperationInput step) async {
     assertions.expectEnabledFinder(
-      finderForTargetStep(step),
+      finderForTargetStep(step, requireInteractive: false),
       enabled: false,
     );
     return true;
@@ -217,8 +219,12 @@ final class TestRuntimeAssertionOperations {
   }
 
   Future<bool> _expectText(OperationInput step) async {
-    final anyOf = RuntimeOperationInput.stringList(step.arguments['anyOf']);
-    final text = step.arguments['text']?.toString();
+    final rawText = step.arguments['text'];
+    final text = rawText is String ? rawText : null;
+    final anyOf = <String>[
+      if (rawText is List) ...RuntimeOperationInput.stringList(rawText),
+      ...RuntimeOperationInput.stringList(step.arguments['anyOf']),
+    ];
     final timeoutMs = step.arguments['timeoutMs'] as int?;
     if (timeoutMs != null && timeoutMs > 0) {
       await waitForText(step, timeoutMs: timeoutMs);
@@ -234,8 +240,12 @@ final class TestRuntimeAssertionOperations {
   }
 
   Future<bool> _expectNoText(OperationInput step) async {
-    final anyOf = RuntimeOperationInput.stringList(step.arguments['anyOf']);
-    final text = step.arguments['text']?.toString();
+    final rawText = step.arguments['text'];
+    final text = rawText is String ? rawText : null;
+    final anyOf = <String>[
+      if (rawText is List) ...RuntimeOperationInput.stringList(rawText),
+      ...RuntimeOperationInput.stringList(step.arguments['anyOf']),
+    ];
     if (anyOf.isNotEmpty) {
       assertions.expectNoTextAny(anyOf);
     } else if (text != null) {
@@ -303,7 +313,7 @@ final class TestRuntimeAssertionOperations {
 
   Future<bool> _expectSemanticsLabel(OperationInput step) async {
     assertions.expectSemanticsLabelFinder(
-      finderForTargetStep(step),
+      finderForTargetStep(step, requireInteractive: false),
       step.arguments['label']?.toString() ?? '',
       description: RuntimeOperationInput.targetDescription(step),
     );
@@ -340,14 +350,16 @@ final class TestRuntimeAssertionOperations {
   }
 
   Future<bool> _expectTextContains(OperationInput step) async {
+    final rawText = step.arguments['text'];
     final rawAnyOf = step.arguments['anyOf'];
     final anyOf = <String>[
+      if (rawText is List) ...RuntimeOperationInput.stringList(rawText),
       if (rawAnyOf is List)
         for (final item in rawAnyOf)
           if (item != null && item.toString().trim().isNotEmpty)
             item.toString(),
     ];
-    final text = step.arguments['text']?.toString();
+    final text = rawText is String ? rawText : null;
     final timeoutMs = step.arguments['timeoutMs'] as int?;
     if (timeoutMs != null && timeoutMs > 0) {
       await waitForTextContains(text: text, anyOf: anyOf, timeoutMs: timeoutMs);

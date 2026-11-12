@@ -88,9 +88,14 @@ final class TestEntryValidator {
           ...EntrySourceTransformer.applicationIntegrationEntryPoints,
         ],
       (true, _) => EntrySourceTransformer.applicationWidgetEntryPoints,
-      (false, ExecutionMode.integration) =>
-        EntrySourceTransformer.ensembleIntegrationEntryPoints,
-      _ => EntrySourceTransformer.ensembleWidgetEntryPoints,
+      (false, ExecutionMode.integration) => [
+          ...EntrySourceTransformer.ensembleIntegrationEntryPoints,
+          ...EntrySourceTransformer.applicationIntegrationEntryPoints,
+        ],
+      (false, _) => [
+          ...EntrySourceTransformer.ensembleWidgetEntryPoints,
+          ...EntrySourceTransformer.applicationWidgetEntryPoints,
+        ],
     };
     if (EntrySourceTransformer.entryPointCallsAny(content, expectedCalls)) {
       return content;
@@ -99,7 +104,7 @@ final class TestEntryValidator {
     final requiredCalls =
         usesApplicationEntry && mode == ExecutionMode.integration
             ? 'runApplicationTests() or runApplicationIntegrationTests()'
-            : '${expectedCalls.first}()';
+            : expectedCalls.map((call) => '$call()').join(' or ');
     throw StateError('$configuredPath must call $requiredCalls.');
   }
 

@@ -1,15 +1,23 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/mocks/real_network_http_client.dart';
+
 import 'package:cloud_firestore_platform_interface/cloud_firestore_platform_interface.dart';
-import 'package:ensemble_test_runner/mocks/firebase_auth_test_setup.dart';
-import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
+import 'package:cloud_firestore_platform_interface/src/method_channel/utils/firestore_message_codec.dart';
 import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_auth_test_setup.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'firebase_test_setup.dart';
+import 'firebase_pigeon_compat.dart';
+
 bool _firestoreBridgeInstalled = false;
 int _snapshotListenerCounter = 0;
+bool _legacyFirestorePigeon = true;
 
 /// Bridges Firestore pigeon calls to the real Firestore REST API during
 /// `flutter test`. Native plugins are unavailable in the VM test binding.
@@ -19,7 +27,18 @@ void ensureLiveFirestoreForTest() {
 
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  final codec = FirebaseFirestoreHostApi.pigeonChannelCodec;
+  // cloud_firestore encodes query fields as FieldPath (wire type 192), but its
+  // production FirestoreMessageCodec intentionally does not decode that type.
+  // Native Firestore decodes it on the other side; the widget-test messenger
+  // must do so before it can invoke our live REST adapter.
+  final legacyPigeon = usesLegacyFirebasePigeon(
+    'cloud_firestore_platform_interface',
+  );
+  _legacyFirestorePigeon = legacyPigeon;
+  final codec = PigeonCompatCodec(
+    FirestorePigeonDecoder(legacyPigeon),
+    const FirestorePigeonWireMessageCodec(),
+  );
 
   void register(
     String method,
@@ -36,8 +55,8 @@ void ensureLiveFirestoreForTest() {
           return await handler(args);
         } on PlatformException catch (error) {
           return <Object?>[error.code, error.message, error.details];
-        } catch (error) {
-          return <Object?>['error', error.toString(), null];
+        } catch (error, stack) {
+          return <Object?>['error', error.toString(), '$stack'];
         }
       },
     );
@@ -52,10 +71,9 @@ void ensureLiveFirestoreForTest() {
   register('terminate', noop);
   register('waitForPendingWrites', noop);
   register(
-      'snapshotsInSyncSetup',
-      (_) async => <Object?>[
-            'ensemble_test_runner/firestore/snapshots-in-sync',
-          ]);
+    'snapshotsInSyncSetup',
+    (_) async => <Object?>['ensemble_test_runner/firestore/snapshots-in-sync'],
+  );
   register('persistenceCacheIndexManagerRequest', noop);
 
   register('documentReferenceSet', (args) async {
@@ -90,8 +108,8 @@ void ensureLiveFirestoreForTest() {
     final app = _decodeApp(args[0]);
     final path = args[1]! as String;
     final isCollectionGroup = args[2]! as bool;
-    final parameters = args[3]! as InternalQueryParameters;
-    final options = args[4]! as InternalGetOptions;
+    final parameters = _decodeQueryParameters(args[3]!);
+    final options = _decodeGetOptions(args[4]!);
     final snapshot = await _LiveFirestoreRestClient().queryGet(
       app,
       path: path,
@@ -139,22 +157,136 @@ void _mockFirestoreEventChannel(String kind, String listenerId) {
   );
 }
 
-FirestorePigeonFirebaseApp _decodeApp(Object? value) {
-  if (value is FirestorePigeonFirebaseApp) return value;
-  if (value is List) return FirestorePigeonFirebaseApp.decode(value);
+_FirestoreApp _decodeApp(Object? value) {
+  if (value is FirestorePigeonFirebaseApp) {
+    return _FirestoreApp(value.appName, value.databaseURL);
+  }
+  if (value is PigeonWireValue && value.value is List) {
+    final encoded = value.value! as List;
+    return _FirestoreApp(encoded[0] as String, encoded[2] as String);
+  }
+  if (value is List)
+    return _FirestoreApp(value[0] as String, value[2] as String);
   throw ArgumentError('Unexpected Firestore app argument: $value');
 }
 
-DocumentReferenceRequest _decodeDocumentRequest(Object? value) {
-  if (value is DocumentReferenceRequest) return value;
-  if (value is List) return DocumentReferenceRequest.decode(value);
+_DocumentRequest _decodeDocumentRequest(Object? value) {
+  if (value is DocumentReferenceRequest) {
+    return _DocumentRequest(value.path, value.data, value.option?.encode());
+  }
+  if (value is PigeonWireValue && value.value is List) {
+    final encoded = value.value! as List;
+    return _DocumentRequest(
+        encoded[0] as String, encoded[1] as Map<Object?, Object?>?, encoded[2]);
+  }
+  if (value is List)
+    return _DocumentRequest(
+        value[0] as String, value[1] as Map<Object?, Object?>?, value[2]);
   throw ArgumentError('Unexpected document request argument: $value');
+}
+
+_QueryParameters _decodeQueryParameters(Object value) {
+  if (value is PigeonWireValue && value.value is List) {
+    return _QueryParameters.fromList(value.value! as List);
+  }
+  if (value is List) return _QueryParameters.fromList(value);
+  return _QueryParameters.fromObject(value);
+}
+
+_GetOptions _decodeGetOptions(Object value) {
+  if (value is PigeonWireValue && value.value is List) {
+    final encoded = value.value! as List;
+    return _GetOptions(_sourceIndex(encoded[0]), encoded[1]);
+  }
+  if (value is List) return _GetOptions(_sourceIndex(value[0]), value[1]);
+  return _GetOptions((value as dynamic).source.index as int,
+      (value as dynamic).serverTimestampBehavior);
+}
+
+int _sourceIndex(Object? value) => value is PigeonWireValue
+    ? value.value! as int
+    : value is Source
+        ? value.index
+        : value! as int;
+
+class _FirestoreApp {
+  const _FirestoreApp(this.appName, this.databaseURL);
+  final String appName;
+  final String databaseURL;
+}
+
+class _DocumentRequest {
+  const _DocumentRequest(this.path, this.data, this.option);
+  final String path;
+  final Map<Object?, Object?>? data;
+  final Object? option;
+}
+
+class _DocumentOption {
+  const _DocumentOption(this.merge, this.mergeFields);
+  final bool? merge;
+  final List<List<String?>?>? mergeFields;
+}
+
+class _QueryParameters {
+  _QueryParameters.fromList(List encoded)
+      : where = _listOfLists(encoded[0]),
+        orderBy = _listOfLists(encoded[1]),
+        limit = encoded[2] as int?,
+        limitToLast = encoded[3] as int?,
+        startAt = _objectList(encoded[4]),
+        startAfter = _objectList(encoded[5]),
+        endAt = _objectList(encoded[6]),
+        endBefore = _objectList(encoded[7]),
+        filters = _objectMap(encoded[8]);
+
+  _QueryParameters.fromObject(Object object)
+      : where = (object as dynamic).where as List<List<Object?>?>?,
+        orderBy = (object as dynamic).orderBy as List<List<Object?>?>?,
+        limit = (object as dynamic).limit as int?,
+        limitToLast = (object as dynamic).limitToLast as int?,
+        startAt = (object as dynamic).startAt as List<Object?>?,
+        startAfter = (object as dynamic).startAfter as List<Object?>?,
+        endAt = (object as dynamic).endAt as List<Object?>?,
+        endBefore = (object as dynamic).endBefore as List<Object?>?,
+        filters = (object as dynamic).filters as Map<String?, Object?>?;
+
+  final List<List<Object?>?>? where;
+  final List<List<Object?>?>? orderBy;
+  final int? limit;
+  final int? limitToLast;
+  final List<Object?>? startAt;
+  final List<Object?>? startAfter;
+  final List<Object?>? endAt;
+  final List<Object?>? endBefore;
+  final Map<String?, Object?>? filters;
+}
+
+List<List<Object?>?>? _listOfLists(Object? value) => value is List
+    ? value
+        .map<List<Object?>?>(
+            (item) => item is List ? List<Object?>.from(item) : null)
+        .toList()
+    : null;
+
+List<Object?>? _objectList(Object? value) =>
+    value is List ? List<Object?>.from(value) : null;
+
+Map<String?, Object?>? _objectMap(Object? value) => value is Map
+    ? value
+        .map<String?, Object?>((key, item) => MapEntry(key?.toString(), item))
+    : null;
+
+class _GetOptions {
+  const _GetOptions(this.sourceIndex, this.serverTimestampBehavior);
+  final int sourceIndex;
+  final Object? serverTimestampBehavior;
 }
 
 class _LiveFirestoreRestClient {
   Future<void> documentSet(
-    FirestorePigeonFirebaseApp app,
-    DocumentReferenceRequest request,
+    _FirestoreApp app,
+    _DocumentRequest request,
   ) async {
     final encoded = _encodeDocumentFields(request.data ?? {});
     final transforms = encoded.transforms;
@@ -163,7 +295,7 @@ class _LiveFirestoreRestClient {
       if (transforms.isNotEmpty) 'updateTransforms': transforms,
     };
 
-    final option = request.option;
+    final option = _decodeDocumentOption(request.option);
     final updateMaskPaths = <String>[];
     if (option?.merge == true) {
       updateMaskPaths.addAll(encoded.fieldPaths);
@@ -186,8 +318,8 @@ class _LiveFirestoreRestClient {
   }
 
   Future<void> documentUpdate(
-    FirestorePigeonFirebaseApp app,
-    DocumentReferenceRequest request,
+    _FirestoreApp app,
+    _DocumentRequest request,
   ) async {
     final encoded = _encodeDocumentFields(request.data ?? {});
     final body = <String, dynamic>{
@@ -204,37 +336,31 @@ class _LiveFirestoreRestClient {
   }
 
   Future<void> documentDelete(
-    FirestorePigeonFirebaseApp app,
-    DocumentReferenceRequest request,
+    _FirestoreApp app,
+    _DocumentRequest request,
   ) async {
     await _request(app, method: 'DELETE', path: request.path);
   }
 
-  Future<InternalDocumentSnapshot> documentGet(
-    FirestorePigeonFirebaseApp app,
-    DocumentReferenceRequest request,
+  Future<PigeonWireValue> documentGet(
+    _FirestoreApp app,
+    _DocumentRequest request,
   ) async {
     final decoded = await _request(app, method: 'GET', path: request.path);
     if (decoded == null) {
-      return InternalDocumentSnapshot(
-        path: request.path,
-        data: null,
-        metadata: InternalSnapshotMetadata(
-          hasPendingWrites: false,
-          isFromCache: false,
-        ),
-      );
+      return _documentWire(request.path, null);
     }
-    return _toPigeonDocumentSnapshot(request.path, decoded);
+    return _documentWire(request.path, decoded as Map<dynamic, dynamic>?);
   }
 
-  Future<InternalQuerySnapshot> queryGet(
-    FirestorePigeonFirebaseApp app, {
+  Future<PigeonWireValue> queryGet(
+    _FirestoreApp app, {
     required String path,
     required bool isCollectionGroup,
-    required InternalQueryParameters parameters,
-    required InternalGetOptions options,
+    required _QueryParameters parameters,
+    required _GetOptions options,
   }) async {
+    final filters = parameters.filters;
     final structuredQuery = <String, dynamic>{
       'from': [
         if (isCollectionGroup)
@@ -243,26 +369,41 @@ class _LiveFirestoreRestClient {
           {'collectionId': path.split('/').last},
       ],
       if (parameters.limit != null) 'limit': parameters.limit,
+      if (parameters.limitToLast != null) 'limit': parameters.limitToLast,
+      if (parameters.where case final where? when where.isNotEmpty)
+        'where': _encodeQueryFilters(where),
+      if ((parameters.where == null || parameters.where!.isEmpty) &&
+          filters != null &&
+          filters.isNotEmpty)
+        'where': _encodeFilterMap(filters),
+      if (parameters.orderBy case final orderBy? when orderBy.isNotEmpty)
+        'orderBy': _encodeOrderBy(orderBy),
+      if (parameters.startAt != null)
+        'startAt': _encodeCursor(parameters.startAt!, inclusive: true),
+      if (parameters.startAfter != null)
+        'startAt': _encodeCursor(parameters.startAfter!, inclusive: false),
+      if (parameters.endAt != null)
+        'endAt': _encodeCursor(parameters.endAt!, inclusive: true),
+      if (parameters.endBefore != null)
+        'endAt': _encodeCursor(parameters.endBefore!, inclusive: false),
     };
 
-    final body = <String, dynamic>{
-      'structuredQuery': structuredQuery,
-    };
-    if (path.contains('/') && !isCollectionGroup) {
-      final parentPath = path.split('/')..removeLast();
-      body['parent'] = '${_documentsRoot(app)}/${parentPath.join('/')}';
-    } else {
-      body['parent'] = _documentsRoot(app);
-    }
+    // Firestore's REST runQuery takes the collection's parent document in the
+    // URL path. Putting `parent` in the JSON body (or using the full collection
+    // path as the URL parent) is rejected by the API for subcollections.
+    final parentPath = path.contains('/') && !isCollectionGroup
+        ? (path.split('/')..removeLast()).join('/')
+        : null;
 
     final decoded = await _request(
       app,
       method: 'POST',
+      path: parentPath,
       suffix: ':runQuery',
-      body: body,
+      body: {'structuredQuery': structuredQuery},
     );
 
-    final documents = <InternalDocumentSnapshot?>[];
+    final documents = <PigeonWireValue>[];
     if (decoded is List) {
       for (final entry in decoded) {
         if (entry is! Map) continue;
@@ -270,32 +411,37 @@ class _LiveFirestoreRestClient {
         if (document is! Map) continue;
         final name = document['name']?.toString() ?? '';
         final docPath = _pathFromDocumentName(name);
-        documents.add(_toPigeonDocumentSnapshot(docPath, document));
+        documents.add(_documentWire(docPath, document));
       }
     }
 
-    return InternalQuerySnapshot(
-      documents: documents,
-      documentChanges: documents
-          .whereType<InternalDocumentSnapshot>()
-          .map(
-            (document) => InternalDocumentChange(
-              type: DocumentChangeType.added,
-              document: document,
-              oldIndex: -1,
-              newIndex: documents.indexOf(document),
-            ),
-          )
-          .toList(),
-      metadata: InternalSnapshotMetadata(
-        hasPendingWrites: false,
-        isFromCache: options.source == Source.cache,
-      ),
+    final changes = <PigeonWireValue>[
+      for (var index = 0; index < documents.length; index++)
+        PigeonWireValue(
+          _legacyFirestorePigeon ? 132 : 142,
+          <Object?>[
+            if (_legacyFirestorePigeon) 0 else PigeonWireValue(129, 0),
+            _legacyFirestorePigeon ? documents[index].value : documents[index],
+            -1,
+            index,
+          ],
+        ),
+    ];
+    return PigeonWireValue(
+      _legacyFirestorePigeon ? 138 : 143,
+      <Object?>[
+        documents,
+        changes,
+        _metadataPayload(
+          hasPendingWrites: false,
+          isFromCache: options.sourceIndex == Source.cache.index,
+        ),
+      ],
     );
   }
 
   Future<dynamic> _request(
-    FirestorePigeonFirebaseApp app, {
+    _FirestoreApp app, {
     required String method,
     String? path,
     String suffix = '',
@@ -316,51 +462,68 @@ class _LiveFirestoreRestClient {
       '${queryParts.isEmpty ? '' : '?${queryParts.join('&')}'}',
     );
 
-    final client = HttpClient();
-    try {
-      late final HttpClientRequest request;
-      switch (method) {
-        case 'GET':
-          request = await client.getUrl(uri);
-        case 'DELETE':
-          request = await client.deleteUrl(uri);
-        case 'PATCH':
-          request = await client.patchUrl(uri);
-        case 'POST':
-          request = await client.postUrl(uri);
-        default:
-          throw UnsupportedError('Unsupported HTTP method: $method');
-      }
-      request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
-      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $idToken');
-      if (body != null) {
-        request.write(jsonEncode(body));
-      }
+    // Reads are safe to retry if the REST transport drops a TLS connection
+    // while streaming a response. Do not replay writes: a lost write response
+    // leaves its commit outcome unknown.
+    final retryableRead =
+        method == 'GET' || (method == 'POST' && suffix == ':runQuery');
+    var attempt = 0;
+    const maxReadRetries = 3;
+    while (true) {
+      final client = createRealNetworkHttpClient();
+      try {
+        late final HttpClientRequest request;
+        switch (method) {
+          case 'GET':
+            request = await client.getUrl(uri);
+          case 'DELETE':
+            request = await client.deleteUrl(uri);
+          case 'PATCH':
+            request = await client.patchUrl(uri);
+          case 'POST':
+            request = await client.postUrl(uri);
+          default:
+            throw UnsupportedError('Unsupported HTTP method: $method');
+        }
+        request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+        if (idToken.isNotEmpty) {
+          request.headers
+              .set(HttpHeaders.authorizationHeader, 'Bearer $idToken');
+        }
+        if (body != null) {
+          request.write(jsonEncode(body));
+        }
 
-      final response = await request.close();
-      final responseBody = await response.transform(utf8.decoder).join();
+        final response = await request.close();
+        final responseBody = await response.transform(utf8.decoder).join();
 
-      if (response.statusCode == 404 && method == 'GET') {
-        return null;
-      }
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw PlatformException(
-          code: 'firestore',
-          message: 'HTTP ${response.statusCode} $method $uri: $responseBody',
+        if (response.statusCode == 404 && method == 'GET') {
+          return null;
+        }
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          throw PlatformException(
+            code: 'firestore',
+            message: 'HTTP ${response.statusCode} $method $uri: $responseBody',
+          );
+        }
+        if (responseBody.isEmpty) {
+          return null;
+        }
+        return jsonDecode(responseBody);
+      } catch (error) {
+        if (!retryableRead ||
+            attempt >= maxReadRetries ||
+            error is! IOException) {
+          rethrow;
+        }
+        attempt++;
+        await Future<void>.delayed(
+          Duration(milliseconds: 250 * (1 << (attempt - 1))),
         );
+      } finally {
+        client.close(force: true);
       }
-      if (responseBody.isEmpty) {
-        return null;
-      }
-      return jsonDecode(responseBody);
-    } finally {
-      client.close();
     }
-  }
-
-  String _documentsRoot(FirestorePigeonFirebaseApp app) {
-    final projectId = _projectIdForApp(app.appName);
-    return 'projects/$projectId/databases/(default)/documents';
   }
 }
 
@@ -420,33 +583,186 @@ Map<String, dynamic> _encodeValue(Object? value) {
       nested[nestedKey] = _encodeValue(nestedValue);
     });
     return {
-      'mapValue': {'fields': nested}
+      'mapValue': {'fields': nested},
     };
   }
   if (value is Iterable) {
     return {
-      'arrayValue': {
-        'values': value.map(_encodeValue).toList(),
-      },
+      'arrayValue': {'values': value.map(_encodeValue).toList()},
     };
   }
   return {'stringValue': value.toString()};
 }
 
-InternalDocumentSnapshot _toPigeonDocumentSnapshot(
-  String path,
-  Map<dynamic, dynamic> document,
+Map<String, dynamic> _encodeQueryFilters(List<List<Object?>?> conditions) {
+  final filters = <Map<String, dynamic>>[];
+  for (final condition in conditions) {
+    if (condition == null || condition.length < 3) continue;
+    filters.add(_encodeFieldFilter(condition[0], condition[1], condition[2]));
+  }
+  if (filters.isEmpty) {
+    throw StateError(
+        'Firestore query had a where clause that could not be encoded.');
+  }
+  if (filters.length == 1) return filters.single;
+  return {
+    'compositeFilter': {'op': 'AND', 'filters': filters},
+  };
+}
+
+String _restFieldPath(List<String> components) => components
+    .map((component) => component.contains('.') ? '`$component`' : component)
+    .join('.');
+
+String _queryFieldPath(Object? rawField) => switch (rawField) {
+      FieldPath path => _restFieldPath(path.components),
+      FieldPathType.documentId => '__name__',
+      String field => field,
+      _ =>
+        throw UnsupportedError('Unsupported Firestore field path: $rawField'),
+    };
+
+Map<String, dynamic> _encodeFieldFilter(
+  Object? rawField,
+  Object? rawOperator,
+  Object? value,
 ) {
-  final fields = document['fields'];
-  return InternalDocumentSnapshot(
-    path: path,
-    data: fields is Map
-        ? _decodeFields(fields.cast<Object?, Object?>())
-        : <String?, Object?>{},
-    metadata: InternalSnapshotMetadata(
-      hasPendingWrites: false,
-      isFromCache: false,
-    ),
+  final field = _queryFieldPath(rawField);
+  final operator = rawOperator?.toString();
+  final restOperator = switch (operator) {
+    '==' => 'EQUAL',
+    '!=' => 'NOT_EQUAL',
+    '<' => 'LESS_THAN',
+    '<=' => 'LESS_THAN_OR_EQUAL',
+    '>' => 'GREATER_THAN',
+    '>=' => 'GREATER_THAN_OR_EQUAL',
+    'array-contains' => 'ARRAY_CONTAINS',
+    'array-contains-any' => 'ARRAY_CONTAINS_ANY',
+    'in' => 'IN',
+    'not-in' => 'NOT_IN',
+    _ =>
+      throw UnsupportedError('Unsupported Firestore query operator: $operator'),
+  };
+  if (value == null && (operator == '==' || operator == '!=')) {
+    return {
+      'unaryFilter': {
+        'field': {'fieldPath': field},
+        'op': operator == '==' ? 'IS_NULL' : 'IS_NOT_NULL',
+      },
+    };
+  }
+  return {
+    'fieldFilter': {
+      'field': {'fieldPath': field},
+      'op': restOperator,
+      'value': _encodeValue(value),
+    },
+  };
+}
+
+Map<String, dynamic> _encodeFilterMap(Map<String?, Object?> filter) {
+  final operator = filter['op']?.toString();
+  final queries = filter['queries'];
+  if ((operator == 'AND' || operator == 'OR') && queries is List) {
+    return {
+      'compositeFilter': {
+        'op': operator,
+        'filters': [
+          for (final query in queries)
+            if (query is Map) _encodeFilterMap(query.cast<String?, Object?>()),
+        ],
+      },
+    };
+  }
+  return _encodeFieldFilter(
+    filter['fieldPath'],
+    filter['op'],
+    filter['value'],
+  );
+}
+
+List<Map<String, dynamic>> _encodeOrderBy(List<List<Object?>?> orderBy) => [
+      for (final order in orderBy)
+        if (order != null && order.isNotEmpty)
+          {
+            'field': {'fieldPath': _queryFieldPath(order[0])},
+            'direction': order.length > 1 &&
+                    order[1].toString().toLowerCase().contains('desc')
+                ? 'DESCENDING'
+                : 'ASCENDING',
+          },
+    ];
+
+Map<String, dynamic> _encodeCursor(List<Object?> values,
+        {required bool inclusive}) =>
+    {
+      'values': values.map(_encodeValue).toList(),
+      'before': inclusive,
+    };
+
+class FirestorePigeonDecoder extends FirestoreMessageCodec {
+  const FirestorePigeonDecoder(this.legacy);
+
+  final bool legacy;
+
+  @override
+  Object? readValueOfType(int type, ReadBuffer buffer) {
+    // FieldPath uses a Firestore extension code which the public data codec
+    // writes but intentionally leaves for its test-specific decoder to read.
+    if (type == 192) {
+      final count = readSize(buffer);
+      final components = <String>[];
+      for (var index = 0; index < count; index++) {
+        components.add(readValue(buffer)! as String);
+      }
+      return FieldPath(components);
+    }
+    final isPigeonType =
+        legacy ? type >= 128 && type <= 140 : type >= 129 && type <= 152;
+    if (isPigeonType) {
+      return PigeonWireValue(type, readValue(buffer));
+    }
+    return super.readValueOfType(type, buffer);
+  }
+}
+
+PigeonWireValue _documentWire(
+  String path,
+  Map<dynamic, dynamic>? document,
+) {
+  final fields = document?['fields'];
+  return PigeonWireValue(
+    _legacyFirestorePigeon ? 134 : 141,
+    <Object?>[
+      path,
+      fields is Map
+          ? _decodeFields(fields.cast<Object?, Object?>())
+          : <String?, Object?>{},
+      _metadataPayload(hasPendingWrites: false, isFromCache: false),
+    ],
+  );
+}
+
+Object _metadataPayload({
+  required bool hasPendingWrites,
+  required bool isFromCache,
+}) {
+  final payload = <Object?>[hasPendingWrites, isFromCache];
+  return _legacyFirestorePigeon ? payload : PigeonWireValue(140, payload);
+}
+
+_DocumentOption? _decodeDocumentOption(Object? value) {
+  if (value is PigeonWireValue) value = value.value;
+  if (value is List) {
+    return _DocumentOption(
+      value[0] as bool?,
+      (value[1] as List?)?.cast<List<String?>?>(),
+    );
+  }
+  if (value == null) return null;
+  return _DocumentOption(
+    (value as dynamic).merge as bool?,
+    (value as dynamic).mergeFields as List<List<String?>?>?,
   );
 }
 
@@ -523,15 +839,11 @@ String _projectIdForApp(String appName) {
 }
 
 String _idTokenForApp(String appName) {
-  final session = liveAuthSessionForApp(appName) ??
-      liveAuthSessionForApp(defaultFirebaseAppName);
-  final token = session?.idToken;
-  if (token == null || token.isEmpty) {
-    throw PlatformException(
-      code: 'firestore',
-      message:
-          'No signed-in Firebase user for Firestore REST call (app: $appName).',
-    );
-  }
-  return token;
+  final token = liveAuthIdTokenForApp(appName) ??
+      liveAuthIdTokenForApp(defaultFirebaseAppName) ??
+      Platform.environment['ENSEMBLE_TEST_FIREBASE_ID_TOKEN'];
+  // Public Firestore reads work without a token. Private reads correctly return
+  // Firestore's permission-denied response unless the test supplies a real ID
+  // token or signs in through the app's real custom-token flow.
+  return token ?? '';
 }

@@ -281,8 +281,30 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
       for (var i = 0; i < kept.length; i++) kept[i].element: i,
     };
     final drop = <int>{};
+    // The generated Ensemble app root and the authored screen root can be
+    // separate Flutter branches while exposing the same full-screen bounds.
+    // Remove the generated entry when the report would otherwise show the
+    // identical visual widget twice. This must be checked across the snapshot,
+    // not only along Flutter ancestry.
+    for (var i = 0; i < kept.length; i++) {
+      final generatedId = kept[i].ui.testId;
+      if (!_isGeneratedEnsembleAppId(generatedId)) continue;
+      for (var j = 0; j < kept.length; j++) {
+        if (i == j) continue;
+        final authored = kept[j].ui;
+        if (authored.testId != null &&
+            authored.testId!.trim().isNotEmpty &&
+            !_isGeneratedEnsembleAppId(authored.testId) &&
+            kept[i].ui.type == authored.type &&
+            _sameObserveBounds(kept[i].ui.bounds, authored.bounds)) {
+          drop.add(i);
+          break;
+        }
+      }
+    }
 
     for (var i = 0; i < kept.length; i++) {
+      if (drop.contains(i)) continue;
       final child = kept[i].ui;
       UiElement? parentUi;
       int? parentIndex;
@@ -302,6 +324,29 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
           child.testId != null && child.testId!.trim().isNotEmpty;
       final parentKeyed =
           parentUi!.testId != null && parentUi!.testId!.trim().isNotEmpty;
+      // Ensemble can expose the same authored id on its keyed host and the
+      // keyed widget it wraps. When both nodes describe the exact same visual
+      // bounds, retain the outer owner once instead of publishing a duplicate
+      // locator path (for example widget sports_0 > widget sports_0).
+      if (parentKeyed &&
+          childKeyed &&
+          parentUi!.testId == child.testId &&
+          pType == cType &&
+          _sameObserveBounds(parentUi!.bounds, child.bounds)) {
+        drop.add(i);
+        continue;
+      }
+      // Ensemble text widgets expose a keyed host that is classified as text
+      // from its rendered Text descendant. Keep the host as the locator and
+      // avoid publishing that same caption a second time as a child. A child
+      // with its own testId remains an independent locator and is preserved.
+      if (pType == 'text' &&
+          cType == 'text' &&
+          !childKeyed &&
+          _sameObserveText(parentUi!, child)) {
+        drop.add(i);
+        continue;
+      }
       if (pType == 'icon' && (cType == 'icon' || cType == 'text')) {
         if (!childKeyed) drop.add(i);
         continue;
@@ -360,6 +405,9 @@ List<({Element element, UiElement ui})> dropRedundantNestedObserveLeaves(
   });
 }
 
+bool _isGeneratedEnsembleAppId(String? id) =>
+    id != null && id.startsWith('ensemble_app_');
+
 bool _sameObserveCaption(UiElement parent, UiElement child) {
   final childText = (child.text ?? child.label)?.trim();
   if (childText == null || childText.isEmpty) return true;
@@ -367,6 +415,21 @@ bool _sameObserveCaption(UiElement parent, UiElement child) {
   if (parentText == null || parentText.isEmpty) return false;
   if (parentText == childText) return true;
   return parentText.split('\n').first.trim() == childText;
+}
+
+bool _sameObserveText(UiElement parent, UiElement child) {
+  final parentText = (parent.text ?? parent.label)?.trim();
+  final childText = (child.text ?? child.label)?.trim();
+  return parentText != null && parentText.isNotEmpty && parentText == childText;
+}
+
+bool _sameObserveBounds(UiBounds? first, UiBounds? second) {
+  if (first == null || second == null) return false;
+  const tolerance = 0.5;
+  return (first.left - second.left).abs() <= tolerance &&
+      (first.top - second.top).abs() <= tolerance &&
+      (first.width - second.width).abs() <= tolerance &&
+      (first.height - second.height).abs() <= tolerance;
 }
 
 /// Fold nearby standalone label [Text] into form controls and drop duplicates.

@@ -117,6 +117,11 @@ void main() {
     final properties = args['properties'] as Map<String, dynamic>;
 
     expect(properties, contains('timeoutMs'));
+    expect(properties, contains('name'));
+    expect(properties, isNot(contains('names')));
+    final name = properties['name'] as Map<String, dynamic>;
+    expect(name['oneOf'], hasLength(2));
+    expect(args['required'], contains('name'));
   });
 
   test('schema allows timeoutMs on expectText only', () {
@@ -196,7 +201,6 @@ void main() {
     expect(properties, isNot(contains('record')));
     expect(properties, contains('performance'));
     expect(properties, contains('timers'));
-    expect(properties, contains('dumpTree'));
     expect(properties, contains('logStorage'));
     expect(properties, contains('wifi'));
     expect(defs, contains('inlineMocks'));

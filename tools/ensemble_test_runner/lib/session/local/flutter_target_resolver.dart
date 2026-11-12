@@ -217,6 +217,7 @@ class FlutterTargetResolver {
         locator,
         allowEmpty: allowEmpty,
         rootLocator: locator,
+        requireInteractive: requireInteractive,
       );
       var matches = finder.evaluate().toList();
       RunnerBenchmark.count('locatorCandidates', matches.length);
@@ -236,7 +237,14 @@ class FlutterTargetResolver {
             .toList();
       }
       matches = _collapseOverlappingMatches(matches, locator);
-      if (requireInteractive && !scopedDescendantsOnly) {
+      // For ID locators, occurrence identifies the authored widget, not the
+      // interactive ancestor used to dispatch a tap. Keep the ID matches in
+      // tree order until occurrence is applied below, then promote only that
+      // selected widget to its actionable control. Filtering/promoting first
+      // can reorder or collapse repeated IDs and make waitFor(id, occurrence)
+      // select a different element from tap(id, occurrence).
+      final promoteSelectedId = requireInteractive && locator.id != null;
+      if (requireInteractive && !scopedDescendantsOnly && !promoteSelectedId) {
         matches = matches
             .where((element) => _isActionable(element, allowOffscreen))
             .toList();
@@ -269,6 +277,17 @@ class FlutterTargetResolver {
               '(${matches.length} matches).',
           details: {'locator': locator.toJson(), 'occurrence': occurrence},
         );
+      }
+      if (promoteSelectedId) {
+        final selected = _interactiveTargetForId(matches[occurrence]);
+        if (selected == null || !_isActionable(selected, allowOffscreen)) {
+          throw TestExecutionError(
+            code: TestExecutionErrorCode.elementNotFound,
+            message: '${_describeLocator(locator)} has no interactive target.',
+            details: {'locator': locator.toJson(), 'occurrence': occurrence},
+          );
+        }
+        return [selected];
       }
       if (matches.length == 1) return matches;
       return [matches[occurrence]];
@@ -380,6 +399,7 @@ class FlutterTargetResolver {
     ElementLocator locator, {
     bool allowEmpty = false,
     ElementLocator? rootLocator,
+    bool requireInteractive = false,
   }) {
     final within = locator.within;
     Element? ancestor;
@@ -438,9 +458,7 @@ class FlutterTargetResolver {
     final id = locator.id;
     // Resolve id via testId-first finder once; avoid O(n²) Invokable subtree
     // walks inside the per-element predicate.
-    final idMatches = id == null
-        ? null
-        : finderForLocatorId(id, skipOffstage: false).evaluate().toSet();
+    final idMatches = id == null ? null : _locatorIdTargetElements(id).toSet();
     return find.byElementPredicate(
       (element) {
         if (scopedAncestor != null &&
@@ -451,9 +469,10 @@ class FlutterTargetResolver {
           return false;
         }
         final text = locator.text;
-        if (text != null &&
-            (!isTextLocatorCandidate(element) || readText(element) != text)) {
-          return false;
+        if (text != null) {
+          final actual = readText(element);
+          final matches = text is List ? text.contains(actual) : actual == text;
+          if (!isTextLocatorCandidate(element) || !matches) return false;
         }
         final label = locator.label;
         if (label != null) {
@@ -489,6 +508,57 @@ class FlutterTargetResolver {
     );
   }
 
+  List<Element> _locatorIdTargetElements(String id) {
+    var roots = finderForLocatorId(id, skipOffstage: false).evaluate().toList();
+    if (roots.isEmpty) {
+      // Some Ensemble controls (notably TextInput) expose their YAML id via
+      // Invokable but do not build the KeyedSubtree used by EnsembleWidget.
+      // Observation already reports those ids; use the same direct-id source
+      // as a fallback so waits/actions can target the observed control.
+      roots = find
+          .byElementPredicate(
+            (element) => readOwnedWidgetLocatorId(element) == id,
+            skipOffstage: false,
+          )
+          .evaluate()
+          .toList();
+    }
+    return roots;
+  }
+
+  Element? _interactiveTargetForId(Element root) {
+    // A visible ancestor can geometrically cover an offstage target. Reject
+    // the authored element before looking for a gesture ancestor so a tap
+    // cannot silently land on an unrelated visible control.
+    if (isUnderOffstageAncestor(root) || !isUnderCurrentModalRoute(root)) {
+      return null;
+    }
+    // Promote the authored wrapper after occurrence selection. ProxyWidgets
+    // can expose a descendant RenderObject, so renderObject presence alone
+    // does not mean the keyed wrapper is the actual control.
+    var target = findPrimaryControlDescendant(root) ?? root;
+    if (readEnabled(target) != false &&
+        assertions.isElementVisuallyActionable(target)) {
+      return target;
+    }
+
+    // Some Ensemble components put testId on content while the gesture
+    // handler is attached to an ancestor.
+    Element? actionableAncestor;
+    target.visitAncestorElements((ancestor) {
+      if (isActionableControl(ancestor) &&
+          readEnabled(ancestor) != false &&
+          !isUnderOffstageAncestor(ancestor) &&
+          isUnderCurrentModalRoute(ancestor) &&
+          assertions.isElementVisuallyActionable(ancestor)) {
+        actionableAncestor = ancestor;
+        return false;
+      }
+      return true;
+    });
+    return actionableAncestor;
+  }
+
   bool _isDescendantOf(Element element, Element ancestor) {
     var found = false;
     element.visitAncestorElements((candidate) {
@@ -505,7 +575,7 @@ class FlutterTargetResolver {
     if (locator == null) return 'element';
     final fields = <String>[
       if (locator.id != null) 'id="${locator.id}"',
-      if (locator.text != null) 'text="${locator.text}"',
+      if (locator.text != null) 'text=${locator.text}',
       if (locator.label != null) 'label="${locator.label}"',
       if (locator.role != null) 'role="${locator.role}"',
       if (locator.bounds != null) 'bounds=${locator.bounds!.toJson()}',
@@ -602,7 +672,16 @@ void _writeLocator(StringBuffer buffer, ElementLocator? locator) {
   }
   buffer.write('l1;');
   _writeNullable(buffer, locator.id);
-  _writeNullable(buffer, locator.text);
+  final text = locator.text;
+  _writeNullable(buffer, text is String ? text : null);
+  if (text is List) {
+    buffer.write('a${text.length};');
+    for (final value in text) {
+      _writeNullable(buffer, value.toString());
+    }
+  } else {
+    buffer.write('a0;');
+  }
   _writeNullable(buffer, locator.label);
   _writeNullable(buffer, locator.role);
   _writeLocator(buffer, locator.within);

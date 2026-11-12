@@ -3,7 +3,11 @@
 /// instead of importing the individual Firebase bridges.
 library;
 
-import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart'
+    show
+        ensureFirebaseCoreMocksForTest,
+        ensureLiveAuthActionsForTest,
+        ensureTestAnalyticsProvider;
 import 'package:ensemble_test_runner/src/integrations/test_integration_registration.dart';
 
 /// Default Firebase integration for widget test execution.
@@ -20,5 +24,6 @@ void registerFirebaseTestSupport() {
 
 /// Installs Firebase auth actions after app bootstrap in widget tests.
 void registerFirebaseTestActions() {
+  ensureTestAnalyticsProvider();
   ensureLiveAuthActionsForTest();
 }

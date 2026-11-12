@@ -12,10 +12,10 @@ final _importPattern =
 
 void main() {
   final packageRoot = Directory.current.absolute;
-  const entryPoints = [
-    'lib/entry/ensemble_integration_test_entry.dart',
-    'lib/entry/application_test_entry.dart',
-  ];
+  // Application widget runs now install the shared Firebase integration by
+  // default. Keep only the native integration-test entry free of Firebase
+  // bridge imports; native plugins are owned by its host app.
+  const entryPoints = ['lib/entry/ensemble_integration_test_entry.dart'];
   final violations = <String>[];
 
   for (final entry in entryPoints) {

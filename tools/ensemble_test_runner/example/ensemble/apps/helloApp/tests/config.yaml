@@ -8,5 +8,8 @@ performance:
 services:
   - name: fixture
     command: dart
+    url: http://127.0.0.1:18761
     arguments: [run, tool/test_service.dart]
+    environment:
+      PORT: 18761
     readyUrl: /ready

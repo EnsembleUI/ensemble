@@ -328,7 +328,10 @@ Future<void> runEnsembleTestsCli(List<String> arguments) async {
 
   FlutterDevice? integrationDevice;
   try {
-    integrationDevice = await executionBackend.selectDevice(arguments);
+    integrationDevice = await executionBackend.selectDevice(
+      arguments,
+      flutterExecutable: resolveFlutterExecutable(appDir),
+    );
     if (integrationDevice != null) {
       _validatePlatformProject(appDir, integrationDevice.platform);
       suiteConfig = shard_planner.applyCliIntegrationDeviceMatrix(

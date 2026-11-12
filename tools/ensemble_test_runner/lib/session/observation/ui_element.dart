@@ -155,7 +155,6 @@ class UiElement {
       bounds: boundsJson,
       warning: locatorWarning,
       value: text,
-      secure: state.secure,
       checked: state.checked,
       options: options,
     );
@@ -168,7 +167,7 @@ class UiElement {
       if (type != null) 'type': type,
       if (role != null) 'role': role,
       if (label != null) 'label': label,
-      if (text != null && state.secure != true) 'text': text,
+      if (text != null) 'text': text,
       if (hint != null) 'hint': hint,
       if (options.isNotEmpty) 'options': options,
       if (suggestedLocator != null)

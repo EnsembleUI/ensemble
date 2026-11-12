@@ -39,12 +39,15 @@ bool shouldHighlightStep(TestStep step, {bool forFailure = false}) {
       step.type == 'expectVisible' ||
       step.type == 'expectValue' ||
       step.type == 'expectSemanticsLabel') {
-    final text = step.args['text']?.toString();
+    final rawText = step.args['text'];
     final anyOf = step.args['anyOf'];
     final id = step.args['id']?.toString();
+    final hasText = rawText is String
+        ? rawText.isNotEmpty
+        : rawText is List && rawText.isNotEmpty;
     final hasAnyOf = anyOf is List && anyOf.isNotEmpty;
     final hasTarget = step.args['target'] is Map;
-    return (text != null && text.isNotEmpty) ||
+    return hasText ||
         hasAnyOf ||
         (id != null && id.isNotEmpty) ||
         hasTarget;

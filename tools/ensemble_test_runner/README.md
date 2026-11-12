@@ -153,8 +153,6 @@ timers:
   # Optional per-screen maxNumberOfTimes cap (screen filename without .yaml).
   maxNumberOfTimesByScreen:
     FirmwareUpgrade: 15
-dumpTree:
-  enabled: true
 logApiCalls:
   enabled: true
 logStorage:
@@ -213,7 +211,9 @@ integrations and custom tooling through `package:ensemble_test_runner/ensemble_t
 - `runEnsembleTests` runs a suite from a Flutter test environment.
 - `runApplicationTests` runs pure Flutter or mixed suites through an
   `ApplicationTestDriver`. It selects widget vs integration from the CLI
-  `ensembleTestExecutionMode` dart-define.
+  `ensembleTestExecutionMode` dart-define. In widget mode it installs the
+  shared Firebase bridges automatically; host apps only initialize Firebase
+  with their own options and use their normal sign-in flow.
 - `ApplicationTestServices` exposes optional navigation, API, storage, and
   runtime metadata capabilities. `ApplicationCheckpointDriver` is required
   when host YAML uses `session:`.
@@ -284,6 +284,14 @@ import 'test_driver.dart';
 
 Future<void> main() => runApplicationTests(driver: MyAppTestDriver());
 ```
+
+Widget-mode Firebase support is included: Firebase Core, Auth, Firestore,
+Cloud Functions, and Remote Config channels are bridged by the runner. Public
+Firestore reads use the configured project without requiring a user token;
+private reads require the app's real sign-in flow or an optional
+`ENSEMBLE_TEST_FIREBASE_ID_TOKEN`. Remote Config uses app-configured defaults
+in widget mode and does not claim to fetch live values. Use integration mode
+when a test requires native plugin behavior or live Remote Config.
 
 Run it with paths relative to the application root:
 
@@ -499,8 +507,8 @@ The database also stores recent per-test durations used to balance the next
 run's worker shards. The report reads suite history and live run state from
 that same database.
 
-When `performance` / `dumpTree` are enabled, those payloads are embedded **per
-screen** in the current report stored in `ensemble_test.db` under
+When performance capture is enabled, those payloads are embedded per screen in
+the current report stored in `ensemble_test.db` under
 `test_results.report_data` / `tests[].report.screens`.
 
 ## Examples

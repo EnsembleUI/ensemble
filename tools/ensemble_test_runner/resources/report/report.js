@@ -3,6 +3,7 @@
   const POLL_MS = 5000;
   let pollTimer = null;
   let renderedComplete = false;
+  let renderedRunId = null;
   let activeFilter = 'all';
   let activeFeature = 'all';
   let activeProfile = 'all';
@@ -49,6 +50,43 @@
     const parenIndex = escaped.indexOf('(');
     if (parenIndex === -1) return '<span class="step-action">' + escaped + '</span>';
     return '<span class="step-action">' + escaped.substring(0, parenIndex) + '</span><span class="step-args">' + escaped.substring(parenIndex) + '</span>';
+  }
+
+  function ifVisibleOutcome(step, line) {
+    const match = /^\s*ifVisible\(([^)]+)\)/.exec(String(line || ''));
+    if (!match) return null;
+    const targetId = match[1].trim();
+    const observer = step && step.observer && step.observer.observationJson;
+    const roots = observer && Array.isArray(observer.elements) ? observer.elements : null;
+    if (!roots) return null;
+    let found = false;
+    function visit(nodes) {
+      (Array.isArray(nodes) ? nodes : []).forEach((node) => {
+        if (!node) return;
+        const id = node.id || (node.locator && node.locator.id);
+        if (String(id || '') === targetId && node.visible !== false && node.offscreen !== true) {
+          found = true;
+        }
+        visit(node.children);
+      });
+    }
+    visit(roots);
+    return found;
+  }
+
+  function stepOutlineTree(outline) {
+    const roots = [];
+    const stack = [];
+    (outline || []).forEach((line, index) => {
+      const raw = String(line || '');
+      const indent = (raw.match(/^\s*/) || [''])[0].length;
+      const node = { line: raw.trim(), index, indent, children: [] };
+      while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+      if (stack.length) stack[stack.length - 1].children.push(node);
+      else roots.push(node);
+      stack.push(node);
+    });
+    return roots;
   }
 
   function anchorId(testId) {
@@ -307,7 +345,7 @@
         };
       }
       const rows = rowsFromStatement(db.prepare(`
-        SELECT report_data AS reportData, status
+        SELECT id AS runId, report_data AS reportData, status
         FROM test_results
         WHERE record_type = 'run'
         ORDER BY id DESC
@@ -323,7 +361,10 @@
       }
       const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
       const text = await gunzipToText(bytes);
-      return await hydrateScreenshotArchive(hydrateReport(JSON.parse(text)));
+      return await hydrateScreenshotArchive({
+        ...hydrateReport(JSON.parse(text)),
+        reportRunId: Number(latestRun.runId),
+      });
   }
 
   async function loadHistory() {
@@ -397,7 +438,7 @@
 
   let pollInFlight = false;
   async function pollAndRender() {
-    if (pollInFlight || renderedComplete) return;
+    if (pollInFlight) return;
     pollInFlight = true;
     try {
       const report = await loadResults();
@@ -410,9 +451,9 @@
         return;
       }
       if (report.state === 'complete') {
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-        if (!renderedComplete) {
+        if (!renderedComplete || report.reportRunId !== renderedRunId) {
           renderedComplete = true;
+          renderedRunId = report.reportRunId;
           renderComplete(report);
         }
         return;
@@ -514,14 +555,40 @@
     listPane.innerHTML = '';
     detailPane.innerHTML = '<div id="details-placeholder" class="detail-placeholder"><div class="placeholder-icon">🔍</div><h3>No Test Selected</h3><p>Select a test case from the left list to inspect results, screen journeys, logs, and screenshots.</p></div>';
 
+    const detailsByCardId = new Map();
     groupedKeys.forEach(base => {
       const runs = grouped[base];
-      listPane.appendChild(buildSidebarCard(base, runs));
-      detailPane.appendChild(buildDetailsGroup(base, runs));
+      const cardId = anchorId(runs[0].id);
+      listPane.appendChild(buildSidebarCard(base, runs, () => {
+        let details = detailsByCardId.get(cardId);
+        if (!details) {
+          details = buildDetailsGroup(base, runs);
+          detailsByCardId.set(cardId, details);
+          detailPane.appendChild(details);
+        }
+
+        document.getElementById('details-placeholder').style.display = 'none';
+        document.querySelectorAll('.test-detail-content').forEach(d => d.style.display = 'none');
+        details.style.display = 'block';
+        const firstBtn = details.querySelector('.device-tab-btn');
+        if (firstBtn) firstBtn.click();
+        else {
+          const firstBlock = details.querySelector('.device-run-block');
+          if (firstBlock) firstBlock.style.display = 'block';
+        }
+        scheduleScreenshotChipLayout(details);
+      }));
     });
 
     const firstCard = document.querySelector('.test');
-    if (firstCard) firstCard.click();
+    if (firstCard) {
+      const selectFirstCard = () => firstCard.click();
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(selectFirstCard, { timeout: 1000 });
+      } else {
+        window.setTimeout(selectFirstCard, 0);
+      }
+    }
   }
 
   function formatDateTime(value) {
@@ -899,7 +966,7 @@
     host.innerHTML = html;
   }
 
-  function buildSidebarCard(base, runs) {
+  function buildSidebarCard(base, runs, onSelect) {
     const first = runs[0];
     const groupPassed = runs.every(r => r.status === 'passed');
     const maxDurationMs = Math.max(...runs.map(r => r.durationMs || 0));
@@ -925,17 +992,7 @@
     el.onclick = function() {
       document.querySelectorAll('.test').forEach(c => c.classList.remove('active'));
       el.classList.add('active');
-      document.getElementById('details-placeholder').style.display = 'none';
-      document.querySelectorAll('.test-detail-content').forEach(d => d.style.display = 'none');
-      const details = document.getElementById('details-' + cardId);
-      if (details) details.style.display = 'block';
-      const firstBtn = document.querySelector('#details-' + cardId + ' .device-tab-btn');
-      if (firstBtn) firstBtn.click();
-      else {
-        const firstBlock = document.querySelector('#details-' + cardId + ' .device-run-block');
-        if (firstBlock) firstBlock.style.display = 'block';
-      }
-      scheduleScreenshotChipLayout(details);
+      onSelect();
     };
     return el;
   }
@@ -1125,6 +1182,9 @@
     const visited = report.screensVisited || [];
     if (visited.length > 0) {
       const screensMap = report.screens || {};
+      const hasPerformance = Object.values(screensMap).some(
+        screen => screen && screen.performance
+      );
       const shortened = shortenScreenLabels(visited);
       const uniqueCount = new Set(visited).size;
       const seenCounts = {};
@@ -1133,6 +1193,9 @@
       html += '<span class="flow-meta-chip"><strong>' + visited.length + '</strong> screen' + (visited.length === 1 ? '' : 's') + '</span>';
       if (uniqueCount !== visited.length) {
         html += '<span class="flow-meta-chip"><strong>' + uniqueCount + '</strong> unique</span>';
+      }
+      if (hasPerformance) {
+        html += '<span class="flow-meta-chip performance-available">⚡ Performance available</span>';
       }
       if (shortened.prefix) {
         html += '<span class="flow-meta-chip prefix" title="Shared screen prefix">' + escapeHtml(shortened.prefix) + '</span>';
@@ -1151,16 +1214,26 @@
         if (hasData) classes.push('interactive');
         const titleParts = [s];
         if (isRevisit) titleParts.push('visit #' + visitNum);
-        if (hasData) titleParts.push('Click for widget tree & performance');
+        if (hasData) {
+          const screen = screensMap[s] || {};
+          const hasPerformance = screen.performance &&
+            typeof screen.performance === 'object';
+          titleParts.push(hasPerformance
+            ? 'Click to view screen performance'
+            : 'Click to inspect screen evidence');
+        }
         const title = titleParts.join(' · ');
         const tag = hasData ? 'button' : 'span';
         const typeAttr = hasData ? ' type="button"' : '';
         const clickAttr = hasData
-          ? ' onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"'
+          ? ' onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\', ' + j + ', \'' + stepKey + '\', ' + i + ')"'
           : '';
         html += '<' + tag + typeAttr + ' class="' + classes.join(' ') + '" title="' + escapeHtml(title) + '"' + clickAttr + '>';
         html += '<span class="flow-idx">' + (j + 1) + '</span>';
         html += '<span class="flow-name">' + escapeHtml(label) + '</span>';
+        if (screensMap[s] && screensMap[s].performance) {
+          html += '<span class="flow-performance" aria-label="Performance data available" title="Performance data available">⚡</span>';
+        }
         if (isRevisit) html += '<span class="flow-revisit">×' + visitNum + '</span>';
         if (hasData) html += '<span class="flow-inspect" aria-hidden="true"></span>';
         html += '</' + tag + '>';
@@ -1172,22 +1245,43 @@
     const durations = report.stepDurationsMs || [];
     if (outline.length) {
       html += '<div class="timeline-steps-container"><div class="timeline-header">Steps Outline</div><div class="timeline-steps-track">';
-      let top = -1;
-      outline.forEach((line, j) => {
-        const nested = line.startsWith('  ');
-        if (!nested) top++;
-        const durationMs = (!nested && top < durations.length) ? durations[top] : null;
-        const failed = !nested && test.failedStepIndex != null && test.failedStepIndex === top;
-        const skipped = !nested && test.failedStepIndex != null && top > test.failedStepIndex;
+      const roots = stepOutlineTree(outline);
+      function renderOutlineNode(node, topIndex, context) {
+        const isRoot = context == null;
+        const branch = isRoot ? ifVisibleOutcome((test.steps || [])[topIndex], node.line) : context.branch;
+        const parentSkipped = isRoot
+          ? ((test.failedStepIndex != null && topIndex > test.failedStepIndex) || branch === false)
+          : context.skipped;
+        const parentUnverified = isRoot
+          ? (/^\s*ifVisible\(/.test(node.line) && branch == null)
+          : context.unverified;
+        const durationMs = isRoot && topIndex < durations.length && durations[topIndex] >= 0
+          ? durations[topIndex]
+          : null;
+        const failed = test.failedStepIndex != null && (isRoot ? test.failedStepIndex === topIndex : test.failedStepIndex === node.index);
         const speedClass = durationMs == null ? 'fast' : (durationMs < 500 ? 'fast' : (durationMs < 2000 ? 'normal' : 'slow'));
-        html += '<div class="timeline-step-row' + (failed ? ' failed-step' : (skipped ? ' skipped-step' : '')) + '" style="cursor:pointer;" onclick="openStepDialog(\'' + stepKey + '\', ' + j + ')">';
+        const stateClass = failed ? ' failed-step' : (parentSkipped ? ' skipped-step' : (parentUnverified ? ' unverified-step' : ''));
+        if (node.children.length) html += '<div class="timeline-step-group' + (node.indent > 0 ? ' nested-step-group' : '') + '">';
+        html += '<div class="timeline-step-row' + stateClass + '" role="button" tabindex="0" style="cursor:pointer;" onclick="openStepDialog(\'' + stepKey + '\', ' + node.index + ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openStepDialog(\'' + stepKey + '\', ' + node.index + ')}">';
         html += '<div class="timeline-marker"><span class="marker-dot"></span></div><div class="step-outline-body"><div class="step-outline-top-row">';
-        html += '<div class="step-outline-text">' + formatStepText(line) + '</div>';
+        html += '<div class="step-outline-text">' + formatStepText(node.line) + '</div>';
+        if (isRoot && /^\s*ifVisible\(/.test(node.line)) {
+          const outcome = branch == null ? 'unverified' : (branch ? 'ran' : 'skipped');
+          const label = branch == null ? 'UNVERIFIED' : (branch ? 'RAN' : 'SKIPPED');
+          html += '<span class="conditional-outcome ' + outcome + '">' + label + '</span>';
+        }
         if (durationMs != null) html += '<span class="step-duration ' + speedClass + '">' + escapeHtml(formatDuration(durationMs)) + '</span>';
         html += '</div>';
         if (failed && test.message) html += '<div class="step-error-reason">' + escapeHtml(test.message) + '</div>';
         html += '</div></div>';
-      });
+        if (node.children.length) {
+          html += '<div class="timeline-step-children">';
+          const childContext = { topIndex, branch, skipped: parentSkipped, unverified: parentUnverified };
+          node.children.forEach(child => renderOutlineNode(child, topIndex, childContext));
+          html += '</div></div>';
+        }
+      }
+      roots.forEach((root, rootIndex) => renderOutlineNode(root, rootIndex, null));
       html += '</div></div>';
     }
 
@@ -1225,6 +1319,21 @@
     }).join('');
   }
 
+  function formatApiDuration(ev, isCompleted) {
+    const format = value => {
+      const milliseconds = Math.max(0, Number(value));
+      return milliseconds === 0
+      ? '<1 ms'
+      : (milliseconds < 1000
+        ? Math.round(milliseconds) + ' ms'
+        : (milliseconds / 1000).toFixed(2).replace(/\.?0+$/, '') + ' s');
+    };
+    if (isCompleted && ev.providerDurationMs != null && Number.isFinite(Number(ev.providerDurationMs))) {
+      return format(ev.providerDurationMs);
+    }
+    return '';
+  }
+
   function renderApiRows(events) {
     if (!events || !events.length) {
       return '<div class="terminal-row" style="color: var(--text-muted);">&lt;no API requests recorded&gt;</div>';
@@ -1238,9 +1347,12 @@
       const timeMatch = /T(\d{2}:\d{2}:\d{2})/.exec(timestamp);
       if (timeMatch) timePart = '[' + timeMatch[1] + '] ';
       const hasError = ev.error != null || ev.failed === true || ev.exception != null;
-      const isSuccess = statusCode != null ? (statusCode >= 200 && statusCode < 300) : !hasError;
-      const displayStatus = statusCode != null ? statusCode : (isSuccess ? '200' : 'ERROR');
-      const badgeClass = mocked ? 'info' : (isSuccess ? 'passed' : 'failed');
+      const hasResponseBody = Object.prototype.hasOwnProperty.call(ev, 'responseBody');
+      const isCompleted = ev.completed === true || hasResponseBody || statusCode != null || hasError;
+      const isSuccess = statusCode != null ? (statusCode >= 200 && statusCode < 300) : (isCompleted && !hasError);
+      const isPending = statusCode == null && !hasError && !isCompleted;
+      const displayStatus = statusCode != null ? statusCode : (hasError ? 'ERROR' : (isPending ? 'PENDING' : 'OK'));
+      const badgeClass = mocked ? 'info' : (isPending ? 'info' : (isSuccess ? 'passed' : 'failed'));
       let badgeText = 'API';
       if (mocked) badgeText = 'MOCK';
       else {
@@ -1248,8 +1360,10 @@
         if (type === 'firestore') badgeText = 'FIRESTORE';
         else if (type === 'functions') badgeText = 'FUNC';
       }
-      const statusColor = isSuccess ? 'var(--pass)' : 'var(--fail)';
-      return '<div class="terminal-row"><span class="terminal-timestamp">' + escapeHtml(timePart) + '</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span style="font-weight: 700; color: #fff;">' + escapeHtml(name) + '</span> · <span style="color: ' + statusColor + '; font-weight: 700;">' + displayStatus + '</span></div>';
+      const statusColor = isPending ? 'var(--text-muted)' : (isSuccess ? 'var(--pass)' : 'var(--fail)');
+      const duration = formatApiDuration(ev, isCompleted);
+      const durationHtml = duration ? '<span style="color: var(--text-muted);"> · ' + escapeHtml(duration) + '</span>' : '';
+      return '<div class="terminal-row"><span class="terminal-timestamp">' + escapeHtml(timePart) + '</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span style="font-weight: 700; color: #fff;">' + escapeHtml(name) + '</span> · <span style="color: ' + statusColor + '; font-weight: 700;">' + displayStatus + '</span>' + durationHtml + '</div>';
     }).join('');
   }
 
@@ -1262,6 +1376,9 @@
       if (String(step.stepText || '').startsWith('  ')) continue;
       const items = step[field] || [];
       for (let j = 0; j < items.length; j++) out.push(items[j]);
+    }
+    if (field === 'apiCalls' && Array.isArray(test.apiCallsOutsideSteps)) {
+      out.push(...test.apiCallsOutsideSteps);
     }
     return out;
   }
@@ -1529,9 +1646,13 @@
         let timePart = '';
         const timeMatch = /T(\d{2}:\d{2}:\d{2})/.exec(timestamp);
         if (timeMatch) timePart = '[' + timeMatch[1] + '] ';
-        const isSuccess = statusCode != null ? (statusCode >= 200 && statusCode < 300) : (ev.error == null && ev.failed !== true && ev.exception == null);
-        const displayStatus = statusCode != null ? statusCode : (isSuccess ? '200' : 'ERROR');
-        const badgeClass = mocked ? 'info' : (isSuccess ? 'passed' : 'failed');
+        const hasError = ev.error != null || ev.failed === true || ev.exception != null;
+        const hasResponseBody = Object.prototype.hasOwnProperty.call(ev, 'responseBody');
+        const isCompleted = ev.completed === true || hasResponseBody || statusCode != null || hasError;
+        const isSuccess = statusCode != null ? (statusCode >= 200 && statusCode < 300) : (isCompleted && !hasError);
+        const isPending = statusCode == null && !hasError && !isCompleted;
+        const displayStatus = statusCode != null ? statusCode : (hasError ? 'ERROR' : (isPending ? 'PENDING' : 'OK'));
+        const badgeClass = mocked ? 'info' : (isPending ? 'info' : (isSuccess ? 'passed' : 'failed'));
         let badgeText = 'API';
         if (mocked) badgeText = 'MOCK';
         else {
@@ -1539,12 +1660,15 @@
           if (type === 'firestore') badgeText = 'FIRESTORE';
           else if (type === 'functions') badgeText = 'FUNC';
         }
-        const statusColor = isSuccess ? 'var(--pass)' : 'var(--fail)';
+        const statusColor = isPending ? 'var(--text-muted)' : (isSuccess ? 'var(--pass)' : 'var(--fail)');
+        const duration = formatApiDuration(ev, isCompleted);
+        const durationHtml = duration ? '<span style="color: var(--text-muted); font-weight: 500;"> · ' + escapeHtml(duration) + '</span>' : '';
         let prettyResponse = '';
-        if (ev.responseBody) {
+        if (hasResponseBody) {
           try {
             prettyResponse = typeof ev.responseBody === 'string' ? JSON.stringify(JSON.parse(ev.responseBody), null, 2) : JSON.stringify(ev.responseBody, null, 2);
           } catch (e) { prettyResponse = String(ev.responseBody); }
+          if (prettyResponse === undefined) prettyResponse = 'undefined';
         }
         const request = ev.request || {};
         const method = request.method || 'GET';
@@ -1564,9 +1688,13 @@
         const container = document.createElement('div');
         container.className = 'api-event-container';
         const errorHtml = errorMsg ? '<div class="api-detail-section"><div class="api-detail-label" style="color: var(--fail);">Error</div><div style="color: var(--fail); font-weight: 700;">' + escapeHtml(errorMsg) + '</div></div>' : '';
-        const responseHtml = prettyResponse ? '<div class="api-detail-section"><div class="api-detail-label">Response Body</div><pre class="api-detail-pre">' + escapeHtml(prettyResponse) + '</pre></div>' : '';
+        const responseHtml = hasResponseBody
+          ? '<div class="api-detail-section"><div class="api-detail-label">Response Body</div><pre class="api-detail-pre">' + escapeHtml(prettyResponse) + '</pre></div>'
+          : (isPending
+            ? '<div class="api-detail-section"><div class="api-detail-label">Response</div><div style="color: var(--text-muted);">No response had arrived when this event was captured.</div></div>'
+            : '');
         const requestHtml = url ? '<div class="api-detail-section"><div class="api-detail-label">Request</div><div class="api-detail-url"><span style="color: var(--accent); font-weight: 700; margin-right: 6px;">' + escapeHtml(method) + '</span>' + escapeHtml(url) + '</div>' + requestDetailsHtml + '</div>' : '';
-        container.innerHTML = '<div class="api-event-header" onclick="toggleApiDetails(this)"><div class="api-event-header-left"><span class="api-caret">▶</span><span class="terminal-timestamp">' + escapeHtml(timePart) + '</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span style="font-weight: 700; color: #fff;">' + escapeHtml(name) + '</span></div><span style="color: ' + statusColor + '; font-weight: 700;">' + displayStatus + '</span></div><div class="api-event-details">' + requestHtml + errorHtml + responseHtml + '</div>';
+        container.innerHTML = '<div class="api-event-header" onclick="toggleApiDetails(this)"><div class="api-event-header-left"><span class="api-caret">▶</span><span class="terminal-timestamp">' + escapeHtml(timePart) + '</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span style="font-weight: 700; color: #fff;">' + escapeHtml(name) + '</span></div><span style="color: ' + statusColor + '; font-weight: 700;">' + displayStatus + durationHtml + '</span></div><div class="api-event-details">' + requestHtml + errorHtml + responseHtml + '</div>';
         apiList.appendChild(container);
       });
     }
@@ -3365,41 +3493,280 @@
     });
   }
 
-  let activeScreenTab = 'screen-debugtree';
+  let activeScreenTab = 'screen-perf';
+  let currentScreenCardId = '';
+  let currentScreenStepKey = '';
+  let currentScreenRunIndex = -1;
+  let currentScreenVisitIndex = -1;
+  let currentScreenEvidenceVisits = [];
 
-  function openScreenDialog(cardId, screenName) {
+  function screenTestForRun(cardId, runIndex) {
     const tests = (window.currentReport && window.currentReport.tests) || [];
-    const test = tests.find(t => anchorId(t.id) === cardId);
+    const matches = tests.filter(t => anchorId(t.id) === cardId);
+    return runIndex >= 0 ? (matches[runIndex] || matches[0]) : matches[0];
+  }
+
+  function openScreenDialog(cardId, screenName, visitIndex, stepKey, runIndex) {
+    const test = screenTestForRun(cardId, Number(runIndex));
+    if (!test || !test.report || !test.report.screens) return;
+    currentScreenCardId = cardId;
+    currentScreenStepKey = stepKey || '';
+    currentScreenRunIndex = Number.isInteger(Number(runIndex)) ? Number(runIndex) : -1;
+    currentScreenEvidenceVisits = (test.report.screensVisited || [])
+      .map((name, index) => ({ name: name, visitIndex: index }))
+      .filter(visit => test.report.screens[visit.name]);
+    currentScreenVisitIndex = currentScreenEvidenceVisits.findIndex(
+      visit => visit.visitIndex === Number(visitIndex) && visit.name === screenName
+    );
+    if (currentScreenVisitIndex < 0) {
+      currentScreenVisitIndex = currentScreenEvidenceVisits.findIndex(
+        visit => visit.name === screenName
+      );
+    }
+    renderScreenDialog(cardId, screenName);
+  }
+
+  function renderScreenDialog(cardId, screenName) {
+    const test = screenTestForRun(cardId, currentScreenRunIndex);
     if (!test || !test.report || !test.report.screens) return;
     const screenData = test.report.screens[screenName];
     if (!screenData) return;
 
+    const performanceTab = document.querySelector(
+      '.screen-tab-btn[data-tab="screen-perf"]'
+    );
+    const hasPerformance = screenData.performance &&
+      typeof screenData.performance === 'object';
+    if (performanceTab) performanceTab.style.display = hasPerformance ? '' : 'none';
+
+    const tabs = document.querySelector('#screen-modal-overlay .modal-tabs');
+    if (tabs) tabs.style.display = hasPerformance ? '' : 'none';
+
+    const prevBtn = document.getElementById('screen-modal-prev');
+    const nextBtn = document.getElementById('screen-modal-next');
+    if (prevBtn) {
+      prevBtn.style.visibility = currentScreenVisitIndex > 0 ? 'visible' : 'hidden';
+    }
+    if (nextBtn) {
+      nextBtn.style.visibility = currentScreenVisitIndex >= 0 &&
+        currentScreenVisitIndex < currentScreenEvidenceVisits.length - 1
+        ? 'visible'
+        : 'hidden';
+    }
+
     document.getElementById('modal-screen-title').innerText = screenName;
 
-    // 1. Render Widget Debug Tree
-    const treeEl = document.getElementById('modal-screen-debugtree-content');
-    if (screenData.debugTree) {
-      treeEl.innerHTML = '<pre style="margin: 0; white-space: pre-wrap; word-break: break-all; color: #cbd5e1; text-align: left;">' + escapeHtml(screenData.debugTree) + '</pre>';
-    } else {
-      treeEl.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">&lt;no debug tree captured&gt;</div>';
-    }
-
-    // 2. Render Performance Logs
+    // Render screen performance evidence only when the suite enabled it.
     const perfEl = document.getElementById('modal-screen-perf-content');
-    if (screenData.performance) {
-      let body = '';
-      try {
-        body = typeof screenData.performance === 'string' ? screenData.performance : JSON.stringify(screenData.performance, null, 2);
-      } catch (e) {
-        body = String(screenData.performance);
-      }
-      perfEl.innerHTML = '<pre style="margin: 0; white-space: pre-wrap; word-break: break-all; color: #cbd5e1; text-align: left;">' + escapeHtml(body) + '</pre>';
+    if (hasPerformance) {
+      perfEl.innerHTML = renderScreenPerformance(screenData.performance);
     } else {
-      perfEl.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">&lt;no performance logs captured&gt;</div>';
+      perfEl.innerHTML = '';
     }
 
+    activeScreenTab = 'screen-perf';
     switchScreenTab(activeScreenTab);
     document.getElementById('screen-modal-overlay').style.display = 'flex';
+  }
+
+  function navigateScreen(direction, event) {
+    if (event) event.stopPropagation();
+    const nextIndex = currentScreenVisitIndex + direction;
+    if (nextIndex < 0 || nextIndex >= currentScreenEvidenceVisits.length) return;
+    currentScreenVisitIndex = nextIndex;
+    const visit = currentScreenEvidenceVisits[nextIndex];
+    renderScreenDialog(currentScreenCardId, visit.name);
+  }
+
+  function renderScreenPerformance(performance) {
+    const duration = value => {
+      if (value == null || value === '') return '—';
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? formatDuration(parsed) : '—';
+    };
+    const total = Math.max(0, Number(performance.totalFrames) || 0);
+    const janky = Math.max(0, Number(performance.jankyFrames) || 0);
+    const rate = total > 0
+      ? Math.min(100, Math.max(0, (Number(performance.jankyFrameRate) || 0) * 100))
+      : 0;
+    const budget = Number(performance.frameBudgetMs) || 16.67;
+    const rateClass = total === 0 ? 'neutral' : (janky > 0 ? 'warn' : 'good');
+    const avg = value => total > 0 ? duration(value) : '—';
+    const network = performance.network || {};
+    const storage = performance.storage || {};
+    const percentiles = performance.framePercentilesMs || {};
+    const requestTiming = Number(network.timedRequests) > 0;
+    const percentile = value => total > 0 ? duration(value) : '—';
+    const metrics = [
+      ['Frames observed', total > 0 ? String(total) : '—', 'While this screen was active'],
+      ['Slow frames', total > 0 ? janky + ' (' + rate.toFixed(1) + '%)' : '—', 'Over ' + duration(budget)],
+      ['Avg build', avg(performance.averageBuildMs), 'Flutter build phase'],
+      ['Worst build', total > 0 ? duration(performance.maxBuildMs) : '—', 'Slowest UI build phase'],
+      ...(performance.rasterTimingAvailable
+        ? [['Avg raster', avg(performance.averageRasterMs), 'Raster thread']]
+        : []),
+      ['Avg frame elapsed', avg(performance.averageTotalSpanMs), 'Vsync start to raster finish; not FPS'],
+    ];
+    let html = '<div class="screen-performance"><div class="performance-metrics">';
+    metrics.forEach((metric, index) => {
+      html += '<article class="performance-metric' + (index === 1 ? ' jank-metric ' + rateClass : '') + '">' +
+        '<span class="performance-metric-label">' + escapeHtml(metric[0]) + '</span>' +
+        '<strong>' + escapeHtml(metric[1]) + '</strong><small>' + escapeHtml(metric[2]) + '</small>' +
+        (index === 1 ? '<span class="jank-meter"><i style="width:' + rate.toFixed(1) + '%"></i></span>' : '') +
+        '</article>';
+    });
+    html += '</div>';
+    const steps = Array.isArray(performance.steps) ? performance.steps : [];
+    if (steps.length) {
+      html += '<section class="performance-steps"><div class="performance-section-heading"><h5>Captured during these steps</h5><span>' +
+        steps.length + (steps.length === 1 ? ' step' : ' steps') + '</span></div><ol>';
+      steps.forEach(step => {
+        const stepNumber = Number(step.stepIndex);
+        const label = step.label || step.phase || 'Test step';
+        html += '<li><button type="button" class="performance-step-link" onclick="openCapturedPerformanceStep(\'' +
+          escapeHtml(currentScreenStepKey) + '\', ' + (Number.isFinite(stepNumber) ? stepNumber - 1 : -1) + ', event)"><span class="performance-step-number">' +
+          (Number.isFinite(stepNumber) ? stepNumber : '·') + '</span><span class="performance-step-label">' +
+          escapeHtml(label) + '</span><span class="performance-step-duration">' +
+          escapeHtml(duration(step.durationMs)) + '</span></button></li>';
+      });
+      html += '</ol></section>';
+    }
+    html += renderPerformanceTimeline(
+      performance.timeline,
+      performance.steps,
+      performance.rasterTimingAvailable === true,
+      performance.frameBudgetMs
+    );
+    html += '<section class="performance-detail-grid">';
+    html += '<article class="performance-detail-card"><div class="performance-section-heading"><h5>Network</h5><span>' +
+      (Number(network.requests) || 0) + ' requests</span></div><div class="performance-inline-metrics">' +
+      '<span><strong>' + (Number(network.completed) || 0) + '</strong> completed</span>' +
+      '<span><strong>' + (Number(network.failed) || 0) + '</strong> failed</span>' +
+      '<span><strong>' + (Number(network.pendingAtStepEnd) || 0) + '</strong> pending at step end</span>' +
+      '<span><strong>' + (Number(network.peakConcurrentRequests) || 0) + '</strong> peak concurrent</span>' +
+      '<span><strong>' + (requestTiming ? duration(network.p95ProviderMs) : '—') + '</strong> p95 request time</span>' +
+      '<span><strong>' + (requestTiming ? duration(network.maxProviderMs) : '—') + '</strong> slowest request</span></div>' +
+      '<p class="performance-note">Timing is measured at the provider boundary; it may include server response time.</p></article>';
+
+    html += '<article class="performance-detail-card"><div class="performance-section-heading"><h5>Storage changes</h5><span>' +
+      (storage.captured ? 'captured' : 'not enabled') + '</span></div>';
+    if (storage.captured) {
+      html += '<div class="performance-inline-metrics">' +
+        '<span><strong>' + (Number(storage.publicMutations) || 0) + '</strong> public changes</span>' +
+        '<span><strong>' + (Number(storage.secureMutations) || 0) + '</strong> secure changes</span>' +
+        '<span><strong>' + (Number(storage.keychainMutations) || 0) + '</strong> keychain changes</span></div>';
+    } else {
+      html += '<p class="performance-empty">Enable storage diagnostics to capture changes.</p>';
+    }
+    html += '</article>';
+
+    html += '<article class="performance-detail-card"><div class="performance-section-heading"><h5>Frame latency</h5><span>p50 / p95</span></div>' +
+      '<div class="performance-inline-metrics"><span><strong>' + percentile(percentiles.p50) + '</strong> p50</span>' +
+      '<span><strong>' + percentile(percentiles.p95) + '</strong> p95</span></div></article>';
+    html += '</section><p class="performance-note performance-capability-note">Widget-test diagnostics, not a device benchmark. CPU, RAM, storage latency, and device storage pressure are not sampled.</p></div>';
+    return html;
+  }
+
+  function renderPerformanceTimeline(timeline, stepData, rasterTimingAvailable, frameBudgetMs) {
+    const frames = Array.isArray(timeline && timeline.frames) ? timeline.frames : [];
+    const steps = Array.isArray(stepData) ? stepData : [];
+    if (!frames.length || !steps.length) return '';
+
+    const frameNumbers = frames.map(frame => Number(frame.frameNumber)).filter(Number.isFinite);
+    if (!frameNumbers.length) return '';
+    const firstFrame = Math.min(...frameNumbers);
+    const lastFrame = Math.max(...frameNumbers);
+    const labelWidth = 260;
+    const plotWidth = 720;
+    const rightPad = 16;
+    const top = 30;
+    const rowHeight = 30;
+    const stepRowsHeight = Math.max(1, steps.length) * rowHeight;
+    const frameChartTop = top + stepRowsHeight + 18;
+    const frameChartHeight = 72;
+    const axisY = frameChartTop + frameChartHeight;
+    const chartHeight = axisY + 32;
+    const chartWidth = labelWidth + plotWidth + rightPad;
+    const xForSample = index => labelWidth + (index / frames.length) * plotWidth;
+    const frameUnit = plotWidth / frames.length;
+    const peakSpan = frames.reduce(
+      (max, frame) => Math.max(max, Number(frame.totalSpanMs) || 0),
+      Number(frameBudgetMs) || 16.67
+    );
+    let svg = '<svg class="performance-timeline-svg" role="img" aria-label="Test step and sampled frame timeline" viewBox="0 0 ' +
+      chartWidth + ' ' + chartHeight + '" width="' + chartWidth + '" height="' + chartHeight + '">';
+    svg += '<text class="timeline-track-label" x="4" y="17">TEST STEPS</text>';
+    svg += '<text class="timeline-track-label" x="' + labelWidth + '" y="' + (frameChartTop - 8) + '">SAMPLED FRAMES</text>';
+    steps.forEach((step, index) => {
+      const y = top + index * rowHeight;
+      const startFrame = Number(step.startFrame);
+      const endFrame = Number(step.endFrame);
+      let firstSample = -1;
+      let lastSample = -1;
+      frames.forEach((frame, sampleIndex) => {
+        const frameNumber = Number(frame.frameNumber);
+        if (frameNumber < startFrame || frameNumber > endFrame) return;
+        if (firstSample < 0) firstSample = sampleIndex;
+        lastSample = sampleIndex;
+      });
+      const label = String(step.label || step.phase || 'Test step');
+      const title = 'Step ' + step.stepIndex + ': ' + label +
+        ' · ' + formatDuration(Number(step.durationMs) || 0) +
+        ' · ' + (Number(step.framesObserved) || 0) + ' frames' +
+        ' · ' + (Number(step.slowFrames) || 0) + ' slow';
+      svg += '<text class="timeline-step-label" x="4" y="' + (y + 13) + '" title="' + escapeHtml(title) + '">Step ' +
+        escapeHtml(step.stepIndex) + ' · ' + escapeHtml(label) + '</text>';
+      if (firstSample >= 0) {
+        const x = xForSample(firstSample);
+        const width = Math.max(3, (lastSample - firstSample + 1) * frameUnit);
+        svg += '<rect class="timeline-step-bar" x="' + x.toFixed(2) + '" y="' + y +
+          '" width="' + Math.min(plotWidth - (x - labelWidth), width).toFixed(2) +
+          '" height="16" rx="4"><title>' + escapeHtml(title) + '</title></rect>';
+      }
+      svg += '<text class="timeline-step-stat" x="' + (labelWidth + plotWidth + rightPad - 2) +
+        '" y="' + (y + 12) + '" text-anchor="end">' +
+        (Number(step.slowFrames) || 0) + ' slow</text>';
+    });
+    svg += '<line class="timeline-axis" x1="' + labelWidth + '" y1="' + axisY +
+      '" x2="' + (labelWidth + plotWidth) + '" y2="' + axisY + '"/>';
+    const maxBars = Math.floor(plotWidth);
+    const binSize = Math.max(1, Math.ceil(frames.length / maxBars));
+    for (let start = 0; start < frames.length; start += binSize) {
+      const samples = frames.slice(start, start + binSize);
+      const slowCount = samples.filter(frame => frame.janky).length;
+      const worst = samples.reduce((slowest, frame) =>
+        (Number(frame.totalSpanMs) || 0) > (Number(slowest.totalSpanMs) || 0)
+          ? frame
+          : slowest
+      );
+      const elapsed = Number(worst.totalSpanMs) || 0;
+      const barHeight = Math.max(2, (elapsed / peakSpan) * frameChartHeight);
+      const x = xForSample(start);
+      const width = Math.max(1, samples.length * frameUnit - 1);
+      const title = samples.length === 1
+        ? 'Frame ' + worst.frameNumber
+        : 'Frames ' + samples[0].frameNumber + '–' + samples[samples.length - 1].frameNumber +
+          ' · ' + samples.length + ' sampled';
+      const detail = title + ' · worst total elapsed ' + formatDuration(elapsed) +
+        ' · build ' + formatDuration(Number(worst.buildMs) || 0) +
+        (rasterTimingAvailable
+          ? ' · raster ' + formatDuration(Number(worst.rasterMs) || 0)
+          : '') +
+        ' · ' + slowCount + ' over budget';
+      svg += '<rect class="' + (slowCount ? 'timeline-frame-bar slow' : 'timeline-frame-bar') +
+        '" x="' + x.toFixed(2) + '" y="' + (axisY - barHeight).toFixed(2) +
+        '" width="' + width.toFixed(2) +
+        '" height="' + barHeight.toFixed(2) + '"><title>' + escapeHtml(detail) + '</title></rect>';
+    }
+    svg += '<text class="timeline-axis-label" x="' + labelWidth + '" y="' + (axisY + 20) +
+      '">Frame ' + firstFrame + '</text><text class="timeline-axis-label" x="' +
+      (labelWidth + plotWidth) + '" y="' + (axisY + 20) +
+      '" text-anchor="end">Frame ' + lastFrame + '</text></svg>';
+
+    return '<details class="performance-timeline"><summary>Detailed timeline and frame chart' +
+      '<span>' + frames.length + ' frames · ' + steps.length + ' steps</span></summary>' +
+      '<p class="performance-note">Step spans aligned to sampled frames. Bars show total frame elapsed time; hover for build and frame details. This is not a CPU call-stack flame chart.</p>' +
+      '<div class="performance-timeline-scroll">' + svg + '</div></details>';
   }
 
   function closeScreenDialog(event) {
@@ -3407,7 +3774,19 @@
       if (event.target.id !== 'screen-modal-overlay' && !event.target.classList.contains('modal-close-btn')) return;
     }
     document.getElementById('screen-modal-overlay').style.display = 'none';
-    activeScreenTab = 'screen-debugtree';
+    activeScreenTab = 'screen-perf';
+    currentScreenCardId = '';
+    currentScreenStepKey = '';
+    currentScreenRunIndex = -1;
+    currentScreenVisitIndex = -1;
+    currentScreenEvidenceVisits = [];
+  }
+
+  function openCapturedPerformanceStep(stepKey, stepIndex, event) {
+    if (event) event.stopPropagation();
+    if (!stepKey || stepIndex < 0) return;
+    closeScreenDialog();
+    openStepDialog(stepKey, stepIndex);
   }
 
   function switchScreenTab(tab) {
@@ -3416,7 +3795,6 @@
       btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
     });
     // Hide all screen tab contents
-    document.getElementById('modal-tab-screen-debugtree').style.display = 'none';
     document.getElementById('modal-tab-screen-perf').style.display = 'none';
 
     const pane = document.getElementById('modal-tab-' + tab);

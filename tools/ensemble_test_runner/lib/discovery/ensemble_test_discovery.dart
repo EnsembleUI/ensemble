@@ -1,30 +1,15 @@
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'dart:convert';
 
-import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble_test_runner/discovery/device_matrix.dart' as matrix;
 import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
-import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'ensemble_test_app_target.dart';
 
-/// App target resolved from `ensemble/ensemble-config.yaml` (`definitions.local`).
-class EnsembleTestAppTarget {
-  final String appPath;
-  final String appHome;
-  final String? i18nPath;
-
-  const EnsembleTestAppTarget({
-    required this.appPath,
-    required this.appHome,
-    this.i18nPath,
-  });
-
-  String get testsAssetPrefix =>
-      '${EnsembleTestHarness.normalizeAppPath(appPath)}tests/';
-}
+export 'ensemble_test_app_target.dart' show EnsembleTestAppTarget;
 
 /// Discovers declarative tests and app settings from the host Flutter app bundle.
 class EnsembleTestDiscovery {
@@ -171,7 +156,6 @@ class EnsembleTestDiscovery {
       screenshots: config.screenshots,
       performance: config.performance,
       timers: config.timers,
-      dumpTree: config.dumpTree,
       logApiCalls: config.logApiCalls,
       logStorage: config.logStorage,
       wifi: config.wifi,
@@ -196,7 +180,8 @@ class EnsembleTestDiscovery {
       command: service.command,
       url: url == null || url.isEmpty ? service.url : url,
       arguments: service.arguments,
-      workingDirectory: service.workingDirectory,
+      workingDirectory:
+          map['workingDirectory']?.toString() ?? service.workingDirectory,
       environment: environment,
       readyUrl: service.readyUrl,
       readyTimeoutMs: service.readyTimeoutMs,
@@ -238,7 +223,6 @@ class EnsembleTestDiscovery {
       screenshots: config.screenshots,
       performance: config.performance,
       timers: config.timers,
-      dumpTree: config.dumpTree,
       logApiCalls: config.logApiCalls,
       logStorage: config.logStorage,
       wifi: config.wifi,
@@ -258,44 +242,6 @@ class EnsembleTestDiscovery {
   }
 
   /// Reads `definitions.local` from `ensemble/ensemble-config.yaml`.
-  static Future<EnsembleTestAppTarget> loadAppTarget() async {
-    if (!EnsembleConfigService.isInitialized) {
-      await EnsembleConfigService.initialize();
-    }
-
-    final definitions = EnsembleConfigService.config['definitions'];
-    if (definitions is! Map) {
-      throw EnsembleTestFailure(
-        'ensemble/ensemble-config.yaml must define "definitions"',
-      );
-    }
-
-    final local = definitions['local'];
-    if (local is! Map) {
-      throw EnsembleTestFailure(
-        'Declarative tests require definitions.local in ensemble-config.yaml '
-        '(path, appHome, i18n.path)',
-      );
-    }
-
-    final path = local['path']?.toString();
-    final appHome = local['appHome']?.toString();
-    if (path == null || path.isEmpty || appHome == null || appHome.isEmpty) {
-      throw EnsembleTestFailure(
-        'definitions.local.path and definitions.local.appHome are required',
-      );
-    }
-
-    String? i18nPath;
-    final i18n = local['i18n'];
-    if (i18n is Map && i18n['path'] != null) {
-      i18nPath = i18n['path'].toString();
-    }
-
-    return EnsembleTestAppTarget(
-      appPath: EnsembleTestHarness.normalizeAppPath(path),
-      appHome: appHome,
-      i18nPath: i18nPath,
-    );
-  }
+  static Future<EnsembleTestAppTarget> loadAppTarget() =>
+      loadEnsembleTestAppTarget();
 }

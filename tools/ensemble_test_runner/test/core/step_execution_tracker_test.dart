@@ -27,8 +27,8 @@ void main() {
     ));
 
     expect(tracker.activeStepIndex, -1);
-    expect(tracker.stepDurationsMs, [17]);
-    expect(tracker.stepStartTimes, ['2026-01-01T00:00:00.000']);
+    expect(tracker.stepDurationsMs, [-1, -1, 17]);
+    expect(tracker.stepStartTimes, ['', '', '2026-01-01T00:00:00.000']);
     expect(startedSteps, [2]);
     expect(tracker.failureIndex(), 2);
   });
@@ -44,7 +44,7 @@ void main() {
     ));
     tracker.recordActiveDuration();
 
-    expect(tracker.stepDurationsMs, [0]);
+    expect(tracker.stepDurationsMs, [-1, -1, -1, -1, 0]);
     expect(tracker.failureIndex(), 4);
     tracker.clearFailure();
     expect(tracker.failureIndex(fallback: 9), 9);

@@ -82,3 +82,19 @@ class TestStep implements OperationInput {
           'steps': nestedSteps.map((s) => s.toJson()).toList(),
       };
 }
+
+/// Flattens authored steps in the same pre-order used by report outlines and
+/// compiled plan step boundaries. Control rows are included so nested step
+/// indexes remain stable even when a branch is skipped.
+List<TestStep> flattenTestSteps(Iterable<TestStep> steps) {
+  final flattened = <TestStep>[];
+  void visit(Iterable<TestStep> current) {
+    for (final step in current) {
+      flattened.add(step);
+      visit(step.nestedSteps);
+    }
+  }
+
+  visit(steps);
+  return flattened;
+}

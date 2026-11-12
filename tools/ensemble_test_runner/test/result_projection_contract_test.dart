@@ -78,7 +78,9 @@ void main() {
             stepDurationsMs: [31],
             stepStartTimes: ['2026-10-03T12:00:00.000Z'],
             screens: {
-              'Checkout': {'dumpTree': 'screens/checkout.json'},
+              'Checkout': {
+                'performance': {'totalFrames': 4}
+              },
             },
           ),
         ),
@@ -131,7 +133,9 @@ void main() {
       'stepDurationsMs': [31],
       'stepStartTimes': ['2026-10-03T12:00:00.000Z'],
       'screens': {
-        'Checkout': {'dumpTree': 'screens/checkout.json'},
+        'Checkout': {
+          'performance': {'totalFrames': 4}
+        },
       },
     });
 

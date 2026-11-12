@@ -470,7 +470,15 @@ steps:
               event.kind == ExecutionEventKind.stepStarted ||
               event.kind == ExecutionEventKind.stepFinished)
           .map((event) => '${event.kind.name}:${event.stepIndex}'),
-      ['stepStarted:0', 'stepFinished:0'],
+      [
+        'stepStarted:2',
+        'stepFinished:2',
+        'stepStarted:2',
+        'stepFinished:2',
+        'stepStarted:5',
+        'stepStarted:6',
+        'stepFinished:6',
+      ],
     );
   });
 
