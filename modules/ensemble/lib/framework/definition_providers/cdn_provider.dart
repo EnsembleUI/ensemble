@@ -55,6 +55,13 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Background update tracking
   bool _hasPendingUpdate = false;
 
+  // Max time a cold start waits for the CDN update check before using the cache.
+  static const Duration _startupCheckTimeout = Duration(seconds: 5);
+
+  // True only while init() waits on the update check. A flag, not a parameter,
+  // so a refresh that outlives the timeout still applies its update.
+  bool _isStartupCheckRunning = false;
+
   // Serialize overlapping refresh calls (cold start + lifecycle background).
   Future<void> _refreshSerial = Future.value();
 
@@ -83,7 +90,19 @@ class CdnDefinitionProvider extends DefinitionProvider {
       if (!CdnAssetCache.instance.hasAssetManifest) {
         await _fetchAndSaveAssetManifest();
       }
-      unawaited(_refreshIfStale());
+      // Load any CDN update before the first render, so screens don't reload
+      // once it arrives. On timeout, render from cache and refresh as before.
+      _isStartupCheckRunning = true;
+      try {
+        await _refreshIfStale().timeout(_startupCheckTimeout);
+      } on TimeoutException {
+        if (kDebugMode) {
+          debugPrint('⚠️ CDN Provider: Startup update check timed out, '
+              'using cached manifest');
+        }
+      } finally {
+        _isStartupCheckRunning = false;
+      }
       return this;
     }
 
@@ -227,6 +246,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
       artifactRefreshEnabled && hasEnsembleConfig;
 
   Future<void> _applyStaleRefreshOutcome() async {
+    // Nothing has rendered yet, so there is nothing to refresh or defer.
+    if (_isStartupCheckRunning) return;
+
     if (shouldApplyCdnStaleRefreshImmediately(
       artifactRefreshEnabled: isArtifactRefreshEnabled(),
       hasEnsembleConfig: Ensemble().getConfig() != null,
@@ -1155,6 +1177,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
   @visibleForTesting
   Future<void> applyStaleRefreshOutcomeForTesting() =>
       _applyStaleRefreshOutcome();
+
+  @visibleForTesting
+  set isStartupCheckRunningForTesting(bool value) =>
+      _isStartupCheckRunning = value;
 
   @visibleForTesting
   bool get hasPendingUpdateForTesting => _hasPendingUpdate;
