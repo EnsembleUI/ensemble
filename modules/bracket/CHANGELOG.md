@@ -1,3 +1,7 @@
+## 1.3.1
+
+ - Bump "ensemble_bracket" to `1.3.1`.
+
 ## 1.3.0
 
  - **REFACTOR**: optimize list generation and improve scrolling animations in TV components. ([9610fad8](https://github.com/ensembleUI/ensemble/commit/9610fad83d8832edca03d373c16aa075feea86ca))

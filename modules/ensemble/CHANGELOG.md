@@ -1,3 +1,7 @@
+## 1.3.1
+
+ - **FEAT**(tab_bar): enhance tab selection logic to preserve selected tab d… ([#2402](https://github.com/ensembleUI/ensemble/issues/2402)). ([cc1a70b2](https://github.com/ensembleUI/ensemble/commit/cc1a70b22077c9edc09cdcb46075a9a89575de9c))
+
 ## 1.3.0
 
  - **REFACTOR**: update TVFocusEdgeTargetComposite to use target properties for navigation. ([4af34749](https://github.com/ensembleUI/ensemble/commit/4af34749e880263f2936895871ff05a1ff035cda))
