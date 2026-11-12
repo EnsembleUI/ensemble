@@ -1,0 +1,5 @@
+definitions:
+  from: local
+  local:
+    path: tool/benchmarks/fixtures/ensemble/apps/demo
+    appHome: Home

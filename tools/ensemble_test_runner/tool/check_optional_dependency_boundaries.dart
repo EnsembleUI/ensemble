@@ -28,6 +28,7 @@ void main() {
     ],
     'sqflite_common_ffi': const [
       'lib/reporters/ensemble_test_history_store.dart',
+      'lib/runner/test_harness_host_runtime.dart',
     ],
     'firebase_core': const ['lib/mocks/'],
     'firebase_core_platform_interface': const ['lib/mocks/'],

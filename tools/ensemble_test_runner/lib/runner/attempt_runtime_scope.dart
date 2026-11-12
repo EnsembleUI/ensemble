@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:ensemble_test_runner/mocks/real_network_http_client.dart'
+    show runWithRealNetworkHttpClient;
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 
@@ -55,13 +58,23 @@ final class AttemptRuntimeScope {
 
       FlutterError.onError = (details) {
         context.runtime.flutterErrors.add(formatFlutterError(details));
-        FlutterError.presentError(details);
       };
       Future<T?> runAppAsync<T>(Future<T> Function() callback) =>
-          context.runtime.runAsyncWithConsoleCapture(tester, callback);
+          tester.runAsync(
+            () => runWithRealNetworkHttpClient(
+              () => runZoned<Future<T>>(
+                callback,
+                zoneSpecification: context.runtime.consoleCaptureZone,
+              ),
+            ),
+          );
+      Future<T?> runPlatformHttpAsync<T>(Future<T> Function() callback) =>
+          tester.runAsync(
+            () => runWithRealNetworkHttpClient(callback),
+          );
       context.apiOverlay.liveAsyncRunner = runAppAsync;
       LiveAsyncCallSupport.runner = runAppAsync;
-      LiveAsyncCallSupport.platformHttpRunner = tester.runAsync;
+      LiveAsyncCallSupport.platformHttpRunner = runPlatformHttpAsync;
     } catch (error, stackTrace) {
       try {
         close();
@@ -108,6 +121,7 @@ final class AttemptRuntimeScope {
 String _defaultFlutterError(FlutterErrorDetails details) {
   final context = details.context?.toDescription();
   final exception = details.exceptionAsString();
-  if (context == null || context.isEmpty) return exception;
-  return '$context: $exception';
+  final message =
+      context == null || context.isEmpty ? exception : '$context: $exception';
+  return message;
 }

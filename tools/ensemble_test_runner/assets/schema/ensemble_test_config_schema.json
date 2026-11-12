@@ -181,15 +181,6 @@
         }
       }
     },
-    "dumpTree": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        }
-      }
-    },
     "logApiCalls": {
       "type": "object",
       "additionalProperties": false,

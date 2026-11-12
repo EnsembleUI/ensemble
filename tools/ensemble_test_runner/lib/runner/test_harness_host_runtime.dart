@@ -1,11 +1,13 @@
 import 'dart:io';
 
 import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/real_network_http_client.dart';
 import 'package:ensemble_test_runner/runner/test_app_metadata.dart';
 import 'package:ensemble_test_runner/src/integrations/test_integration_registration.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meta/meta.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Owns host setup for widget and integration execution environments.
 ///
@@ -54,9 +56,19 @@ class TestHarnessHostRuntime {
       ensureIntegrationRuntime();
       return;
     }
+    // Packages such as flutter_cache_manager call sqflite's global
+    // openDatabase API. Widget tests run without the native sqflite plugin,
+    // so install the desktop FFI factory before app widgets can load images.
+    // Always make the FFI factory the widget-test default. A factory may have
+    // been set earlier by another test entry point or plugin, but those
+    // factories still rely on a native sqflite plugin that is absent here.
+    // Use the testing setter to avoid sqflite's production warning when
+    // replacing a factory that was initialized by an imported plugin.
+    sqfliteFfiInit();
+    // ignore: invalid_use_of_visible_for_testing_member
+    databaseFactoryOrNull = databaseFactoryFfi;
     _testIntegrations.installAll();
     ensureAdobeAnalyticsMocksForTest();
-    HttpOverrides.global = RealNetworkHttpOverrides();
     const pathProviderChannel =
         MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -225,7 +237,19 @@ class TestHarnessHostRuntime {
   /// Native plugin channels remain registered by the Android/iOS host app.
   static void ensureIntegrationRuntime() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    // Integration binding runs the real native plugins, but HTTP image
+    // providers still execute inside the test zone. Give them the same real
+    // network client used by widget mode so remote CachedNetworkImage and
+    // NetworkImage requests are not intercepted by the binding's test client.
   }
+
+  /// Runs the app under a real HTTP client while keeping the override scoped
+  /// to the suite's async zone. A global or painting-debug override leaks
+  /// across Flutter widget tests and fails Flutter's test invariants.
+  static Future<T> runWithRealNetworkHttpOverrides<T>(
+    Future<T> Function() run,
+  ) =>
+      runWithRealNetworkHttpClient(run);
 
   static bool get _usesNativeHostPlugins =>
       const String.fromEnvironment(
@@ -318,10 +342,4 @@ class TestHarnessHostRuntime {
       'systemGUID': 'ensemble-test-device',
     };
   }
-}
-
-class RealNetworkHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) =>
-      super.createHttpClient(context);
 }

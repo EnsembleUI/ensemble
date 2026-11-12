@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/actions/scrollable_waiter.dart';
 import 'package:ensemble_test_runner/actions/test_step_runtime.dart';
 import 'package:ensemble_test_runner/actions/select_index_options.dart';
 import 'package:ensemble_test_runner/session/operation_target.dart';
+import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -50,6 +51,7 @@ class TestStepWidgetActions {
     Finder finder, {
     TestStep? step,
     Future<void> Function()? onBeforeTap,
+    int? timeoutMs,
   }) async {
     return await RunnerBenchmark.async('execution', 'tapFinder', () async {
       if (finder.evaluate().isEmpty) {
@@ -57,9 +59,49 @@ class TestStepWidgetActions {
           'tapFinder: target element is not in the tree (detached or never found).',
         );
       }
-      await tester.ensureVisible(finder);
-      await runtime.pump(label: 'tapFinder.ensureVisible');
-      final hitTestable = finder.hitTestable();
+      // Keep already-visible labels at their current scroll position. Calling
+      // ensureVisible unconditionally can scroll a nested screen and rebuild a
+      // TabBar between resolving its label and delivering the tap, so the tap
+      // lands on a stale/off-target position (seen in live KPN tab flows).
+      var hitTestable = finder.hitTestable();
+      Offset? tapPosition;
+      if (hitTestable.evaluate().isEmpty) {
+        await tester.ensureVisible(finder);
+        await runtime.pump(label: 'tapFinder.ensureVisible');
+        hitTestable = finder.hitTestable();
+      }
+      if (hitTestable.evaluate().isEmpty &&
+          _tapPositionForHitTestableDescendant(finder) == null) {
+        final timeout = Duration(
+          milliseconds:
+              timeoutMs ?? config.defaultWaitTimeout.inMilliseconds,
+        );
+        try {
+          await runtime.waitForCondition(
+            condition: () =>
+                finder.hitTestable().evaluate().isNotEmpty ||
+                _tapPositionForHitTestableDescendant(finder) != null,
+            timeout: timeout,
+          );
+        } on FlutterError catch (error) {
+          if (!error.toString().contains('timed out')) rethrow;
+          throw EnsembleTestFailure(
+            'tapFinder: target did not become hit-testable within '
+            '${timeout.inMilliseconds}ms. It may be disabled or covered by '
+            'another widget.',
+          );
+        }
+        hitTestable = finder.hitTestable();
+      }
+      // An id can be attached to a logical card whose bounds include empty
+      // padding. Flutter's hitTestable() checks the center of those bounds,
+      // which can fail even though a visible child in that same card is
+      // tappable. Keep the resolved element (and therefore occurrence) fixed,
+      // and use a hit-testable text/content descendant as the gesture point.
+      if (hitTestable.evaluate().isEmpty) {
+        tapPosition = _tapPositionForHitTestableDescendant(finder);
+        if (tapPosition != null) hitTestable = finder;
+      }
       if (hitTestable.evaluate().isEmpty) {
         throw EnsembleTestFailure(
           'tapFinder: target element is not hit-testable. '
@@ -67,9 +109,42 @@ class TestStepWidgetActions {
         );
       }
       await onBeforeTap?.call();
-      await tester.tap(hitTestable.first);
+      // Capturing step evidence can yield to asynchronous work. Revalidate the
+      // exact resolved finder after capture so a tap cannot pass using a target
+      // that disappeared or became covered while its proof was being frozen.
+      if (finder.evaluate().isEmpty) {
+        throw EnsembleTestFailure(
+          'tapFinder: target detached while capturing pre-action evidence.',
+        );
+      }
+      if (finder.hitTestable().evaluate().isEmpty) {
+        tapPosition = _tapPositionForHitTestableDescendant(finder);
+        if (tapPosition == null) {
+          throw EnsembleTestFailure(
+            'tapFinder: target stopped being hit-testable while capturing '
+            'pre-action evidence.',
+          );
+        }
+      } else {
+        tapPosition = null;
+      }
+      if (tapPosition == null) {
+        await tester.tap(finder.hitTestable().first);
+      } else {
+        await tester.tapAt(tapPosition);
+      }
       await runtime.settleAfterAction();
     });
+  }
+
+  Offset? _tapPositionForHitTestableDescendant(Finder rootFinder) {
+    final element = assertions.firstVisuallyActionableElement(
+      rootFinder,
+      requireHitTestable: true,
+    );
+    final renderObject = element?.renderObject;
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    return renderObject.localToGlobal(renderObject.size.center(Offset.zero));
   }
 
   Future<void> doubleTapFinder(
@@ -335,15 +410,46 @@ class TestStepWidgetActions {
     String? scrollableId,
     int? timeoutMs,
   }) async {
+    final effectiveTimeout =
+        timeoutMs ?? config.defaultWaitTimeout.inMilliseconds;
     final scrollable = await scrollableWaiter.wait(
       scrollableId: scrollableId,
-      timeoutMs: timeoutMs ?? config.defaultWaitTimeout.inMilliseconds,
+      timeoutMs: effectiveTimeout,
     );
-    await tester.scrollUntilVisible(
-      finder,
-      300,
-      scrollable: scrollable,
-    );
+
+    // Flutter's scrollUntilVisible always performs up to 50 drags, even when
+    // the target is absent and the scrollable has already reached its extent.
+    // Apart from ignoring the caller's timeout, that produces a warning for
+    // every drag when the viewport is covered or cannot receive a gesture.
+    // Drive the scrollable only while it is making progress, then report the
+    // actual unresolved target instead of leaking StateError: No element.
+    await tester.pump(Duration.zero);
+    var attempts = 0;
+    final maxAttempts = (effectiveTimeout ~/ 50).clamp(1, 50);
+    final scrollableState = tester.state<ScrollableState>(scrollable);
+    while (!assertions.hasVisibleElement(finder) && attempts < maxAttempts) {
+      final position = scrollableState.position;
+      if (!position.hasContentDimensions || position.extentAfter <= 0) break;
+
+      final previousPixels = position.pixels;
+      await tester.drag(
+        scrollable,
+        const Offset(0, -300),
+        warnIfMissed: false,
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      attempts++;
+
+      if ((scrollableState.position.pixels - previousPixels).abs() < 0.5) {
+        break;
+      }
+    }
+    if (!assertions.hasVisibleElement(finder)) {
+      throw EnsembleTestFailure(
+        'scrollUntilVisible: no visible widget matched $finder after '
+        '$attempts scroll attempts (scrollable: $scrollable).',
+      );
+    }
     await runtime.settleAfterAction();
   }
 
@@ -441,8 +547,6 @@ class TestStepWidgetActions {
       if (tappableFinder.hitTestable().evaluate().length != 1) {
         await tester.ensureVisible(tappableFinder);
         await runtime.pump(label: 'tap.ensureVisible');
-      } else {
-        await runtime.pump(label: 'tap.beforeTap');
       }
       tappableFinder = _hitTestableFinderForTap(
         assertions.finderForId(id, skipOffstage: false),
@@ -661,8 +765,20 @@ class TestStepWidgetActions {
   }
 
   Finder _interactiveFinder(Finder finder) {
-    if (finder.evaluate().length <= 1) return finder;
-    final hitTestable = finder.hitTestable();
-    return hitTestable.evaluate().length == 1 ? hitTestable : finder;
+    final targets = <Element>[];
+    for (final root in finder.evaluate()) {
+      // testId is attached to Ensemble's keyed wrapper. Its RenderObject may
+      // be shared with the child, so hitTestable() on the wrapper alone can
+      // report true even when the actual button is disabled. Resolve and
+      // validate the logical control before treating this as tappable.
+      final target = findPrimaryControlDescendant(root) ?? root;
+      if (readEnabled(target) == false) continue;
+      targets.add(target);
+    }
+    if (targets.isEmpty) return find.byElementPredicate((_) => false);
+    return find.byElementPredicate(
+      (element) => targets.any((target) => identical(element, target)),
+      skipOffstage: false,
+    );
   }
 }

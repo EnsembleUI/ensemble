@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:ensemble_test_runner/cli/cli_app_console_log.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
-import 'package:ensemble_test_runner/runner/diagnostic_redaction.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -37,7 +36,7 @@ void main() {
     expect(content, isNot(contains('ENSEMBLE_TEST_JSON_REPORT')));
   });
 
-  test('redacts app log artifacts and report projection only', () {
+  test('preserves app log values in artifacts and report projection', () {
     final directory = Directory.systemTemp.createTempSync('runner-console-');
     addTearDown(() => directory.deleteSync(recursive: true));
     final file = CliAppConsoleLog.open('${directory.path}/app.log')!;
@@ -52,11 +51,11 @@ void main() {
         file, 'stderr', 'request failed: Bearer fixture-stderr');
 
     final sidecar = file.readAsStringSync();
-    expect(sidecar, isNot(contains('fixture-access')));
-    expect(sidecar, isNot(contains('fixture-firebase')));
-    expect(sidecar, isNot(contains('fixture-api-key')));
-    expect(sidecar, isNot(contains('fixture-bearer')));
-    expect(sidecar, isNot(contains('fixture-stderr')));
+    expect(sidecar, contains('fixture-access'));
+    expect(sidecar, contains('fixture-firebase'));
+    expect(sidecar, contains('fixture-api-key'));
+    expect(sidecar, contains('fixture-bearer'));
+    expect(sidecar, contains('fixture-stderr'));
     final savedJsonLine = sidecar
         .split('\n')
         .singleWhere((line) => line.startsWith('[stdout] '))
@@ -65,10 +64,10 @@ void main() {
     expect(
       savedJson,
       {
-        'firebase': {'access_token': diagnosticRedactedValue},
-        'firebaseAccessToken': diagnosticRedactedValue,
-        'X-API-Key': diagnosticRedactedValue,
-        'message': 'Authorization: Bearer $diagnosticRedactedValue',
+        'firebase': {'access_token': 'fixture-access'},
+        'firebaseAccessToken': 'fixture-firebase',
+        'X-API-Key': 'fixture-api-key',
+        'message': 'Authorization: Bearer fixture-bearer',
       },
     );
 
@@ -76,7 +75,7 @@ void main() {
       EnsembleTestRunResult(
         results: [
           EnsembleSingleTestResult.passed(
-            testId: 'console-redaction',
+            testId: 'console-values',
             durationMs: 1,
             logs: ['appLogs: ${file.path}'],
             report: const EnsembleTestReportDetails(
@@ -92,15 +91,13 @@ void main() {
     final steps = (tests.single as Map)['steps'] as List;
     final projectedLogs = (steps.single as Map)['appLogs'] as List;
     final projection = projectedLogs.join('\n');
-    expect(projection, contains(diagnosticRedactedValue));
-    expect(projection, isNot(contains('fixture-access')));
-    expect(projection, isNot(contains('fixture-firebase')));
-    expect(projection, isNot(contains('fixture-api-key')));
-    expect(projection, isNot(contains('fixture-bearer')));
-    expect(projection, isNot(contains('fixture-stderr')));
+    expect(projection, contains('fixture-access'));
+    expect(projection, contains('fixture-firebase'));
+    expect(projection, contains('fixture-api-key'));
+    expect(projection, contains('fixture-bearer'));
+    expect(projection, contains('fixture-stderr'));
 
-    // Assertions consume the untouched runtime line; redaction belongs only
-    // to the CLI artifact publication boundary.
+    // Assertions and diagnostics use the same unmodified app output.
     expect(runtime.consoleLogs.single, sourceLine);
   });
 

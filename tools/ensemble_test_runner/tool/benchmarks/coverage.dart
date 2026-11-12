@@ -103,7 +103,6 @@ const coveredCapabilities = <String>{
   'coordinateActions',
   'apiAssertions',
   'storageAssertions',
-  'secureFieldRedaction',
   'observationRevisions',
   'snapshotElementTargets',
 };
@@ -236,7 +235,6 @@ const capabilityCases = <String, List<String>>{
   'coordinateActions': ['session.capabilities'],
   'apiAssertions': ['step.expectApiCalled'],
   'storageAssertions': ['step.expectStorage'],
-  'secureFieldRedaction': ['observer.secure-field'],
   'observationRevisions': ['observer.changed'],
   'snapshotElementTargets': ['session.snapshot-target', 'locator.stale'],
 };
@@ -249,7 +247,6 @@ const coveredCapabilityFlags = <String, bool>{
   'coordinateActions': false,
   'apiAssertions': true,
   'storageAssertions': true,
-  'secureFieldRedaction': true,
   'observationRevisions': true,
   'snapshotElementTargets': true,
 };

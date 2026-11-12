@@ -170,7 +170,6 @@ class EnsembleTestConfig {
   final List<TestDeviceTarget> devices;
   final ScreenshotConfig screenshots;
   final PerformanceConfig performance;
-  final DumpTreeConfig dumpTree;
   final LogApiCallsConfig logApiCalls;
   final LogStorageConfig logStorage;
   final TimerRewriteConfig timers;
@@ -188,7 +187,6 @@ class EnsembleTestConfig {
     this.devices = const [],
     this.screenshots = const ScreenshotConfig(),
     this.performance = const PerformanceConfig(),
-    this.dumpTree = const DumpTreeConfig(),
     this.logApiCalls = const LogApiCallsConfig(),
     this.logStorage = const LogStorageConfig(),
     this.timers = const TimerRewriteConfig(),
@@ -209,7 +207,6 @@ class EnsembleTestConfig {
     List<TestDeviceTarget>? devices,
     ScreenshotConfig? screenshots,
     PerformanceConfig? performance,
-    DumpTreeConfig? dumpTree,
     LogApiCallsConfig? logApiCalls,
     LogStorageConfig? logStorage,
     TimerRewriteConfig? timers,
@@ -227,7 +224,6 @@ class EnsembleTestConfig {
       devices: devices ?? this.devices,
       screenshots: screenshots ?? this.screenshots,
       performance: performance ?? this.performance,
-      dumpTree: dumpTree ?? this.dumpTree,
       logApiCalls: logApiCalls ?? this.logApiCalls,
       logStorage: logStorage ?? this.logStorage,
       timers: timers ?? this.timers,
@@ -352,15 +348,6 @@ class TimerRewriteConfig {
     this.maxRepeatIntervalSeconds = 1,
     this.maxNumberOfTimes,
     this.maxNumberOfTimesByScreen = const {},
-  });
-}
-
-/// Controls writing the rendered widget tree to a diagnostic artifact.
-class DumpTreeConfig {
-  final bool enabled;
-
-  const DumpTreeConfig({
-    this.enabled = false,
   });
 }
 

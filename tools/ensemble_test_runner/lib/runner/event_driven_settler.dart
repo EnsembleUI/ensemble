@@ -125,9 +125,6 @@ final class EventDrivenSettler {
           if (condition()) return;
           continue;
         }
-        // The grace pump can itself satisfy the condition exactly at the
-        // deadline while external work remains pending. Observe that result
-        // before the exhausted-budget exit below.
         if (timeoutClock.elapsed <= timeout && condition()) return;
         final remainingAfterPump = timeout - timeoutClock.elapsed;
         if (remainingAfterPump <= Duration.zero) break;
@@ -143,11 +140,9 @@ final class EventDrivenSettler {
           final remainingAfterWait = timeout - timeoutClock.elapsed;
           if (remainingAfterWait <= Duration.zero) break;
           await _pump(
-              _boundedDuration(activeFrameDuration, remainingAfterWait));
+            _boundedDuration(activeFrameDuration, remainingAfterWait),
+          );
         }
-        // A condition can become true during the last pump that reaches the
-        // deadline. Recheck it before the loop condition exits, but accept it
-        // only when the binding clock still places the observation in-budget.
         if (timeoutClock.elapsed <= timeout && condition()) return;
         continue;
       }
@@ -189,12 +184,11 @@ final class EventDrivenSettler {
     await Future<void>.value();
     if (completed) return succeeded;
 
-    // Do not use tester.binding.delayed here. Automated widget-test bindings
-    // pause their clock until a pump occurs, while this method is awaiting the
-    // completion signal and therefore cannot pump. A real timer bounds that
-    // external wait; the next guarded pump advances the widget-test clock.
-    final pollTimeout = tester.binding.delayed(timeout).then<void>((_) {});
-    await Future.any<void>([completion.future, pollTimeout]);
+    // Advance the test clock instead of awaiting a timer: widget tests run in
+    // fake async, so a timer cannot fire while this method is awaiting it.
+    // Pumping also gives the external completion signal a chance to run.
+    await _pump(timeout);
+    await Future<void>.value();
     return completed && succeeded;
   }
 

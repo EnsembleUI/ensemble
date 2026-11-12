@@ -33,7 +33,6 @@ class TestConfigDocumentParser {
       'screenshots',
       'performance',
       'timers',
-      'dumpTree',
       'logApiCalls',
       'logStorage',
       'wifi',
@@ -56,7 +55,6 @@ class TestConfigDocumentParser {
     final screenshotsNode = node['screenshots'];
     final performanceNode = node['performance'];
     final timersNode = node['timers'];
-    final dumpTreeNode = node['dumpTree'];
     final logApiCallsNode = node['logApiCalls'];
     final logStorageNode = node['logStorage'];
     final wifiNode = node['wifi'];
@@ -102,9 +100,6 @@ class TestConfigDocumentParser {
     }
     if (timersNode != null && timersNode is! YamlMap) {
       throw EnsembleTestFailure('"timers" must be a map');
-    }
-    if (dumpTreeNode != null && dumpTreeNode is! YamlMap) {
-      throw EnsembleTestFailure('"dumpTree" must be a map');
     }
     if (logApiCallsNode != null && logApiCallsNode is! YamlMap) {
       throw EnsembleTestFailure('"logApiCalls" must be a map');
@@ -180,11 +175,6 @@ class TestConfigDocumentParser {
                     ),
               maxNumberOfTimesByScreen:
                   _parseScreenTimerCaps(timersNode['maxNumberOfTimesByScreen']),
-            ),
-      dumpTree: dumpTreeNode == null
-          ? const DumpTreeConfig()
-          : DumpTreeConfig(
-              enabled: dumpTreeNode['enabled'] == true,
             ),
       logApiCalls: logApiCallsNode == null
           ? const LogApiCallsConfig()

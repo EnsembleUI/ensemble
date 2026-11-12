@@ -42,8 +42,6 @@ bool? readSelected(WidgetTester tester, Element element) {
 }
 
 String? readText(Element element) {
-  if (looksSecure(element)) return null;
-
   // Prefer the live editable value over labels/hints under the same control.
   final field = element.widget is TextField
       ? element.widget as TextField
@@ -58,7 +56,6 @@ String? readText(Element element) {
   String? editableText;
   final texts = <String>[];
   void visit(Element e) {
-    if (!identical(e, element) && looksSecure(e)) return;
     final w = e.widget;
     if (w is EditableText) {
       final value = w.controller.text.trim();
@@ -102,7 +99,6 @@ String? _readEditableValue(
   var foundEditableText = false;
   void visit(Element e) {
     if (foundEditableText) return;
-    if (!identical(e, element) && looksSecure(e)) return;
     final w = e.widget;
     if (w is EditableText) {
       editableText = w.controller.text;

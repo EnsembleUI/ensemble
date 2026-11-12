@@ -73,16 +73,22 @@ class AssertionTargetDiagnostics {
   }
 
   String visibleTextSummary({int limit = 10}) {
-    final texts = tester.allWidgets
-        .whereType<Text>()
-        .map((widget) => widget.data)
-        .whereType<String>()
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .take(limit)
-        .toList();
-    if (texts.isEmpty) return 'No Text widgets are currently visible.';
-    return 'Visible text: ${texts.map(jsonEncode).join(', ')}.';
+    final texts = <String>{};
+    for (final element in tester.allElements) {
+      if (!isVisuallyActionable(element)) continue;
+      final widget = element.widget;
+      if (widget is Text) {
+        final value = widget.data;
+        if (value != null && value.isNotEmpty) texts.add(value);
+      } else if (widget is RichText) {
+        final value = widget.text.toPlainText();
+        if (value.isNotEmpty) texts.add(value);
+      }
+      if (texts.length >= limit) break;
+    }
+    final visibleTexts = texts.take(limit).toList();
+    if (visibleTexts.isEmpty) return 'No visible Text widgets were found.';
+    return 'Visible text: ${visibleTexts.map(jsonEncode).join(', ')}.';
   }
 
   String textFailureHint(List<String> expectedTexts, {int limit = 10}) {

@@ -18,7 +18,6 @@ import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/emergency_failure_screenshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
-import 'package:ensemble_test_runner/runner/event_driven_settler.dart';
 import 'package:ensemble_test_runner/runner/flutter_error_isolation.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
@@ -42,7 +41,6 @@ import 'package:ensemble_test_runner/src/core/operation.dart';
 import 'package:ensemble_test_runner/src/core/execution_kernel_runner.dart';
 import 'package:ensemble_test_runner/src/core/step_timing_subscriber.dart';
 import 'package:ensemble_test_runner/src/core/step_performance_subscriber.dart';
-import 'package:ensemble_test_runner/src/core/attempt_artifact_subscriber.dart';
 import 'package:ensemble_test_runner/src/core/attempt_coordinator.dart';
 import 'package:ensemble_test_runner/src/core/step_context_subscriber.dart';
 import 'package:ensemble_test_runner/src/core/step_boundary_subscriber.dart';
@@ -313,9 +311,8 @@ class EnsembleTestRunner {
             stopwatch: stopwatch,
             planReuse: planReuse,
           );
-          // Successful step execution already settles live work before
-          // publishing the final artifacts. Settling again here added another
-          // 5-second best-effort wait to every test with a long-lived stream.
+          // Final diagnostic capture records the state observed at test end;
+          // it does not wait for unrelated live API work to finish.
           return (result: result, config: config, context: ctx);
         },
       );
@@ -337,7 +334,6 @@ class EnsembleTestRunner {
       final errorMessage = error.toString();
       final logs = <String>[];
       try {
-        await _settleLiveApiWorkBestEffort(tester, ctx);
         final hadScreenshotFrames =
             ctx.runtime.screenshotSheetFrames.isNotEmpty;
         await _flushPendingScreenshots(
@@ -465,37 +461,8 @@ class EnsembleTestRunner {
     }
   }
 
-  Future<void> _settleLiveApiWork(
-    WidgetTester tester,
-    EnsembleTestContext ctx,
-  ) async {
-    await EventDrivenSettler(
-      tester: tester,
-      hasExternalWork: () => ctx.apiOverlay.hasPendingLiveCalls,
-      waitForExternalWork: ctx.apiOverlay.waitForLiveCalls,
-      onPump: () => ctx.navigationFlow.flushPending(),
-    ).waitFor(
-      timeout: const Duration(seconds: 5),
-      condition: () => !ctx.apiOverlay.hasPendingLiveCalls,
-    );
-    // Cleanup needs completed API work and queued route notifications. It does
-    // not need every repeating app timer or animation to become idle; that
-    // condition can never hold in apps with active timer-driven screens.
-    await tester.pump();
-    await ctx.navigationFlow.flushPending();
-  }
-
-  Future<void> _settleLiveApiWorkBestEffort(
-    WidgetTester tester,
-    EnsembleTestContext ctx,
-  ) async {
-    try {
-      await _settleLiveApiWork(tester, ctx);
-    } catch (_) {
-      // Cleanup settling is only to give async work a chance to finish before
-      // screenshots/logs are written. It must not decide the test result.
-    }
-  }
+  // Live API work is settled by the shared helper before debug artifacts are
+  // written in both standalone and application-provided test entries.
 
   /// Consume any exceptions already queued by a plugin or a prior handler.
   /// Flutter framework diagnostics handled by this runner are written to the

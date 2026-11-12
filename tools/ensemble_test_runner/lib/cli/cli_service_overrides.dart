@@ -37,6 +37,11 @@ Future<Map<String, dynamic>> resolveServiceOverrides({
     final uri = Uri.parse(resolvedUrl);
     overrides[service.name] = {
       'url': resolvedUrl,
+      // Flutter's isolated test workers run from a generated workspace. Start
+      // local fixtures from the app root so relative script paths and project
+      // files resolve the same way in serial and sharded runs.
+      if (service.workingDirectory == null || service.workingDirectory!.isEmpty)
+        'workingDirectory': patcher.appDir,
       'environment': {'PORT': '${uri.port}'},
     };
   }

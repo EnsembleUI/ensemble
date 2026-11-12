@@ -7,10 +7,89 @@ import 'package:ensemble_test_runner/session/local/local_action_executor.dart';
 import 'package:ensemble_test_runner/session/local/flutter_target_resolver.dart';
 import 'support/session_operation.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
+import 'package:ensemble_test_runner/src/runtime/operation_registry.dart'
+    show operationRegistry;
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('waitFor id waits for visibility, not hit testability',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: KeyedSubtree(
+          key: ValueKey('searchInput'),
+          child: IgnorePointer(child: TextField()),
+        ),
+      ),
+    ));
+
+    final keyedHost = find.byKey(const ValueKey('searchInput'));
+    expect(keyedHost, findsOneWidget);
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'wait_for_keyed_text_field', steps: []),
+    );
+    final assertions = AssertionEngine(tester: tester, context: context);
+    final resolver = FlutterTargetResolver(
+      tester: tester,
+      assertions: assertions,
+      registry: ObservationRegistry(),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: assertions,
+    )..resolveTargetFinder = resolver.resolveFinder;
+
+    const step = TestStep(
+      type: 'waitFor',
+      args: {'id': 'searchInput', 'timeoutMs': 100},
+    );
+    await executor.executeRegisteredWaitInput(
+      step,
+      descriptor: operationRegistry.lookup('waitFor')!,
+    );
+  });
+
+  testWidgets('id-only Invokable controls resolve without a ValueKey',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: _IdOnlyTextField('searchInput')),
+    ));
+
+    expect(find.byKey(const ValueKey('searchInput')), findsNothing);
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(id: 'wait_for_invokable_text_field', steps: []),
+    );
+    final assertions = AssertionEngine(tester: tester, context: context);
+    final resolver = FlutterTargetResolver(
+      tester: tester,
+      assertions: assertions,
+      registry: ObservationRegistry(),
+    );
+    final finder = resolver.resolveFinder(
+      const ElementTarget(testId: 'searchInput'),
+      requireInteractive: false,
+    );
+    expect(finder.evaluate(), hasLength(1));
+
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: assertions,
+    )..resolveTargetFinder = resolver.resolveFinder;
+    const step = TestStep(
+      type: 'waitFor',
+      args: {'id': 'searchInput', 'timeoutMs': 100},
+    );
+    await executor.executeRegisteredWaitInput(
+      step,
+      descriptor: operationRegistry.lookup('waitFor')!,
+    );
+  });
+
   testWidgets('reuses a locator handle only within its UI revision',
       (tester) async {
     var revision = 4;
@@ -719,4 +798,23 @@ void main() {
     expect(boundaries, ['scroll', 'swipe', 'drag', 'pullToRefresh']);
     expect(gestureUpdates, greaterThan(expectedUpdates));
   });
+}
+
+// ignore: must_be_immutable
+class _IdOnlyTextField extends StatelessWidget with Invokable {
+  _IdOnlyTextField(String id) {
+    this.id = id;
+  }
+
+  @override
+  Map<String, Function> getters() => const {};
+
+  @override
+  Map<String, Function> setters() => const {};
+
+  @override
+  Map<String, Function> methods() => const {};
+
+  @override
+  Widget build(BuildContext context) => const TextField();
 }

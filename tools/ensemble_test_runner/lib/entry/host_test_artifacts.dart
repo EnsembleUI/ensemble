@@ -23,6 +23,10 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/step_visual_snapshot.dart';
 import 'package:ensemble_test_runner/runner/step_policy.dart';
 import 'package:ensemble_test_runner/runner/screenshot_capture_failure.dart';
+import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart'
+    show kScreenshotTransitionSettleDuration;
+import 'package:ensemble_test_runner/runner/test_artifacts.dart'
+    show usesDeviceArtifactTransport;
 import 'package:flutter_test/flutter_test.dart';
 
 /// True when a screenshot diagnostic should never fail the host test.
@@ -54,7 +58,12 @@ Future<void> captureHostStepScreenshot({
   if (!context.config.screenshots.shouldCaptureStep(step.type)) return;
   try {
     if (!atCurrentFrame) {
-      await tester.pump();
+      // Live API callbacks run in real async time, but widget animations use
+      // the test binding's fake frame clock. Advance it through short content
+      // transitions before rasterizing (for example LoadingContainer's
+      // AnimatedSwitcher), otherwise Observer can see loaded children while
+      // the screenshot still captures them at zero opacity.
+      await tester.pump(kScreenshotTransitionSettleDuration);
       // One more frame so a newly mounted theme (EnsembleApp after login)
       // can apply preloaded fallback fonts before we rasterize.
       await tester.pump();
@@ -92,6 +101,11 @@ Future<void> captureHostStepScreenshot({
         !isHostScreenshotCaptureFailure(error)) {
       rethrow;
     }
+    context.runtime.consoleLogs.add(
+      context.runtime.formatConsoleLine(
+        '[Screenshot] Step $stepIndex capture skipped: $error',
+      ),
+    );
     // Do not call tester.takeException() — that would drain unrelated
     // application FlutterErrors recorded for the host attempt.
   }
@@ -192,7 +206,7 @@ Future<void> resetHostScreenshotViewport(
   await EnsembleTestHarness.runtimeAdapterFor(mode).resetViewport(tester);
 }
 
-/// Writes screenshot frames, dump tree, API, storage, and app console logs.
+/// Writes screenshot frames, API, storage, and app console logs.
 ///
 /// Call while the widget tree is still mounted so dump-tree and emergency
 /// captures can read it. Screenshot encoding runs inside [tester.runAsync]
@@ -214,27 +228,36 @@ Future<void> attachHostDebugArtifacts({
         (frames.isNotEmpty ||
             stepObservers.isNotEmpty ||
             context.config.devices.isNotEmpty)) {
-      final path = await tester.runAsync(() async {
-        final previousRunner = LiveAsyncCallSupport.runner;
-        LiveAsyncCallSupport.runner = null;
-        try {
-          return await ScreenshotSheetAggregator(
-            screenshots: context.config.screenshots,
-            devices: context.config.devices,
-          ).completeRun(
-            testCase: context.testCase,
-            frames: frames,
-            status: status,
-            durationMs: durationMs,
-            failedStepIndex: failedStepIndex,
-            failedStepLabel: failedStepLabel,
-            failureMessage: failureMessage,
-            stepObservers: stepObservers,
-          );
-        } finally {
-          LiveAsyncCallSupport.runner = previousRunner;
-        }
-      });
+      final aggregator = ScreenshotSheetAggregator(
+        screenshots: context.config.screenshots,
+        devices: context.config.devices,
+      );
+      final path = usesDeviceArtifactTransport
+          // Integration captures are already rasterized simulator frames.
+          // Their PNG encoding and artifact transport do not need Flutter's
+          // runAsync lane, which may still be occupied by a live plugin call.
+          ? await aggregator.completeRun(
+              testCase: context.testCase,
+              frames: frames,
+              status: status,
+              durationMs: durationMs,
+              failedStepIndex: failedStepIndex,
+              failedStepLabel: failedStepLabel,
+              failureMessage: failureMessage,
+              stepObservers: stepObservers,
+            )
+          : await LiveAsyncCallSupport.runPriorityUntracked(
+              () => aggregator.completeRun(
+                testCase: context.testCase,
+                frames: frames,
+                status: status,
+                durationMs: durationMs,
+                failedStepIndex: failedStepIndex,
+                failedStepLabel: failedStepLabel,
+                failureMessage: failureMessage,
+                stepObservers: stepObservers,
+              ),
+            );
       if (path != null) {
         context.logger.log('screenshotFrames: $path');
       }
@@ -252,28 +275,27 @@ Future<void> attachHostDebugArtifacts({
     context.logger.log('screenshotsError: $error');
   }
 
-  if (context.config.dumpTree.enabled) {
-    try {
-      TestArtifactCoordinator.replaceArtifactLog(
-        context.logger,
-        'dumpTree',
-        await writeDumpTreeLog(context),
-      );
-    } catch (error) {
-      context.logger.log('dumpTreeError: $error');
-    }
-  }
-
-  // The attempt-finished kernel subscriber normally publishes these sidecars
-  // before this cleanup boundary. Keep this once-guarded call for setup
-  // failures that never start a kernel attempt.
+  // Snapshot API calls at attempt cleanup. In-flight calls remain explicitly
+  // pending in the report; artifact capture does not wait for their responses.
   await const TestArtifactCoordinator().attachLogArtifactsOnce(context);
   try {
     Map<String, dynamic> keys = const {};
+    Map<String, dynamic> secureStorageKeys = const {};
+    Map<String, dynamic> keychainKeys = const {};
     if (StorageManager().initialized) {
       try {
         keys = capturePublicStorage();
       } catch (_) {}
+      try {
+        secureStorageKeys = captureSecureStorage();
+      } catch (_) {}
+    }
+    // The plugin keychain is independent of GetStorage initialization. Capture
+    // it even when the app never initialized its public-storage backend.
+    try {
+      keychainKeys = await captureKeychainStorage();
+    } catch (error) {
+      context.logger.log('keychainStorageCaptureError: $error');
     }
     TestArtifactCoordinator.replaceArtifactLog(
       context.logger,
@@ -282,6 +304,8 @@ Future<void> attachHostDebugArtifacts({
         logger: context.logger,
         filePrefix: context.testCase.id,
         keys: keys,
+        secureStorageKeys: secureStorageKeys,
+        keychainKeys: keychainKeys,
         stepDiffs: context.runtime.storageStepDiffs,
         secureStepDiffs: context.runtime.secureStorageStepDiffs,
         keychainStepDiffs: context.runtime.keychainStepDiffs,

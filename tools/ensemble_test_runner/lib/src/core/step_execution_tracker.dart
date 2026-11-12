@@ -39,15 +39,19 @@ final class StepExecutionTracker {
   void _record(ExecutionEvent event) {
     final index = event.stepIndex;
     if (index == null) return null;
+    while (stepDurationsMs.length <= index) {
+      stepDurationsMs.add(-1);
+      stepStartTimes.add('');
+    }
     switch (event.kind) {
       case ExecutionEventKind.stepStarted:
         activeStepIndex = index;
         failedStepIndex = index;
-        stepStartTimes.add(
-            timing.startTimeFor(index) ?? DateTime.now().toIso8601String());
+        stepStartTimes[index] =
+            timing.startTimeFor(index) ?? DateTime.now().toIso8601String();
         _onStepStarted?.call(index);
       case ExecutionEventKind.stepFinished:
-        stepDurationsMs.add(timing.durationFor(index) ?? 0);
+        stepDurationsMs[index] = timing.durationFor(index) ?? 0;
         activeStepIndex = -1;
       default:
         break;
@@ -57,7 +61,12 @@ final class StepExecutionTracker {
   /// Records a step that failed before its finish boundary was emitted.
   void recordActiveDuration() {
     if (activeStepIndex < 0) return null;
-    stepDurationsMs.add(timing.elapsedMsFor(activeStepIndex));
+    final index = activeStepIndex;
+    while (stepDurationsMs.length <= index) {
+      stepDurationsMs.add(-1);
+      stepStartTimes.add('');
+    }
+    stepDurationsMs[index] = timing.elapsedMsFor(index);
   }
 
   int failureIndex({int fallback = 0}) => activeStepIndex >= 0

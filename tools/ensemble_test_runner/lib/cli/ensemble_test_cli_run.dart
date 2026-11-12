@@ -113,8 +113,23 @@ Future<void> _executeCliRun({
       } catch (_) {}
     }
     final runSerial = !executionBackend.supportsParallel || jobs == 1;
-    final serialWorkingDirectory = runSerial && timerRewritePlan.enabled
-        ? workerWorkspace.prepare(0, timerRewritePlan)
+    if (runSerial) {
+      CliProcessOutput.writeStatus(
+        'Running test suite with 1 worker (serial execution)...',
+        quiet: quiet,
+        machineReport: machineReport,
+      );
+    }
+    final serialProgressFile =
+        runSerial && streamLiveOutput ? _workerProgressFile(appDir, 0) : null;
+    if (serialProgressFile != null) _deleteIfExists(serialProgressFile);
+    final serialWorkingDirectory = runSerial
+        ? workerWorkspace.prepare(
+            0,
+            timerRewritePlan,
+            testEntryRelativePath: patcher.activeEntryRelativePath,
+            copyPlatformProjects: executionMode == ExecutionMode.integration,
+          )
         : appDir;
     final serialServiceOverrides = runSerial
         ? await resolveServiceOverrides(
@@ -170,6 +185,7 @@ Future<void> _executeCliRun({
               reportFile: executionMode == ExecutionMode.integration
                   ? null
                   : reportFile,
+              progressFile: serialProgressFile,
               timeoutSeconds: timeoutSeconds,
               verbose: verbose,
               testEntryRelativePath: patcher.activeEntryRelativePath,
@@ -182,8 +198,12 @@ Future<void> _executeCliRun({
               appLogDisplayPath: timerRewritePlan.enabled
                   ? CliAppConsoleLog.relativePath()
                   : null,
-              artifactRoot:
-                  timerRewritePlan.enabled ? _artifactRootPath(appDir) : null,
+              // Serial runs still execute from an isolated worker workspace.
+              // Point runtime artifacts at the host app's durable report
+              // directory so logs, API records, and screenshot manifests are
+              // available when the parent process builds the HTML report and
+              // cleans the worker workspace.
+              artifactRoot: _artifactRootPath(appDir),
               serviceOverrides: effectiveServiceOverrides.isEmpty
                   ? null
                   : effectiveServiceOverrides,
@@ -197,6 +217,7 @@ Future<void> _executeCliRun({
                 : Duration(seconds: timeoutSeconds),
             timeoutAfterIntegrationStartup:
                 executionMode == ExecutionMode.integration,
+            progressFile: serialProgressFile,
           ))
             .result
         : await _runParallelFlutterTests(

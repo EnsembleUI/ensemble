@@ -10,6 +10,7 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/session/actions/action_result.dart';
 import 'package:ensemble_test_runner/session/actions/artifact_request.dart';
 import 'package:ensemble_test_runner/session/operation_result.dart';
@@ -97,6 +98,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
           allowEmpty: allowEmpty,
           allowOffscreen: allowOffscreen,
         );
+    executor.invalidateResolvedFinders = resolver.invalidateResolvedFinders;
   }
 
   /// Attach to a launched application (suite mode).
@@ -450,8 +452,9 @@ class LocalTestExecutionSession implements TestExecutionSession {
         }
         final image = ExtendedStepHandlers.captureScreenshotImage(tester);
         try {
-          final byteData = await tester.runAsync(
+          final byteData = await LiveAsyncCallSupport.runUntracked(
             () => image.toByteData(format: ui.ImageByteFormat.png),
+            runnerOverride: tester.runAsync,
           );
           if (byteData == null) {
             throw const TestExecutionError(

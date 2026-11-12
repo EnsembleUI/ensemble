@@ -131,8 +131,6 @@ timers:
   maxStartAfterSeconds: 1
   maxRepeatIntervalSeconds: 1
   maxNumberOfTimes: 15
-dumpTree:
-  enabled: true
 logApiCalls:
   enabled: true
 logStorage:
@@ -158,9 +156,9 @@ Frame manifests (`*_frames.json`) are written under
 `build/ensemble_test_runner/frames/` and folded into the current report payload
 inside `report/ensemble_test.db`
 (no leftover manifests after report generation).
-When `performance` / `dumpTree` are enabled, those payloads are embedded **per
-screen** in the same database report under `tests[].report.screens` (then
-`logs/` is deleted).
+When performance capture is enabled, those payloads are embedded per screen
+in the same database report under `tests[].report.screens` (then `logs/` is
+deleted).
 
 When `devices` is set, each test runs once per device (test ids become
 `id[deviceId]` when there is more than one device). Device `locale` sets

@@ -131,7 +131,6 @@ Map<String, dynamic> _elementToJson(
     bounds: bounds,
     warning: warning,
     value: value,
-    secure: element.state.secure,
     checked: element.state.checked,
     options: element.options,
   );
@@ -185,7 +184,6 @@ String? _elementValue(
     default:
       return null;
   }
-  if (element.state.secure == true) return null;
   // An empty string is a verified input value, not an unknown value. Keep it
   // so a downstream consumer can distinguish a cleared field from an
   // unobserved value.

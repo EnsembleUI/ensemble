@@ -41,16 +41,21 @@ final class TestStepRuntime {
   Future<void> settleAfterAction() async {
     return RunnerBenchmark.async('execution', 'settleAfterAction', () async {
       try {
-        await _settleFromEvents(timeout: config.actionSettleTimeout);
+        await _settleUiFromEvents(timeout: config.actionSettleTimeout);
       } on FlutterError catch (error) {
         if (!error.toString().contains('timed out')) rethrow;
       }
-      // The event settler already observes live calls. Only perform the
-      // compatibility yield when a call is still pending; an unconditional
-      // second bounded settle added up to another action timeout to every
-      // interaction without changing the settled UI.
+      // A tap can launch an asynchronous app action (including navigation
+      // callbacks that issue an API request first). Let that real async work
+      // complete before the next step is evaluated, then settle its frames.
+      // Keep this conditional so synchronous UI actions pay no extra wait.
       if (context.apiOverlay.hasPendingLiveCalls) {
         await yieldToLiveApiWork();
+        try {
+          await _settleUiFromEvents(timeout: config.actionSettleTimeout);
+        } on FlutterError catch (error) {
+          if (!error.toString().contains('timed out')) rethrow;
+        }
       }
     });
   }
@@ -58,15 +63,19 @@ final class TestStepRuntime {
   Future<void> waitForCondition({
     required bool Function() condition,
     required Duration timeout,
-  }) =>
-      EventDrivenSettler(
-        tester: tester,
-        hasExternalWork: () => context.apiOverlay.hasPendingLiveCalls,
-        waitForExternalWork: context.apiOverlay.waitForLiveCalls,
-        externalWorkPollTimeout: config.waitPollInterval,
-        activeFrameDuration: config.settleStepDuration,
-        onPump: _drainFlutterDiagnostics,
-      ).waitFor(condition: condition, timeout: timeout);
+  }) async {
+    if (condition()) return;
+    final elapsed = tester.binding.clock.stopwatch()..start();
+    final pollInterval = config.waitPollInterval <= Duration.zero
+        ? const Duration(milliseconds: 1)
+        : config.waitPollInterval;
+    while (elapsed.elapsed < timeout) {
+      await tester.pump(pollInterval);
+      await _drainFlutterDiagnostics();
+      if (condition()) return;
+    }
+    throw FlutterError('wait for condition timed out');
+  }
 
   Future<void> yieldToLiveApiWork() async {
     try {
@@ -105,12 +114,46 @@ final class TestStepRuntime {
     await tester.binding.delayed(duration);
   }
 
+  /// Keeps the app's frame scheduler moving while a duration-based wait is
+  /// active. A single live delay followed by a pump freezes frame callbacks,
+  /// animations, and UI work for the entire interval in test bindings, unlike
+  /// a foreground Flutter application that continues rendering.
+  Future<void> pumpWhileWaiting(Duration duration) async {
+    if (duration <= Duration.zero) {
+      await tester.pump();
+      await _drainFlutterDiagnostics();
+      return;
+    }
+
+    var elapsed = Duration.zero;
+    final frameInterval = config.waitPollInterval <= Duration.zero
+        ? const Duration(milliseconds: 1)
+        : config.waitPollInterval;
+    while (elapsed < duration) {
+      final remaining = duration - elapsed;
+      final slice = remaining < frameInterval ? remaining : frameInterval;
+      await tester.binding.delayed(slice);
+      await tester.pump();
+      await tester.pump();
+      await _drainFlutterDiagnostics();
+      elapsed += slice;
+    }
+  }
+
   Future<void> _settleFromEvents({required Duration timeout}) async {
     await EventDrivenSettler(
       tester: tester,
       hasExternalWork: () => context.apiOverlay.hasPendingLiveCalls,
       waitForExternalWork: context.apiOverlay.waitForLiveCalls,
       externalWorkPollTimeout: config.waitPollInterval,
+      activeFrameDuration: config.settleStepDuration,
+      onPump: drainTransientFlutterDiagnostics,
+    ).settle(timeout: timeout);
+  }
+
+  Future<void> _settleUiFromEvents({required Duration timeout}) async {
+    await EventDrivenSettler(
+      tester: tester,
       activeFrameDuration: config.settleStepDuration,
       onPump: drainTransientFlutterDiagnostics,
     ).settle(timeout: timeout);

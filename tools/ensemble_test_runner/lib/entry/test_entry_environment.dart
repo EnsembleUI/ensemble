@@ -12,7 +12,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
-import 'package:ensemble_test_runner/ensemble_test_runner.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/reporters/junit_test_report.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 
@@ -103,18 +104,40 @@ void emitMachineTestReport(EnsembleTestRunResult result) {
 /// completion events. This keeps hosted and standalone entries observable by
 /// the same CLI watcher while a case is still running.
 void emitTestProgressStart(EnsembleTestDefinition definition) {
+  _emitTestProgressEvent(testProgressStartPayload(definition));
+}
+
+/// Publishes a completed test case to the CLI progress stream.
+void emitTestProgressComplete(
+  EnsembleTestDefinition definition,
+  EnsembleSingleTestResult result,
+) {
+  _emitTestProgressEvent({
+    'testId': result.testId,
+    'assetPath': definition.assetPath,
+    'status': result.status.name,
+    'durationMs': result.durationMs,
+    if (result.attempts > 1) 'attempts': result.attempts,
+    if (result.retry > 0) 'retry': result.retry,
+    if (result.message != null) 'message': result.message,
+    if (result.failedStepIndex != null)
+      'failedStepIndex': result.failedStepIndex,
+  });
+}
+
+void _emitTestProgressEvent(Map<String, dynamic> event) {
   final progressFile =
       RunnerRuntimeConfiguration.current.string('ensembleTestProgressFile');
-  final event = json.encode(testProgressStartPayload(definition));
+  final encodedEvent = json.encode(event);
   if (progressFile.isEmpty) {
     if (usesDeviceArtifactTransport) {
-      print('$ensembleTestProgressProtocolPrefix$event');
+      print('$ensembleTestProgressProtocolPrefix$encodedEvent');
     }
     return;
   }
   final file = File(progressFile);
   file.parent.createSync(recursive: true);
-  file.writeAsStringSync('$event\n', mode: FileMode.append);
+  file.writeAsStringSync('$encodedEvent\n', mode: FileMode.append);
 }
 
 Map<String, dynamic> testProgressStartPayload(

@@ -10,6 +10,7 @@ import 'package:ensemble_test_runner/session/local/flutter_target_resolver.dart'
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
+import 'package:ensemble_test_runner/runner/step_policy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Finder used to draw the report screenshot highlight for [step].
@@ -41,7 +42,10 @@ Finder? stepHighlightFinder({
             registry: ObservationRegistry(),
           ).resolveFinder(
             ElementTarget(locator: locator),
-            requireInteractive: false,
+            // For actions, highlight the same actionable ancestor that the
+            // executor taps. Resolving a text locator as a passive text node
+            // can leave the screenshot without a hit-testable target rect.
+            requireInteractive: isUserActionStep(step),
             allowEmpty: true,
           );
         } on TestExecutionError {
@@ -50,9 +54,13 @@ Finder? stepHighlightFinder({
       }
     }
 
+    final rawText = step.args['text'];
     final texts = <String>[
-      if (step.args['text']?.toString().trim().isNotEmpty == true)
-        step.args['text'].toString(),
+      if (rawText is String && rawText.trim().isNotEmpty) rawText,
+      if (rawText is List)
+        for (final item in rawText)
+          if (item != null && item.toString().trim().isNotEmpty)
+            item.toString(),
       if (step.args['anyOf'] is List)
         for (final item in step.args['anyOf'] as List)
           if (item != null && item.toString().trim().isNotEmpty)

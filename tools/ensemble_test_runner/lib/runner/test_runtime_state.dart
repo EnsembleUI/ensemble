@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:flutter/foundation.dart' show DebugPrintCallback;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,7 +53,7 @@ class TestRuntimeState {
   /// attempt. The kernel terminal subscriber and outer cleanup share it.
   Future<void>? debugLogArtifactsWrite;
 
-  /// Map from screen name to its captured artifacts (debugTree, performance markers, etc.)
+  /// Map from screen name to performance artifacts.
   final Map<String, Map<String, dynamic>> screenArtifacts = {};
 
   /// Detaches the visual report buffers for completion without disposing them.
@@ -153,11 +154,15 @@ class TestRuntimeState {
     WidgetTester tester,
     Future<T> Function() callback,
   ) =>
-      tester.runAsync(
+      LiveAsyncCallSupport.runUntracked<T>(
         () => runZoned<Future<T>>(
           callback,
           zoneSpecification: consoleCaptureZone,
         ),
+        // Setup and plugin work shares the same non-reentrant lane as app
+        // APIs. Calling tester.runAsync directly here can overlap a request
+        // that was started by the preceding screen/test attempt.
+        runnerOverride: tester.runAsync,
       );
 
   void addFrameTimings(List<ui.FrameTiming> timings) {

@@ -23,7 +23,6 @@ void main() {
         runtimeMetadata: true,
         navigationState: true,
         screenshots: true,
-        secureFieldRedaction: true,
         observationRevisions: true,
         snapshotElementTargets: true,
       );

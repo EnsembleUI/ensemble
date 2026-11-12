@@ -12,6 +12,8 @@ import 'package:ensemble_test_runner/actions/test_step_runtime.dart';
 import 'package:ensemble_test_runner/application/application_test_driver.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/operation_target.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart'
+    show APICallRecord;
 import 'package:ensemble_test_runner/src/benchmark_measurement.dart';
 import 'package:ensemble_test_runner/src/runtime/operation_registry.dart'
     show operationRegistry;
@@ -40,7 +42,7 @@ final class TestStepWaitExecutor {
     required this.conditionWaiter,
     required this.finderForTargetStep,
     required this.finderForTarget,
-    required this.settleLiveApiWork,
+    this.invalidateResolvedFinders,
     required this.drainTransientFlutterDiagnostics,
     this.onEvidenceBoundary,
     this.onOperationEvidenceBoundary,
@@ -57,7 +59,10 @@ final class TestStepWaitExecutor {
       finderForTargetStep;
   final Finder Function(ElementTarget target, {bool requireInteractive})
       finderForTarget;
-  final Future<void> Function() settleLiveApiWork;
+  /// Drops any finder that captured concrete [Element]s before each target
+  /// wait poll. Async list and conditional rebuilds can replace those Elements
+  /// without an operation boundary advancing the observer revision.
+  final VoidCallback? invalidateResolvedFinders;
   final void Function() drainTransientFlutterDiagnostics;
   final FutureOr<void> Function(TestStep step)? onEvidenceBoundary;
   final FutureOr<void> Function(OperationInput operation, String detail)?
@@ -129,8 +134,7 @@ final class TestStepWaitExecutor {
     if (duration == Duration.zero) {
       await runtime.pump(label: 'pump');
     } else {
-      await runtime.liveDelay(duration);
-      await runtime.pump(label: 'wait');
+      await runtime.pumpWhileWaiting(duration);
     }
     await emitConditionBoundary(operation);
   }
@@ -146,11 +150,19 @@ final class TestStepWaitExecutor {
   Future<void> _executeWaitFor(OperationInput operation) async {
     await RunnerBenchmark.async('execution', 'waitFor', () async {
       final args = operation.arguments;
-      final target = args['target'] is Map || args['bounds'] is Map
+      final rawText = args['text'];
+      final text = rawText is String ? rawText : null;
+      final anyOf = <String>[
+        if (rawText is List) ...conditionWaiter.stringListArg(rawText),
+        ...conditionWaiter.stringListArg(args['anyOf']),
+      ];
+      final target = args['target'] is Map ||
+              args['bounds'] is Map ||
+              (args['id'] != null &&
+                  (text == null || text.trim().isEmpty) &&
+                  anyOf.isEmpty)
           ? _targetFromInput(operation)
           : null;
-      final anyOf = conditionWaiter.stringListArg(args['anyOf']);
-      final text = args['text']?.toString();
       if (target != null &&
           args['id'] == null &&
           (text == null || text.trim().isEmpty) &&
@@ -189,7 +201,7 @@ final class TestStepWaitExecutor {
   Future<void> _executeWaitForApi(OperationInput operation) async {
     final args = operation.arguments;
     await waitForApi(
-      name: args['name']?.toString(),
+      name: args['name'],
       times: args['times'] as int? ?? 1,
       timeoutMs: _timeoutFor(operation).inMilliseconds,
     );
@@ -205,10 +217,21 @@ final class TestStepWaitExecutor {
         timeout: timeout,
         condition: () {
           try {
-            return finderForTarget(
+            // The target resolver memoizes Element-backed finders against the
+            // observer revision. That revision is synchronized at operation
+            // boundaries, but a wait spans async app rebuilds that can replace
+            // keyed children within the same operation. Re-resolve each poll
+            // so we test the currently mounted widget, not a stale Element.
+            invalidateResolvedFinders?.call();
+            final finder = finderForTarget(
               target,
               requireInteractive: false,
-            ).evaluate().isNotEmpty;
+            );
+            // `waitFor(target: ...)` means the requested target is visible on
+            // the active screen. Tree membership alone also matches retained,
+            // clipped, and loading-transition widgets; reporting success for
+            // those states produces screenshots with no visible target.
+            return assertions.hasVisibleElement(finder);
           } on TestExecutionError catch (error) {
             if (error.code == TestExecutionErrorCode.elementNotFound) {
               return false;
@@ -369,14 +392,7 @@ final class TestStepWaitExecutor {
       }
 
       try {
-        await EventDrivenSettler(
-          tester: tester,
-          hasExternalWork: () => context.apiOverlay.hasPendingLiveCalls,
-          waitForExternalWork: context.apiOverlay.waitForLiveCalls,
-          externalWorkPollTimeout: config.waitPollInterval,
-          activeFrameDuration: config.settleStepDuration,
-          onPump: drainTransientFlutterDiagnostics,
-        ).waitFor(
+        await _settler(onPump: drainTransientFlutterDiagnostics).waitFor(
           timeout: Duration(milliseconds: timeoutMs),
           condition: () {
             RunnerBenchmark.count('pollingAttempts', 1);
@@ -397,32 +413,69 @@ final class TestStepWaitExecutor {
   }
 
   Future<void> waitForApi({
-    String? name,
+    required Object? name,
     required int times,
     required int timeoutMs,
   }) async {
     return RunnerBenchmark.async('execution', 'waitForApi', () async {
-      if (name == null || name.isEmpty) {
+      final rawNames = name is List ? name : [name];
+      final apiNames = <String>{
+        for (final candidate in rawNames)
+          if (candidate != null && candidate.toString().isNotEmpty)
+            candidate.toString(),
+      }.toList(growable: false);
+      if (apiNames.isEmpty) {
         throw EnsembleTestFailure('waitForApi requires "name"');
       }
+
+      // A case may have issued the same API earlier (for example, Landing
+      // warmed the cache before a detail screen requests it again). Waiting
+      // for any historical completed call can return immediately while the
+      // current screen's newer request is still pending. Track the newest
+      // `times` matching invocations and wait for those exact calls instead.
+      List<APICallRecord> latestCalls() => [
+            for (final apiName in apiNames)
+              ...context.apiOverlay.callsFor(apiName),
+          ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      List<APICallRecord> selectedCalls() =>
+          latestCalls().take(times).toList(growable: false);
 
       try {
         await _settler().waitFor(
           timeout: Duration(milliseconds: timeoutMs),
-          condition: () =>
-              context.apiOverlay
-                  .callsFor(name)
-                  .where((call) => call.isCompleted)
-                  .length >=
-              times,
+          condition: () {
+            final selected = selectedCalls();
+            return selected.length >= times &&
+                selected.every((call) => call.isCompleted);
+          },
         );
-        await settleLiveApiWork();
+        final selected = selectedCalls();
+        final failedCalls = selected.where((call) {
+          final statusCode = call.statusCode;
+          return call.error != null ||
+              (statusCode != null && (statusCode < 200 || statusCode >= 300));
+        });
+        if (failedCalls.isNotEmpty) {
+          final details = failedCalls.map((call) {
+            final status =
+                call.statusCode == null ? '' : ' (status ${call.statusCode})';
+            final error = call.error ?? call.responseBody?.toString();
+            return '"${call.name}"$status${error == null ? '' : ': $error'}';
+          }).join('; ');
+          throw EnsembleTestFailure(
+            'API call completed but failed: $details',
+          );
+        }
         return;
       } on FlutterError catch (error) {
         if (!error.toString().contains('timed out')) rethrow;
       }
+      final expectedNames = apiNames.length == 1
+          ? 'API "${apiNames.single}"'
+          : 'an API call named one of ${apiNames.join(', ')}';
       throw EnsembleTestFailure(
-        'Timed out after ${timeoutMs}ms waiting for API "$name" '
+        'Timed out after ${timeoutMs}ms waiting for $expectedNames '
         'to complete $times time(s)',
       );
     });
@@ -476,9 +529,6 @@ final class TestStepWaitExecutor {
   }) =>
       EventDrivenSettler(
         tester: tester,
-        hasExternalWork: () => context.apiOverlay.hasPendingLiveCalls,
-        waitForExternalWork: context.apiOverlay.waitForLiveCalls,
-        externalWorkPollTimeout: config.waitPollInterval,
         activeFrameDuration: config.settleStepDuration,
         onPump: onPump,
       );

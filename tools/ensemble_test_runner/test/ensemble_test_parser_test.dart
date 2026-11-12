@@ -693,10 +693,8 @@ record:
       );
     });
 
-    test('parses suite config debug artifacts', () {
+    test('parses suite config diagnostics', () {
       const yaml = '''
-dumpTree:
-  enabled: true
 logApiCalls:
   enabled: true
 logStorage:
@@ -705,7 +703,6 @@ logStorage:
 ''';
 
       final config = EnsembleTestParser.parseConfigString(yaml);
-      expect(config.dumpTree.enabled, isTrue);
       expect(config.logApiCalls.enabled, isTrue);
       expect(config.logStorage.enabled, isTrue);
       expect(config.logStorage.key, 'auth');

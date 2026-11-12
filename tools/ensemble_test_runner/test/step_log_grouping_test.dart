@@ -183,15 +183,16 @@ void main() {
       expect(grouped[1]['appLogs'], isEmpty);
     });
 
-    test('maps nested outline lines to parent top-level step', () {
+    test('keeps nested step evidence on its own outline row', () {
       final grouped = groupLogsByStep(
         stepsOutline: [
           'group(setup)',
           '  tap(a)',
           'waitForNavigation(Home)',
         ],
-        stepDurationsMs: [50, 80],
+        stepDurationsMs: [-1, 50, 80],
         stepStartTimes: [
+          '',
           '2026-07-22T12:00:00.000',
           '2026-07-22T12:00:01.000',
         ],
@@ -203,12 +204,17 @@ void main() {
           },
         ],
         rawConsoleLines: const [],
+        screenshotFrames: const [
+          {'stepIndex': 1, 'fileName': 'nested.png'},
+        ],
       );
 
       expect(grouped, hasLength(3));
       expect(grouped[0]['apiCalls'], isEmpty);
-      expect(grouped[1]['apiCalls'], isEmpty);
-      expect((grouped[2]['apiCalls'] as List).single['name'], 'getDeviceInfo');
+      expect((grouped[1]['apiCalls'] as List).single['name'], 'getDeviceInfo');
+      expect(
+          (grouped[1]['screenshots'] as List).single['fileName'], 'nested.png');
+      expect(grouped[2]['apiCalls'], isEmpty);
     });
 
     test('falls back to timestamp windows when stepIndex missing', () {
@@ -373,7 +379,7 @@ void main() {
       expect((steps.single['changes'] as List).single['change'], 'added');
     });
 
-    test('redacts secure storage and includes keychain values', () async {
+    test('preserves secure storage and keychain values', () async {
       final logger = TestLogger();
       final displayPath = await writeStorageLogFile(
         logger: logger,
@@ -411,9 +417,8 @@ void main() {
 
       final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
       final content = file.readAsStringSync();
-      expect(content, contains(redactedSecureStorageValue));
-      expect(content, isNot(contains('old-secret')));
-      expect(content, isNot(contains('new-secret')));
+      expect(content, contains('old-secret'));
+      expect(content, contains('new-secret'));
       expect(content, contains('keychain-secret'));
       expect(content, contains('test-keychain-password'));
 
@@ -421,8 +426,8 @@ void main() {
       final secureChange = ((decoded['secureStorage'] as Map)['steps'] as List)
           .single['changes']
           .single as Map;
-      expect(secureChange['before'], redactedSecureStorageValue);
-      expect(secureChange['after'], redactedSecureStorageValue);
+      expect(secureChange['before'], 'old-secret');
+      expect(secureChange['after'], {'token': 'new-secret'});
       final keychainChange = ((decoded['keychain'] as Map)['steps'] as List)
           .single['changes']
           .single as Map;
@@ -435,21 +440,20 @@ void main() {
   });
 
   group('writeApiCallsLogFile', () {
-    test('includes stepIndex on events', () async {
+    test('records provider duration without app wait metadata', () async {
       final logger = TestLogger();
+      final call = APICallRecord(
+        name: 'login',
+        apiDefinition: YamlMap.wrap({}),
+        timestamp: DateTime.parse('2026-07-22T12:00:00.000'),
+        stepIndex: 3,
+        mocked: true,
+        statusCode: 200,
+      )..providerDurationMs = 75;
       final displayPath = await writeApiCallsLogFile(
         logger: logger,
         filePrefix: 'sample',
-        calls: [
-          APICallRecord(
-            name: 'login',
-            apiDefinition: YamlMap.wrap({}),
-            timestamp: DateTime.parse('2026-07-22T12:00:00.000'),
-            stepIndex: 3,
-            mocked: true,
-            statusCode: 200,
-          ),
-        ],
+        calls: [call],
       );
       expect(displayPath, contains('api_calls'));
 
@@ -463,6 +467,123 @@ void main() {
       expect(events, hasLength(1));
       expect(events.single['stepIndex'], 3);
       expect(events.single['name'], 'login');
+      expect(events.single['providerDurationMs'], 75);
+      expect(events.single.containsKey('durationMs'), isFalse);
+    });
+
+    test('reports pending state for a request waiting to be dispatched',
+        () async {
+      final call = APICallRecord(
+        name: 'queuedRequest',
+        apiDefinition: YamlMap.wrap({'url': 'https://example.test/queued'}),
+        timestamp: DateTime.parse('2026-07-22T12:00:00.000Z'),
+        stepIndex: 0,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      call.observeStepEnd(0);
+
+      final displayPath = await writeApiCallsLogFile(
+        logger: TestLogger(),
+        filePrefix: 'not-started-api',
+        calls: [call],
+      );
+      addTearDown(() {
+        final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+        if (file.existsSync()) file.deleteSync();
+      });
+
+      final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+      final payload =
+          json.decode(file.readAsStringSync()) as Map<String, dynamic>;
+      final event = (payload['events'] as List).single as Map<String, dynamic>;
+      expect(event['phase'], 'pending');
+      expect(event['completed'], isFalse);
+      expect(event.containsKey('durationMs'), isFalse);
+      expect(event.containsKey('responseBody'), isFalse);
+      expect(call.hasRequestStarted, isFalse);
+    });
+
+    test(
+        'keeps a cross-step request pending where it started and records its response where it completed',
+        () async {
+      final startedAt = DateTime.parse('2026-07-22T12:00:00.000Z');
+      final call = APICallRecord(
+        name: 'slowRequest',
+        apiDefinition: YamlMap.wrap({'url': 'https://example.test/slow'}),
+        timestamp: startedAt,
+        stepIndex: 0,
+      );
+      call.observeStepEnd(0);
+      call
+        ..providerDurationMs = 800
+        ..statusCode = 200
+        ..responseBody = {'ok': true}
+        ..completed = true
+        ..completedAt = startedAt.add(const Duration(seconds: 10))
+        ..completionStepIndex = 1;
+      final completedBetweenSteps = APICallRecord(
+        name: 'boundaryRequest',
+        apiDefinition: YamlMap.wrap({'url': 'https://example.test/boundary'}),
+        timestamp: startedAt,
+        stepIndex: 0,
+      );
+      completedBetweenSteps.observeStepEnd(0);
+      completedBetweenSteps
+        ..statusCode = 204
+        ..completed = true
+        ..completedAt = startedAt.add(const Duration(milliseconds: 3010));
+      final displayPath = await writeApiCallsLogFile(
+        logger: TestLogger(),
+        filePrefix: 'cross-step-api',
+        calls: [call, completedBetweenSteps],
+      );
+      addTearDown(() {
+        final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+        if (file.existsSync()) file.deleteSync();
+      });
+
+      final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+      final payload =
+          json.decode(file.readAsStringSync()) as Map<String, dynamic>;
+      final events = (payload['events'] as List).cast<Map<String, dynamic>>();
+      final boundaryResponse = events.singleWhere(
+        (event) =>
+            event['name'] == 'boundaryRequest' && event['phase'] == 'completed',
+      );
+      expect(boundaryResponse.containsKey('stepIndex'), isFalse);
+      final steps = groupLogsByStep(
+        stepsOutline: const ['waitForText(ready)', 'tap(next)'],
+        stepDurationsMs: const [3000, 5000],
+        stepStartTimes: [
+          startedAt.toIso8601String(),
+          startedAt.add(const Duration(seconds: 3)).toIso8601String(),
+        ],
+        apiEvents: events,
+        rawConsoleLines: const [],
+      );
+
+      final pending = (steps[0]['apiCalls'] as List)
+          .cast<Map>()
+          .singleWhere((event) => event['name'] == 'slowRequest');
+      expect(pending['phase'], 'pending');
+      expect(pending['completed'], isFalse);
+      expect(pending.containsKey('durationMs'), isFalse);
+      expect(pending.containsKey('providerDurationMs'), isFalse);
+      expect(pending.containsKey('statusCode'), isFalse);
+      expect(pending.containsKey('responseBody'), isFalse);
+      expect(
+        (steps[0]['apiCalls'] as List)
+            .cast<Map>()
+            .where((event) => event['name'] == 'boundaryRequest'),
+        hasLength(1),
+      );
+
+      final completed = (steps[1]['apiCalls'] as List).single as Map;
+      expect(completed['phase'], 'completed');
+      expect(completed['completed'], isTrue);
+      expect(completed.containsKey('durationMs'), isFalse);
+      expect(completed['providerDurationMs'], 800);
+      expect(completed['responseBody'], {'ok': true});
     });
 
     test('stringifies non-JSON response / request values', () async {
@@ -518,12 +639,11 @@ void main() {
         ],
         screens: {
           'Login': {
-            'debugTree': 'WidgetTreeA',
             'performance': {'totalFrames': 150}
           },
           'Home': {
-            'debugTree': 'WidgetTreeB',
-          }
+            'performance': {'totalFrames': 12}
+          },
         },
       );
 

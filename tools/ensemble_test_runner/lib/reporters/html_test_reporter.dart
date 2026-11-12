@@ -249,6 +249,7 @@ class HtmlTestReporter {
 </div>
 
 <div id="screen-modal-overlay" class="modal-overlay" style="display: none;" onclick="closeScreenDialog(event)">
+  <button type="button" class="modal-nav-btn prev" id="screen-modal-prev" onclick="navigateScreen(-1, event)" aria-label="Previous screen">&#10094;</button>
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-header-left">
@@ -259,17 +260,14 @@ class HtmlTestReporter {
     </div>
     <div class="modal-body">
       <div class="modal-tabs">
-        <button class="screen-tab-btn active" data-tab="screen-debugtree" onclick="switchScreenTab('screen-debugtree')">🌳 Widget Debug Tree</button>
-        <button class="screen-tab-btn" data-tab="screen-perf" onclick="switchScreenTab('screen-perf')">⚡ Performance Timeline</button>
-      </div>
-      <div class="modal-tab-content" id="modal-tab-screen-debugtree">
-        <div id="modal-screen-debugtree-content" class="modal-list logs-terminal" style="font-family: var(--font-code); font-size: 0.75rem; max-height: 500px; overflow: auto; text-align: left; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px;"></div>
+        <button class="screen-tab-btn" data-tab="screen-perf" onclick="switchScreenTab('screen-perf')" style="display: none;">⚡ Performance</button>
       </div>
       <div class="modal-tab-content" id="modal-tab-screen-perf" style="display: none;">
-        <div id="modal-screen-perf-content" class="modal-list logs-terminal" style="font-family: var(--font-code); font-size: 0.75rem; max-height: 500px; overflow: auto; text-align: left; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px;"></div>
+        <div id="modal-screen-perf-content" class="screen-performance-scroll" style="box-sizing: border-box; width: 100%; font-family: var(--font-code); font-size: 0.75rem; text-align: left; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px;"></div>
       </div>
     </div>
   </div>
+  <button type="button" class="modal-nav-btn next" id="screen-modal-next" onclick="navigateScreen(1, event)" aria-label="Next screen">&#10095;</button>
 </div>
 ''';
   }

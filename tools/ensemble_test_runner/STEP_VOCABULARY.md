@@ -107,15 +107,12 @@ timers:
   maxRepeatIntervalSeconds: 1
 ```
 
-`dumpTree` and `performance` are suite-level **config** flags; when enabled
-they emit **per-screen** payloads under `report.screens` in the current report
-payload stored in `report/ensemble_test.db`. `logApiCalls` and `logStorage`
-likewise attach **per-test**
-data to each test result / HTML card:
+`performance` is a suite-level config flag; when enabled, it emits per-screen
+payloads under `report.screens` in the current report payload stored in
+`report/ensemble_test.db`. `logApiCalls` and `logStorage` likewise attach
+per-test data to each test result / HTML card:
 
 ```yaml
-dumpTree:
-  enabled: true
 logApiCalls:
   enabled: true
 logStorage:

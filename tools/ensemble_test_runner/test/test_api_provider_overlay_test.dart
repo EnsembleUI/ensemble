@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 
 void main() {
@@ -56,6 +57,48 @@ void main() {
     expect(response.body, {'token': 'abc'});
   });
 
+  test('records raw non-JSON HTTP response bodies for diagnostics', () async {
+    final delegate = _RawBodyAPIProvider('upstream response');
+    final provider = TestApiProviderOverlay(mocks: {});
+
+    await provider.invokeApiWithDelegate(
+      delegate,
+      _FakeBuildContext(),
+      YamlMap.wrap({'type': 'http', 'url': 'https://example.test/status'}),
+      DataContext(buildContext: _FakeBuildContext()),
+      'status',
+    );
+
+    final call = provider.calls.single;
+    expect(call.statusCode, 200);
+    expect(call.responseBody, 'upstream response');
+  });
+
+  test('records provider invocation duration', () async {
+    LiveAsyncCallSupport.reset();
+    addTearDown(LiveAsyncCallSupport.reset);
+    final delegate = _ConcurrentRecordingAPIProvider(
+      onStart: () {},
+      onEnd: () {},
+    );
+    final provider = TestApiProviderOverlay(mocks: {});
+    provider.liveAsyncRunner = <T>(call) async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      return call();
+    };
+
+    await provider.invokeApiWithDelegate(
+      delegate,
+      _FakeBuildContext(),
+      YamlMap.wrap({'type': 'http', 'url': 'https://example.test/status'}),
+      DataContext(buildContext: _FakeBuildContext()),
+      'status',
+    );
+
+    final call = provider.calls.single;
+    expect(call.providerDurationMs, greaterThanOrEqualTo(45));
+  });
+
   test('mocked APIs honor delayMs before returning', () async {
     final delegate = _RecordingAPIProvider();
     final provider = TestApiProviderOverlay(
@@ -91,6 +134,9 @@ void main() {
     expect(completed, isTrue);
     expect(delegate.invoked, isFalse);
     expect(response.body, {'name': 'Jane'});
+    final recordedCall = provider.callsFor('slowProfile').single;
+    expect(recordedCall.completed, isTrue);
+    expect(recordedCall.providerDurationMs, greaterThanOrEqualTo(45));
   });
 
   test('mocked API sequences return responses in call order', () async {
@@ -165,22 +211,58 @@ void main() {
     });
   });
 
-  test('serializes live runner calls to avoid reentrant runAsync', () async {
-    var inFlight = 0;
-    var maxInFlight = 0;
+  test(
+      'successful non-http responses complete API records without status codes',
+      () async {
+    final delegate = _FirestoreLikeAPIProvider();
+    final provider = TestApiProviderOverlay(mocks: {});
+    final context = _FakeBuildContext();
+
+    await provider.invokeApiWithDelegate(
+      delegate,
+      context,
+      YamlMap.wrap({'type': 'firestore', 'path': 'teams'}),
+      DataContext(buildContext: context),
+      'getTeams',
+    );
+
+    final record = provider.calls.single;
+    expect(record.statusCode, isNull);
+    expect(record.error, isNull);
+    expect(record.isCompleted, isTrue);
+  });
+
+  test('batches live runner calls into one non-reentrant runAsync scope',
+      () async {
+    var providerInFlight = 0;
+    var maxProviderInFlight = 0;
+    var runnerInFlight = 0;
+    var maxRunnerInFlight = 0;
+    var runnerInvocations = 0;
     final delegate = _ConcurrentRecordingAPIProvider(
       onStart: () {
-        inFlight++;
-        if (inFlight > maxInFlight) {
-          maxInFlight = inFlight;
+        providerInFlight++;
+        if (providerInFlight > maxProviderInFlight) {
+          maxProviderInFlight = providerInFlight;
         }
       },
       onEnd: () {
-        inFlight--;
+        providerInFlight--;
       },
     );
     final provider = TestApiProviderOverlay(mocks: {}, delegate: delegate);
-    provider.liveAsyncRunner = <T>(Future<T> Function() fn) => fn();
+    provider.liveAsyncRunner = <T>(Future<T> Function() fn) async {
+      runnerInvocations++;
+      runnerInFlight++;
+      if (runnerInFlight > maxRunnerInFlight) {
+        maxRunnerInFlight = runnerInFlight;
+      }
+      try {
+        return await fn();
+      } finally {
+        runnerInFlight--;
+      }
+    };
 
     final buildContext = _FakeBuildContext();
     final first = provider.invokeApiWithDelegate(
@@ -199,7 +281,9 @@ void main() {
     );
 
     await Future.wait([first, second]);
-    expect(maxInFlight, 1);
+    expect(runnerInvocations, 1);
+    expect(maxRunnerInFlight, 1);
+    expect(maxProviderInFlight, 2);
     expect(delegate.invoked, 2);
   });
 
@@ -291,6 +375,24 @@ class _RecordingAPIProvider extends HTTPAPIProvider {
   }
 }
 
+class _RawBodyAPIProvider extends HTTPAPIProvider {
+  _RawBodyAPIProvider(this.rawBody);
+
+  final String rawBody;
+
+  @override
+  Future<HttpResponse> invokeApi(
+    BuildContext context,
+    YamlMap api,
+    DataContext eContext,
+    String apiName,
+  ) async =>
+      HttpResponse(
+        http.Response(rawBody, 200, headers: {'content-type': 'text/plain'}),
+        APIState.success,
+      );
+}
+
 class _RecordingGenericAPIProvider implements APIProvider {
   bool invoked = false;
 
@@ -324,6 +426,27 @@ class _RecordingGenericAPIProvider implements APIProvider {
 
   @override
   void dispose() {}
+}
+
+class _FirestoreLikeAPIProvider extends _RecordingGenericAPIProvider {
+  @override
+  Future<Response> invokeApi(
+    BuildContext context,
+    YamlMap api,
+    DataContext eContext,
+    String apiName,
+  ) async {
+    invoked = true;
+    return _FirestoreLikeResponse();
+  }
+}
+
+class _FirestoreLikeResponse extends Response {
+  _FirestoreLikeResponse() {
+    apiState = APIState.success;
+    body = {'documents': []};
+    apiName = 'getTeams';
+  }
 }
 
 class _FakeBuildContext extends Fake implements BuildContext {}

@@ -13,6 +13,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/session/operation_target.dart';
 import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
+import 'package:ensemble_test_runner/session/local/observed_element_tree.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/observer_json.dart';
 import 'package:ensemble_test_runner/session/observation/suggested_locator.dart';
@@ -24,6 +25,128 @@ import 'package:flutter_test/flutter_test.dart';
 import 'test_event_loop.dart';
 
 void main() {
+  testWidgets('observer drops generated app wrapper duplicated by screen root',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Row(
+          children: [
+            KeyedSubtree(
+              key: const ValueKey('ensemble_app_1791923598528'),
+              child: const ColoredBox(color: Colors.blue),
+            ),
+            KeyedSubtree(
+              key: const ValueKey('sports_0'),
+              child: const ColoredBox(color: Colors.blue),
+            ),
+          ],
+        ),
+      ),
+    );
+    final generatedHost = tester.element(
+      find.byKey(const ValueKey('ensemble_app_1791923598528')),
+    );
+    final screenRoot = tester.element(find.byKey(const ValueKey('sports_0')));
+    const sameBounds = UiBounds(left: 0, top: 115, width: 393, height: 623);
+    final kept = dropRedundantNestedObserveLeaves([
+      (
+        element: generatedHost,
+        ui: const UiElement(
+          elementId: 'el_0',
+          testId: 'ensemble_app_1791923598528',
+          type: 'widget',
+          bounds: sameBounds,
+        ),
+      ),
+      (
+        element: screenRoot,
+        ui: const UiElement(
+          elementId: 'el_1',
+          testId: 'sports_0',
+          type: 'widget',
+          bounds: sameBounds,
+        ),
+      ),
+    ]);
+
+    expect(kept, hasLength(1));
+    expect(kept.single.ui.testId, 'sports_0');
+  });
+
+  testWidgets('observer drops duplicate text under keyed Ensemble text host',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: KeyedSubtree(
+          key: const ValueKey('text_sportsTitle'),
+          child: const Text('Sports'),
+        ),
+      ),
+    );
+    final host = tester.element(
+      find.byKey(const ValueKey('text_sportsTitle')),
+    );
+    final text = tester.element(find.byType(Text));
+    final kept = dropRedundantNestedObserveLeaves([
+      (
+        element: host,
+        ui: const UiElement(
+          elementId: 'el_0',
+          testId: 'text_sportsTitle',
+          type: 'text',
+          text: 'Sports',
+        ),
+      ),
+      (
+        element: text,
+        ui: const UiElement(
+          elementId: 'el_1',
+          type: 'text',
+          text: 'Sports',
+        ),
+      ),
+    ]);
+
+    expect(kept, hasLength(1));
+    expect(kept.single.ui.testId, 'text_sportsTitle');
+  });
+
+  testWidgets('observer preserves independently keyed nested text',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: KeyedSubtree(
+          key: const ValueKey('outerText'),
+          child: const Text('Sports', key: ValueKey('innerText')),
+        ),
+      ),
+    );
+    final host = tester.element(find.byKey(const ValueKey('outerText')));
+    final text = tester.element(find.byKey(const ValueKey('innerText')));
+    final kept = dropRedundantNestedObserveLeaves([
+      (
+        element: host,
+        ui: const UiElement(
+          elementId: 'el_0',
+          testId: 'outerText',
+          type: 'text',
+          text: 'Sports',
+        ),
+      ),
+      (
+        element: text,
+        ui: const UiElement(
+          elementId: 'el_1',
+          testId: 'innerText',
+          type: 'text',
+          text: 'Sports',
+        ),
+      ),
+    ]);
+
+    expect(kept, hasLength(2));
+  });
+
   testWidgets('observer prefers the active route over stale tracker state',
       (tester) async {
     await tester.pumpWidget(
@@ -2226,8 +2349,13 @@ void main() {
       (e) => e.testId == 'secure_password',
     );
     expect(securePassword.label, 'Password');
-    expect(securePassword.text, isNull);
+    expect(securePassword.text, 'hidden-secret');
     expect(securePassword.state.secure, isTrue);
+
+    final securePasswordJson = observerElementsToJson(observation)
+        .expand((element) => _flattenJson(element))
+        .singleWhere((element) => element['id'] == 'secure_password');
+    expect(securePasswordJson['value'], 'hidden-secret');
 
     final overrideJson = observerElementsToJson(observation)
         .expand((element) => _flattenJson(element))

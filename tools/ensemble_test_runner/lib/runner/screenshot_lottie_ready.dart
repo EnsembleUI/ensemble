@@ -6,11 +6,18 @@ import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Advances the fake frame clock past short route/content transitions before
+/// freezing screenshot evidence. Real async work can update the widget tree
+/// without advancing WidgetTester's animation clock, leaving AnimatedSwitcher
+/// children present in Observer data but still transparent in captured pixels.
+const Duration kScreenshotTransitionSettleDuration =
+    Duration(milliseconds: 350);
+
 /// Advances the short screenshot transition window while avoiding a second
 /// frame when the binding has no scheduled or transient work left.
 Future<void> pumpScreenshotStabilityFrames(
   WidgetTester tester, {
-  Duration duration = const Duration(milliseconds: 50),
+  Duration duration = kScreenshotTransitionSettleDuration,
   FutureOr<void> Function()? onPump,
 }) async {
   await tester.pump(duration);
@@ -137,9 +144,11 @@ Future<void> _yieldToRealAsyncWork(WidgetTester tester) async {
     await Future<void>.delayed(Duration.zero);
   }
 
-  if (LiveAsyncCallSupport.runner != null) {
-    await LiveAsyncCallSupport.runUntracked<void>(yieldOnce);
-  } else {
-    await tester.runAsync(yieldOnce);
-  }
+  // Keep screenshot readiness yields on the same non-reentrant lane as app
+  // requests, including the short window after an attempt reset clears the
+  // current runner.
+  await LiveAsyncCallSupport.runUntracked<void>(
+    yieldOnce,
+    runnerOverride: tester.runAsync,
+  );
 }

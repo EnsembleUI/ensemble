@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_functions_platform_interface/src/pigeon/messages.pigeon.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/real_network_http_client.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,7 +55,7 @@ Future<Object?> _invokeCallableOverHttp(Map<String, Object?> arguments) async {
   final parameters = arguments['parameters'];
   final timeoutMs = arguments['timeout'] as int? ?? 60000;
 
-  final client = HttpClient();
+  final client = createRealNetworkHttpClient();
   client.connectionTimeout = Duration(milliseconds: timeoutMs);
 
   try {

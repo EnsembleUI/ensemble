@@ -31,7 +31,6 @@ class SessionCapabilities {
   final bool coordinateActions;
   final bool apiAssertions;
   final bool storageAssertions;
-  final bool secureFieldRedaction;
   final bool observationRevisions;
   final bool snapshotElementTargets;
 
@@ -46,7 +45,6 @@ class SessionCapabilities {
     this.coordinateActions = false,
     this.apiAssertions = false,
     this.storageAssertions = false,
-    this.secureFieldRedaction = false,
     this.observationRevisions = false,
     this.snapshotElementTargets = false,
   });
@@ -63,7 +61,6 @@ class SessionCapabilities {
     coordinateActions: false,
     apiAssertions: true,
     storageAssertions: true,
-    secureFieldRedaction: true,
     observationRevisions: true,
     snapshotElementTargets: true,
   );
@@ -79,7 +76,6 @@ class SessionCapabilities {
         'coordinateActions': coordinateActions,
         'apiAssertions': apiAssertions,
         'storageAssertions': storageAssertions,
-        'secureFieldRedaction': secureFieldRedaction,
         'observationRevisions': observationRevisions,
         'snapshotElementTargets': snapshotElementTargets,
       };
@@ -103,7 +99,6 @@ class SessionCapabilities {
       coordinateActions: flag('coordinateActions'),
       apiAssertions: flag('apiAssertions'),
       storageAssertions: flag('storageAssertions'),
-      secureFieldRedaction: flag('secureFieldRedaction'),
       observationRevisions: flag('observationRevisions'),
       snapshotElementTargets: flag('snapshotElementTargets'),
     );

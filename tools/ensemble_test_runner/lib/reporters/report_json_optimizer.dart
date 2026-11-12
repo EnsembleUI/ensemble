@@ -49,7 +49,7 @@ class ReportJsonOptimizer {
       String intern(dynamic value, {String? encoded}) {
         // Callers that already encoded a value pass it through so large
         // payloads are serialized only once while deciding whether to intern
-        // them. This is especially relevant for API bodies and debug trees.
+        // them. This is especially relevant for large API bodies.
         final stableEncoding = encoded ?? json.encode(value);
         final existing = indexByEncoded[stableEncoding];
         if (existing != null) return existing;
@@ -80,7 +80,11 @@ class ReportJsonOptimizer {
           'timestamp',
           'stepIndex',
           'index',
+          'callId',
+          'phase',
           'mocked',
+          'completed',
+          'providerDurationMs',
           'statusCode',
           'type',
           'error',
@@ -105,7 +109,7 @@ class ReportJsonOptimizer {
           }
           if (req.isNotEmpty) out['request'] = req;
         }
-        if (ev.containsKey('responseBody') && ev['responseBody'] != null) {
+        if (ev.containsKey('responseBody')) {
           out['responseBody'] = alwaysIntern(ev['responseBody']);
         }
         return out.isEmpty ? null : out;
@@ -135,9 +139,6 @@ class ReportJsonOptimizer {
             return;
           }
           final screen = Map<String, dynamic>.from(value);
-          if (screen['debugTree'] != null) {
-            screen['debugTree'] = alwaysIntern(screen['debugTree']);
-          }
           if (screen['performance'] is Map) {
             screen['performance'] = alwaysIntern(
               Map<String, dynamic>.from(screen['performance'] as Map),
@@ -286,6 +287,15 @@ class ReportJsonOptimizer {
         }
         if (test['report'] is Map) {
           out['report'] = optimizeReport(test['report'] as Map);
+        }
+
+        final outsideStepApiCalls = test['apiCallsOutsideSteps'];
+        if (outsideStepApiCalls is List && outsideStepApiCalls.isNotEmpty) {
+          out['apiCallsOutsideSteps'] = [
+            for (final ev in outsideStepApiCalls)
+              if (ev is Map)
+                if (optimizeApiCall(ev) case final optimized?) optimized,
+          ];
         }
 
         final storage = test['storage'];

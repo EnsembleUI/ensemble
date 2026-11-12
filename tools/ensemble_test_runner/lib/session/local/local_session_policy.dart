@@ -44,7 +44,6 @@ class LocalSessionPolicy {
       coordinateActions: false,
       apiAssertions: hasApi,
       storageAssertions: hasStorage,
-      secureFieldRedaction: true,
       observationRevisions: true,
       snapshotElementTargets: true,
     );

@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
+
+import '../mocks/real_network_http_client.dart';
 
 abstract final class HttpRequestAction {
   static Future<void> execute(Map<String, dynamic> args) async {
@@ -31,7 +34,11 @@ abstract final class HttpRequestAction {
     }
 
     final timeoutMs = _positiveInt(args['timeoutMs'], fallback: 10000);
-    final client = http.Client();
+    // `http.Client()` returns the zone-scoped client inside `runWithClient`.
+    // That client is owned by the surrounding attempt and closing it here
+    // breaks subsequent httpRequest steps in the same run. This action owns
+    // its client, so construct it explicitly and close it below.
+    final client = IOClient(createRealNetworkHttpClient());
     try {
       final response = await LiveAsyncCallSupport.run<http.Response>(() async {
         final streamed = await client

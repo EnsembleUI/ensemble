@@ -1,5 +1,4 @@
 import 'support/session_operation.dart';
-import 'dart:ui' as ui;
 
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
@@ -16,7 +15,7 @@ import 'package:ensemble_test_runner/session/observation/observation_options.dar
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'test_event_loop.dart';
+import 'package:image/image.dart' as img;
 
 EnsembleTestContext _ctx(
   String id, {
@@ -115,7 +114,7 @@ void main() {
 
     final token = obs.elements.firstWhere((e) => e.testId == 'token_field');
     expect(token.state.secure, isTrue);
-    expect(token.text, isNull);
+    expect(token.text, 'secret');
     expect(token.actions, isNot(contains('replaceText')));
     expect(token.actions, contains('enterText'));
 
@@ -268,32 +267,6 @@ void main() {
     await session.close();
   });
 
-  testWidgets('captureArtifact stores retrievable PNG bytes', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: Text('shot', key: ValueKey('shot'))),
-      ),
-    );
-    // Paint a frame so the layer tree is screenshotable.
-    await pumpUntilIdle(tester);
-
-    final session = _session(tester, 'art');
-    final artifact = await session.captureArtifact(
-      const ArtifactRequest(kind: 'screenshot'),
-    );
-    expect(artifact.mimeType, 'image/png');
-    expect(artifact.path, startsWith('memory:'));
-    expect(artifact.byteLength, greaterThan(100));
-    final bytes = session.artifactBytes(artifact.artifactId);
-    expect(bytes, isNotNull);
-    expect(bytes!.length, artifact.byteLength);
-    // PNG magic
-    expect(bytes.take(8).toList(), [137, 80, 78, 71, 13, 10, 26, 10]);
-
-    await session.close();
-    expect(session.artifactBytes(artifact.artifactId), isNull);
-  });
-
   testWidgets('explicit screenshot artifacts include secure field pixels',
       (tester) async {
     tester.view.physicalSize = const Size(400, 200);
@@ -336,21 +309,24 @@ void main() {
     final artifact = await session.captureArtifact(
       const ArtifactRequest(kind: 'screenshot'),
     );
+    expect(artifact.mimeType, 'image/png');
+    expect(artifact.path, startsWith('memory:'));
+    expect(artifact.byteLength, greaterThan(100));
     final png = session.artifactBytes(artifact.artifactId)!;
-    final codec = await tester.runAsync(() => ui.instantiateImageCodec(png));
-    final frame = await tester.runAsync(() => codec!.getNextFrame());
-    final rgba = await tester.runAsync(
-      () => frame!.image.toByteData(format: ui.ImageByteFormat.rawRgba),
+    expect(png.length, artifact.byteLength);
+    expect(png.take(8).toList(), [137, 80, 78, 71, 13, 10, 26, 10]);
+    final decoded = img.decodePng(png);
+    expect(decoded, isNotNull);
+    final pixel = decoded!.getPixel(
+      secureField.center.dx.round(),
+      secureField.center.dy.round(),
     );
-    expect(rgba, isNotNull);
-    final index = (secureField.center.dy.round() * frame!.image.width +
-            secureField.center.dx.round()) *
-        4;
-    expect(rgba!.buffer.asUint8List().sublist(index, index + 4),
-        isNot([0x20, 0x21, 0x24, 0xFF]));
-    frame.image.dispose();
-    codec!.dispose();
+    expect(
+      [pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt(), pixel.a.toInt()],
+      isNot([0x20, 0x21, 0x24, 0xFF]),
+    );
     await session.close();
+    expect(session.artifactBytes(artifact.artifactId), isNull);
   });
 
   testWidgets('standalone close clears bootstrap runtime', (tester) async {

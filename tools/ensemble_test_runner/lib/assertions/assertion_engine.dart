@@ -13,6 +13,7 @@ import 'package:ensemble_test_runner/assertions/assertion_navigation.dart';
 import 'package:ensemble_test_runner/assertions/assertion_target_diagnostics.dart';
 import 'package:ensemble_test_runner/assertions/assertion_text_policy.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class AssertionEngine {
@@ -64,11 +65,30 @@ class AssertionEngine {
     Finder finder, {
     bool requireHitTestable = false,
   }) {
-    final candidates = requireHitTestable
-        ? finder.hitTestable().evaluate()
-        : finder.evaluate();
-    for (final element in candidates) {
-      if (isElementVisuallyActionable(element)) {
+    final roots = finder.evaluate().toList();
+    for (final root in roots) {
+      final candidates = <Element>[root];
+      void collect(Element element) {
+        element.visitChildren((child) {
+          candidates.add(child);
+          collect(child);
+        });
+      }
+
+      // Test IDs are often attached to KeyedSubtree/Builder wrappers, which
+      // have no RenderObject of their own. Resolve visibility and hit testing
+      // against the actual rendered descendants so screenshot proof and action
+      // dispatch can identify the same on-screen control.
+      collect(root);
+      for (final element in candidates) {
+        if (!isElementVisuallyActionable(element)) continue;
+        if (requireHitTestable) {
+          final exactElement = find.byElementPredicate(
+            (candidate) => identical(candidate, element),
+            skipOffstage: false,
+          );
+          if (exactElement.hitTestable().evaluate().isEmpty) continue;
+        }
         return element;
       }
     }
@@ -185,10 +205,24 @@ class AssertionEngine {
     return _textPolicy.expectTextContainsAny(texts);
   }
 
-  bool isTextVisible(String text) => _hasVisiblePaintedElement(find.text(text));
+  // Match the rendered paragraph directly. Ensemble text can be built through
+  // Text, Text.rich, SelectableText, or other wrappers; widget-level finders
+  // don't consistently identify all of those even when the paragraph is
+  // visible in the rendered screen.
+  bool isTextVisible(String text) =>
+      _hasVisibleRenderedText((value) => value == text);
 
   bool isTextContainingVisible(String text) =>
-      _hasVisiblePaintedElement(find.textContaining(text));
+      _hasVisibleRenderedText((value) => value.contains(text));
+
+  bool _hasVisibleRenderedText(bool Function(String value) matches) {
+    final finder = find.byElementPredicate((element) {
+      final renderObject = element.renderObject;
+      if (renderObject is! RenderParagraph) return false;
+      return matches(renderObject.text.toPlainText());
+    }, skipOffstage: false);
+    return _hasVisiblePaintedElement(finder);
+  }
 
   bool isAnyTextContainingVisible(List<String> texts) {
     return _textPolicy.isAnyTextContainingVisible(texts);
@@ -332,7 +366,21 @@ class AssertionEngine {
   }
 
   bool _isElementInViewport(Element element) {
-    return isElementGeometricallyVisible(element, tester);
+    if (isElementGeometricallyVisible(element, tester)) return true;
+    // YAML ids may be attached to a KeyedSubtree that has no RenderObject;
+    // visibility belongs to its rendered descendants in that case.
+    var visibleDescendant = false;
+    void inspect(Element child) {
+      if (visibleDescendant) return;
+      if (isElementGeometricallyVisible(child, tester)) {
+        visibleDescendant = true;
+        return;
+      }
+      child.visitChildren(inspect);
+    }
+
+    element.visitChildren(inspect);
+    return visibleDescendant;
   }
 
   void expectChecked(String id, bool expected) {

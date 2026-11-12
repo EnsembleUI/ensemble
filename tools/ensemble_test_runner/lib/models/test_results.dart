@@ -425,7 +425,7 @@ class EnsembleTestReportDetails {
   final List<int> stepDurationsMs;
   final List<String> stepStartTimes;
 
-  /// Map from screen name to its captured artifacts (debugTree, performance, etc.)
+  /// Map from screen name to performance artifacts.
   final Map<String, Map<String, dynamic>> screens;
 
   const EnsembleTestReportDetails({

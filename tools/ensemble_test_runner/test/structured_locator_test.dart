@@ -14,6 +14,7 @@ import 'package:ensemble_test_runner/session/assertion_operation_handler.dart';
 import 'package:ensemble_test_runner/session/wait_operation_handler.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/session_capabilities.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'test_event_loop.dart';
@@ -39,7 +40,7 @@ void main() {
   test('element locators round trip every nested selector field', () {
     const locator = ElementLocator(
       id: 'continue',
-      text: 'Continue',
+      text: ['Continue', 'Doorgaan'],
       label: 'Continue action',
       role: 'button',
       within: ElementLocator(
@@ -193,7 +194,7 @@ void main() {
     final exact = await session.act(actionOperation('tap',
         target: ElementTarget(
           locator: ElementLocator(
-            text: 'Continue',
+            text: ['Missing', 'Continue'],
             label: 'Continue',
             role: 'button',
           ),
@@ -912,6 +913,22 @@ void main() {
     await session.close();
   });
 
+  testWidgets('waitFor resolves an Ensemble Invokable id without a ValueKey',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: _InvokableIdTextField()),
+    ));
+    final session = _attach(tester);
+
+    final result = await session.waitFor(sessionOperation('waitFor', input: {
+      'id': 'searchInput',
+      'timeoutMs': 1000,
+    }));
+
+    expect(result.satisfied, isTrue, reason: result.error?.message);
+    await session.close();
+  });
+
   testWidgets('bounds target scopes list assertions', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -984,7 +1001,7 @@ void main() {
     await session.close();
   });
 
-  testWidgets('secure password fields redact text from observations',
+  testWidgets('secure password fields expose text in observations',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -1005,7 +1022,7 @@ void main() {
         observation.elements.where((e) => e.testId == 'password').toList();
     expect(password, isNotEmpty);
     expect(password.first.state.secure, isTrue);
-    expect(password.first.text, isNull);
+    expect(password.first.text, 'secret');
     await session.close();
   });
 
@@ -1210,3 +1227,27 @@ Widget _form(String id, VoidCallback onPressed) => Container(
         child: const Text('Continue'),
       ),
     );
+
+// ignore: must_be_immutable
+class _InvokableIdTextField extends StatefulWidget with Invokable {
+  _InvokableIdTextField() {
+    id = 'searchInput';
+  }
+
+  @override
+  Map<String, Function> getters() => const {};
+
+  @override
+  Map<String, Function> setters() => const {};
+
+  @override
+  Map<String, Function> methods() => const {};
+
+  @override
+  State<_InvokableIdTextField> createState() => _InvokableIdTextFieldState();
+}
+
+class _InvokableIdTextFieldState extends State<_InvokableIdTextField> {
+  @override
+  Widget build(BuildContext context) => const TextField();
+}

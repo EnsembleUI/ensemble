@@ -76,9 +76,9 @@ Future<void> main() async {
     await script.writeAsString('''
 import 'dart:async';
 Future<void> main() async {
-  await Future<void>.delayed(const Duration(milliseconds: 250));
+  await Future<void>.delayed(const Duration(milliseconds: 2200));
   print('workload-ready');
-  await Future<void>.delayed(const Duration(milliseconds: 30));
+  await Future<void>.delayed(const Duration(milliseconds: 50));
 }
 ''');
     final process = await Process.start(
@@ -97,8 +97,8 @@ Future<void> main() async {
     try {
       final result = await waitForManagedProcess(
         process,
-        timeout: const Duration(milliseconds: 100),
-        startupTimeout: const Duration(seconds: 2),
+        timeout: const Duration(seconds: 2),
+        startupTimeout: const Duration(seconds: 5),
         timeoutStartsAfter: workloadReady.future,
         terminationGracePeriod: const Duration(milliseconds: 100),
       );

@@ -36,6 +36,7 @@ Future<ProcessResult> _runParallelFlutterTests(
         reportMode: reportMode,
         reportFile: reportFile,
         timeoutSeconds: timeoutSeconds,
+        showProgress: !quiet && !machineReport,
       );
       final result = _runResultFromProcessOutput(
         process,
@@ -82,6 +83,11 @@ Future<ProcessResult> _runParallelFlutterTests(
     }
 
     if (allFiles.length < 2) {
+      CliProcessOutput.writeStatus(
+        'Running ${allFiles.length} test run with 1 worker...',
+        quiet: quiet,
+        machineReport: machineReport,
+      );
       return runSingleAndPersistReport();
     }
 
@@ -94,6 +100,12 @@ Future<ProcessResult> _runParallelFlutterTests(
     final parallelWorkerCount = hasParallelFiles
         ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
         : 0;
+    CliProcessOutput.writeStatus(
+      'Running ${allFiles.length} test runs with $totalJobCount '
+      '${totalJobCount == 1 ? 'worker' : 'workers'}...',
+      quiet: quiet,
+      machineReport: machineReport,
+    );
     if (parallelWorkerCount <= 1 && !hasSerialFiles) {
       return runSingleAndPersistReport();
     }
@@ -108,12 +120,6 @@ Future<ProcessResult> _runParallelFlutterTests(
       config: suiteConfig,
       assetContents: testFiles.assetContents,
       decodedDocuments: testFiles.decodedDocuments,
-    );
-
-    CliProcessOutput.writeStatus(
-      'Running ${allFiles.length} test runs with $totalJobCount workers...',
-      quiet: quiet,
-      machineReport: machineReport,
     );
 
     final elapsed = Stopwatch()..start();
@@ -136,8 +142,11 @@ Future<ProcessResult> _runParallelFlutterTests(
       workerReportFiles.add(workerReportFile);
       expectedWorkerTestIds.add(shardIds);
       workerProgressFiles.add(workerProgressFile);
-      final workerDirectory =
-          CliWorkerWorkspace(appDir).prepare(i, timerRewritePlan);
+      final workerDirectory = CliWorkerWorkspace(appDir).prepare(
+        i,
+        timerRewritePlan,
+        testEntryRelativePath: patcher.activeEntryRelativePath,
+      );
       final planBatchFile = File(p.join(
         workerDirectory,
         '.ensemble_test_runner_plan_batch_${i + 1}.json',
@@ -220,6 +229,7 @@ Future<ProcessResult> _runParallelFlutterTests(
       final workerDirectory = CliWorkerWorkspace(appDir).prepare(
         serialWorkerIndex,
         timerRewritePlan,
+        testEntryRelativePath: patcher.activeEntryRelativePath,
       );
       final planBatchFile = File(p.join(
         workerDirectory,
@@ -441,20 +451,22 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
   required String? reportMode,
   required String? reportFile,
   required int? timeoutSeconds,
+  required bool showProgress,
 }) async {
-  final useWorker = timerRewritePlan.enabled;
-  final workingDirectory = useWorker
-      ? CliWorkerWorkspace(appDir).prepare(0, timerRewritePlan)
-      : appDir;
+  final workingDirectory = CliWorkerWorkspace(appDir).prepare(
+    0,
+    timerRewritePlan,
+    testEntryRelativePath: patcher.activeEntryRelativePath,
+  );
   final serviceOverrides = await resolveServiceOverrides(
     patcher: patcher,
     usedPorts: <int>{},
   );
-  final appLogPath = useWorker
-      ? CliAppConsoleLog.filePath(appDir)
-      : CliAppConsoleLog.relativePath();
-  final appLogDisplayPath = useWorker ? CliAppConsoleLog.relativePath() : null;
-  final artifactRoot = useWorker ? _artifactRootPath(appDir) : null;
+  final appLogPath = CliAppConsoleLog.filePath(appDir);
+  final appLogDisplayPath = CliAppConsoleLog.relativePath();
+  final artifactRoot = _artifactRootPath(appDir);
+  final progressFile = showProgress ? _workerProgressFile(appDir, 0) : null;
+  if (progressFile != null) _deleteIfExists(progressFile);
   final internalReportFile = reportFile ??
       (reportMode == null
           ? p.join(
@@ -472,7 +484,7 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
     shardPaths: const [],
     shardIds: const [],
     reportFile: internalReportFile,
-    progressFile: null,
+    progressFile: progressFile,
     appLogPath: appLogPath,
     appLogDisplayPath: appLogDisplayPath,
     serviceOverrides: serviceOverrides,
@@ -496,9 +508,10 @@ Future<ProcessResult> _runSingleFlutterTestProcess(
       useRuntimeWorkerConfig: true,
     ),
     workingDirectory: workingDirectory,
-    streamOutput: false,
+    streamOutput: showProgress,
     verbose: false,
     appLogFile: CliAppConsoleLog.filePath(appDir),
+    progressFile: progressFile,
     timeout: timeoutSeconds == null ? null : Duration(seconds: timeoutSeconds),
     environment: runtimeEnvironment,
   ))

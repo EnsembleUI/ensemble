@@ -9,7 +9,10 @@ abstract class ExecutionBackend {
   bool get hostOwnsServices;
   String get entryRelativePath;
 
-  Future<FlutterDevice?> selectDevice(List<String> arguments);
+  Future<FlutterDevice?> selectDevice(
+    List<String> arguments, {
+    String flutterExecutable = 'flutter',
+  });
 }
 
 class WidgetExecutionBackend implements ExecutionBackend {
@@ -28,7 +31,11 @@ class WidgetExecutionBackend implements ExecutionBackend {
   String get entryRelativePath => TestAppPatcher.testEntryRelativePath;
 
   @override
-  Future<FlutterDevice?> selectDevice(List<String> arguments) async => null;
+  Future<FlutterDevice?> selectDevice(
+    List<String> arguments, {
+    String flutterExecutable = 'flutter',
+  }) async =>
+      null;
 }
 
 class IntegrationExecutionBackend implements ExecutionBackend {
@@ -48,8 +55,14 @@ class IntegrationExecutionBackend implements ExecutionBackend {
       TestAppPatcher.integrationTestEntryRelativePath;
 
   @override
-  Future<FlutterDevice?> selectDevice(List<String> arguments) =>
-      selectIntegrationDevice(arguments);
+  Future<FlutterDevice?> selectDevice(
+    List<String> arguments, {
+    String flutterExecutable = 'flutter',
+  }) =>
+      selectIntegrationDevice(
+        arguments,
+        flutterExecutable: flutterExecutable,
+      );
 }
 
 ExecutionBackend executionBackendFor(ExecutionMode mode) =>

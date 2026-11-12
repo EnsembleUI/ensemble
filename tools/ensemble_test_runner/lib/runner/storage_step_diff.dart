@@ -49,26 +49,14 @@ class StorageKeyChange {
 
   /// Serializes one change for an artifact.
   ///
-  /// Secure-storage changes can hide values while retaining their keys.
-  /// Keychain artifact serialization keeps values so reports show the captured
-  /// platform state.
-  Map<String, dynamic> toJson({bool redactValues = false}) => {
+  /// Values are preserved in runner artifacts to support debugging.
+  Map<String, dynamic> toJson() => {
         'key': key,
         'change': change,
-        if (before != null)
-          'before': redactValues ? redactedSecureStorageValue : before,
-        if (after != null)
-          'after': redactValues ? redactedSecureStorageValue : after,
+        if (before != null) 'before': before,
+        if (after != null) 'after': after,
       };
 }
-
-/// Stable marker used for values that must never leave the runner process.
-const String redactedSecureStorageValue = '<redacted>';
-
-/// Keeps secure storage keys for diagnostics while removing every value.
-Map<String, dynamic> redactSecureStorageValues(Map<String, dynamic> values) => {
-      for (final key in values.keys) key: redactedSecureStorageValue,
-    };
 
 /// Public-storage diff attributed to one top-level step.
 class StorageStepDiff {
@@ -82,11 +70,11 @@ class StorageStepDiff {
     required this.changes,
   });
 
-  Map<String, dynamic> toJson({bool redactValues = false}) => {
+  Map<String, dynamic> toJson() => {
         'stepIndex': stepIndex,
         'timestamp': timestamp.toIso8601String(),
         'changes': [
-          for (final c in changes) c.toJson(redactValues: redactValues),
+          for (final c in changes) c.toJson(),
         ],
       };
 }

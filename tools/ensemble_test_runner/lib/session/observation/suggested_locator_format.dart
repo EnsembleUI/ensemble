@@ -17,9 +17,11 @@ String formatSuggestedSelector(ElementLocator locator) {
   if (label != null && label.isNotEmpty) {
     parts.add('label="${label.replaceAll('"', r'\"')}"');
   }
-  final text = locator.text?.trim();
-  if (text != null && text.isNotEmpty) {
-    parts.add('text="${text.replaceAll('"', r'\"')}"');
+  final text = locator.text;
+  if (text is String && text.trim().isNotEmpty) {
+    parts.add('text="${text.trim().replaceAll('"', r'\"')}"');
+  } else if (text is List && text.isNotEmpty) {
+    parts.add('text=$text');
   }
   final role = locator.role?.trim();
   if (role != null && role.isNotEmpty) {

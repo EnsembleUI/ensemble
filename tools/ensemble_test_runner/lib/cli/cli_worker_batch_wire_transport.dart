@@ -363,7 +363,6 @@ Map<String, Object?> _encodeConfig(EnsembleTestConfig config) => {
         'excludeSteps': config.screenshots.excludeSteps,
       },
       'performance': {'enabled': config.performance.enabled},
-      'dumpTree': {'enabled': config.dumpTree.enabled},
       'logApiCalls': {'enabled': config.logApiCalls.enabled},
       'logStorage': {
         'enabled': config.logStorage.enabled,
@@ -389,7 +388,6 @@ EnsembleTestConfig _decodeConfig(Object? value) {
   final rawGroups = _map(map['profileGroups'], 'config profileGroups');
   final screenshots = _map(map['screenshots'], 'config screenshots');
   final performance = _map(map['performance'], 'config performance');
-  final dumpTree = _map(map['dumpTree'], 'config dumpTree');
   final logApiCalls = _map(map['logApiCalls'], 'config logApiCalls');
   final logStorage = _map(map['logStorage'], 'config logStorage');
   final timers = _map(map['timers'], 'config timers');
@@ -423,9 +421,6 @@ EnsembleTestConfig _decodeConfig(Object? value) {
     ),
     performance: PerformanceConfig(
       enabled: _bool(performance['enabled'], 'performance enabled'),
-    ),
-    dumpTree: DumpTreeConfig(
-      enabled: _bool(dumpTree['enabled'], 'dumpTree enabled'),
     ),
     logApiCalls: LogApiCallsConfig(
       enabled: _bool(logApiCalls['enabled'], 'logApiCalls enabled'),

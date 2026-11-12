@@ -138,6 +138,18 @@ void pruneFlutterTestKernelCache(
   }
 }
 
+/// Removes Flutter's copied unit-test asset bundle before the next test run.
+///
+/// Flutter can retain deleted files in `build/unit_test_assets` between
+/// incremental test runs. Ensemble discovers YAML cases from that bundle, so
+/// a removed `.test.yaml` can otherwise continue to execute after it has been
+/// deleted from the host project. The Flutter test command rebuilds this
+/// generated directory before launching the test entry.
+void refreshFlutterTestAssetBundle(Directory project) {
+  final assets = Directory(p.join(project.path, 'build', 'unit_test_assets'));
+  if (assets.existsSync()) assets.deleteSync(recursive: true);
+}
+
 /// Only the runner owns its package build cache. Host applications keep their
 /// own Flutter build output; running a suite must not prune the host's cache.
 bool isRunnerPackageRoot(Directory project) {

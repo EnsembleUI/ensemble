@@ -15,8 +15,7 @@ String formatStepBrief(TestStep step) {
   final type = step.type;
   final args = step.args;
 
-  if ((type == 'optional' || type == 'ifVisible') &&
-      step.nestedSteps.length == 1) {
+  if (type == 'optional' && step.nestedSteps.length == 1) {
     return '$type(${formatStepBrief(step.nestedSteps.single)})';
   }
 
@@ -49,25 +48,21 @@ String formatStepBrief(TestStep step) {
 
 /// Walks [stepsOutline] with [stepDurationsMs] / [failedStepIndex] for display.
 ///
-/// Nested outline lines (indented with two spaces) get no duration; duration and
-/// failure highlighting apply to top-level lines only.
+/// Outline rows and compiled step indexes use the same pre-order, including
+/// nested children. Control rows can have no duration and use `-1` as the
+/// sparse placeholder for a skipped branch.
 Iterable<({String text, bool failed, int? durationMs})>
     stepOutlineDisplayLines({
   required List<String> stepsOutline,
   List<int> stepDurationsMs = const [],
   int? failedStepIndex,
 }) sync* {
-  var topLevelIndex = -1;
-  for (final line in stepsOutline) {
-    final nested = line.startsWith('  ');
-    if (!nested) {
-      topLevelIndex++;
-    }
-    final durationMs = !nested && topLevelIndex < stepDurationsMs.length
-        ? stepDurationsMs[topLevelIndex]
-        : null;
-    final failed =
-        !nested && failedStepIndex != null && failedStepIndex == topLevelIndex;
+  for (var index = 0; index < stepsOutline.length; index++) {
+    final line = stepsOutline[index];
+    final duration =
+        index < stepDurationsMs.length ? stepDurationsMs[index] : -1;
+    final durationMs = duration >= 0 ? duration : null;
+    final failed = failedStepIndex != null && failedStepIndex == index;
     yield (
       text: formatStepOutlineLine(line, durationMs),
       failed: failed,

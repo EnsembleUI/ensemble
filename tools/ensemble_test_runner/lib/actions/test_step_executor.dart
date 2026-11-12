@@ -53,6 +53,7 @@ class TestStepExecutor {
     bool allowEmpty,
     bool allowOffscreen,
   })? resolveTargetFinder;
+  void Function()? invalidateResolvedFinders;
   FutureOr<void> Function(TestStep step)? onEvidenceBoundary;
   FutureOr<void> Function(OperationInput operation, String detail)?
       onOperationEvidenceBoundary;
@@ -92,10 +93,24 @@ class TestStepExecutor {
     waitForTextContains: _waitOperations.waitForTextContains,
     waitForText: (operation, {required timeoutMs}) => _waitFor(
       id: operation.arguments['id']?.toString(),
-      text: operation.arguments['text']?.toString(),
-      anyOf: _conditionWaiter.stringListArg(operation.arguments['anyOf']),
+      text: operation.arguments['text'] is String
+          ? operation.arguments['text'] as String
+          : null,
+      anyOf: <String>[
+        if (operation.arguments['text'] is List)
+          ..._conditionWaiter.stringListArg(operation.arguments['text']),
+        ..._conditionWaiter.stringListArg(operation.arguments['anyOf']),
+      ],
       target: operation.arguments['target'] is Map ||
-              operation.arguments['bounds'] is Map
+              operation.arguments['bounds'] is Map ||
+              (operation.arguments['id'] != null &&
+                  ((operation.arguments['text'] is! String ||
+                          (operation.arguments['text'] as String)
+                              .trim()
+                              .isEmpty) &&
+                      _conditionWaiter
+                          .stringListArg(operation.arguments['anyOf'])
+                          .isEmpty))
           ? _targetResolver.targetForInput(operation)
           : null,
       timeoutMs: timeoutMs,
@@ -132,8 +147,11 @@ class TestStepExecutor {
     assertions: assertions,
     config: config,
     runtime: _runtime,
-    context: context,
-    resolveTargetFinder: (target) => resolveTargetFinder?.call(target),
+    resolveTargetFinder: (target, {requireInteractive = false}) =>
+        resolveTargetFinder?.call(
+      target,
+      requireInteractive: requireInteractive,
+    ),
   );
   late final TestStepWidgetActions _widgetActions = TestStepWidgetActions(
     tester: tester,
@@ -174,7 +192,7 @@ class TestStepExecutor {
       operationName: 'waitForGone',
       requireInteractive: requireInteractive,
     ),
-    settleLiveApiWork: _runtime.yieldToLiveApiWork,
+    invalidateResolvedFinders: () => invalidateResolvedFinders?.call(),
     drainTransientFlutterDiagnostics: _runtime.drainTransientFlutterDiagnostics,
     onEvidenceBoundary: _emitEvidenceBoundary,
     onOperationEvidenceBoundary: (operation, detail) =>
@@ -259,10 +277,31 @@ class TestStepExecutor {
             operation.arguments['bounds'] is Map
         ? _targetResolver.targetForInput(operation)
         : null;
+    final targetText = target?.normalizedLocator?.text;
+    final rawText = operation.arguments['text'];
+    final anyOf = <String>[
+      if (targetText is List) ...targetText.map((value) => value.toString()),
+      if (rawText is List) ...rawText.map((value) => value.toString()),
+      if (operation.arguments['anyOf'] is List)
+        ...(operation.arguments['anyOf'] as List)
+            .map((value) => value.toString()),
+    ];
+    final locator = target?.normalizedLocator;
+    final targetIsOnlyAlternativeText = locator?.text is List &&
+        locator!.id == null &&
+        locator.label == null &&
+        locator.role == null &&
+        locator.within == null &&
+        locator.bounds == null;
     return _conditionWaiter.waitFor(
       id: operation.arguments['id']?.toString() ?? target?.testId,
-      text: target?.normalizedLocator?.text,
-      target: target,
+      text: rawText is String ? rawText : target?.normalizedLocator?.exactText,
+      anyOf: anyOf,
+      // Alternative text is already an OR condition; the structured locator
+      // resolver treats it as a single composite element target. Wait against
+      // visible text globally when it is the only constraint, then let the
+      // final assertion resolve the full locator as usual.
+      target: targetIsOnlyAlternativeText ? null : target,
       timeoutMs: timeoutMs,
       requireHitTestable: false,
     );
@@ -363,6 +402,7 @@ class TestStepExecutor {
       await tapFinderForOperation(
         resolvedFinder ?? finderForOperationInput(input),
         onBeforeTap: boundary,
+        timeoutMs: input.arguments['timeoutMs'] as int?,
       );
       return;
     }
@@ -686,16 +726,33 @@ class TestStepExecutor {
   Finder _deferredOperationTargetFinder(OperationInput input) {
     final target = _targetResolver.targetForInput(input);
     final locator = target.normalizedLocator;
+    // Keep structured locator semantics (especially occurrence/within) when
+    // scrolling. Reducing a target to a bare id or text makes repeated list
+    // items ambiguous, so WidgetTester.scrollUntilVisible throws
+    // "Too many elements" instead of scrolling the selected item into view.
+    if (target.usesSnapshotElement ||
+        locator?.occurrence != null ||
+        locator?.within != null ||
+        locator?.bounds != null) {
+      return finderForOperationInput(
+        input,
+        requireInteractive: false,
+        allowEmpty: true,
+        allowOffscreen: true,
+      );
+    }
     final id = target.testId ?? locator?.id;
     if (id != null && id.isNotEmpty) {
       return assertions.finderForId(id, skipOffstage: false);
     }
-    final text = locator?.text;
+    final text = locator?.exactText;
     if (text != null && text.isNotEmpty) {
       return find.text(text, skipOffstage: false);
     }
     final label = locator?.label;
-    if (label != null && label.isNotEmpty) return find.bySemanticsLabel(label);
+    if (label != null && label.isNotEmpty) {
+      return find.bySemanticsLabel(label, skipOffstage: false);
+    }
     return finderForOperationInput(
       input,
       requireInteractive: false,
@@ -852,8 +909,13 @@ class TestStepExecutor {
   Future<void> tapFinderForOperation(
     Finder finder, {
     required Future<void> Function() onBeforeTap,
+    int? timeoutMs,
   }) =>
-      _widgetActions.tapFinder(finder, onBeforeTap: onBeforeTap);
+      _widgetActions.tapFinder(
+        finder,
+        onBeforeTap: onBeforeTap,
+        timeoutMs: timeoutMs,
+      );
 
   Future<void> tapForOperation(
     String id, {

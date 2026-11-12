@@ -10,7 +10,6 @@ List<String> observerActionExamples({
   required Map<String, dynamic>? bounds,
   required String? warning,
   String? value,
-  bool? secure,
   bool? checked,
   List<String> options = const [],
 }) {
@@ -41,7 +40,6 @@ List<String> observerActionExamples({
           title: title,
           id: id,
           value: value,
-          secure: secure,
           checked: checked,
           options: options,
         ),
@@ -99,7 +97,6 @@ String _formatExample(
   required String? title,
   required String? id,
   required String? value,
-  required bool? secure,
   required bool? checked,
   required List<String> options,
 }) {
@@ -121,7 +118,7 @@ String _formatExample(
       extra['value'] = 0.5;
       break;
     case 'expectValue':
-      extra['equals'] = secure == true ? '...' : (value ?? '...');
+      extra['equals'] = value ?? '...';
       break;
     case 'expectChecked':
       if (checked != null) extra['equals'] = checked;

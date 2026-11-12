@@ -6,9 +6,11 @@ import 'package:ensemble_test_runner/execution/device_discovery.dart';
 /// integration mode.
 Future<FlutterDevice> selectIntegrationDevice(
   List<String> arguments, {
+  String flutterExecutable = 'flutter',
   Future<List<FlutterDevice>> Function()? discover,
 }) async {
-  final devices = await (discover ?? discoverFlutterDevices)();
+  final devices = await (discover ??
+      () => discoverFlutterDevices(executable: flutterExecutable))();
   final supported =
       devices.where((device) => device.isSupportedIntegrationTarget).toList();
   final requested = _optionValues(arguments, '--device-id');

@@ -8,10 +8,14 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/assets_service.dart';
+import 'package:ensemble/framework/ensemble_config_service.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_theme.dart';
+import 'package:ensemble_test_runner/discovery/ensemble_test_app_target.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
 import 'package:ensemble_test_runner/src/integrations/test_integration_registration.dart';
@@ -30,6 +34,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 export 'test_bootstrap.dart';
+export '../src/integrations/test_integration_registration.dart'
+    show TestIntegrationRegistration;
 
 /// Execution-environment behavior used by the shared Ensemble harness.
 abstract class EnsembleTestRuntimeAdapter {
@@ -197,12 +203,21 @@ class EnsembleTestHarness {
   static void ensureIntegrationRuntime() =>
       TestHarnessHostRuntime.ensureIntegrationRuntime();
 
+  static Future<T> runWithRealNetworkHttpOverrides<T>(
+    Future<T> Function() run,
+  ) =>
+      TestHarnessHostRuntime.runWithRealNetworkHttpOverrides(run);
+
   @visibleForTesting
   static Map<String, Object?> deviceInfoMockForTest() =>
       TestHarnessHostRuntime.deviceInfoMockForTest();
 
-  final String appPath;
-  final String appHome;
+  /// Optional overrides for a host's local definition target.
+  ///
+  /// Normal app test entries should omit these and let the runner read
+  /// `definitions.local` from `ensemble/ensemble-config.yaml`.
+  final String? appPath;
+  final String? appHome;
   final String? i18nPath;
   final Map<String, Function>? externalMethods;
   final ExecutionMode executionMode;
@@ -210,8 +225,8 @@ class EnsembleTestHarness {
       runtimeAdapterFor(executionMode);
 
   EnsembleTestHarness({
-    required this.appPath,
-    required this.appHome,
+    this.appPath,
+    this.appHome,
     this.i18nPath,
     this.externalMethods,
     this.executionMode = ExecutionMode.widget,
@@ -229,12 +244,22 @@ class EnsembleTestHarness {
 
   Future<EnsembleConfig> buildConfig({Locale? forcedLocale}) async {
     return await RunnerBenchmark.async('lifecycle', 'buildConfig', () async {
-      final normalized = normalizeAppPath(appPath);
-      final i18n = I18nProps(i18nPath ?? '${normalized}translations');
+      final target = appPath != null && appHome != null
+          ? EnsembleTestAppTarget(
+              appPath: appPath!,
+              appHome: appHome!,
+              i18nPath: i18nPath,
+            )
+          : await loadEnsembleTestAppTarget();
+      final normalized = normalizeAppPath(appPath ?? target.appPath);
+      final home = appHome ?? target.appHome;
+      final translations =
+          i18nPath ?? target.i18nPath ?? '${normalized}translations';
+      final i18n = I18nProps(translations);
 
       final provider = await LocalDefinitionProvider(
         normalized,
-        appHome,
+        home,
         i18nProps: i18n,
         initialForcedLocale: forcedLocale,
       ).init();
@@ -306,14 +331,34 @@ class EnsembleTestHarness {
         () async {
       runtimeAdapter.initialize();
       await ensureAppFontsLoaded();
+      // Tests seed Ensemble's config before the host calls Ensemble.initialize().
+      // That makes initialize() return early, bypassing its normal local asset
+      // and environment loading. Resolve the same appConfig/.env.config/YAML
+      // sources as normal runtime startup before initializing providers or
+      // scanning local assets.
+      if (!EnsembleConfigService.isInitialized) {
+        await EnsembleConfigService.initialize();
+      }
 
-      final env = Map<String, dynamic>.from(config.envOverrides ?? {});
+      final env = await Ensemble()
+          .loadEnvironmentOverrides(EnsembleConfigService.config);
+      // A config supplied by a host/test may already carry explicit overrides;
+      // keep those above bundled defaults, with per-test values taking final
+      // precedence.
+      env.addAll(config.envOverrides ?? const <String, dynamic>{});
       env['firebase_app_check'] = 'false';
       if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
         env.addAll(setup.envOverrides!);
       }
-      config.updateEnvOverrides(env);
+      Ensemble().applyEnvironmentOverrides(config, env);
       Ensemble().setEnsembleConfig(config);
+
+      if (!LocalAssetsService.isInitialized) {
+        await LocalAssetsService.initialize(
+          config.definitionProvider.getAppConfig()?.envVariables,
+          EnsembleConfigService.config,
+        );
+      }
       if (externalMethods != null && externalMethods!.isNotEmpty) {
         Ensemble().setExternalMethods(externalMethods!);
       }
@@ -334,6 +379,8 @@ class EnsembleTestHarness {
   }
 
   static Future<void> ensureAppFontsLoaded() => TestFontLoader.ensureLoaded();
+
+  static bool get appFontsLoaded => TestFontLoader.isLoaded;
 
   static List<String> fontFamilyAliasesForTest(String family) =>
       TestFontLoader.familyAliases(family);
@@ -369,20 +416,24 @@ class EnsembleTestHarness {
         screenshotDevice: screenshotDeviceForTestCase(testCase, ctx.config),
       );
       var config = existingConfig ?? await buildConfig();
-      final bootstrapped = await tester.runAsync(() async {
-        return bootstrapRuntime(
+      Ensemble().setEnsembleConfig(config);
+      final bootstrapped = await LiveAsyncCallSupport.runUntracked(
+        () => bootstrapRuntime(
           config,
           ctx.setup,
           apiOverlay: ctx.apiOverlay,
           clearPersistentState:
               runtimeAdapter.clearsPersistentStateBetweenIndependentTests &&
                   testCase.session == null,
-        );
-      });
+        ),
+        runnerOverride: tester.runAsync,
+      );
       if (bootstrapped == null) {
+        final bootstrapError = tester.takeException();
         while (tester.takeException() != null) {}
         throw EnsembleTestFailure(
-          'Ensemble runtime bootstrap completed without a configuration.',
+          'Ensemble runtime bootstrap completed without a configuration.'
+          '${bootstrapError == null ? '' : ' Cause: $bootstrapError'}',
         );
       }
       config = bootstrapped;
@@ -395,7 +446,7 @@ class EnsembleTestHarness {
       }
 
       final deviceTheme = testCase.deviceTarget?.theme;
-      await tester.runAsync(() => seedEnsembleTestTheme(deviceTheme));
+      await seedEnsembleTestTheme(deviceTheme);
 
       // Skip re-initializing providers in EnsembleApp.initApp; bootstrapRuntime
       // already installed real providers and mock overlays.
@@ -571,11 +622,14 @@ class EnsembleTestHarness {
       await Future<void>.delayed(Duration.zero);
     }
 
-    if (LiveAsyncCallSupport.runner != null) {
-      await LiveAsyncCallSupport.run<void>(yieldOnce);
-    } else {
-      await tester.runAsync(yieldOnce);
-    }
+    // Always use the shared runAsync lane. A case reset may temporarily clear
+    // the active runner while a previous app request is still completing; a
+    // direct tester.runAsync here can overlap that request and Flutter rejects
+    // the reentrant call.
+    await LiveAsyncCallSupport.runUntracked<void>(
+      yieldOnce,
+      runnerOverride: tester.runAsync,
+    );
   }
 
   static Future<void> applyInPlaceSetup(EnsembleTestContext ctx) async {
@@ -678,5 +732,6 @@ class EnsembleTestHarness {
       ..onScreenAdded = null;
     LiveAsyncCallSupport.reset();
     Ensemble.resetInitManagersForTest();
+    EnsembleThemeManager().reset();
   }
 }

@@ -193,7 +193,6 @@ bool isTransientArtifactLog(String log) {
     case 'storage':
     case 'appLogs':
     case 'screenshotFrames':
-    case 'dumpTree':
     case 'appPerformance':
       return true;
     default:

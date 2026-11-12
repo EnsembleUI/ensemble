@@ -122,6 +122,24 @@ class AppSessionSnapshot {
     if (value == null || value is num || value is bool || value is String) {
       return value;
     }
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          entry.key.toString(): _copy(entry.value),
+      };
+    }
+    if (value is Iterable) {
+      return [for (final item in value) _copy(item)];
+    }
+
+    // Storage values can contain FirestoreTimestamp/ Timestamp instances. Use
+    // the same tagged representation as public storage before falling back to
+    // JSON cloning so suite snapshots remain serializable and retain the
+    // timestamp type when they are restored through StorageManager.write.
+    final storageSafe = encodePublicStorageValue(value);
+    if (!identical(storageSafe, value)) {
+      return _copy(storageSafe);
+    }
     return jsonDecode(jsonEncode(value));
   }
 }

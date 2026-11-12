@@ -96,12 +96,11 @@ final class CliTestOutputPresenter {
   static String? progressLine(Map<String, dynamic> event) {
     final statusName = event['status']?.toString();
     if (statusName == 'running') return null;
-    final status = statusName == 'passed' ? '✓' : '✗';
-
     final rawTestId = event['testId']?.toString() ?? '(unknown)';
     final suffixIndex = rawTestId.indexOf('  (');
     final testId =
         suffixIndex < 0 ? rawTestId : rawTestId.substring(0, suffixIndex);
+    final status = statusName == 'passed' ? '✓' : '✗';
     final durationMs =
         event['durationMs'] is int ? event['durationMs'] as int : 0;
     final attempts = event['attempts'] is int ? event['attempts'] as int : 1;

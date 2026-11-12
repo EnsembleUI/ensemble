@@ -36,6 +36,7 @@ final class PlanCompiler {
   final Map<String, PlanNode> _nodes = {};
   final List<String> _loopIds = [];
   final Set<String> _recoveryTargets = {};
+  final Map<PlanStep, int> _stepIndexes = Map.identity();
   int _nextId = 0;
 
   static int _validateRepeatLimit(int value) {
@@ -54,29 +55,20 @@ final class PlanCompiler {
     _nodes.clear();
     _loopIds.clear();
     _recoveryTargets.clear();
+    _stepIndexes.clear();
     _nextId = 0;
+    var stepIndex = 0;
+    void indexSteps(Iterable<PlanStep> items) {
+      for (final step in items) {
+        _stepIndexes[step] = stepIndex++;
+        indexSteps(step.children);
+      }
+    }
+
+    indexSteps(steps);
     const end = 'end';
     _nodes[end] = const EndNode(end);
-    var next = end;
-    for (var index = steps.length - 1; index >= 0; index--) {
-      final finishId = 'step${index}End';
-      _nodes[finishId] = StepBoundaryNode(
-        finishId,
-        stepIndex: index,
-        started: false,
-        next: next,
-      );
-      final body = _compileSequence([steps[index]], finishId, null);
-      final startId = 'step${index}Start';
-      _nodes[startId] = StepBoundaryNode(
-        startId,
-        stepIndex: index,
-        started: true,
-        next: body,
-      );
-      next = startId;
-    }
-    final start = next;
+    final start = _compileSequence(steps, end, null);
     return ExecutionPlan(id: id, start: start, nodes: _nodes);
   }
 
@@ -161,6 +153,14 @@ final class PlanCompiler {
               'nested steps.',
             );
           }
+          final index = _stepIndexes[step]!;
+          final finishId = 'step${index}End';
+          _nodes[finishId] = StepBoundaryNode(
+            finishId,
+            stepIndex: index,
+            started: false,
+            next: cursor,
+          );
           final operation = TestOperation(
             id: nodeId,
             name: definition.name,
@@ -169,10 +169,21 @@ final class PlanCompiler {
             input: step.input,
             source: step.source,
           );
-          _nodes[nodeId] =
-              OperationNode(nodeId, operation, cursor, onFailure: onFailure);
+          _nodes[nodeId] = OperationNode(
+            nodeId,
+            operation,
+            finishId,
+            onFailure: onFailure,
+          );
+          final startId = 'step${index}Start';
+          _nodes[startId] = StepBoundaryNode(
+            startId,
+            stepIndex: index,
+            started: true,
+            next: nodeId,
+          );
           if (onFailure != null) _recoveryTargets.add(onFailure);
-          cursor = nodeId;
+          cursor = startId;
       }
     }
     return cursor;

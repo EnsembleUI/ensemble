@@ -2,6 +2,7 @@ import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/src/integrations/firebase/firebase_test_registration.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_remote_config_platform_interface/src/pigeon/messages.pigeon.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -27,6 +28,13 @@ void main() {
 
         expect(firebaseProjectIdsByApp[appName], 'test-project-id');
         expect(Firebase.app(appName).options.projectId, 'test-project-id');
+
+        final remoteConfig = FirebaseRemoteConfigHostApi();
+        await remoteConfig.setDefaults(appName, const {'welcome': 'hello'});
+        expect(await remoteConfig.fetchAndActivate(appName), isFalse);
+        expect(await remoteConfig.getAll(appName), {
+          'welcome': {'value': 'hello', 'source': 'default'},
+        });
       });
     },
   );

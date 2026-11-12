@@ -16,7 +16,12 @@ final class CliWorkerWorkspace {
 
   final String appDir;
 
-  String prepare(int workerIndex, TestTimerRewritePlan timerPlan) {
+  String prepare(
+    int workerIndex,
+    TestTimerRewritePlan timerPlan, {
+    required String testEntryRelativePath,
+    bool copyPlatformProjects = false,
+  }) {
     final worker = Directory(directory(workerIndex))
       ..createSync(recursive: true);
     try {
@@ -27,6 +32,17 @@ final class CliWorkerWorkspace {
           continue;
         }
         sourceNames.add(name);
+        if (copyPlatformProjects && name == 'android') {
+          _copyPlatformProject(entity.absolute.path, p.join(worker.path, name),
+              excludedDirectories: const {'.gradle', '.kotlin', 'build'});
+          _limitAndroidGradleMemory(p.join(worker.path, name));
+          continue;
+        }
+        if (copyPlatformProjects && name == 'ios') {
+          _copyPlatformProject(entity.absolute.path, p.join(worker.path, name),
+              excludedDirectories: const {'Pods', '.symlinks', 'build'});
+          continue;
+        }
         _replaceWithLink(p.join(worker.path, name), entity.absolute.path);
       }
       for (final entity in worker.listSync(followLinks: false)) {
@@ -58,6 +74,7 @@ final class CliWorkerWorkspace {
         }
       }
       _materializePathConfiguration(worker.path);
+      _materializeTestEntry(worker.path, testEntryRelativePath);
       _materializeTimerScreens(worker.path, timerPlan);
       timerPlan.applyTo(worker.path);
       return worker.path;
@@ -161,6 +178,19 @@ final class CliWorkerWorkspace {
     _materializeCopiedSubtree(workerDir, appDir, relative);
   }
 
+  /// Flutter resolves a test target's real path when locating the project.
+  /// Linking `test/` back to the application checkout therefore sends
+  /// `flutter test` build output to the checkout instead of the worker. Copy
+  /// the entry directory so Flutter sees the worker-local path and all
+  /// relative imports beside the entry continue to resolve.
+  void _materializeTestEntry(String workerDir, String entryRelativePath) {
+    final entryDirectory = p.dirname(entryRelativePath);
+    if (entryDirectory == '.') return;
+    final source = Directory(p.join(appDir, entryDirectory));
+    if (!source.existsSync()) return;
+    _materializeCopiedSubtree(workerDir, appDir, entryDirectory);
+  }
+
   void _materializeCopiedSubtree(
       String workerDir, String sourceRoot, String relative) {
     final segments = p.split(relative.replaceAll('\\', '/'));
@@ -223,6 +253,65 @@ final class CliWorkerWorkspace {
         entity.copySync(destination);
       }
     }
+  }
+
+  /// Integration builds must run their platform tooling from the worker path.
+  /// Symlinking `android/` or `ios/` makes Gradle/Xcode canonicalize the
+  /// project back to the source checkout, so Flutter looks for an APK or app
+  /// bundle under the worker while the native build writes it under the host.
+  /// Copy only platform project inputs; generated build and dependency caches
+  /// remain worker-local and are cleaned with the workspace.
+  void _copyPlatformProject(
+    String sourcePath,
+    String targetPath, {
+    required Set<String> excludedDirectories,
+  }) {
+    _deleteEntity(targetPath);
+    final source = Directory(sourcePath);
+    final target = Directory(targetPath)..createSync(recursive: true);
+    for (final entity in source.listSync(followLinks: false)) {
+      final name = p.basename(entity.path);
+      if (entity is Directory && excludedDirectories.contains(name)) continue;
+      final destination = p.join(target.path, name);
+      if (entity is Directory) {
+        _copyPlatformProject(
+          entity.path,
+          destination,
+          excludedDirectories: excludedDirectories,
+        );
+      } else if (entity is File) {
+        entity.copySync(destination);
+      } else if (entity is Link) {
+        // Keep source controlled symlinks (for example Flutter plugin links),
+        // but never traverse them into host build outputs.
+        Link(destination).createSync(entity.targetSync());
+      }
+    }
+  }
+
+  /// Keep native integration builds within the same conservative memory
+  /// budget as Flutter test workers. This only changes the worker copy, never
+  /// the app's checked-in Gradle configuration used for normal builds.
+  void _limitAndroidGradleMemory(String androidDirectory) {
+    final properties = File(p.join(androidDirectory, 'gradle.properties'));
+    if (!properties.existsSync()) return;
+    final lines = properties.readAsLinesSync();
+    const key = 'org.gradle.jvmargs';
+    final index =
+        lines.indexWhere((line) => line.trimLeft().startsWith('$key='));
+    if (index < 0) {
+      lines.add(
+          '$key=-Xmx3G -XX:MaxMetaspaceSize=1G -XX:ReservedCodeCacheSize=256m -XX:+HeapDumpOnOutOfMemoryError');
+    } else {
+      final match = RegExp(r'^\s*org\.gradle\.jvmargs\s*=\s*(.*)$')
+          .firstMatch(lines[index]);
+      final args = match?.group(1) ?? '';
+      final bounded = args.replaceAll(RegExp(r'-Xmx\S+'), '-Xmx3G').replaceAll(
+          RegExp(r'-XX:MaxMetaspaceSize=\S+'), '-XX:MaxMetaspaceSize=1G');
+      lines[index] =
+          bounded.contains('-Xmx') ? '$key=$bounded' : '$key=-Xmx3G $bounded';
+    }
+    properties.writeAsStringSync('${lines.join('\n')}\n');
   }
 }
 

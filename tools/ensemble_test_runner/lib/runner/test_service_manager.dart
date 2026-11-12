@@ -10,7 +10,9 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/entry/runner_runtime_configuration.dart';
 import 'package:ensemble_test_runner/cli/process_lifecycle.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
+
+import '../mocks/real_network_http_client.dart';
 
 class TestServiceManager {
   TestServiceManager(this.configs, {this.artifactRoot});
@@ -82,14 +84,17 @@ class TestServiceManager {
   static Future<bool> _isReady(String? url) async {
     return await RunnerBenchmark.async('support_service', 'isReady', () async {
       if (url == null || url.isEmpty) return false;
+      final client = IOClient(createRealNetworkHttpClient());
       try {
         RunnerBenchmark.count('readinessProbes', 1);
-        final response = await http
+        final response = await client
             .get(Uri.parse(url))
             .timeout(const Duration(milliseconds: 500));
         return response.statusCode >= 200 && response.statusCode < 300;
       } catch (_) {
         return false;
+      } finally {
+        client.close();
       }
     });
   }
@@ -177,36 +182,41 @@ class _RunningTestService {
         Duration(milliseconds: config.readyTimeoutMs),
       );
       Object? lastError;
-      while (DateTime.now().isBefore(deadline)) {
-        if (isCancelled?.call() ?? false) {
-          throw StateError(
-            'Test service "${config.name}" startup was cancelled.',
-          );
+      final client = IOClient(createRealNetworkHttpClient());
+      try {
+        while (DateTime.now().isBefore(deadline)) {
+          if (isCancelled?.call() ?? false) {
+            throw StateError(
+              'Test service "${config.name}" startup was cancelled.',
+            );
+          }
+          if (exitCode != null) {
+            await logSink.flush();
+            throw StateError(
+              'Test service "${config.name}" exited with code $exitCode before '
+              'becoming ready. See ${logFile.path}.',
+            );
+          }
+          try {
+            RunnerBenchmark.count('readinessProbes', 1);
+            final response = await client
+                .get(Uri.parse(readyUrl))
+                .timeout(const Duration(seconds: 1));
+            if (response.statusCode >= 200 && response.statusCode < 300) return;
+            lastError = 'HTTP ${response.statusCode}';
+          } catch (error) {
+            lastError = error;
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         }
-        if (exitCode != null) {
-          await logSink.flush();
-          throw StateError(
-            'Test service "${config.name}" exited with code $exitCode before '
-            'becoming ready. See ${logFile.path}.',
-          );
-        }
-        try {
-          RunnerBenchmark.count('readinessProbes', 1);
-          final response = await http
-              .get(Uri.parse(readyUrl))
-              .timeout(const Duration(seconds: 1));
-          if (response.statusCode >= 200 && response.statusCode < 300) return;
-          lastError = 'HTTP ${response.statusCode}';
-        } catch (error) {
-          lastError = error;
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-      }
 
-      throw StateError(
-        'Timed out waiting for test service "${config.name}" at $readyUrl'
-        '${lastError == null ? '' : ': $lastError'}. See ${logFile.path}.',
-      );
+        throw StateError(
+          'Timed out waiting for test service "${config.name}" at $readyUrl'
+          '${lastError == null ? '' : ': $lastError'}. See ${logFile.path}.',
+        );
+      } finally {
+        client.close();
+      }
     });
   }
 

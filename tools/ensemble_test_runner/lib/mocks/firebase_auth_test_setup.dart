@@ -2,6 +2,8 @@ import 'package:firebase_auth_platform_interface/src/pigeon/messages.pigeon.dart
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'firebase_pigeon_compat.dart';
+
 bool _firebaseAuthBridgeInstalled = false;
 
 class _LiveAuthSession {
@@ -45,8 +47,8 @@ void recordLiveAuthSession({
 
 bool hasLiveAuthSession(String appName) => _sessionsByApp.containsKey(appName);
 
-_LiveAuthSession? liveAuthSessionForApp(String appName) =>
-    _sessionsByApp[appName];
+String? liveAuthIdTokenForApp(String appName) =>
+    _sessionsByApp[appName]?.idToken;
 
 /// Bridges Firebase Auth user token pigeon calls for code paths that still use
 /// `FirebaseAuth` after `LiveSignInWithCustomToken` has established a session.
@@ -56,7 +58,13 @@ void ensureLiveFirebaseAuthForTest() {
 
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  final codec = FirebaseAuthHostApi.pigeonChannelCodec;
+  final codec = PigeonCompatCodec(
+    FirebaseAuthHostApi.pigeonChannelCodec,
+    const PigeonWireMessageCodec(),
+  );
+  final legacyPigeon = usesLegacyFirebasePigeon(
+    'firebase_auth_platform_interface',
+  );
 
   void registerHandler(
     String channelName,
@@ -111,13 +119,19 @@ void ensureLiveFirebaseAuthForTest() {
     (args) async {
       final app = _decodeApp(args[0]);
       final session = _sessionForApp(app);
+      final now = DateTime.now().millisecondsSinceEpoch;
       return <Object?>[
-        InternalIdTokenResult(
-          token: session.idToken,
-          expirationTimestamp: session.expiresAtMs,
-          authTimestamp: DateTime.now().millisecondsSinceEpoch,
-          issuedAtTimestamp: DateTime.now().millisecondsSinceEpoch,
-          signInProvider: 'custom',
+        PigeonWireValue(
+          legacyPigeon ? 135 : 146,
+          <Object?>[
+            session.idToken,
+            session.expiresAtMs,
+            now,
+            now,
+            'custom',
+            null,
+            null,
+          ],
         ),
       ];
     },

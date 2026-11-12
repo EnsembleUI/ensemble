@@ -11,7 +11,6 @@ import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/webp_encoder.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -182,12 +181,15 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
         extension: 'png',
       );
     }
-    final bytes = await LiveAsyncCallSupport.runUntracked(
-      () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
+    // Screenshot encoding only uses Flutter UI image operations. Running it
+    // through WidgetTester.runAsync can block artifact generation behind an
+    // unrelated live app request (for example, a recommendation request
+    // started when NewsCarousel opens). Keep screenshot reporting independent
+    // from background API completion so the report is written promptly.
+    final bytes = await ExtendedStepHandlers.encodeScreenshotImage(
+      frame.image,
+      device,
     );
-    if (bytes == null) {
-      throw EnsembleTestFailure('Failed to encode screenshot.');
-    }
     return encodePngAsWebp(
       bytes,
       benchmarkOperation: 'encodeWebP',

@@ -10,16 +10,23 @@ import 'package:yaml/yaml.dart';
 
 /// Diagnostic record for one API invocation observed during a test.
 class APICallRecord {
+  final Stopwatch _requestStopwatch = Stopwatch();
+  bool _requestStarted = false;
   final String name;
   final YamlMap apiDefinition;
   final DateTime timestamp;
 
   /// Top-level step index (0-based) active when the call started, if any.
   final int? stepIndex;
+  int? completionStepIndex;
+  DateTime? completedAt;
+  bool _pendingObservedAtStepEnd = false;
   bool? mocked;
   int? statusCode;
   String? error;
   Object? responseBody;
+  bool completed = false;
+  int? providerDurationMs;
   String? type;
   String? resolvedUrl;
   Map<String, dynamic>? resolvedHeaders;
@@ -27,7 +34,31 @@ class APICallRecord {
   dynamic resolvedBody;
 
   /// Whether the invocation has produced either a response or an error.
-  bool get isCompleted => statusCode != null || error != null;
+  bool get isCompleted => completed || statusCode != null || error != null;
+
+  /// Marks when the runner dispatches the request to its provider.
+  void markRequestStarted() {
+    if (_requestStarted) return;
+    _requestStarted = true;
+    _requestStopwatch.start();
+  }
+
+  bool get hasRequestStarted => _requestStarted;
+
+  bool get wasPendingAtStepEnd => _pendingObservedAtStepEnd;
+
+  void markCompleted() {
+    if (_requestStopwatch.isRunning) {
+      _requestStopwatch.stop();
+      providerDurationMs = _requestStopwatch.elapsedMilliseconds;
+    }
+  }
+
+  void observeStepEnd(int stepIndex) {
+    if (this.stepIndex == stepIndex && !isCompleted) {
+      _pendingObservedAtStepEnd = true;
+    }
+  }
 
   APICallRecord({
     required this.name,
@@ -58,6 +89,12 @@ class ApiCallRecorder {
   void record(APICallRecord call) => calls.add(call);
 
   void reset() => calls.clear();
+
+  void observeStepEnd(int stepIndex) {
+    for (final call in calls) {
+      call.observeStepEnd(stepIndex);
+    }
+  }
 }
 
 /// Test provider overlay: observes API calls, applies test overrides, otherwise delegates.
@@ -216,7 +253,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     final stepIndex = stepIndexProvider?.call();
     final forced = _forcedExceptions[apiName];
     if (forced != null) {
-      recorder.record(APICallRecord(
+      final record = APICallRecord(
         name: apiName,
         apiDefinition: api,
         timestamp: DateTime.now(),
@@ -228,7 +265,9 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
         resolvedHeaders: resolvedHeaders,
         resolvedParameters: resolvedParameters,
         resolvedBody: resolvedBody,
-      ));
+      )..markRequestStarted();
+      record.markCompleted();
+      recorder.record(record);
       throw forced;
     }
 
@@ -253,12 +292,14 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
         api,
         eContext,
         apiName,
+        record,
       );
       _completeRecord(record, response, mocked: false);
       return response;
     }
 
     final response = _nextMockResponse(apiName, mock);
+    record.markRequestStarted();
     if (response.delayMs != null && response.delayMs! > 0) {
       await Future<void>.delayed(Duration(milliseconds: response.delayMs!));
     }
@@ -285,6 +326,14 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     Response response, {
     required bool mocked,
   }) {
+    // Firestore and other non-HTTP providers use Response directly and do not
+    // assign an HTTP status code. Their successful calls were therefore left
+    // looking in-flight forever, making waitForApi time out in integration
+    // mode even after the native Firebase plugin returned.
+    record.markCompleted();
+    record.completed = true;
+    record.completionStepIndex = stepIndexProvider?.call();
+    record.completedAt = DateTime.now();
     record.mocked = mocked;
     record.statusCode = response.statusCode;
     record.responseBody = response.body;
@@ -308,10 +357,13 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     YamlMap api,
     DataContext eContext,
     String apiName,
+    APICallRecord record,
   ) async {
     final runner = liveAsyncRunner;
-    Future<Response> call() =>
-        delegate.invokeApi(context, api, eContext, apiName);
+    Future<Response> call() {
+      record.markRequestStarted();
+      return delegate.invokeApi(context, api, eContext, apiName);
+    }
 
     if (runner != null) {
       try {

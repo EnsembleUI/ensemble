@@ -31,6 +31,28 @@ void main() {
     expect(finishedSteps, [4]);
   });
 
+  test('clears the active step after its finish boundary', () async {
+    var activeStep = -1;
+    final subscriber = StepContextSubscriber(
+      onStepStarted: (index) => activeStep = index,
+      onStepFinished: (_) => activeStep = -1,
+    );
+
+    await subscriber.call(const ExecutionEvent(
+      sequence: 1,
+      kind: ExecutionEventKind.stepStarted,
+      stepIndex: 2,
+    ));
+    expect(activeStep, 2);
+
+    await subscriber.call(const ExecutionEvent(
+      sequence: 2,
+      kind: ExecutionEventKind.stepFinished,
+      stepIndex: 2,
+    ));
+    expect(activeStep, -1);
+  });
+
   test('ignores non-step and malformed start events', () async {
     var updates = 0;
     final subscriber = StepContextSubscriber(

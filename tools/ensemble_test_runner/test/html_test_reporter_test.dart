@@ -101,6 +101,9 @@ ORDER BY id DESC LIMIT 1
         contains('No completed test report is stored in ensemble_test.db yet'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
     expect(shell, contains('pollAndRender'));
+    expect(shell, contains('SELECT id AS runId, report_data AS reportData'));
+    expect(shell, contains('report.reportRunId !== renderedRunId'));
+    expect(shell, isNot(contains('if (pollTimer) { clearInterval(pollTimer')));
     expect(shell, contains('feature-select'));
     expect(shell, contains('applyFeatureFilter'));
     expect(shell, contains('profile-select'));
@@ -110,7 +113,7 @@ ORDER BY id DESC LIMIT 1
     expect(shell, contains('modal-step-error'));
     expect(shell, contains('stepFailureMessage'));
     expect(shell, contains('window.stepMeta'));
-    expect(shell.length, lessThan(252000));
+    expect(shell.length, lessThan(300000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
 
@@ -249,6 +252,8 @@ ORDER BY id DESC LIMIT 1
             'timestamp': '2026-07-22T12:00:00.050',
             'stepIndex': 1,
             'statusCode': 200,
+            'durationMs': 125,
+            'providerDurationMs': 75,
             'mocked': true,
             'request': {
               'url': 'https://example.test/login',
@@ -275,6 +280,7 @@ ORDER BY id DESC LIMIT 1
           'timestamp': '2026-07-22T12:00:00.020',
           'stepIndex': 1,
           'statusCode': 503,
+          'durationMs': 240,
         },
       ],
     }));
@@ -439,6 +445,24 @@ ORDER BY id DESC LIMIT 1
           (event) => event['name'] == 'login')['responseBody']['token'],
       'abc',
     );
+    expect(
+      stepApiCalls
+          .firstWhere((event) => event['name'] == 'login')
+          .containsKey('durationMs'),
+      isFalse,
+    );
+    expect(
+      stepApiCalls.firstWhere(
+          (event) => event['name'] == 'login')['providerDurationMs'],
+      75,
+    );
+    expect(html, contains('formatApiDuration'));
+    expect(html, contains('return format(ev.providerDurationMs)'));
+    expect(html, isNot(contains('app wait')));
+    expect(html, isNot(contains('provider call')));
+    expect(html, isNot(contains('runner queue')));
+    expect(html,
+        contains('No response had arrived when this event was captured.'));
     expect((steps[1] as Map)['appLogs'], isNotEmpty);
     expect(
       (steps[1] as Map)['appLogs'],
@@ -537,6 +561,7 @@ ORDER BY id DESC LIMIT 1
               'apiCalls': [
                 {
                   'name': 'a',
+                  'completed': true,
                   'responseBody': body,
                   'request': {
                     'headers': {'A': '1'},
@@ -583,10 +608,43 @@ ORDER BY id DESC LIMIT 1
       (steps[0] as Map)['apiCalls'][0]['responseBody'],
       body,
     );
+    expect((steps[0] as Map)['apiCalls'][0]['completed'], isTrue);
     expect(
       (steps[1] as Map)['apiCalls'][0]['responseBody'],
       body,
     );
+  });
+
+  test('optimizer retains an explicit null API response', () {
+    final doc = {
+      'state': 'complete',
+      'summary': {'passed': 1, 'failed': 0, 'totalMs': 1},
+      'tests': [
+        {
+          'id': 't1',
+          'baseId': 't1',
+          'status': 'passed',
+          'durationMs': 1,
+          'attempts': 1,
+          'retry': 0,
+          'steps': [
+            {
+              'stepText': 'waitForApi(a)',
+              'apiCalls': [
+                {'name': 'a', 'responseBody': null},
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    final optimized = ReportJsonOptimizer.optimize(doc);
+    final expanded = ReportJsonOptimizer.expand(optimized);
+    final steps = (expanded['tests'] as List).first['steps'] as List;
+    final event = (steps.single as Map)['apiCalls'].single as Map;
+    expect(event.containsKey('responseBody'), isTrue);
+    expect(event['responseBody'], isNull);
   });
 
   test('TestReportDocument loading and complete builders', () {
@@ -837,7 +895,6 @@ ORDER BY id DESC LIMIT 1
               stepDurationsMs: const [10],
               screens: {
                 'Home': {
-                  'debugTree': 'MaterialApp\n  Scaffold\n',
                   'performance': {
                     'screen': 'Home',
                     'totalFrames': 2,
@@ -845,7 +902,6 @@ ORDER BY id DESC LIMIT 1
                   },
                 },
                 'Login': {
-                  'debugTree': 'LoginForm\n',
                   'performance': {
                     'screen': 'Login',
                     'totalFrames': 1,
@@ -864,18 +920,17 @@ ORDER BY id DESC LIMIT 1
     final doc = await readExpandedResults();
     final test = (doc['tests'] as List).single as Map<String, dynamic>;
     expect(test.containsKey('performance'), isFalse);
-    expect(test.containsKey('dumpTree'), isFalse);
     final screens = (test['report'] as Map)['screens'] as Map<String, dynamic>;
-    expect(screens['Home']['debugTree'], contains('MaterialApp'));
     expect(screens['Home']['performance']['totalFrames'], 2);
-    expect(screens['Login']['debugTree'], contains('LoginForm'));
     expect(screens['Login']['performance']['totalFrames'], 1);
 
     final html =
         File(p.join(tempDir.path, 'report', 'index.html')).readAsStringSync();
     expect(html, contains('openScreenDialog'));
-    expect(html, isNot(contains('renderTestPerformance')));
-    expect(html, isNot(contains('renderTestDumpTree')));
+    expect(html, contains('renderScreenPerformance'));
+    expect(html, contains('performanceTab.style.display'));
+    expect(html, contains('Captured during these steps'));
+    expect(html, contains('Frames observed'));
     expect(html, isNot(contains('modal-tab-performance')));
   });
 

@@ -413,7 +413,7 @@ bool _locatorIsEmpty(ElementLocator locator) => locator.isEmpty;
 bool _locatorsEquivalent(ElementLocator a, ElementLocator b) {
   return a.id == b.id &&
       a.label == b.label &&
-      a.text == b.text &&
+      _textEquivalent(a.text, b.text) &&
       a.role == b.role &&
       a.occurrence == b.occurrence &&
       _boundsEquivalent(a.bounds, b.bounds) &&
@@ -421,6 +421,17 @@ bool _locatorsEquivalent(ElementLocator a, ElementLocator b) {
           (a.within != null &&
               b.within != null &&
               _locatorsEquivalent(a.within!, b.within!)));
+}
+
+bool _textEquivalent(Object? a, Object? b) {
+  if (a is List && b is List) {
+    if (a.length != b.length) return false;
+    for (var index = 0; index < a.length; index++) {
+      if (a[index] != b[index]) return false;
+    }
+    return true;
+  }
+  return a == b;
 }
 
 ElementLocator _withOccurrence(ElementLocator locator, int occurrence) =>
