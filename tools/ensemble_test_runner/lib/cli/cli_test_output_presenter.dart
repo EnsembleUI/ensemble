@@ -90,15 +90,16 @@ final class CliTestOutputPresenter {
     return report.isEmpty ? null : report;
   }
 
-  /// Formats an in-flight or completed case for live output. Showing the
-  /// active case makes long widget tests distinguishable from a stalled runner.
+  /// Formats a completed worker result for live output. Running events remain
+  /// in the progress stream for internal state, but are not test results to
+  /// print; each case gets one terminal line when it finishes.
   static String? progressLine(Map<String, dynamic> event) {
     final statusName = event['status']?.toString();
+    if (statusName == 'running') return null;
     final rawTestId = event['testId']?.toString() ?? '(unknown)';
     final suffixIndex = rawTestId.indexOf('  (');
     final testId =
         suffixIndex < 0 ? rawTestId : rawTestId.substring(0, suffixIndex);
-    if (statusName == 'running') return '▶ $testId (running)';
     final status = statusName == 'passed' ? '✓' : '✗';
     final durationMs =
         event['durationMs'] is int ? event['durationMs'] as int : 0;
