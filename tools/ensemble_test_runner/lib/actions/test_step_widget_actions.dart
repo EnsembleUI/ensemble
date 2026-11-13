@@ -427,7 +427,17 @@ class TestStepWidgetActions {
     var attempts = 0;
     final maxAttempts = (effectiveTimeout ~/ 50).clamp(1, 50);
     final scrollableState = tester.state<ScrollableState>(scrollable);
-    while (!assertions.hasVisibleElement(finder) && attempts < maxAttempts) {
+    while (attempts < maxAttempts) {
+      if (assertions.hasVisibleElement(finder)) {
+        // Settling can complete in-flight app work and rebuild content above
+        // the target (for example, a landing page replacing loading sections
+        // with API data). That can move a target which was visible before the
+        // rebuild back outside the viewport. Only report success after the
+        // settled tree still has the target in view.
+        await runtime.settleAfterAction();
+        if (assertions.hasVisibleElement(finder)) return;
+      }
+
       final position = scrollableState.position;
       if (!position.hasContentDimensions || position.extentAfter <= 0) break;
 
@@ -444,13 +454,10 @@ class TestStepWidgetActions {
         break;
       }
     }
-    if (!assertions.hasVisibleElement(finder)) {
-      throw EnsembleTestFailure(
-        'scrollUntilVisible: no visible widget matched $finder after '
-        '$attempts scroll attempts (scrollable: $scrollable).',
-      );
-    }
-    await runtime.settleAfterAction();
+    throw EnsembleTestFailure(
+      'scrollUntilVisible: no visible widget matched $finder after '
+      '$attempts scroll attempts (scrollable: $scrollable).',
+    );
   }
 
   Future<void> tap(
