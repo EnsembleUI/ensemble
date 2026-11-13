@@ -1,3 +1,7 @@
+## 1.4.3
+
+ - **FIX**(test_step_widget): improve scrollUntilVisible logic to recheck visibility after settling ([#2406](https://github.com/ensembleUI/ensemble/issues/2406)). ([f37a36ab](https://github.com/ensembleUI/ensemble/commit/f37a36ab069ae86d8ceb71e5a90d20466fae4f66))
+
 ## 1.4.2
 
  - Update a dependency to the latest release.

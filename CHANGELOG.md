@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-11-13
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble_test_runner` - `v1.4.3`](#ensemble_test_runner---v143)
+
+---
+
+#### `ensemble_test_runner` - `v1.4.3`
+
+ - **FIX**(test_step_widget): improve scrollUntilVisible logic to recheck visibility after settling ([#2406](https://github.com/ensembleUI/ensemble/issues/2406)). ([f37a36ab](https://github.com/ensembleUI/ensemble/commit/f37a36ab069ae86d8ceb71e5a90d20466fae4f66))
+
+
 ## 2026-11-12
 
 ### Changes
