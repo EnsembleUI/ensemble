@@ -1053,6 +1053,27 @@ void main() {
     await session.close();
   });
 
+  testWidgets(
+    'scrollUntilVisible rechecks after settling shifts the target',
+    (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: const _ShiftingTargetScreen(),
+      ));
+      final session = _attach(tester);
+
+      final result = await session.act(actionOperation(
+        'scrollUntilVisible',
+        target: ElementTarget(testId: 'shifting_target'),
+        input: const {'scrollableId': 'shifting_list', 'timeoutMs': 5000},
+      ));
+
+      expect(result.succeeded, isTrue, reason: result.error?.toString());
+      expect(find.byKey(const ValueKey('shifting_target')).hitTestable(),
+          findsOneWidget);
+      await session.close();
+    },
+  );
+
   testWidgets('scrollUntilVisible waits for its scrollable to mount',
       (tester) async {
     final ready = Future<void>.delayed(const Duration(milliseconds: 200));
@@ -1218,6 +1239,60 @@ void main() {
     );
     await session.close();
   });
+}
+
+class _ShiftingTargetScreen extends StatefulWidget {
+  const _ShiftingTargetScreen();
+
+  @override
+  State<_ShiftingTargetScreen> createState() => _ShiftingTargetScreenState();
+}
+
+class _ShiftingTargetScreenState extends State<_ShiftingTargetScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final loaded = _controller.value >= 0.5;
+          return Scaffold(
+            body: ListView(
+              key: const ValueKey('shifting_list'),
+              children: [
+                if (loaded)
+                  ...List.generate(
+                    30,
+                    (index) => SizedBox(
+                      height: 48,
+                      child: Text('Loaded row $index'),
+                    ),
+                  ),
+                const KeyedSubtree(
+                  key: ValueKey('shifting_target'),
+                  child: SizedBox(height: 48, child: Text('Target')),
+                ),
+              ],
+            ),
+          );
+        },
+      );
 }
 
 Widget _form(String id, VoidCallback onPressed) => Container(
