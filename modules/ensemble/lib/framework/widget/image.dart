@@ -23,7 +23,8 @@ class Image extends StatelessWidget {
       this.placeholderBuilder,
       this.loadingWidget,
       this.colorFilter,
-      this.cacheManager});
+      this.cacheManager,
+      this.filterQuality});
 
   final String source;
   final double? width;
@@ -32,6 +33,11 @@ class Image extends StatelessWidget {
   final int? resizedWidth;
   final int? resizedHeight;
   final ColorFilterComposite? colorFilter;
+
+  /// How the image is sampled when drawn at a different size than its decoded
+  /// size. Null keeps each image type's existing default (low for network
+  /// images, medium for local assets).
+  final FilterQuality? filterQuality;
 
   final Widget Function(String)? errorBuilder;
 
@@ -58,6 +64,7 @@ class Image extends StatelessWidget {
           fit: fit,
           cacheWidth: resizedWidth,
           cacheHeight: resizedHeight,
+          filterQuality: filterQuality ?? FilterQuality.medium,
           errorBuilder: errorBuilder != null
               ? (context, error, stackTrace) => errorBuilder!(error.toString())
               : null,
@@ -70,6 +77,7 @@ class Image extends StatelessWidget {
           fit: fit,
           memCacheWidth: resizedWidth,
           memCacheHeight: resizedHeight,
+          filterQuality: filterQuality ?? FilterQuality.low,
           // placeholder while the image is loading
           placeholder: placeholderBuilder != null || loadingWidget != null
               ? (context, url) =>
@@ -87,6 +95,7 @@ class Image extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        filterQuality: filterQuality ?? FilterQuality.medium,
         errorBuilder: errorBuilder != null
             ? (context, error, stackTrace) => errorBuilder!(error.toString())
             : null,

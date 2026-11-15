@@ -5,6 +5,7 @@ import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -42,6 +43,7 @@ class EnsembleImage extends StatefulWidget
       'fit': () => _controller.fit,
       'resizedWidth': () => _controller.resizedWidth,
       'resizedHeight': () => _controller.resizedHeight,
+      'filterQuality': () => _controller.filterQuality?.name,
       'placeholderColor': () => _controller.placeholderColor,
       'colorFilter': () =>
           _controller.colorFilter?.toString() ?? 'null',
@@ -65,6 +67,8 @@ class EnsembleImage extends StatefulWidget
           Utils.optionalInt(width, min: 0, max: 2000),
       'resizedHeight': (height) => _controller.resizedHeight =
           Utils.optionalInt(height, min: 0, max: 2000),
+      'filterQuality': (value) =>
+          _controller.filterQuality = FilterQuality.values.from(value),
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
       'loadingWidget': (widget) => _controller.loadingWidget = widget,
@@ -105,6 +109,11 @@ class ImageController extends BoxController {
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
   int? resizedWidth;
   int? resizedHeight;
+
+  // How the image is sampled when drawn at a different size than its decoded
+  // size. Null keeps each image type's existing default (low for network
+  // images, medium for assets, files and memory images).
+  FilterQuality? filterQuality;
   dynamic fallback;
   bool cache = true;
   bool? pinchToZoom;
@@ -234,6 +243,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
       width: widget._controller.width?.toDouble(),
       height: widget._controller.height?.toDouble(),
       fit: widget._controller.fit,
+      filterQuality: widget._controller.filterQuality ?? FilterQuality.medium,
       errorBuilder: (context, error, stacktrace) => errorFallback(),
     );
   }
@@ -273,6 +283,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,
+            filterQuality:
+                widget._controller.filterQuality ?? FilterQuality.medium,
             errorBuilder: (context, error, stacktrace) => errorFallback());
       }
       int? cachedWidth = widget._controller.resizedWidth;
@@ -295,6 +307,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
           // gigantic images won't run out of memory
           memCacheWidth: cachedWidth,
           memCacheHeight: cachedHeight,
+          filterQuality: widget._controller.filterQuality ?? FilterQuality.low,
           cacheManager: EnsembleImageCacheManager.instanceFor(
             allowRedirect: widget._controller.allowRedirect,
           ),
@@ -326,11 +339,15 @@ class ImageState extends EWidgetState<EnsembleImage> {
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
               fit: fit,
+              filterQuality:
+                  widget._controller.filterQuality ?? FilterQuality.medium,
               errorBuilder: (context, error, stacktrace) => errorFallback())
           : Image.file(io.File(widget._controller.source),
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
               fit: fit,
+              filterQuality:
+                  widget._controller.filterQuality ?? FilterQuality.medium,
               errorBuilder: (context, error, stacktrace) => errorFallback());
     } else {
       // user might use env variables to switch between remote and local images.
@@ -340,6 +357,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit,
+          filterQuality:
+              widget._controller.filterQuality ?? FilterQuality.medium,
           errorBuilder: (context, error, stacktrace) => errorFallback());
     }
   }
