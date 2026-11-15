@@ -1,5 +1,9 @@
 import 'dart:async';
 
+// CupertinoPageTransitionsBuilder moved from material to cupertino in Flutter
+// 3.47; older SDKs still provide it through material.
+// ignore: unnecessary_import
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 /// Ensemble's default page transitions, used when no transition `type` is set
