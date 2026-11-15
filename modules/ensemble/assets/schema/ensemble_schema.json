@@ -860,9 +860,6 @@
                   "minimum": 0,
                   "maximum": 2000,
                   "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web."
-                },
-                "filterQuality": {
-                  "$ref": "#/$defs/imageFilterQuality"
                 }
               }
             }
@@ -957,9 +954,6 @@
                       "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
                     }
                   ]
-                },
-                "filterQuality": {
-                  "$ref": "#/$defs/imageFilterQuality"
                 }
               }
             }
@@ -8155,28 +8149,6 @@
         "w700",
         "w800",
         "w900"
-      ]
-    },
-    "imageFilterQuality": {
-      "type": "string",
-      "description": "How the image is sampled when it is drawn smaller or larger than its decoded size. If not set, network images use low and local asset/file/memory images use medium. Use medium for small images that are scaled down a lot (e.g. logos or thumbnails from large source images) to avoid jagged, noisy edges. On the Skia renderer, high is optimized for scaling up and can look worse than medium when scaling down.",
-      "oneOf": [
-        {
-          "const": "none",
-          "description": "Nearest neighbor. Fastest, but blocky."
-        },
-        {
-          "const": "low",
-          "description": "Bilinear without mipmaps. Fast, but loses detail when scaled down a lot."
-        },
-        {
-          "const": "medium",
-          "description": "Bilinear with mipmaps. Best for images that are scaled down."
-        },
-        {
-          "const": "high",
-          "description": "Bicubic. Best for images that are scaled up a lot."
-        }
       ]
     },
     "type-color": {
