@@ -48,6 +48,7 @@ class AvatarController extends EnsembleBoxController {
   bool allowRedirect = true;
   int? resizedWidth;
   int? resizedHeight;
+  FilterQuality? filterQuality;
   bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
@@ -81,6 +82,8 @@ class AvatarController extends EnsembleBoxController {
           resizedWidth = Utils.optionalInt(value, min: 0, max: 2000),
       'resizedHeight': (value) =>
           resizedHeight = Utils.optionalInt(value, min: 0, max: 2000),
+      'filterQuality': (value) =>
+          filterQuality = FilterQuality.values.from(value),
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
@@ -306,6 +309,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       fit: widget.controller.fit,
       resizedWidth: widget.controller.resizedWidth,
       resizedHeight: widget.controller.resizedHeight,
+      filterQuality: widget.controller.filterQuality,
       colorFilter: widget.controller.colorFilter,
       loadingWidget:
           getScopeManager() != null && widget.controller.loadingWidget != null
