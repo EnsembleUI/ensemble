@@ -1,3 +1,7 @@
+## 1.3.3
+
+ - **FIX**(navigation): keep Zoom as default Android page transition ([#2408](https://github.com/ensembleUI/ensemble/issues/2408)). ([93b77179](https://github.com/ensembleUI/ensemble/commit/93b7717947f476c1beb4014e1f66f0aaee955c20))
+
 ## 1.3.2
 
  - **FIX**(cdn): drop startup update check timeout. ([2e0d2a52](https://github.com/ensembleUI/ensemble/commit/2e0d2a5265aaba9754dcce1babe2c7cfb588f462))

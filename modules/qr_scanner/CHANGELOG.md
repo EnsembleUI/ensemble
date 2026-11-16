@@ -1,3 +1,7 @@
+## 1.3.3
+
+ - Bump "ensemble_qr_scanner" to `1.3.3`.
+
 ## 1.3.2
 
  - Bump "ensemble_qr_scanner" to `1.3.2`.

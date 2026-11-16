@@ -1,3 +1,7 @@
+## 1.3.3
+
+ - Bump "ensemble_bracket" to `1.3.3`.
+
 ## 1.3.2
 
  - Bump "ensemble_bracket" to `1.3.2`.
