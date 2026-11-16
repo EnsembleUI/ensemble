@@ -1,11 +1,46 @@
 import 'dart:async';
 
+// CupertinoPageTransitionsBuilder moved from material to cupertino in Flutter
+// 3.47; older SDKs still provide it through material.
+// ignore: unnecessary_import
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+/// Ensemble's default page transitions, used when no transition `type` is set
+/// (`theme`).
+///
+/// Pinned to the builders Flutter used before 3.38. Flutter 3.38 changed the
+/// Android default from [ZoomPageTransitionsBuilder] to
+/// [PredictiveBackPageTransitionsBuilder], which falls back to
+/// `FadeForwardsPageTransitionsBuilder` for programmatic navigation. That
+/// transition fades the outgoing page out, and because Ensemble page routes are
+/// non-opaque the screen below it shows through for a moment. Pinning keeps
+/// the look identical across supported Flutter SDKs; apps opt into the new
+/// Android transition with `type: predictiveBack`.
+/// See https://docs.flutter.dev/release/breaking-changes/default-android-page-transition
+const PageTransitionsTheme ensembleDefaultPageTransitionsTheme =
+    PageTransitionsTheme(
+  builders: <TargetPlatform, PageTransitionsBuilder>{
+    TargetPlatform.android: ZoomPageTransitionsBuilder(),
+    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+    TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+  },
+);
 
 /// Route transition animations supported by Ensemble navigation.
 enum PageTransitionType {
-  /// Uses Flutter's platform/theme page transition for the route.
+  /// Uses the theme's page transition for the platform. Ensemble pins this to
+  /// [ensembleDefaultPageTransitionsTheme] (Zoom on Android, Cupertino on iOS).
   theme,
+
+  /// Android's predictive-back page transition (Flutter's default from 3.38).
+  /// On Flutter 3.38+ programmatic navigation uses the Android 16-style
+  /// fade-forwards animation; older SDKs fall back to Zoom. Non-Android
+  /// platforms use [theme]. Regular page routes using this type are opaque so
+  /// the screen beneath the outgoing page cannot show through.
+  predictiveBack,
   /// Fades the new page in without directional movement.
   fade,
   /// Slides the new page in from the right edge.
@@ -43,6 +78,8 @@ extension PageTransitionTypeX on PageTransitionType {
     switch (name) {
       case 'theme':
         return PageTransitionType.theme;
+      case 'predictiveBack':
+        return PageTransitionType.predictiveBack;
       case 'fade':
         return PageTransitionType.fade;
       case 'rightToLeft':
@@ -206,7 +243,9 @@ class EnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
     this.duration = const Duration(milliseconds: 200),
     this.reverseDuration = const Duration(milliseconds: 200),
     super.fullscreenDialog = false,
-    super.opaque = false,
+    // Defaults to non-opaque (historical behavior) except for predictiveBack,
+    // whose fade-forwards exit would otherwise reveal the route beneath.
+    bool? opaque,
     super.barrierColor,
     super.barrierDismissible,
     // This field is retained for API compatibility; transitions are selected in
@@ -223,6 +262,8 @@ class EnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
           },
           settings: settings,
           maintainState: true,
+          opaque:
+              opaque ?? transitionType == PageTransitionType.predictiveBack,
         );
 
   @override
@@ -237,6 +278,15 @@ class EnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
     switch (transitionType) {
       case PageTransitionType.theme:
         return Theme.of(context).pageTransitionsTheme.buildTransitions(
+            this, context, animation, secondaryAnimation, child);
+
+      case PageTransitionType.predictiveBack:
+        final theme = Theme.of(context);
+        if (theme.platform != TargetPlatform.android) {
+          return theme.pageTransitionsTheme.buildTransitions(
+              this, context, animation, secondaryAnimation, child);
+        }
+        return const PredictiveBackPageTransitionsBuilder().buildTransitions(
             this, context, animation, secondaryAnimation, child);
 
       case PageTransitionType.fade:

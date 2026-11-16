@@ -2,6 +2,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/tv/tv_focus_theme.dart';
+import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/image.dart';
@@ -55,6 +56,9 @@ mixin ThemeLoader {
       Utils.getColor( screenOverrides?['backgroundColor']) ??
           DesignSystem.scaffoldBackgroundColor,
       appBarTheme: _getAppBarTheme( screenOverrides),
+      // Keep pre-Flutter-3.38 page transitions as the default; see
+      // ensembleDefaultPageTransitionsTheme.
+      pageTransitionsTheme: ensembleDefaultPageTransitionsTheme,
       disabledColor: DesignSystem.disableColor,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
