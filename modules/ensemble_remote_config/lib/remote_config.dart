@@ -18,9 +18,17 @@ class RemoteConfigService {
 
   FirebaseRemoteConfig? _remoteConfig;
 
+  /// The fetch in flight, shared by concurrent [fetchAndActivate] calls.
+  Future<void>? _fetching;
+
   /// Apply settings from environment variables (if present), falling back
   /// to sensible defaults. This can be called multiple times; it will
   /// re-read the env on each invocation.
+  ///
+  /// On iOS, `setConfigSettings` recreates the SDK's URL session, which
+  /// cancels any fetch in flight (NSURLErrorDomain -999), including one the
+  /// host app started on the same shared instance. So settings are only
+  /// written when they actually change.
   Future<void> _applySettingsFromEnv(FirebaseRemoteConfig config) async {
     // Environment variables:
     // - remote_config_fetch_timeout (seconds)
@@ -47,6 +55,11 @@ class RemoteConfigService {
     final minimumFetchInterval = _durationFromEnv(
         'remote_config_minimum_fetch_interval', const Duration(hours: 1));
 
+    final current = config.settings;
+    if (current.fetchTimeout == fetchTimeout &&
+        current.minimumFetchInterval == minimumFetchInterval) {
+      return;
+    }
     await config.setConfigSettings(
       RemoteConfigSettings(
         fetchTimeout: fetchTimeout,
@@ -76,21 +89,47 @@ class RemoteConfigService {
   /// Fetch and activate latest Remote Config values
   ///
   /// Errors are swallowed; if anything fails we simply keep using defaults.
-  Future<void> fetchAndActivate() async {
+  /// Calls made while a fetch is in flight wait for that fetch instead of
+  /// starting another one.
+  Future<void> fetchAndActivate() {
+    return _fetching ??= _fetchAndActivate().whenComplete(() {
+      _fetching = null;
+    });
+  }
+
+  Future<void> _fetchAndActivate() async {
     await ensureInitialized();
     if (_remoteConfig == null) return;
+    // Re-apply settings on each fetch so that environment overrides
+    // (which may load after first init) are honored.
+    await _applySettingsFromEnv(_remoteConfig!);
+    if (await _tryFetchAndActivate(_remoteConfig!)) return;
+    // A failed fetch at startup is most often one that was cancelled when
+    // something else (e.g. the host app) changed the config settings on iOS.
+    // One retry recovers it; a real network failure just fails again.
+    await Future.delayed(const Duration(seconds: 1));
+    await _tryFetchAndActivate(_remoteConfig!);
+  }
+
+  /// Whether the fetch succeeded.
+  Future<bool> _tryFetchAndActivate(FirebaseRemoteConfig config) async {
     try {
-      // Re-apply settings on each fetch so that environment overrides
-      // (which may load after first init) are honored.
-      await _applySettingsFromEnv(_remoteConfig!);
-      await _remoteConfig!.fetchAndActivate();
+      await config.fetchAndActivate();
+      if (config.lastFetchStatus == RemoteConfigFetchStatus.failure) {
+        if (kDebugMode) {
+          debugPrint('[RemoteConfig] fetchAndActivate failed');
+        }
+        return false;
+      }
       if (kDebugMode) {
         debugPrint('[RemoteConfig] Initialized');
       }
+      return true;
     } catch (e, stack) {
       if (kDebugMode) {
         debugPrint('[RemoteConfig] fetchAndActivate failed: $e\n$stack');
       }
+      return false;
     }
   }
 
