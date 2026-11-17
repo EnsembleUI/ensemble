@@ -30,6 +30,7 @@ import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
+import 'package:ensemble/widget/reels_view.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -123,6 +124,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => GetIt.instance<EnsembleMap>(),
         'Maps': () => GetIt.instance<EnsembleMap>(), // backward compatible
         Carousel.type: () => Carousel(),
+        ReelsView.type: () => ReelsView(),
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
