@@ -1,3 +1,7 @@
+## 1.3.4
+
+ - **FIX**(remote_config): stop cancelling the Remote Config fetch on iOS ([#2409](https://github.com/ensembleUI/ensemble/issues/2409)). ([60095711](https://github.com/ensembleUI/ensemble/commit/6009571145c16addb4109d549fab92122c9d1547))
+
 ## 1.3.3
 
  - Bump "ensemble_remote_config" to `1.3.3`.

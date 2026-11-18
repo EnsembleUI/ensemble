@@ -3,6 +3,129 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-11-18
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.3.4`](#ensemble---v134)
+ - [`ensemble_network_info` - `v1.3.4`](#ensemble_network_info---v134)
+ - [`ensemble_stripe` - `v1.3.4`](#ensemble_stripe---v134)
+ - [`ensemble_file_manager` - `v1.3.4`](#ensemble_file_manager---v134)
+ - [`ensemble_chat` - `v1.3.4`](#ensemble_chat---v134)
+ - [`ensemble_auth` - `v1.3.4`](#ensemble_auth---v134)
+ - [`ensemble_bluetooth` - `v1.3.4`](#ensemble_bluetooth---v134)
+ - [`ensemble_wifi` - `v1.3.4`](#ensemble_wifi---v134)
+ - [`ensemble_face_camera` - `v1.3.4`](#ensemble_face_camera---v134)
+ - [`ensemble_connect` - `v1.3.4`](#ensemble_connect---v134)
+ - [`ensemble_contacts` - `v1.3.4`](#ensemble_contacts---v134)
+ - [`ensemble_location` - `v1.3.4`](#ensemble_location---v134)
+ - [`ensemble_camera` - `v1.3.4`](#ensemble_camera---v134)
+ - [`ensemble_deeplink` - `v1.3.4`](#ensemble_deeplink---v134)
+ - [`ensemble_remote_config` - `v1.3.4`](#ensemble_remote_config---v134)
+ - [`ensemble_firebase_analytics` - `v1.3.4`](#ensemble_firebase_analytics---v134)
+ - [`ensemble_qr_scanner` - `v1.3.4`](#ensemble_qr_scanner---v134)
+ - [`ensemble_adobe_analytics` - `v1.3.4`](#ensemble_adobe_analytics---v134)
+ - [`ensemble_moengage` - `v1.3.4`](#ensemble_moengage---v134)
+ - [`ensemble_bracket` - `v1.3.4`](#ensemble_bracket---v134)
+ - [`ensemble_test_runner` - `v1.4.5`](#ensemble_test_runner---v145)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.4.5`
+
+---
+
+#### `ensemble` - `v1.3.4`
+
+ - Bump "ensemble" to `1.3.4`.
+
+#### `ensemble_network_info` - `v1.3.4`
+
+ - Bump "ensemble_network_info" to `1.3.4`.
+
+#### `ensemble_stripe` - `v1.3.4`
+
+ - Bump "ensemble_stripe" to `1.3.4`.
+
+#### `ensemble_file_manager` - `v1.3.4`
+
+ - Bump "ensemble_file_manager" to `1.3.4`.
+
+#### `ensemble_chat` - `v1.3.4`
+
+ - Bump "ensemble_chat" to `1.3.4`.
+
+#### `ensemble_auth` - `v1.3.4`
+
+ - Bump "ensemble_auth" to `1.3.4`.
+
+#### `ensemble_bluetooth` - `v1.3.4`
+
+ - Bump "ensemble_bluetooth" to `1.3.4`.
+
+#### `ensemble_wifi` - `v1.3.4`
+
+ - Bump "ensemble_wifi" to `1.3.4`.
+
+#### `ensemble_face_camera` - `v1.3.4`
+
+ - Bump "ensemble_face_camera" to `1.3.4`.
+
+#### `ensemble_connect` - `v1.3.4`
+
+ - Bump "ensemble_connect" to `1.3.4`.
+
+#### `ensemble_contacts` - `v1.3.4`
+
+ - Bump "ensemble_contacts" to `1.3.4`.
+
+#### `ensemble_location` - `v1.3.4`
+
+ - Bump "ensemble_location" to `1.3.4`.
+
+#### `ensemble_camera` - `v1.3.4`
+
+ - Bump "ensemble_camera" to `1.3.4`.
+
+#### `ensemble_deeplink` - `v1.3.4`
+
+ - Bump "ensemble_deeplink" to `1.3.4`.
+
+#### `ensemble_remote_config` - `v1.3.4`
+
+ - **FIX**(remote_config): stop cancelling the Remote Config fetch on iOS ([#2409](https://github.com/ensembleUI/ensemble/issues/2409)). ([60095711](https://github.com/ensembleUI/ensemble/commit/6009571145c16addb4109d549fab92122c9d1547))
+
+#### `ensemble_firebase_analytics` - `v1.3.4`
+
+ - Bump "ensemble_firebase_analytics" to `1.3.4`.
+
+#### `ensemble_qr_scanner` - `v1.3.4`
+
+ - Bump "ensemble_qr_scanner" to `1.3.4`.
+
+#### `ensemble_adobe_analytics` - `v1.3.4`
+
+ - Bump "ensemble_adobe_analytics" to `1.3.4`.
+
+#### `ensemble_moengage` - `v1.3.4`
+
+ - Bump "ensemble_moengage" to `1.3.4`.
+
+#### `ensemble_bracket` - `v1.3.4`
+
+ - Bump "ensemble_bracket" to `1.3.4`.
+
+
 ## 2026-11-16
 
 ### Changes

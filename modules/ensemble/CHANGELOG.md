@@ -1,3 +1,7 @@
+## 1.3.4
+
+ - Bump "ensemble" to `1.3.4`.
+
 ## 1.3.3
 
  - **FIX**(navigation): keep Zoom as default Android page transition ([#2408](https://github.com/ensembleUI/ensemble/issues/2408)). ([93b77179](https://github.com/ensembleUI/ensemble/commit/93b7717947f476c1beb4014e1f66f0aaee955c20))
