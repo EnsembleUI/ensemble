@@ -3,6 +3,7 @@ import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/apple_tv_scroll.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -267,7 +268,7 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
                   footerScope.isColumnScrollableAndRoot(context))
               ? const NeverScrollableScrollPhysics()
               : pullToRefresh != null
-                  ? const AlwaysScrollableScrollPhysics()
+                  ? appleTVScrollPhysics(const AlwaysScrollableScrollPhysics())
                   : null,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: _getTileCount(constraints),

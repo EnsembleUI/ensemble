@@ -19,6 +19,7 @@ import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/tv/apple_tv.dart';
+import 'package:ensemble/framework/tv/apple_tv_scroll.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -499,6 +500,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: theme,
+      scrollBehavior: appleTVScrollBehavior,
       localizationsDelegates: getLocalizationDelegates(config),
       // Note that we either need supportedLocales or this callback.
       // Also note that the placeholder's MaterialApp also has the same
@@ -605,6 +607,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   Widget _appPlaceholderWrapper(
       {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
+        scrollBehavior: appleTVScrollBehavior,
         // even when this is the placeholder and will be replaced later, we still
         // need to either set supportedLocales or handle localeResolutionCallback.
         // Without this the system locale will be incorrect the first time.
