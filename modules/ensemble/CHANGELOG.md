@@ -1,3 +1,10 @@
+## 1.3.4-beta.1
+
+ - **FIX**(tv): stop the tvOS focus engine from scrolling lists on Apple TV. ([508ebdea](https://github.com/ensembleUI/ensemble/commit/508ebdeafc577f914b9dee3bf3b6cbe76b734407))
+ - **FIX**(tv): measure focus scrolling in the scrollable's own units. ([8ad3592e](https://github.com/ensembleUI/ensemble/commit/8ad3592e6b053dcd25baa6f45325daf9c112b89e))
+ - **FEAT**(tv): send Apple TV Menu to goBack key handlers. ([651df925](https://github.com/ensembleUI/ensemble/commit/651df925ae20ed08d1ea0c4964e54d638bc52fb6))
+ - **FEAT**(tv): support running on Apple TV (tvOS). ([296f1f03](https://github.com/ensembleUI/ensemble/commit/296f1f03f33f125a7b6895365e96e9915ffbf115))
+
 ## 1.3.4
 
  - Bump "ensemble" to `1.3.4`.

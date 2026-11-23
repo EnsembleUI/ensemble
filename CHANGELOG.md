@@ -3,6 +3,75 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-11-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.3.4-beta.1`](#ensemble---v134-beta1)
+ - [`ensemble_test_runner` - `v1.4.6`](#ensemble_test_runner---v146)
+ - [`ensemble_wifi` - `v1.3.5`](#ensemble_wifi---v135)
+ - [`ensemble_deeplink` - `v1.3.5`](#ensemble_deeplink---v135)
+ - [`ensemble_remote_config` - `v1.3.5`](#ensemble_remote_config---v135)
+ - [`ensemble_connect` - `v1.3.5`](#ensemble_connect---v135)
+ - [`ensemble_face_camera` - `v1.3.5`](#ensemble_face_camera---v135)
+ - [`ensemble_contacts` - `v1.3.5`](#ensemble_contacts---v135)
+ - [`ensemble_network_info` - `v1.3.5`](#ensemble_network_info---v135)
+ - [`ensemble_bracket` - `v1.3.5`](#ensemble_bracket---v135)
+ - [`ensemble_bluetooth` - `v1.3.5`](#ensemble_bluetooth---v135)
+ - [`ensemble_location` - `v1.3.5`](#ensemble_location---v135)
+ - [`ensemble_qr_scanner` - `v1.3.5`](#ensemble_qr_scanner---v135)
+ - [`ensemble_camera` - `v1.3.5`](#ensemble_camera---v135)
+ - [`ensemble_moengage` - `v1.3.5`](#ensemble_moengage---v135)
+ - [`ensemble_file_manager` - `v1.3.5`](#ensemble_file_manager---v135)
+ - [`ensemble_stripe` - `v1.3.5`](#ensemble_stripe---v135)
+ - [`ensemble_adobe_analytics` - `v1.3.5`](#ensemble_adobe_analytics---v135)
+ - [`ensemble_firebase_analytics` - `v1.3.5`](#ensemble_firebase_analytics---v135)
+ - [`ensemble_auth` - `v1.3.5`](#ensemble_auth---v135)
+ - [`ensemble_chat` - `v1.3.5`](#ensemble_chat---v135)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.4.6`
+ - `ensemble_wifi` - `v1.3.5`
+ - `ensemble_deeplink` - `v1.3.5`
+ - `ensemble_remote_config` - `v1.3.5`
+ - `ensemble_connect` - `v1.3.5`
+ - `ensemble_face_camera` - `v1.3.5`
+ - `ensemble_contacts` - `v1.3.5`
+ - `ensemble_network_info` - `v1.3.5`
+ - `ensemble_bracket` - `v1.3.5`
+ - `ensemble_bluetooth` - `v1.3.5`
+ - `ensemble_location` - `v1.3.5`
+ - `ensemble_qr_scanner` - `v1.3.5`
+ - `ensemble_camera` - `v1.3.5`
+ - `ensemble_moengage` - `v1.3.5`
+ - `ensemble_file_manager` - `v1.3.5`
+ - `ensemble_stripe` - `v1.3.5`
+ - `ensemble_adobe_analytics` - `v1.3.5`
+ - `ensemble_firebase_analytics` - `v1.3.5`
+ - `ensemble_auth` - `v1.3.5`
+ - `ensemble_chat` - `v1.3.5`
+
+---
+
+#### `ensemble` - `v1.3.4-beta.1`
+
+ - **FIX**(tv): stop the tvOS focus engine from scrolling lists on Apple TV. ([508ebdea](https://github.com/ensembleUI/ensemble/commit/508ebdeafc577f914b9dee3bf3b6cbe76b734407))
+ - **FIX**(tv): measure focus scrolling in the scrollable's own units. ([8ad3592e](https://github.com/ensembleUI/ensemble/commit/8ad3592e6b053dcd25baa6f45325daf9c112b89e))
+ - **FEAT**(tv): send Apple TV Menu to goBack key handlers. ([651df925](https://github.com/ensembleUI/ensemble/commit/651df925ae20ed08d1ea0c4964e54d638bc52fb6))
+ - **FEAT**(tv): support running on Apple TV (tvOS). ([296f1f03](https://github.com/ensembleUI/ensemble/commit/296f1f03f33f125a7b6895365e96e9915ffbf115))
+
+
 ## 2026-11-18
 
 ### Changes

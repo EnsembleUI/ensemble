@@ -10,7 +10,7 @@ environment:
 dependencies:
   ensemble:
     hosted: https://pub.dev
-    version: ">=1.3.4 <2.0.0"
+    version: ">=1.3.4-beta.1 <2.0.0"
   flutter:
     sdk: flutter
 
