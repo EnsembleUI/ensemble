@@ -731,13 +731,13 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
           // Netflix-style: focus stays at fixed left position
           final fixedOffset =
               tvOptions?.fixedFocusOffset ?? kTVFixedFocusOffset;
-          _scrollHorizontalWithFixedPosition(
+          scrollHorizontalWithFixedPosition(
               horizontalScrollable, itemBox, fixedOffset,
               animationDuration: scrollAnimationDuration,
               curve: horizontalCurve);
         } else {
           // Default: ensure item is visible (centered when scrolling needed)
-          _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
+          scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
               padding: horizontalScrollPadding,
               animationDuration: scrollAnimationDuration,
               curve: horizontalCurve);
@@ -823,144 +823,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     });
 
     return scrollable;
-  }
-
-  /// Default horizontal scrolling: ensure item is visible, scroll only if needed.
-  /// [padding] controls the horizontal padding for visibility checks.
-  /// [animationDuration] controls the scroll animation duration in milliseconds.
-  /// [curve] controls the animation curve (defaults to easeOut).
-  void _scrollHorizontalIfNotVisible(
-    ScrollableState scrollable,
-    RenderBox itemBox, {
-    double padding = kTVHorizontalScrollPadding,
-    int animationDuration = kTVScrollAnimationDurationMs,
-    Curve curve = Curves.easeOut,
-  }) {
-    final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
-    if (scrollableBox == null || !scrollableBox.hasSize) return;
-
-    // Get item position relative to screen
-    final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
-    final double itemWidth = itemBox.size.width;
-    final double itemLeft = itemScreenPos.dx;
-    final double itemRight = itemLeft + itemWidth;
-
-    // Get scrollable position relative to screen
-    final Offset scrollableScreenPos = scrollableBox.localToGlobal(Offset.zero);
-    final double scrollableLeft = scrollableScreenPos.dx;
-    final double scrollableRight = scrollableLeft + scrollableBox.size.width;
-
-    // Check if item is fully visible
-    final bool isFullyVisible = itemLeft >= (scrollableLeft + padding) &&
-        itemRight <= (scrollableRight - padding);
-
-    if (isFullyVisible) return;
-
-    // Center the item horizontally. This mirrors Scrollable.ensureVisible(
-    // alignment: 0.5) but scrolls ONLY this horizontal scrollable. The old
-    // ensureVisible(context) was not axis-restricted — it also scrolled every
-    // enclosing vertical scrollable, undoing the padding-aware
-    // scrollVerticalOnly done moments earlier and causing a vertical jerk.
-    final position = scrollable.position;
-    final double itemCenter = itemLeft + itemWidth / 2;
-    final double viewportCenter = scrollableLeft + scrollableBox.size.width / 2;
-    final double targetScroll =
-        (position.pixels + (itemCenter - viewportCenter))
-            .clamp(0.0, position.maxScrollExtent);
-
-    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
-      position.animateTo(
-        targetScroll,
-        duration: Duration(milliseconds: animationDuration),
-        curve: curve,
-      );
-    }
-  }
-
-  /// Netflix-style horizontal scrolling: focus stays at fixed left position,
-  /// content scrolls underneath. At boundaries, focus moves through visible items.
-  /// [animationDuration] controls the scroll animation duration in milliseconds.
-  /// [curve] controls the animation curve (defaults to easeOut).
-  void _scrollHorizontalWithFixedPosition(
-    ScrollableState scrollable,
-    RenderBox itemBox,
-    double fixedOffset, {
-    int animationDuration = kTVScrollAnimationDurationMs,
-    Curve curve = Curves.easeOut,
-  }) {
-    final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
-    if (scrollableBox == null || !scrollableBox.hasSize) return;
-
-    final position = scrollable.position;
-
-    // Get item position relative to screen
-    final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
-    final double itemWidth = itemBox.size.width;
-    final double itemLeft = itemScreenPos.dx;
-    final double itemRight = itemLeft + itemWidth;
-
-    // Get scrollable position relative to screen
-    final Offset scrollableScreenPos = scrollableBox.localToGlobal(Offset.zero);
-    final double scrollableLeft = scrollableScreenPos.dx;
-    final double scrollableRight = scrollableLeft + scrollableBox.size.width;
-
-    // Padding for visibility checks
-    const double edgePadding = kTVEdgePadding;
-
-    // Check if item's LEFT edge is visible (for START boundary)
-    final bool isLeftEdgeVisible = itemLeft >= scrollableLeft;
-
-    // Check if item's RIGHT edge is visible (for END boundary)
-    final bool isRightEdgeVisible = itemRight <= scrollableRight;
-
-    // Item is reasonably visible if both edges are on screen
-    final bool isItemReasonablyVisible =
-        isLeftEdgeVisible && isRightEdgeVisible;
-
-    // Check if we're currently at boundaries
-    final bool isAtStart = position.pixels <= kTVScrollThreshold;
-    final bool isAtEnd =
-        position.pixels >= position.maxScrollExtent - kTVScrollThreshold;
-
-    // Calculate item's position relative to viewport
-    final double itemLeftInViewport = itemLeft - scrollableLeft;
-
-    // Calculate item's position in content coordinate system
-    final double itemContentPosition = position.pixels + itemLeftInViewport;
-
-    // Calculate target scroll position BEFORE clamping (for boundary detection)
-    final double rawTargetScroll = itemContentPosition - fixedOffset;
-
-    // Check if target would hit start boundary
-    final bool wouldHitStart = rawTargetScroll <= 0;
-
-    // START BOUNDARY: Skip scroll if item is visible and at/before fixedOffset
-    if ((isAtStart || wouldHitStart) &&
-        isLeftEdgeVisible &&
-        itemLeftInViewport <= fixedOffset + edgePadding) {
-      return;
-    }
-
-    // END BOUNDARY: Only skip scroll when we're ACTUALLY at maxScrollExtent
-    // and the item is already visible. This ensures we scroll all the way to
-    // the end before letting focus move through the remaining visible items.
-    if (isAtEnd && isItemReasonablyVisible) {
-      return;
-    }
-
-    // Clamp to valid scroll range - this will scroll to maxScrollExtent when
-    // rawTargetScroll exceeds it, ensuring content scrolls fully before
-    // focus position shifts
-    double targetScroll = rawTargetScroll.clamp(0.0, position.maxScrollExtent);
-
-    // Animate if there's a meaningful change
-    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
-      position.animateTo(
-        targetScroll,
-        duration: Duration(milliseconds: animationDuration),
-        curve: curve,
-      );
-    }
   }
 
   @override
