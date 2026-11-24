@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/item_template.dart';
@@ -13,7 +14,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
-/// Vertical, full-screen paged feed for Reels.
+/// Full-screen paged feed for Reels; vertical unless `direction` says horizontal.
 /// It only owns scrolling and page identity; data, playback and UI stay in YAML.
 // ignore: must_be_immutable
 class ReelsView extends StatefulWidget
@@ -45,6 +46,7 @@ class ReelsView extends StatefulWidget
             _controller.preloadPages = Utils.optionalInt(value, min: 0),
         'itemKeyField': (value) =>
             _controller.itemKeyField = Utils.optionalString(value),
+        'direction': (value) => _controller.direction = Axis.values.from(value),
         'onItemChange': (action) => _controller.onItemChange =
             EnsembleAction.from(action, initiator: this),
         'onEndReached': (action) => _controller.onEndReached =
@@ -89,6 +91,7 @@ class ReelsViewController extends BoxController {
   int? preloadPages;
   PullToRefresh? pullToRefresh;
   String? itemKeyField;
+  Axis? direction;
   int currentIndex = 0;
 
   ReelsViewState? _state;
@@ -176,7 +179,7 @@ class ReelsViewState extends EWidgetState<ReelsView> with TemplatedWidgetState {
       scrollCacheExtent: ScrollCacheExtent.viewport(preloadPages.toDouble()),
       itemCount: _data.length,
       onPageChanged: _onPageChanged,
-      scrollDirection: Axis.vertical,
+      scrollDirection: widget._controller.direction ?? Axis.vertical,
       pageSnapping: true,
       itemBuilder: (context, index) {
         final item = buildWidgetForIndex(context, _data, template, index);
