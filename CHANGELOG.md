@@ -3,6 +3,70 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-11-24
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.3.4-beta.3`](#ensemble---v134-beta3)
+ - [`ensemble_test_runner` - `v1.4.6`](#ensemble_test_runner---v146)
+ - [`ensemble_wifi` - `v1.3.5`](#ensemble_wifi---v135)
+ - [`ensemble_deeplink` - `v1.3.5`](#ensemble_deeplink---v135)
+ - [`ensemble_remote_config` - `v1.3.5`](#ensemble_remote_config---v135)
+ - [`ensemble_connect` - `v1.3.5`](#ensemble_connect---v135)
+ - [`ensemble_face_camera` - `v1.3.5`](#ensemble_face_camera---v135)
+ - [`ensemble_network_info` - `v1.3.5`](#ensemble_network_info---v135)
+ - [`ensemble_contacts` - `v1.3.5`](#ensemble_contacts---v135)
+ - [`ensemble_bracket` - `v1.3.5`](#ensemble_bracket---v135)
+ - [`ensemble_bluetooth` - `v1.3.5`](#ensemble_bluetooth---v135)
+ - [`ensemble_location` - `v1.3.5`](#ensemble_location---v135)
+ - [`ensemble_qr_scanner` - `v1.3.5`](#ensemble_qr_scanner---v135)
+ - [`ensemble_camera` - `v1.3.5`](#ensemble_camera---v135)
+ - [`ensemble_moengage` - `v1.3.5`](#ensemble_moengage---v135)
+ - [`ensemble_file_manager` - `v1.3.5`](#ensemble_file_manager---v135)
+ - [`ensemble_stripe` - `v1.3.5`](#ensemble_stripe---v135)
+ - [`ensemble_adobe_analytics` - `v1.3.5`](#ensemble_adobe_analytics---v135)
+ - [`ensemble_firebase_analytics` - `v1.3.5`](#ensemble_firebase_analytics---v135)
+ - [`ensemble_auth` - `v1.3.5`](#ensemble_auth---v135)
+ - [`ensemble_chat` - `v1.3.5`](#ensemble_chat---v135)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.4.6`
+ - `ensemble_wifi` - `v1.3.5`
+ - `ensemble_deeplink` - `v1.3.5`
+ - `ensemble_remote_config` - `v1.3.5`
+ - `ensemble_connect` - `v1.3.5`
+ - `ensemble_face_camera` - `v1.3.5`
+ - `ensemble_network_info` - `v1.3.5`
+ - `ensemble_contacts` - `v1.3.5`
+ - `ensemble_bracket` - `v1.3.5`
+ - `ensemble_bluetooth` - `v1.3.5`
+ - `ensemble_location` - `v1.3.5`
+ - `ensemble_qr_scanner` - `v1.3.5`
+ - `ensemble_camera` - `v1.3.5`
+ - `ensemble_moengage` - `v1.3.5`
+ - `ensemble_file_manager` - `v1.3.5`
+ - `ensemble_stripe` - `v1.3.5`
+ - `ensemble_adobe_analytics` - `v1.3.5`
+ - `ensemble_firebase_analytics` - `v1.3.5`
+ - `ensemble_auth` - `v1.3.5`
+ - `ensemble_chat` - `v1.3.5`
+
+---
+
+#### `ensemble` - `v1.3.4-beta.3`
+
+
 ## 2026-11-18
 
 ### Changes
