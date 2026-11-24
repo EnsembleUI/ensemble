@@ -73,8 +73,7 @@ class EnsembleLineChartController extends Controller {
           dotData: FlDotData(show: false),
           belowBarData: BarAreaData(
               show: properties.asArea,
-              color: (color ?? const Color(0x00000000))
-                  .withValues(alpha: 0.2)),
+              color: (color ?? const Color(0x00000000)).withValues(alpha: 0.2)),
           spots: spots));
     }
     isDirty = false;

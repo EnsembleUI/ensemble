@@ -66,6 +66,12 @@ class ChartController extends EnsembleBoxController with HasDeepBindings {
   List<ChartReferenceLine> referenceLines = const [];
   Duration animationDuration = const Duration(milliseconds: 150);
 
+  /// Rotates line, bar and scatter charts clockwise, in quarter turns (0-3).
+  /// 1 gives horizontal bars.
+  int quarterTurns = 0;
+  ChartZoom zoom = ChartZoom.from(null);
+  ChartErrorBars errorBars = ChartErrorBars.from(null);
+
   PieStyle pieStyle = PieStyle.from(null);
   BarStyle barStyle = BarStyle.from(null);
   LineStyle lineStyle = LineStyle.from(null);
@@ -105,6 +111,10 @@ class ChartController extends EnsembleBoxController with HasDeepBindings {
       'touchTooltip': (value) => touchTooltip = ChartTooltip.from(value),
       'referenceLines': (value) =>
           referenceLines = ChartReferenceLine.parse(value),
+      'quarterTurns': (value) =>
+          quarterTurns = Utils.optionalInt(value, min: 0, max: 3) ?? 0,
+      'zoom': (value) => zoom = ChartZoom.from(value),
+      'errorBars': (value) => errorBars = ChartErrorBars.from(value),
       'animationDuration': (value) => animationDuration =
           Utils.getDurationMs(value) ?? const Duration(milliseconds: 150),
       'pieStyle': (value) => pieStyle = PieStyle.from(value),
@@ -179,6 +189,9 @@ class ChartState extends EnsembleWidgetState<Chart> {
     final text = ChartData.format(value);
     return label == null || label.isEmpty ? text : '$label: $text';
   }
+
+  BorderRadius get _tooltipRadius =>
+      BorderRadius.circular(_controller.touchTooltip.borderRadius ?? 4);
 
   TextStyle get _tooltipTextStyle =>
       _controller.touchTooltip.textStyle ??
@@ -255,6 +268,8 @@ class ChartState extends EnsembleWidgetState<Chart> {
     final labels = _controller.labels;
     final hasLabels = labelsOnX && labels.isNotEmpty;
     final base = _textStyle;
+    // Turned sideways, the x labels sit beside the chart and need more width.
+    final sideways = _controller.quarterTurns.isOdd;
 
     Widget? axisName(ChartAxis axis) => axis.title == null
         ? null
@@ -268,10 +283,10 @@ class ChartState extends EnsembleWidgetState<Chart> {
         axisNameSize: yAxis.title == null ? 16 : 20,
         sideTitles: SideTitles(
           showTitles: yAxis.show,
-          reservedSize: yAxis.labelSize ?? 40,
+          reservedSize: yAxis.labelSize ?? (sideways ? 24 : 40),
           interval: _positive(yAxis.interval),
           getTitlesWidget: (value, meta) => SideTitleWidget(
-            axisSide: meta.axisSide,
+            meta: meta,
             child:
                 Text(meta.formattedValue, style: base.merge(yAxis.labelStyle)),
           ),
@@ -284,7 +299,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
           // Bars sit at their index, so without labels there's nothing to show.
           showTitles:
               xAxis.show && (hasLabels || _controller.type != ChartType.bar),
-          reservedSize: xAxis.labelSize ?? 32,
+          reservedSize: xAxis.labelSize ?? (sideways ? 64 : 32),
           interval: _positive(xAxis.interval) ?? (hasLabels ? 1 : null),
           getTitlesWidget: (value, meta) {
             String text = meta.formattedValue;
@@ -296,7 +311,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
               text = labels[index];
             }
             return SideTitleWidget(
-              axisSide: meta.axisSide,
+              meta: meta,
               child: Text(text, style: base.merge(xAxis.labelStyle)),
             );
           },
@@ -454,6 +469,8 @@ class ChartState extends EnsembleWidgetState<Chart> {
         _controller.labels.length, (n, s) => max(n, s.points.length));
     double valueAt(int s, int x) =>
         x < allSeries[s].points.length ? allSeries[s].points[x].y ?? 0 : 0;
+    FlErrorRange? errorAt(int s, int x) =>
+        x < allSeries[s].points.length ? allSeries[s].points[x].yError : null;
 
     // The top of the background track behind each bar.
     double highest = 0;
@@ -499,6 +516,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
         borderRadius: radius,
         borderSide: border,
         backDrawRodData: background,
+        toYErrorRange: errorAt(s, x),
       );
     }
 
@@ -536,8 +554,16 @@ class ChartState extends EnsembleWidgetState<Chart> {
       ]);
     }
 
+    // fl_chart can't zoom bars sideways when they're packed to one side.
+    final packed = style.alignment == BarChartAlignment.center ||
+        style.alignment == BarChartAlignment.start ||
+        style.alignment == BarChartAlignment.end;
     return BarChart(
+      transformationConfig: _controller.zoom.config(allowHorizontal: !packed),
       BarChartData(
+        rotationQuarterTurns: _controller.quarterTurns,
+        errorIndicatorData:
+            _controller.errorBars.data<BarChartSpotErrorRangeCallbackInput>(),
         alignment: style.alignment,
         groupsSpace: style.groupSpace,
         minY: _controller.yAxis.min,
@@ -553,7 +579,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
             getTooltipColor: _controller.touchTooltip.backgroundColor == null
                 ? defaultBarTooltipColor
                 : (_) => _controller.touchTooltip.backgroundColor!,
-            tooltipRoundedRadius: _controller.touchTooltip.borderRadius,
+            tooltipBorderRadius: _tooltipRadius,
             getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                 BarTooltipItem(
               style.stacked
@@ -581,7 +607,9 @@ class ChartState extends EnsembleWidgetState<Chart> {
     final style = _controller.lineStyle;
     final allSeries = _controller.series;
     return LineChart(
+      transformationConfig: _controller.zoom.config(allowHorizontal: true),
       LineChartData(
+        rotationQuarterTurns: _controller.quarterTurns,
         minX: _controller.xAxis.min,
         maxX: _controller.xAxis.max,
         minY: _controller.yAxis.min,
@@ -597,7 +625,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
             getTooltipColor: _controller.touchTooltip.backgroundColor == null
                 ? defaultLineTooltipColor
                 : (_) => _controller.touchTooltip.backgroundColor!,
-            tooltipRoundedRadius: _controller.touchTooltip.borderRadius ?? 4,
+            tooltipBorderRadius: _tooltipRadius,
             getTooltipItems: (spots) => [
               for (final spot in spots)
                 LineTooltipItem(
@@ -627,7 +655,10 @@ class ChartState extends EnsembleWidgetState<Chart> {
       // A value that can't be read leaves a gap in the line.
       spots: [
         for (final point in series.points)
-          point.y == null ? FlSpot.nullSpot : FlSpot(point.x, point.y!),
+          point.y == null
+              ? FlSpot.nullSpot
+              : FlSpot(point.x, point.y!,
+                  xError: point.xError, yError: point.yError),
       ],
       color: color,
       gradient: series.gradient.length >= 2
@@ -640,6 +671,8 @@ class ChartState extends EnsembleWidgetState<Chart> {
       isStepLineChart: style.stepped,
       dashArray: style.dashArray,
       isStrokeCapRound: true,
+      errorIndicatorData:
+          _controller.errorBars.data<LineChartSpotErrorRangeCallbackInput>(),
       dotData: FlDotData(
         show: style.showDots,
         getDotPainter: (spot, _, __, index) => FlDotCirclePainter(
@@ -676,6 +709,9 @@ class ChartState extends EnsembleWidgetState<Chart> {
         spots.add(ScatterSpot(
           point.x,
           point.y!,
+          xError: point.xError,
+          yError: point.yError,
+          renderPriority: point.priority,
           dotPainter: FlDotCirclePainter(
             radius: point.size ?? style.dotSize ?? 6,
             color: point.color ??
@@ -691,8 +727,12 @@ class ChartState extends EnsembleWidgetState<Chart> {
     }
 
     return ScatterChart(
+      transformationConfig: _controller.zoom.config(allowHorizontal: true),
       ScatterChartData(
         scatterSpots: spots,
+        rotationQuarterTurns: _controller.quarterTurns,
+        errorIndicatorData: _controller.errorBars
+            .data<ScatterChartSpotErrorRangeCallbackInput>(),
         minX: _controller.xAxis.min,
         maxX: _controller.xAxis.max,
         minY: _controller.yAxis.min,
@@ -707,7 +747,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
             getTooltipColor: _controller.touchTooltip.backgroundColor == null
                 ? defaultScatterTooltipColor
                 : (_) => _controller.touchTooltip.backgroundColor!,
-            tooltipRoundedRadius: _controller.touchTooltip.borderRadius,
+            tooltipBorderRadius: _tooltipRadius,
             getTooltipItems: (spot) => ScatterTooltipItem(
               '(${ChartData.format(spot.x)}, ${ChartData.format(spot.y)})',
               textStyle: _tooltipTextStyle,
@@ -773,6 +813,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
         ticksTextStyle: style.tickStyle,
         titleTextStyle: _textStyle.merge(style.labelStyle),
         titlePositionPercentageOffset: style.labelPosition,
+        isMinValueAtCenter: style.minValueAtCenter,
         getTitle: labels.isEmpty
             ? null
             : (index, _) => RadarChartTitle(

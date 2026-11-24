@@ -167,6 +167,8 @@ class RadarStyle {
         tickStyle = Utils.getTextStyle(_map(value)['tickStyle']),
         labelStyle = Utils.getTextStyle(_map(value)['labelStyle']),
         labelPosition = Utils.optionalDouble(_map(value)['labelPosition']),
+        minValueAtCenter =
+            Utils.optionalBool(_map(value)['minValueAtCenter']) ?? false,
         gridColor = Utils.getColor(_map(value)['gridColor']),
         borderColor = Utils.getColor(_map(value)['borderColor']),
         backgroundColor = Utils.getColor(_map(value)['backgroundColor']),
@@ -187,6 +189,9 @@ class RadarStyle {
 
   /// How far out the labels sit: 0 at the edge, more to move them out.
   final double? labelPosition;
+
+  /// Puts the lowest value at the centre instead of 0.
+  final bool minValueAtCenter;
 
   /// Color of the rings and the lines from the middle.
   final Color? gridColor;

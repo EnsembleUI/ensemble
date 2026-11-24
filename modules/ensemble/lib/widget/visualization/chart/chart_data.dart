@@ -1,4 +1,5 @@
 import 'package:ensemble/util/utils.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 /// The kinds of chart [Chart] can draw.
@@ -20,7 +21,8 @@ enum ChartType {
 /// index, unless the YAML gives one (`[x, y]` or `{x, y}`). [y] is null for a
 /// value that can't be read, which a line draws as a gap.
 class ChartPoint {
-  const ChartPoint(this.x, this.y, {this.size, this.color});
+  const ChartPoint(this.x, this.y,
+      {this.size, this.color, this.xError, this.yError, this.priority});
 
   final double x;
   final double? y;
@@ -28,6 +30,14 @@ class ChartPoint {
   /// Dot radius, for scatter charts.
   final double? size;
   final Color? color;
+
+  /// How far the value may be off, drawn as error bars. [yError] works for
+  /// line, bar and scatter charts; [xError] for line and scatter charts.
+  final FlErrorRange? xError;
+  final FlErrorRange? yError;
+
+  /// Scatter dots with a higher priority are drawn on top.
+  final int? priority;
 }
 
 /// One series of values, such as one line, one set of bars or the slices of a
@@ -112,7 +122,8 @@ class ChartData {
       item.containsKey('y') || item.containsKey('x');
 
   /// Reads each value as a number, `[x, y]`, `[x, y, size]` or
-  /// `{x, y, size, color}`. A plain number sits at its index on the x axis.
+  /// `{x, y, size, color, xError, yError, priority}`. A plain number sits at
+  /// its index on the x axis.
   static List<ChartPoint> parsePoints(dynamic values) {
     if (values is! List) return const [];
     final points = <ChartPoint>[];
@@ -132,12 +143,27 @@ class ChartData {
           parseNumber(value['y']),
           size: parseNumber(value['size']),
           color: Utils.getColor(value['color']),
+          xError: parseErrorRange(value['xError']),
+          yError: parseErrorRange(value['yError']),
+          priority: Utils.optionalInt(value['priority']),
         ));
       } else {
         points.add(ChartPoint(i.toDouble(), parseNumber(value)));
       }
     }
     return points;
+  }
+
+  /// An error range: one number for the same amount below and above, or
+  /// `[below, above]`. Negative amounts are ignored.
+  static FlErrorRange? parseErrorRange(dynamic value) {
+    final below =
+        parseNumber(value is List && value.isNotEmpty ? value[0] : value);
+    final above = value is List
+        ? (value.length > 1 ? parseNumber(value[1]) : null)
+        : below;
+    if (below == null || above == null || below < 0 || above < 0) return null;
+    return FlErrorRange(lowerBy: below, upperBy: above);
   }
 
   /// A number, or a numeric string. Null for anything else.

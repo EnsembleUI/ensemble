@@ -171,6 +171,16 @@ void main() {
       expect(style(null).holeRadius(60, doughnut: false), 0);
     });
 
+    test('error ranges take one amount or [below, above]', () {
+      final both = ChartData.parseErrorRange(2)!;
+      expect((both.lowerBy, both.upperBy), (2.0, 2.0));
+      final split = ChartData.parseErrorRange(['1', 3])!;
+      expect((split.lowerBy, split.upperBy), (1.0, 3.0));
+      expect(ChartData.parseErrorRange(-1), isNull);
+      expect(ChartData.parseErrorRange([1]), isNull);
+      expect(ChartData.parseErrorRange('n/a'), isNull);
+    });
+
     test('dashed takes true or [dash, gap]', () {
       expect(parseDash(true), [6, 4]);
       expect(parseDash([8, 2]), [8, 2]);
@@ -670,7 +680,8 @@ Chart:
       expect(item.textStyle.fontSize, 18);
       expect(touch.touchTooltipData.getTooltipColor(group),
           const Color(0xFF123456));
-      expect(touch.touchTooltipData.tooltipRoundedRadius, 8);
+      expect(
+          touch.touchTooltipData.tooltipBorderRadius, BorderRadius.circular(8));
     });
 
     testWidgets('turns touch off without a tooltip or onTap', (tester) async {
@@ -947,6 +958,146 @@ $_onTapWritesResult''');
     });
   });
 
+  group('zoom, rotation and error bars', () {
+    testWidgets('rotates a bar chart into horizontal bars', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: bar
+  data: [1, 2]
+  quarterTurns: 1
+  styles:
+    width: 300
+''');
+      expect(_bar(tester).rotationQuarterTurns, 1);
+      // The labels now sit beside the bars, so they get more room.
+      expect(_bar(tester).titlesData.bottomTitles.sideTitles.reservedSize, 64);
+    });
+
+    testWidgets('ignores a rotation outside 0 to 3', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: line
+  data: [1, 2]
+  quarterTurns: 5
+  styles:
+    width: 300
+''');
+      expect(_line(tester).rotationQuarterTurns, 0);
+    });
+
+    testWidgets('zooms and pans a line chart', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: line
+  data: [1, 2, 3]
+  zoom:
+    axis: horizontal
+    minScale: 1
+    maxScale: 4
+    pan: false
+  styles:
+    width: 300
+''');
+      final config = _chart<LineChart>(tester).transformationConfig;
+      expect(config.scaleAxis, FlScaleAxis.horizontal);
+      expect(config.maxScale, 4);
+      expect(config.panEnabled, isFalse);
+      expect(config.scaleEnabled, isTrue);
+    });
+
+    testWidgets('does not zoom by default', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: scatter
+  data: [[1, 1]]
+  styles:
+    width: 300
+''');
+      expect(_chart<ScatterChart>(tester).transformationConfig.scaleAxis,
+          FlScaleAxis.none);
+    });
+
+    testWidgets(
+        'keeps packed bars from zooming sideways, which fl_chart '
+        'does not allow', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: bar
+  data: [1, 2]
+  zoom:
+    axis: free
+  styles:
+    width: 300
+    barStyle:
+      alignment: center
+''');
+      expect(tester.takeException(), isNull);
+      expect(_chart<BarChart>(tester).transformationConfig.scaleAxis,
+          FlScaleAxis.vertical);
+    });
+
+    testWidgets('draws error ranges on lines, bars and dots', (tester) async {
+      await _pumpYaml(tester, r'''
+Column:
+  children:
+    - Chart:
+        type: line
+        data:
+          - values: [{y: 5, yError: 1, xError: [0.5, 0.2]}, 6]
+        errorBars:
+          color: "#FF0000"
+          width: 2
+          capLength: 4
+          showValues: true
+        styles:
+          width: 300
+          height: 100
+    - Chart:
+        type: bar
+        data:
+          - values: [{y: 5, yError: [1, 2]}]
+        styles:
+          width: 300
+          height: 100
+    - Chart:
+        type: scatter
+        data:
+          - values: [{x: 1, y: 2, yError: 1, priority: 3}]
+        errorBars: false
+        styles:
+          width: 300
+          height: 100
+''');
+      expect(tester.takeException(), isNull);
+
+      final line = _line(tester).lineBarsData.single;
+      expect(
+          line.spots.first.yError, const FlErrorRange(lowerBy: 1, upperBy: 1));
+      expect(line.spots.first.xError,
+          const FlErrorRange(lowerBy: 0.5, upperBy: 0.2));
+      expect(line.spots[1].yError, isNull);
+      expect(line.errorIndicatorData.show, isTrue);
+      final painter = line.errorIndicatorData.painter(
+          LineChartSpotErrorRangeCallbackInput(
+              spot: line.spots.first, bar: line, spotIndex: 0));
+      expect(painter, isA<FlSimpleErrorPainter>());
+      painter as FlSimpleErrorPainter;
+      expect(painter.lineColor, const Color(0xFFFF0000));
+      expect(painter.lineWidth, 2);
+      expect(painter.capLength, 4);
+      expect(painter.showErrorTexts, isTrue);
+
+      expect(_bar(tester).barGroups.single.barRods.single.toYErrorRange,
+          const FlErrorRange(lowerBy: 1, upperBy: 2));
+
+      final scatter = _scatter(tester);
+      expect(scatter.scatterSpots.single.yError,
+          const FlErrorRange(lowerBy: 1, upperBy: 1));
+      expect(scatter.scatterSpots.single.renderPriority, 3);
+      expect(scatter.errorIndicatorData.show, isFalse);
+    });
+  });
+
   group('radar', () {
     testWidgets('draws each series on the labelled axes', (tester) async {
       await _pumpYaml(tester, r'''
@@ -964,6 +1115,7 @@ Chart:
     height: 300
     radarStyle:
       shape: polygon
+      minValueAtCenter: true
       tickCount: 4
       gridColor: "#CCCCCC"
       borderColor: "#999999"
@@ -975,6 +1127,7 @@ Chart:
 ''');
       final data = _radar(tester);
       expect(data.radarShape, RadarShape.polygon);
+      expect(data.isMinValueAtCenter, isTrue);
       expect(data.tickCount, 4);
       expect(data.gridBorderData.color, const Color(0xFFCCCCCC));
       expect(data.radarBorderData.color, const Color(0xFF999999));

@@ -32,7 +32,7 @@ mixin ChartDefaults {
           );
 
           return SideTitleWidget(
-            axisSide: meta.axisSide,
+            meta: meta,
             space: 10,
             child: Text(labels[value.toInt()], style: style),
           );

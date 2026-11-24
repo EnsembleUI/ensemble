@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/visualization/chart/chart_styles.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 Map _map(dynamic value) => value is Map ? value : const {};
@@ -76,6 +77,77 @@ class ChartGrid {
 
   /// `dashed: true`, or `[dash, gap]` in pixels.
   final List<int>? dashArray;
+}
+
+/// `zoom`: pinch to zoom and drag to pan line, bar and scatter charts.
+class ChartZoom {
+  ChartZoom.from(dynamic value)
+      : axis = FlScaleAxis.values.from(_map(value)['axis']) ?? FlScaleAxis.none,
+        minScale = Utils.optionalDouble(_map(value)['minScale'], min: 1),
+        maxScale = Utils.optionalDouble(_map(value)['maxScale'], min: 1),
+        pan = Utils.optionalBool(_map(value)['pan']) ?? true,
+        scale = Utils.optionalBool(_map(value)['scale']) ?? true;
+
+  /// Which way the chart zooms: none (default), horizontal, vertical or free.
+  final FlScaleAxis axis;
+  final double? minScale;
+  final double? maxScale;
+
+  /// Allows dragging and pinching. Both on by default once an axis is set.
+  final bool pan;
+  final bool scale;
+
+  FlTransformationConfig config({required bool allowHorizontal}) {
+    // A bar chart can't zoom sideways with alignment center, start or end.
+    final scaleAxis = !allowHorizontal &&
+            (axis == FlScaleAxis.horizontal || axis == FlScaleAxis.free)
+        ? (axis == FlScaleAxis.free ? FlScaleAxis.vertical : FlScaleAxis.none)
+        : axis;
+    return FlTransformationConfig(
+      scaleAxis: scaleAxis,
+      minScale: minScale ?? 1,
+      maxScale: maxScale ?? 2.5,
+      panEnabled: pan,
+      scaleEnabled: scale,
+    );
+  }
+}
+
+/// `errorBars`: how the `xError` and `yError` of values are drawn.
+class ChartErrorBars {
+  ChartErrorBars.from(dynamic value)
+      : show = value is Map
+            ? Utils.optionalBool(value['show']) ?? true
+            : Utils.optionalBool(value) ?? true,
+        color = Utils.getColor(_map(value)['color']),
+        width = Utils.optionalDouble(_map(value)['width'], min: 0),
+        capLength = Utils.optionalDouble(_map(value)['capLength'], min: 0),
+        showValues = Utils.optionalBool(_map(value)['showValues']) ?? false,
+        valueStyle = Utils.getTextStyle(_map(value)['valueStyle']);
+
+  final bool show;
+  final Color? color;
+  final double? width;
+
+  /// Width of the cap at each end, in pixels.
+  final double? capLength;
+
+  /// Writes the range next to each bar.
+  final bool showValues;
+  final TextStyle? valueStyle;
+
+  FlErrorIndicatorData<T> data<T extends FlSpotErrorRangeCallbackInput>() =>
+      FlErrorIndicatorData<T>(
+        show: show,
+        painter: (_) => FlSimpleErrorPainter(
+          lineColor: color ?? const Color(0xFF757575),
+          lineWidth: width ?? 1,
+          capLength: capLength ?? 8,
+          showErrorTexts: showValues,
+          errorTextStyle: valueStyle ??
+              const TextStyle(color: Color(0xFF757575), fontSize: 12),
+        ),
+      );
 }
 
 enum ChartLegendPosition { top, bottom, left, right }
