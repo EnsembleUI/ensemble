@@ -556,7 +556,10 @@ mixin ViewBuilder on IsScopeManager {
   /// If the value is a valid binding, we'll register to listen for changes.
   void evalPropertyAndRegisterBinding(
       ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
-    DataExpression? expression = DataUtils.parseDataExpression(value);
+    DataExpression? expression = widget is HasDeepBindings &&
+            (widget as HasDeepBindings).deepBindingProperties.contains(key)
+        ? DataUtils.parseDeepDataExpression(value)
+        : DataUtils.parseDataExpression(value);
     if (expression != null) {
       // listen for binding changes
       (this as PageBindingManager).registerBindingListener(

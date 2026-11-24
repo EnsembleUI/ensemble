@@ -1,5 +1,13 @@
 import 'package:ensemble/framework/scope.dart';
 
+/// A widget whose listed properties can hold `${...}` at any depth, such as a
+/// list of maps of lists. Other properties are only scanned one level down
+/// (see [DataUtils.parseDataExpression]), so a widget opts in only for plain
+/// data properties, never for ones that hold widget definitions.
+mixin HasDeepBindings {
+  Set<String> get deepBindingProperties;
+}
+
 class DataUtils {
   static final onlyExpression =
       RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
@@ -50,6 +58,28 @@ class DataUtils {
       }
     }
     return null;
+  }
+
+  /// Like [parseDataExpression], but finds expressions at any depth inside
+  /// lists and maps. Only for properties listed in
+  /// [HasDeepBindings.deepBindingProperties].
+  static DataExpression? parseDeepDataExpression(dynamic input) {
+    final tokens = <String>[];
+    void collect(dynamic value) {
+      if (value is String) {
+        tokens.addAll(_parseDataExpressionFromString(value)?.expressions ?? []);
+      } else if (value is List) {
+        value.forEach(collect);
+      } else if (value is Map) {
+        value.values.forEach(collect);
+      }
+    }
+
+    collect(input);
+    if (tokens.isEmpty) return null;
+    return input is String
+        ? _parseDataExpressionFromString(input)
+        : DataExpression(rawExpression: input, expressions: tokens);
   }
 
   /// get the list of expression from the raw string
