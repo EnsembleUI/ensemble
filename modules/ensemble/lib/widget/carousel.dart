@@ -238,6 +238,10 @@ class CarouselState extends EWidgetState<Carousel>
   /// True while another route covers this page; autoplay stays off.
   bool _pausedByCoveringRoute = false;
 
+  /// Bumped when autoplay resumes after a covering route, so the selected
+  /// indicator (e.g. a countdown Progress) restarts with the autoplay timer.
+  int _selectedIndicatorKey = 0;
+
   /// Set true when slide change triggered by D-pad navigation.
   bool _pendingFocusRestore = false;
 
@@ -290,7 +294,11 @@ class CarouselState extends EWidgetState<Carousel>
     if (widget._controller.autoplay != true) return;
     final covered = !_isPageActive();
     if (covered != _pausedByCoveringRoute) {
-      setState(() => _pausedByCoveringRoute = covered);
+      setState(() {
+        _pausedByCoveringRoute = covered;
+        // Only when autoplay actually restarts (not held by pauseAutoplayOnFocus).
+        if (!covered && !_isAutoplayPaused) _selectedIndicatorKey++;
+      });
     }
   }
 
@@ -872,8 +880,13 @@ class CarouselState extends EWidgetState<Carousel>
   /// Else return the default indicator widget (circle or rectangle)
   Widget getIndicator(bool selected) {
     if (widget.controller.indicatorType == IndicatorType.custom) {
+      if (selected && selectedCustomIndicator != null) {
+        return KeyedSubtree(
+            key: ValueKey(_selectedIndicatorKey),
+            child: selectedCustomIndicator!);
+      }
       return selected
-          ? selectedCustomIndicator ?? defaultIndicator(selected)
+          ? defaultIndicator(selected)
           : customIndicator ?? defaultIndicator(selected);
     }
     return selected ? defaultIndicator(selected) : defaultIndicator(selected);

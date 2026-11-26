@@ -226,4 +226,49 @@ template:
     expect(sliderState(tester).timer, isNotNull,
         reason: 'autoplay resumes when the carousel loses focus');
   });
+
+  testWidgets(
+      'countdown indicator restarts with autoplay after the covering route pops',
+      (tester) async {
+    useTestViewport(tester);
+    final outerKey = GlobalKey<NavigatorState>();
+    final carousel = makeCarousel();
+    carousel.setProperty('autoplayInterval', 2);
+    carousel.setProperty('indicatorType', 'custom');
+    carousel.setProperty('selectedIndicatorWidget',
+        loadYaml('Progress: {display: linear, countdown: 2, size: 20}'));
+
+    double? bar() => tester
+        .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
+        .value;
+
+    await tester.pumpWidget(buildTree(carousel, outerKey));
+    await tester.pump();
+    expect(bar(), isNotNull, reason: 'countdown never shows as loading');
+
+    Future<void> coverFor(int seconds) async {
+      outerKey.currentState!.push(PageRouteBuilder<void>(
+        opaque: false,
+        pageBuilder: (_, __, ___) => const Scaffold(body: Text('detail')),
+      ));
+      await tester.pump();
+      await advance(tester, seconds);
+      outerKey.currentState!.pop();
+      await tester.pump();
+    }
+
+    // Back after the countdown completed: restarts from 0, not loading/full.
+    await coverFor(3);
+    expect(bar(), isNotNull);
+    expect(bar()!, lessThan(0.2));
+    final slide = currentIndex(tester);
+    await advance(tester, 1);
+    expect(bar()!, closeTo(0.5, 0.15), reason: 'in step with the 2s autoplay');
+    expect(currentIndex(tester), slide);
+
+    // Back before the countdown completed: also restarts with autoplay.
+    await tester.pump(const Duration(milliseconds: 300));
+    await coverFor(0);
+    expect(bar()!, lessThan(0.2));
+  });
 }

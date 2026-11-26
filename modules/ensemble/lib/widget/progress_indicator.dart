@@ -86,6 +86,8 @@ class ProgressState extends EWidgetState<EnsembleProgressIndicator> {
     super.initState();
 
     if (hasCountdown()) {
+      // Start at 0: a null value draws the indeterminate (loading) animation.
+      widget._controller.value = 0;
       // status timer that waits up every 500ms and update progress
       countdownTimer =
           Timer.periodic(const Duration(milliseconds: interval), (timer) {
@@ -116,6 +118,15 @@ class ProgressState extends EWidgetState<EnsembleProgressIndicator> {
           }
         }
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant EnsembleProgressIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A rebuilt parent hands this State a fresh controller; keep the countdown.
+    if (hasCountdown() && widget._controller.value == null) {
+      widget._controller.value = oldWidget._controller.value;
     }
   }
 
