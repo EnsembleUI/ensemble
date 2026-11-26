@@ -79,6 +79,69 @@ class ChartGrid {
   final List<int>? dashArray;
 }
 
+/// `clip`: cuts off the lines and dots of line and scatter charts where they
+/// go past the edge of the plot, such as values below `xAxis.min`. fl_chart
+/// can't clip bar charts.
+/// `true` clips every side, or a map picks the sides:
+/// `{left: true, right: true}`. Off by default, so a dot exactly on an edge
+/// is drawn whole.
+class ChartClip {
+  ChartClip.from(dynamic value) : data = _parse(value);
+
+  final FlClipData data;
+
+  static FlClipData _parse(dynamic value) {
+    if (value is Map) {
+      bool side(String name) => Utils.optionalBool(value[name]) ?? false;
+      return FlClipData(
+        top: side('top'),
+        bottom: side('bottom'),
+        left: side('left'),
+        right: side('right'),
+      );
+    }
+    return Utils.optionalBool(value) == true
+        ? const FlClipData.all()
+        : const FlClipData.none();
+  }
+}
+
+/// `frame`: a border around the plot of line, bar and scatter charts.
+/// `true` draws all four sides in the grid's color, or a map sets `color`,
+/// `width` and which sides to draw (`top`, `right`, `bottom`, `left`, all on
+/// by default). `xAxis.line` and `yAxis.line` still draw the bottom and left
+/// side when set.
+class ChartFrame {
+  ChartFrame.from(dynamic value)
+      : show = value is Map
+            ? Utils.optionalBool(value['show']) ?? true
+            : Utils.optionalBool(value) ?? false,
+        color = Utils.getColor(_map(value)['color']),
+        width = Utils.optionalDouble(_map(value)['width'], min: 0),
+        top = Utils.optionalBool(_map(value)['top']) ?? true,
+        right = Utils.optionalBool(_map(value)['right']) ?? true,
+        bottom = Utils.optionalBool(_map(value)['bottom']) ?? true,
+        left = Utils.optionalBool(_map(value)['left']) ?? true;
+
+  final bool show;
+
+  /// Default to the grid's color and width, so the frame looks like the
+  /// outer grid lines.
+  final Color? color;
+  final double? width;
+  final bool top;
+  final bool right;
+  final bool bottom;
+  final bool left;
+
+  /// The border on one side, or none when the frame or that side is off.
+  BorderSide side(bool on, ChartGrid grid) => show && on
+      ? BorderSide(
+          color: color ?? grid.color ?? const Color(0x33000000),
+          width: width ?? grid.width ?? 1)
+      : BorderSide.none;
+}
+
 /// `zoom`: pinch to zoom and drag to pan line, bar and scatter charts.
 class ChartZoom {
   ChartZoom.from(dynamic value)

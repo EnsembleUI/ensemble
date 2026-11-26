@@ -12,6 +12,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
@@ -195,6 +196,33 @@ void main() {
       expect(ChartLegend.from({'position': 'right'}).position,
           ChartLegendPosition.right);
       expect(ChartLegend.from({'show': false}).show, isFalse);
+    });
+
+    test('clip is off by default, true for every side, or picks sides', () {
+      expect(ChartClip.from(null).data, const FlClipData.none());
+      expect(ChartClip.from(false).data, const FlClipData.none());
+      expect(ChartClip.from(true).data, const FlClipData.all());
+      expect(ChartClip.from({'left': true, 'right': true}).data,
+          const FlClipData(top: false, bottom: false, left: true, right: true));
+    });
+
+    test('frame is off by default, and takes the grid color and width', () {
+      final grid = ChartGrid.from({'color': '#E0E0E0', 'width': 2});
+      expect(ChartFrame.from(null).side(true, grid), BorderSide.none);
+      expect(ChartFrame.from(false).side(true, grid), BorderSide.none);
+      expect(ChartFrame.from(true).side(true, grid),
+          const BorderSide(color: Color(0xFFE0E0E0), width: 2));
+      expect(ChartFrame.from(true).side(true, ChartGrid.from(null)),
+          const BorderSide(color: Color(0x33000000), width: 1));
+      final custom =
+          ChartFrame.from({'color': 'red', 'width': 3, 'top': false});
+      expect(custom.show, isTrue);
+      expect(custom.top, isFalse);
+      expect(custom.right, isTrue);
+      expect(custom.side(true, grid),
+          const BorderSide(color: Colors.red, width: 3));
+      expect(
+          ChartFrame.from({'show': false}).side(true, grid), BorderSide.none);
     });
 
     test('reference lines need an x or a y', () {
@@ -779,6 +807,139 @@ Chart:
     width: 300
 ''');
       expect(_line(tester).titlesData.leftTitles.sideTitles.interval, isNull);
+    });
+
+    testWidgets('draws no frame and clips nothing by default', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: line
+  data: [1, 2]
+  styles:
+    width: 300
+''');
+      final data = _line(tester);
+      expect(data.borderData.show, isFalse);
+      expect(data.clipData, const FlClipData.none());
+    });
+
+    testWidgets('clips the sides set with clip', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: line
+  data: [1, 2]
+  clip: { left: true, right: true }
+  styles:
+    width: 300
+''');
+      expect(_line(tester).clipData,
+          const FlClipData(top: false, bottom: false, left: true, right: true));
+
+      await _pumpYaml(tester, r'''
+Chart:
+  type: scatter
+  data: [[1, 2]]
+  clip: true
+  styles:
+    width: 300
+''');
+      expect(_scatter(tester).clipData, const FlClipData.all());
+    });
+
+    testWidgets('draws a frame in the grid color, under the axis lines',
+        (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: line
+  data: [1, 2]
+  frame: true
+  grid: { color: "#E0E0E0" }
+  xAxis:
+    line: { color: "#FF0000", width: 2 }
+  styles:
+    width: 300
+''');
+      final border = _line(tester).borderData;
+      const frame = BorderSide(color: Color(0xFFE0E0E0), width: 1);
+      expect(border.show, isTrue);
+      expect(border.border.top, frame);
+      expect(border.border.right, frame);
+      expect(border.border.left, frame);
+      // The x axis line takes the place of the frame at the bottom.
+      expect(border.border.bottom,
+          const BorderSide(color: Color(0xFFFF0000), width: 2));
+    });
+
+    testWidgets('draws only the frame sides that are on', (tester) async {
+      await _pumpYaml(tester, r'''
+Chart:
+  type: bar
+  data: [1, 2]
+  frame: { color: "#0000FF", width: 2, top: false, right: false }
+  styles:
+    width: 300
+''');
+      final border = _bar(tester).borderData.border;
+      const side = BorderSide(color: Color(0xFF0000FF), width: 2);
+      expect(border.top, BorderSide.none);
+      expect(border.right, BorderSide.none);
+      expect(border.bottom, side);
+      expect(border.left, side);
+    });
+
+    // Draws a line that starts left of xAxis.min, with a solid fill, and reads
+    // the pixels in the y axis label area, left of the plot.
+    Future<Color> pixelLeftOfPlot(WidgetTester tester, String clip) async {
+      final key = GlobalKey();
+      await tester.pumpWidget(MaterialApp(
+        home: Builder(builder: (context) {
+          final scope = ScopeManager(DataContext(buildContext: context),
+              PageData(customViewDefinitions: {}));
+          final root = scope.buildWidgetFromDefinition(loadYaml('''
+Chart:
+  type: line
+  data:
+    - values: [[-2, 0], [1, 10], [4, 0]]
+      color: "#FF0000"
+  xAxis: { min: 1, max: 4 }
+  yAxis: { min: 0, max: 10, labelSize: 60 }
+  grid: { show: false }
+  animationDuration: 0
+  $clip
+  styles:
+    width: 300
+    height: 200
+    lineStyle: { fillArea: true, fillOpacity: 1, width: 4 }
+''')!);
+          return DataScopeWidget(
+            scopeManager: scope,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: RepaintBoundary(
+                key: key,
+                child: ColoredBox(color: Colors.white, child: root),
+              ),
+            ),
+          );
+        }),
+      ));
+      await tester.pump();
+      final boundary =
+          key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final image = (await tester.runAsync(() => boundary.toImage()))!;
+      final bytes = (await tester.runAsync(() => image.toByteData()))!;
+      // 10 px from the left (inside the 60 px label area, clear of the label
+      // text), 150 px down (below the line, inside its fill).
+      final offset = (150 * image.width + 10) * 4;
+      return Color.fromARGB(bytes.getUint8(offset + 3), bytes.getUint8(offset),
+          bytes.getUint8(offset + 1), bytes.getUint8(offset + 2));
+    }
+
+    testWidgets(
+        'draws a line past xAxis.min without clip, and cuts it off with',
+        (tester) async {
+      expect(await pixelLeftOfPlot(tester, ''), const Color(0xFFFF0000));
+      expect(await pixelLeftOfPlot(tester, 'clip: { left: true }'),
+          const Color(0xFFFFFFFF));
     });
   });
 

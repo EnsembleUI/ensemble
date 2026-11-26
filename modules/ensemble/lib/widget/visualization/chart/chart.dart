@@ -61,6 +61,8 @@ class ChartController extends EnsembleBoxController with HasDeepBindings {
   ChartAxis xAxis = ChartAxis.from(null);
   ChartAxis yAxis = ChartAxis.from(null);
   ChartGrid grid = ChartGrid.from(null);
+  ChartClip clip = ChartClip.from(null);
+  ChartFrame frame = ChartFrame.from(null);
   ChartLegend legend = ChartLegend.from(null);
   ChartTooltip touchTooltip = ChartTooltip.from(null);
   List<ChartReferenceLine> referenceLines = const [];
@@ -107,6 +109,8 @@ class ChartController extends EnsembleBoxController with HasDeepBindings {
       'xAxis': (value) => xAxis = ChartAxis.from(value),
       'yAxis': (value) => yAxis = ChartAxis.from(value),
       'grid': (value) => grid = ChartGrid.from(value),
+      'clip': (value) => clip = ChartClip.from(value),
+      'frame': (value) => frame = ChartFrame.from(value),
       'legend': (value) => legend = ChartLegend.from(value),
       'touchTooltip': (value) => touchTooltip = ChartTooltip.from(value),
       'referenceLines': (value) =>
@@ -346,13 +350,22 @@ class ChartState extends EnsembleWidgetState<Chart> {
     );
   }
 
-  /// Draws the axis lines set with `xAxis.line` and `yAxis.line`.
-  FlBorderData get _axisLines {
+  /// Draws the `frame` and the axis lines set with `xAxis.line` and
+  /// `yAxis.line`. An axis line takes the place of the frame on its side.
+  FlBorderData get _border {
     final xAxis = _controller.xAxis;
     final yAxis = _controller.yAxis;
+    final frame = _controller.frame;
+    final grid = _controller.grid;
+    final border = Border(
+      top: frame.side(frame.top, grid),
+      right: frame.side(frame.right, grid),
+      bottom: xAxis.showLine ? xAxis.lineSide : frame.side(frame.bottom, grid),
+      left: yAxis.showLine ? yAxis.lineSide : frame.side(frame.left, grid),
+    );
     return FlBorderData(
-      show: xAxis.showLine || yAxis.showLine,
-      border: Border(bottom: xAxis.lineSide, left: yAxis.lineSide),
+      show: xAxis.showLine || yAxis.showLine || frame.show,
+      border: border,
     );
   }
 
@@ -569,7 +582,7 @@ class ChartState extends EnsembleWidgetState<Chart> {
         minY: _controller.yAxis.min,
         maxY: _controller.yAxis.max,
         gridData: _grid,
-        borderData: _axisLines,
+        borderData: _border,
         titlesData: _titles(labelsOnX: true),
         extraLinesData: _referenceLines(vertical: false),
         barTouchData: BarTouchData(
@@ -615,7 +628,8 @@ class ChartState extends EnsembleWidgetState<Chart> {
         minY: _controller.yAxis.min,
         maxY: _controller.yAxis.max,
         gridData: _grid,
-        borderData: _axisLines,
+        borderData: _border,
+        clipData: _controller.clip.data,
         titlesData: _titles(labelsOnX: true),
         extraLinesData: _referenceLines(vertical: true),
         lineTouchData: LineTouchData(
@@ -738,7 +752,8 @@ class ChartState extends EnsembleWidgetState<Chart> {
         minY: _controller.yAxis.min,
         maxY: _controller.yAxis.max,
         gridData: _grid,
-        borderData: _axisLines,
+        borderData: _border,
+        clipData: _controller.clip.data,
         titlesData: _titles(labelsOnX: false),
         scatterTouchData: ScatterTouchData(
           enabled: _touchEnabled,
