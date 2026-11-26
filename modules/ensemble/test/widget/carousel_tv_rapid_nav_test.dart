@@ -502,6 +502,9 @@ template:
           reason: 'RIGHT press $press must not move the pager backwards');
     }
 
+    // Let the last D-pad slide settle so only autoplay is measured.
+    await tester.pump(const Duration(seconds: 1));
+
     // pauseAutoplayOnFocus: no movement while the hero holds focus.
     final focusedPage = displayedPage(pager);
     await tester.pump(const Duration(seconds: 5));
