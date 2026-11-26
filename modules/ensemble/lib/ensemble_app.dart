@@ -493,6 +493,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       navigatorObservers: Ensemble().routeObservers,
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
+      onNavigationNotification: _embeddedNavigationNotification,
       theme: theme,
       localizationsDelegates: getLocalizationDelegates(config),
       // Note that we either need supportedLocales or this callback.
@@ -595,11 +596,21 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     return localizationDelegates;
   }
 
+  /// Embedded in a host app (a host Navigator above us): never report "can't
+  /// handle Back", or this app's single-route navigator overrides the host and
+  /// Android finishes the activity before the host's PopScope can run.
+  /// "Can handle" still bubbles to the host, as without this override.
+  NotificationListenerCallback<NavigationNotification>?
+      get _embeddedNavigationNotification => Navigator.maybeOf(context) != null
+          ? (notification) => !notification.canHandlePop
+          : null;
+
   /// we are at the root here. Error/Spinner widgets need
   /// to be wrapped inside MaterialApp
   Widget _appPlaceholderWrapper(
       {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
+        onNavigationNotification: _embeddedNavigationNotification,
         // even when this is the placeholder and will be replaced later, we still
         // need to either set supportedLocales or handle localeResolutionCallback.
         // Without this the system locale will be incorrect the first time.

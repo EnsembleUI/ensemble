@@ -131,6 +131,7 @@ class _TVTooltipState extends State<TVTooltip>
         _tooltipEntry = TVTooltipEntry(
           close: () => _close(restoreAnchorFocus: true),
           route: ModalRoute.of(context),
+          dismissOnBack: widget.tooltip.options.dismissOnBack,
         );
         TVTooltipRegistry.register(_tooltipEntry!);
         setState(() => _isOpen = true);
@@ -222,6 +223,7 @@ class _TVTooltipState extends State<TVTooltip>
     if (event.logicalKey == LogicalKeyboardKey.goBack) {
       if (widget.tooltip.options.dismissOnBack) {
         _close(restoreAnchorFocus: true);
+        TVTooltipRegistry.markBackPressConsumed();
         return KeyEventResult.handled;
       }
       return KeyEventResult.ignored;
