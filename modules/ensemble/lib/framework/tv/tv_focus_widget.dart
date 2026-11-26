@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
@@ -91,6 +92,33 @@ class TVFocusWidget extends StatelessWidget {
     }
     return nearestIdx;
   }
+
+  static final _activationKeys = {
+    LogicalKeyboardKey.select,
+    LogicalKeyboardKey.enter,
+    LogicalKeyboardKey.numpadEnter,
+    LogicalKeyboardKey.gameButtonA,
+  };
+
+  /// Wraps Ensemble content (screen, dialog, bottom sheet) so a held OK/Enter
+  /// on TV activates the focused widget once. Applied inside each route, so it
+  /// also covers routes pushed on a host app's navigator (asExternal).
+  static Widget blockHeldActivation(Widget child) => Focus(
+        canRequestFocus: false,
+        onKeyEvent: _ignoreHeldActivation,
+        child: child,
+      );
+
+  /// Consumes (not ignores) OK/Enter repeats: an ignored repeat bubbles to an
+  /// outer Shortcuts, which re-activates the focused widget. Arrow repeats
+  /// (D-pad navigation) pass through. isTV is read per event because it is
+  /// false until device info loads.
+  static KeyEventResult _ignoreHeldActivation(FocusNode _, KeyEvent event) =>
+      event is KeyRepeatEvent &&
+              _activationKeys.contains(event.logicalKey) &&
+              Device().isTV
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
 
   const TVFocusWidget({
     super.key,

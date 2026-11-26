@@ -4,6 +4,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -159,7 +160,8 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
               child: APIProviders(
                 providers: apiProviders.providers,
                 child: DataScopeWidget(
-                    scopeManager: scopeManager.createChildScope(), child: body),
+                    scopeManager: scopeManager.createChildScope(),
+                    child: TVFocusWidget.blockHeldActivation(body)),
               ),
             );
           }).then((payload) {

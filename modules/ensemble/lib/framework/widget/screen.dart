@@ -11,6 +11,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/layout/ensemble_page_route.dart';
@@ -99,7 +100,8 @@ class _ScreenState extends State<Screen> {
 
               return APIProviders(
                   providers: widget.apiProviders,
-                  child: renderScreen(snapshot.data!));
+                  child: TVFocusWidget.blockHeldActivation(
+                      renderScreen(snapshot.data!)));
             });
   }
 
