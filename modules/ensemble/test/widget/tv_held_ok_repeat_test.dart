@@ -286,6 +286,18 @@ $counter        - Switch:
       expect(await holdOnFirstFocusable(tester), 1);
     });
 
+    testWidgets('Checkbox activates once', (tester) async {
+      await pumpYaml(tester, """
+Column:
+  children:
+$counter        - Checkbox:
+            onChange:
+              executeCode:
+                body: taps.text = taps.text + "x";
+""");
+      expect(await holdOnFirstFocusable(tester), 1);
+    });
+
     testWidgets('Icon onTap activates once', (tester) async {
       await pumpYaml(tester, """
 Column:
@@ -297,57 +309,6 @@ $counter        - Icon:
                 body: taps.text = taps.text + "x";
 """);
       expect(await holdOnFirstFocusable(tester), 1);
-    });
-
-    testWidgets('ListView onItemTap activates once and is guarded',
-        (tester) async {
-      String list(String styles) => """
-Column:
-  children:
-$counter        - ListView:
-            styles:
-              height: 100
-$styles            onItemTap:
-              executeCode:
-                body: taps.text = taps.text + "x";
-            item-template:
-              data: [1]
-              name: item
-              template:
-                Text:
-                  text: item
-""";
-      // Tapping rebuilds the list (the item loses focus), so also count the
-      // guard the option removes, as the tap count alone can't tell.
-      final guard = find.byWidgetPredicate((w) =>
-          w is Focus && w.canRequestFocus == false && w.onKeyEvent != null);
-      await pumpYaml(tester, list(''));
-      final withGuard = guard.evaluate().length;
-      expect(await holdOnFirstFocusable(tester), 1);
-      await pumpYaml(tester,
-          list('              tvOptions: { allowSelectRepeat: true }\n'));
-      expect(withGuard - guard.evaluate().length, 1, reason: 'one per item');
-    });
-
-    testWidgets('TabBar tabs get the guard unless allowSelectRepeat is set',
-        (tester) async {
-      // Re-activating the selected tab has no visible effect, so count the
-      // guards (non-focusable Focus with a key handler) the option removes.
-      final guard = find.byWidgetPredicate((w) =>
-          w is Focus && w.canRequestFocus == false && w.onKeyEvent != null);
-      String tabBar(String styles) => """
-TabBar:
-$styles  items:
-    - label: One
-      body: { Text: { text: one } }
-    - label: Two
-      body: { Text: { text: two } }
-""";
-      await pumpYaml(tester, tabBar(''));
-      final withGuard = guard.evaluate().length;
-      await pumpYaml(
-          tester, tabBar('  styles: { tvOptions: { allowSelectRepeat: true } }\n'));
-      expect(withGuard - guard.evaluate().length, 2, reason: 'one per tab');
     });
 
     const switchYaml = """

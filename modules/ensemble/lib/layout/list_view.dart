@@ -1,4 +1,3 @@
-import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/device.dart';
@@ -514,10 +513,7 @@ class ListViewState extends EWidgetState<ListView>
         if (itemWidget != null) {
           Widget wrappedItem = widget._controller.onItemTap == null
               ? itemWidget
-              : TVFocusWidget.blockHeldActivation(
-                  flutter.InkWell(
-                      onTap: () => _onItemTapped(index), child: itemWidget),
-                  widget._controller.tvOptions);
+              : flutter.InkWell(onTap: () => _onItemTapped(index), child: itemWidget);
 
           return index < (itemCount - 1)
               ? Padding(
