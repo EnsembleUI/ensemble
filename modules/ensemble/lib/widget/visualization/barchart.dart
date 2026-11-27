@@ -58,7 +58,8 @@ class EnsembleBarChartController extends Controller {
       d.add(BarChartGroupData(x: i, barsSpace: 2, barRods: [
         BarChartRodData(
             toY: toDouble(m['y']),
-            color: Color(m['color']),
+            // Accepts '#hex', color names and 0x numbers, not only ints.
+            color: Utils.getColor(m['color']) ?? const Color(0xFF36A2EB),
             width: Utils.getDouble(m['width'], fallback: properties.barWidth),
             borderRadius: BorderRadius.zero)
       ]));
@@ -191,6 +192,8 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>
       );
 }
 
+/// Deprecated: use `Chart` with `type: bar`. `barWidth` becomes
+/// `styles.barStyle.width`, and `minY`/`maxY` become `yAxis: {min, max}`.
 class EnsembleBarChart extends StatefulWidget
     with
         Invokable,

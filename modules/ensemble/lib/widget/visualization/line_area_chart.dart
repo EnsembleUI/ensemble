@@ -1,3 +1,4 @@
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/visualization/chart_defaults.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -42,11 +43,10 @@ class EnsembleLineChartController extends Controller {
       LineChartBarData lineData;
       Color? color;
       List<FlSpot> spots = [];
-      int colorValue = 0;
       m.forEach((key, value) {
         if (key == 'color') {
-          colorValue = value;
-          color = Color(colorValue);
+          // Accepts '#hex', color names and 0x numbers, not only ints.
+          color = Utils.getColor(value);
         } else if (key == 'data') {
           for (var i = 0; i < (value as List).length; i++) {
             dynamic metaValue = value[i];
@@ -73,7 +73,7 @@ class EnsembleLineChartController extends Controller {
           dotData: FlDotData(show: false),
           belowBarData: BarAreaData(
               show: properties.asArea,
-              color: Color(colorValue).withValues(alpha: 0.2)),
+              color: (color ?? const Color(0x00000000)).withValues(alpha: 0.2)),
           spots: spots));
     }
     isDirty = false;
@@ -176,6 +176,9 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart>
   }
 }
 
+/// Deprecated: use `Chart` with `type: line`. `asArea` and `curved` become
+/// `styles.lineStyle.fillArea` and `curved`, and `minY`/`maxY` become
+/// `yAxis: {min, max}`.
 class EnsembleLineChart extends StatefulWidget
     with
         Invokable,

@@ -65,6 +65,7 @@ import 'package:ensemble/widget/video.dart';
 import 'package:ensemble/widget/slidable.dart';
 import 'package:ensemble/widget/accordion.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
+import 'package:ensemble/widget/visualization/chart/chart.dart';
 import 'package:ensemble/widget/visualization/chart_js/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
@@ -87,6 +88,7 @@ class WidgetRegistry {
   final Map<String, Function> _registeredWidgets = {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
+    Chart.type: Chart.build,
     StaticMap.type: StaticMap.build,
     EnsembleSignature.type: EnsembleSignature.build,
     ExternalWidget.type: ExternalWidget.build, 
