@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -111,7 +112,7 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
     }
 
     // wraps around FormField to get all the form effects
-    return InputWrapper(
+    final input = InputWrapper(
       type: EnsembleCheckbox.type,
       controller: widget._controller,
       widget: FormField<bool>(
@@ -144,6 +145,8 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         },
       ),
     );
+    return TVFocusWidget.blockHeldActivation(
+        input, widget._controller.tvOptions);
   }
 
   Widget buildCheckbox(BuildContext context) {

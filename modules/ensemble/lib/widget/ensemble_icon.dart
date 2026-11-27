@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/config.dart';
@@ -102,6 +103,7 @@ class IconState extends EWidgetState<EnsembleIcon> {
                 event: EnsembleEvent(widget));
           },
           child: rtn);
+      rtn = TVFocusWidget.blockHeldActivation(rtn, widget._controller.tvOptions);
       if (widget._controller.margin != null) {
         rtn = Padding(padding: widget._controller.margin!, child: rtn);
       }

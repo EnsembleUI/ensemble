@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -114,7 +115,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
     }
 
     // wraps around FormField to get all the form effects
-    return InputWrapper(
+    final input = InputWrapper(
       type: (widget is EnsembleSwitch)
           ? EnsembleSwitch.type
           : EnsembleTripleSwitch.type,
@@ -154,6 +155,8 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
         },
       ),
     );
+    return TVFocusWidget.blockHeldActivation(
+        input, widget._controller.tvOptions);
   }
 
   Widget get tripleSwitch {

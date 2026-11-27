@@ -297,6 +297,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     // Carousel-specific TV options
     interceptHorizontalNav = inputs['interceptHorizontalNav'];
     pauseAutoplayOnFocus = inputs['pauseAutoplayOnFocus'];
+    allowSelectRepeat = inputs['allowSelectRepeat'];
     restoreFocusOnPageChange = inputs['restoreFocusOnPageChange'];
     // Focused state styles (only properties that require wrapper widgets)
     opacity = inputs['opacity'];
@@ -463,6 +464,13 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _pauseAutoplayOnFocus = Utils.getBool(value, fallback: false);
   bool get pauseAutoplayOnFocus => _pauseAutoplayOnFocus;
 
+  /// When true, holding OK/Enter on TV keeps activating the tap target.
+  /// Default false: one activation per press. D-pad repeats are unaffected.
+  bool _allowSelectRepeat = false;
+  set allowSelectRepeat(value) =>
+      _allowSelectRepeat = Utils.getBool(value, fallback: false);
+  bool get allowSelectRepeat => _allowSelectRepeat;
+
   /// When true, focus is restored to the appropriate element after slide changes.
   /// For manual navigation: LEFT→last element, RIGHT→first element
   /// For autoplay: first element of new slide
@@ -529,6 +537,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         // Carousel-specific
         'interceptHorizontalNav': () => _interceptHorizontalNav,
         'pauseAutoplayOnFocus': () => _pauseAutoplayOnFocus,
+        'allowSelectRepeat': () => _allowSelectRepeat,
         'restoreFocusOnPageChange': () => _restoreFocusOnPageChange,
         // Focused state styles (wrapper-based only)
         'opacity': () => _opacity,
@@ -566,6 +575,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         // Carousel-specific
         'interceptHorizontalNav': (value) => interceptHorizontalNav = value,
         'pauseAutoplayOnFocus': (value) => pauseAutoplayOnFocus = value,
+        'allowSelectRepeat': (value) => allowSelectRepeat = value,
         'restoreFocusOnPageChange': (value) => restoreFocusOnPageChange = value,
         // Focused state styles (wrapper-based only)
         'opacity': (value) => opacity = value,
