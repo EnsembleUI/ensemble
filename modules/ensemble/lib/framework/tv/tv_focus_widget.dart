@@ -2,6 +2,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -100,23 +101,24 @@ class TVFocusWidget extends StatelessWidget {
     LogicalKeyboardKey.gameButtonA,
   };
 
-  /// Wraps Ensemble content (screen, dialog, bottom sheet) so a held OK/Enter
-  /// on TV activates the focused widget once. Applied inside each route, so it
-  /// also covers routes pushed on a host app's navigator (asExternal).
-  static Widget blockHeldActivation(Widget child) => Focus(
-        canRequestFocus: false,
-        onKeyEvent: _ignoreHeldActivation,
-        child: child,
-      );
+  /// Wraps a TV tap target so a held OK/Enter activates it once per press,
+  /// unless its `tvOptions.allowSelectRepeat` is true. Off TV the child is
+  /// returned unchanged.
+  static Widget blockHeldActivation(
+          Widget child, TVOptionsComposite? tvOptions) =>
+      Device().isTV && tvOptions?.allowSelectRepeat != true
+          ? Focus(
+              canRequestFocus: false,
+              onKeyEvent: _ignoreHeldActivation,
+              child: child,
+            )
+          : child;
 
   /// Consumes (not ignores) OK/Enter repeats: an ignored repeat bubbles to an
   /// outer Shortcuts, which re-activates the focused widget. Arrow repeats
-  /// (D-pad navigation) pass through. isTV is read per event because it is
-  /// false until device info loads.
+  /// (D-pad navigation) pass through.
   static KeyEventResult _ignoreHeldActivation(FocusNode _, KeyEvent event) =>
-      event is KeyRepeatEvent &&
-              _activationKeys.contains(event.logicalKey) &&
-              Device().isTV
+      event is KeyRepeatEvent && _activationKeys.contains(event.logicalKey)
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
 

@@ -6,6 +6,7 @@ import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
@@ -350,6 +351,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 tabItem: tabItem,
                 index: index,
                 tabRow: tvRow,
+                tvOptions: widget.controller.tvOptions,
                 isSelected: tabController.index == index,
                 autofocus: widget.controller.autofocus && index == 0,
                 activeColor: activeColor,
@@ -551,6 +553,7 @@ class _TVTabButton extends StatefulWidget {
     required this.tabItem,
     required this.index,
     required this.tabRow,
+    this.tvOptions,
     required this.isSelected,
     required this.activeColor,
     required this.inactiveColor,
@@ -572,6 +575,7 @@ class _TVTabButton extends StatefulWidget {
   final TabItem tabItem;
   final int index;
   final double tabRow;
+  final TVOptionsComposite? tvOptions;
   final bool isSelected;
   final bool autofocus;
   final Color activeColor;
@@ -764,6 +768,8 @@ class _TVTabButtonState extends State<_TVTabButton> {
     // Uses tabRow from TabBar controller (either tvRow from YAML or 0 for
     // isolated group). Order = index for left/right navigation. The selected tab
     // is marked as entry point so it gets focus when entering the row.
+    inkWell = TVFocusWidget.blockHeldActivation(inkWell, widget.tvOptions);
+
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     if (externalProvider != null) {
       return externalProvider.wrapFocusable(

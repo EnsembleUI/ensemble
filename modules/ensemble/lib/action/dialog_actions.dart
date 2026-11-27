@@ -3,7 +3,6 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
@@ -120,11 +119,10 @@ class ShowDialogAction extends EnsembleAction {
                               providers: apiProviders.providers,
                               child: DataScopeWidget(
                                   scopeManager: scopeManager.createChildScope(),
-                                  child: TVFocusWidget.blockHeldActivation(
-                                      SingleChildScrollView(
+                                  child: SingleChildScrollView(
                                     child: scopeManager
                                         .buildWidgetFromDefinition(body),
-                                  ))))))));
+                                  )))))));
         }).then((payload) {
       // remove the dialog context since we are closing them
       scopeManager.openedDialogs.remove(dialogContext);

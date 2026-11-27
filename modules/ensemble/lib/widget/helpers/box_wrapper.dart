@@ -317,7 +317,7 @@ class BoxWrapper extends StatelessWidget {
       // Non-TV: Original Material/InkWell pattern for touch/mouse
       return Material(
         color: Colors.transparent,
-        child: InkWell(
+        child: TVFocusWidget.blockHeldActivation(InkWell(
           splashFactory: CustomInkSplashFactory(
             splashDuration: controller.splashDuration,
             splashFadeDuration: controller.splashFadeDuration,
@@ -341,7 +341,7 @@ class BoxWrapper extends StatelessWidget {
           child: controller.enableSplashFeedback && controller.padding != null
               ? Padding(padding: controller.padding!, child: widget)
               : widget,
-        ),
+        ), boxController.tvOptions),
       );
     }
     return widget;
@@ -1092,7 +1092,10 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       ),
     );
 
-    final materialChild = Material(color: Colors.transparent, child: inkWell);
+    final materialChild = Material(
+        color: Colors.transparent,
+        child: TVFocusWidget.blockHeldActivation(
+            inkWell, widget.boxController.tvOptions));
     final tvFocusScope = context.findAncestorWidgetOfExactType<TVFocusScope>();
     final rightEdgeHandler = buildTVEdgeNavigationCallback(
           context: context,

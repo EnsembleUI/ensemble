@@ -4,6 +4,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -19,14 +20,14 @@ import 'package:yaml/yaml.dart';
 void main() {
   tearDown(() => Device.debugOverrideIsTV(null));
 
-  /// Same layering as an embedded Ensemble screen: host Shortcuts (which
-  /// accept repeats) around a MaterialApp, guard around the content.
+  /// Host Shortcuts (which accept repeats) around a MaterialApp, with the
+  /// helper around the tap target as the TV widget wrappers apply it.
   Widget app(Widget home) => Shortcuts(
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
         },
         child: MaterialApp(
-          home: Material(child: TVFocusWidget.blockHeldActivation(home)),
+          home: Material(child: TVFocusWidget.blockHeldActivation(home, null)),
         ),
       );
 
@@ -104,7 +105,7 @@ void main() {
   });
 
   /// Host-style Shortcuts (accepting repeats) around a MaterialApp with no
-  /// guard of its own: the Ensemble content under test must bring it.
+  /// guard of its own: each Ensemble tap target's TV wrapper must bring it.
   Widget hostApp(Widget home) => Shortcuts(
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
@@ -196,6 +197,216 @@ View:
     )));
     await tester.pumpAndSettle();
     await holdOnFollowTapsOnce(tester);
+  });
+
+  /// Real Ensemble widgets in an Ensemble page, no guard of the test's own:
+  /// each widget's TV wrapper must bring it. `taps` records activations.
+  Future<void> pumpYaml(WidgetTester tester, String yaml,
+      {String? theme}) async {
+    await tester.pumpWidget(hostApp(Builder(builder: (context) {
+      if (theme != null) {
+        EnsembleThemeManager()
+            .init(context, {'test': loadYaml(theme) as YamlMap}, 'test');
+      }
+      final scope =
+          ScopeManager(DataContext(buildContext: context), PageData());
+      return DataScopeWidget(
+          scopeManager: scope,
+          child: Scaffold(
+              body: scope.buildWidgetFromDefinition(loadYaml(yaml))));
+    })));
+    await tester.pumpAndSettle();
+  }
+
+  /// Focuses the only focusable widget, holds OK and returns activations.
+  Future<int> holdOnFirstFocusable(WidgetTester tester) async {
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab); // focus first target
+    await tester.pump();
+    await hold(tester, LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    final taps = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((t) => t.data ?? '')
+        .firstWhere((t) => t.startsWith('taps:'));
+    return taps.length - 'taps:'.length;
+  }
+
+  const counter = """
+        - Text:
+            id: taps
+            text: "taps:"
+""";
+  const tap = 'executeCode:\n  body: taps.text = taps.text + "x";';
+  String column(String extraStyles) => """
+Column:
+  children:
+$counter        - Column:
+            onTap:
+              executeCode:
+                body: taps.text = taps.text + "x";
+            styles:
+              width: 100
+              height: 50
+$extraStyles            children:
+              - Text:
+                  text: Follow
+""";
+
+  group('widget-level tvOptions.allowSelectRepeat on TV', () {
+    setUp(() => Device.debugOverrideIsTV(true));
+
+    testWidgets('box without tvOptions activates once', (tester) async {
+      await pumpYaml(tester, column(''));
+      expect(await holdOnFirstFocusable(tester), 1);
+    });
+
+    testWidgets('box with a tvOptions row activates once', (tester) async {
+      await pumpYaml(tester, column("""              tvOptions:
+                row: 0
+"""));
+      expect(await holdOnFirstFocusable(tester), 1);
+    });
+
+    testWidgets('allowSelectRepeat: true keeps repeating', (tester) async {
+      await pumpYaml(tester, column("""              tvOptions:
+                allowSelectRepeat: true
+"""));
+      expect(await holdOnFirstFocusable(tester), 4);
+    });
+
+    testWidgets('Switch activates once', (tester) async {
+      await pumpYaml(tester, """
+Column:
+  children:
+$counter        - Switch:
+            onChange:
+              executeCode:
+                body: taps.text = taps.text + "x";
+""");
+      expect(await holdOnFirstFocusable(tester), 1);
+    });
+
+    testWidgets('Icon onTap activates once', (tester) async {
+      await pumpYaml(tester, """
+Column:
+  children:
+$counter        - Icon:
+            name: home
+            onTap:
+              executeCode:
+                body: taps.text = taps.text + "x";
+""");
+      expect(await holdOnFirstFocusable(tester), 1);
+    });
+
+    testWidgets('ListView onItemTap activates once and is guarded',
+        (tester) async {
+      String list(String styles) => """
+Column:
+  children:
+$counter        - ListView:
+            styles:
+              height: 100
+$styles            onItemTap:
+              executeCode:
+                body: taps.text = taps.text + "x";
+            item-template:
+              data: [1]
+              name: item
+              template:
+                Text:
+                  text: item
+""";
+      // Tapping rebuilds the list (the item loses focus), so also count the
+      // guard the option removes, as the tap count alone can't tell.
+      final guard = find.byWidgetPredicate((w) =>
+          w is Focus && w.canRequestFocus == false && w.onKeyEvent != null);
+      await pumpYaml(tester, list(''));
+      final withGuard = guard.evaluate().length;
+      expect(await holdOnFirstFocusable(tester), 1);
+      await pumpYaml(tester,
+          list('              tvOptions: { allowSelectRepeat: true }\n'));
+      expect(withGuard - guard.evaluate().length, 1, reason: 'one per item');
+    });
+
+    testWidgets('TabBar tabs get the guard unless allowSelectRepeat is set',
+        (tester) async {
+      // Re-activating the selected tab has no visible effect, so count the
+      // guards (non-focusable Focus with a key handler) the option removes.
+      final guard = find.byWidgetPredicate((w) =>
+          w is Focus && w.canRequestFocus == false && w.onKeyEvent != null);
+      String tabBar(String styles) => """
+TabBar:
+$styles  items:
+    - label: One
+      body: { Text: { text: one } }
+    - label: Two
+      body: { Text: { text: two } }
+""";
+      await pumpYaml(tester, tabBar(''));
+      final withGuard = guard.evaluate().length;
+      await pumpYaml(
+          tester, tabBar('  styles: { tvOptions: { allowSelectRepeat: true } }\n'));
+      expect(withGuard - guard.evaluate().length, 2, reason: 'one per tab');
+    });
+
+    const switchYaml = """
+Column:
+  children:
+$counter        - Switch:
+            onChange:
+              executeCode:
+                body: taps.text = taps.text + "x";
+""";
+
+    testWidgets('widget theme allowSelectRepeat: true is inherited',
+        (tester) async {
+      addTearDown(EnsembleThemeManager().reset);
+      await pumpYaml(tester, switchYaml, theme: """
+Styles:
+  Switch:
+    tvOptions:
+      allowSelectRepeat: true
+""");
+      expect(await holdOnFirstFocusable(tester), 4);
+    });
+
+    testWidgets('explicit tvOptions overrides the widget theme',
+        (tester) async {
+      addTearDown(EnsembleThemeManager().reset);
+      await pumpYaml(
+          tester,
+          switchYaml.replaceFirst('            onChange:',
+              '            styles: { tvOptions: { allowSelectRepeat: false } }\n            onChange:'),
+          theme: """
+Styles:
+  Switch:
+    tvOptions:
+      allowSelectRepeat: true
+""");
+      expect(await holdOnFirstFocusable(tester), 1);
+    });
+
+    testWidgets('held OK keeps D-pad navigation working', (tester) async {
+      await pumpYaml(tester, """
+Row:
+  children:
+$counter        - Column: { onTap: { executeCode: { body: 'taps.text = taps.text + "a";' } }, styles: { width: 80, height: 40 }, children: [ { Text: { text: A } } ] }
+        - Column: { onTap: { executeCode: { body: 'taps.text = taps.text + "b";' } }, styles: { width: 80, height: 40 }, children: [ { Text: { text: B } } ] }
+""");
+      expect(await holdOnFirstFocusable(tester), 1);
+      await hold(tester, LogicalKeyboardKey.arrowRight, repeats: 1);
+      await hold(tester, LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(find.text('taps:ab'), findsOneWidget);
+    });
+  });
+
+  testWidgets('off TV, Ensemble taps keep Flutter default repeats',
+      (tester) async {
+    Device.debugOverrideIsTV(false);
+    await pumpYaml(tester, column(''));
+    expect(await holdOnFirstFocusable(tester), 4);
   });
 }
 
