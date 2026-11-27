@@ -235,6 +235,13 @@ class CarouselState extends EWidgetState<Carousel>
   /// Tracks autoplay pause state for pauseAutoplayOnFocus feature.
   bool _isAutoplayPaused = false;
 
+  /// True while another route covers this page; autoplay stays off.
+  bool _pausedByCoveringRoute = false;
+
+  /// Bumped when autoplay resumes after a covering route, so the selected
+  /// indicator (e.g. a countdown Progress) restarts with the autoplay timer.
+  int _selectedIndicatorKey = 0;
+
   /// Set true when slide change triggered by D-pad navigation.
   bool _pendingFocusRestore = false;
 
@@ -258,8 +265,8 @@ class CarouselState extends EWidgetState<Carousel>
       widget._controller.currentIndex = widget._controller.selectedItemIndex;
     }
 
-    // Set up focus listener for pauseAutoplayOnFocus feature
-    _carouselFocusScopeNode.addListener(_onCarouselFocusChanged);
+    // Global listener: outer-navigator routes don't notify this scope.
+    FocusManager.instance.addListener(_onCarouselFocusChanged);
   }
 
   @override
@@ -275,27 +282,59 @@ class CarouselState extends EWidgetState<Carousel>
         oldWidget._controller.selectedItemIndex;
   }
 
-  /// Handle focus changes for pauseAutoplayOnFocus feature
   void _onCarouselFocusChanged() {
-    final hasFocus = _carouselFocusScopeNode.hasFocus;
+    if (!mounted) return;
+    _syncPageVisibility();
+    _syncPauseAutoplayOnFocus();
+  }
 
+  /// Pauses autoplay while the page is covered so the focused slide stays put.
+  /// shortcut: only checked on focus changes; TV routes always move focus.
+  void _syncPageVisibility() {
+    if (widget._controller.autoplay != true) return;
+    final covered = !_isPageActive();
+    if (covered != _pausedByCoveringRoute) {
+      setState(() {
+        _pausedByCoveringRoute = covered;
+        // Only when autoplay actually restarts (not held by pauseAutoplayOnFocus).
+        if (!covered && !_isAutoplayPaused) _selectedIndicatorKey++;
+      });
+    }
+  }
+
+  /// True when this route and every enclosing navigator's route are current.
+  bool _isPageActive() {
+    var route = ModalRoute.of(context);
+    while (route != null) {
+      if (!route.isCurrent) return false;
+      final hostContext = route.navigator?.context;
+      if (hostContext == null) return true;
+      route = ModalRoute.of(hostContext);
+    }
+    return true;
+  }
+
+  /// Pause/resume for pauseAutoplayOnFocus; never resumes a covered page.
+  void _syncPauseAutoplayOnFocus() {
+    if (_pausedByCoveringRoute) return;
     if (widget._controller.tvOptions?.pauseAutoplayOnFocus != true) return;
     if (widget._controller.autoplay != true) return;
 
+    final hasFocus = _carouselFocusScopeNode.hasFocus;
     if (hasFocus && !_isAutoplayPaused) {
-      // Focus gained - pause autoplay
+      // Focus gained - pause. No setState: a rebuild resets the pager.
       _isAutoplayPaused = true;
       _sliderController.stopAutoPlay();
     } else if (!hasFocus && _isAutoplayPaused) {
-      // Focus lost - resume autoplay
-      _isAutoplayPaused = false;
+      // Focus lost - resume. Rebuild re-enables the autoPlay option.
+      setState(() => _isAutoplayPaused = false);
       _sliderController.startAutoPlay();
     }
   }
 
   @override
   void dispose() {
-    _carouselFocusScopeNode.removeListener(_onCarouselFocusChanged);
+    FocusManager.instance.removeListener(_onCarouselFocusChanged);
     _carouselFocusScopeNode.dispose();
     super.dispose();
   }
@@ -807,7 +846,9 @@ class CarouselState extends EWidgetState<Carousel>
       height: widget._controller.height?.toDouble(),
       initialPage: widget._controller.currentIndex,
       enableInfiniteScroll: widget._controller.enableLoop ?? false,
-      autoPlay: widget._controller.autoplay ?? false,
+      autoPlay: (widget._controller.autoplay ?? false) &&
+          !_pausedByCoveringRoute &&
+          !_isAutoplayPaused,
       autoPlayInterval:
           Duration(seconds: widget._controller.autoplayInterval ?? 4),
       aspectRatio: widget._controller.aspectRatio ?? 16 / 9,
@@ -839,8 +880,13 @@ class CarouselState extends EWidgetState<Carousel>
   /// Else return the default indicator widget (circle or rectangle)
   Widget getIndicator(bool selected) {
     if (widget.controller.indicatorType == IndicatorType.custom) {
+      if (selected && selectedCustomIndicator != null) {
+        return KeyedSubtree(
+            key: ValueKey(_selectedIndicatorKey),
+            child: selectedCustomIndicator!);
+      }
       return selected
-          ? selectedCustomIndicator ?? defaultIndicator(selected)
+          ? defaultIndicator(selected)
           : customIndicator ?? defaultIndicator(selected);
     }
     return selected ? defaultIndicator(selected) : defaultIndicator(selected);
