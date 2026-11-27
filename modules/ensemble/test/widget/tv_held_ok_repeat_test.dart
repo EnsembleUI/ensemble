@@ -1,9 +1,14 @@
+import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
+import 'package:ensemble/framework/widget/screen.dart';
+import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,30 +103,20 @@ void main() {
     expect(nodes.last.hasPrimaryFocus, isTrue);
   });
 
-  testWidgets('held OK taps a card in an Ensemble dialog once on TV',
-      (tester) async {
-    Device.debugOverrideIsTV(true);
-    late ScopeManager scope;
-    // No guard of our own: the dialog content must bring it.
-    await tester.pumpWidget(Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-      },
-      child: MaterialApp(
-        theme: ThemeData(splashFactory: NoSplash.splashFactory),
-        home: Builder(builder: (context) {
-          scope = ScopeManager(DataContext(buildContext: context), PageData());
-          return DataScopeWidget(
-              scopeManager: scope,
-              child: Scaffold(body: scope.buildWidgetFromDefinition(loadYaml('''
-Text:
-  id: taps
-  text: ""
-'''))));
-        }),
-      ),
-    ));
-    await ShowDialogAction(body: loadYaml('''
+  /// Host-style Shortcuts (accepting repeats) around a MaterialApp with no
+  /// guard of its own: the Ensemble content under test must bring it.
+  Widget hostApp(Widget home) => Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        },
+        child: MaterialApp(
+          navigatorKey: Utils.globalAppKey, // Ensemble pages read it
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+          home: home,
+        ),
+      );
+
+  const followCard = '''
 Column:
   onTap:
     executeCode:
@@ -129,13 +124,88 @@ Column:
   children:
     - Text:
         text: Follow
-'''), dismissible: true).execute(tester.element(find.byType(Scaffold)), scope);
-    await tester.pumpAndSettle();
+''';
 
+  /// A page with a `taps` Text that [followCard] appends to.
+  Future<ScopeManager> pumpPage(WidgetTester tester) async {
+    late ScopeManager scope;
+    await tester.pumpWidget(hostApp(Builder(builder: (context) {
+      scope = ScopeManager(DataContext(buildContext: context), PageData());
+      return DataScopeWidget(
+          scopeManager: scope,
+          child: Scaffold(body: scope.buildWidgetFromDefinition(loadYaml('''
+Text:
+  id: taps
+  text: ""
+'''))));
+    })));
+    return scope;
+  }
+
+  /// Holds OK on the "Follow" card and expects exactly one tap.
+  Future<void> holdOnFollowTapsOnce(WidgetTester tester) async {
     Focus.of(tester.element(find.text('Follow'))).requestFocus();
     await tester.pump();
     await hold(tester, LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
     expect(find.text('x'), findsOneWidget);
+  }
+
+  testWidgets('held OK taps a card in an Ensemble dialog once on TV',
+      (tester) async {
+    Device.debugOverrideIsTV(true);
+    final scope = await pumpPage(tester);
+    await ShowDialogAction(body: loadYaml(followCard), dismissible: true)
+        .execute(tester.element(find.byType(Scaffold)), scope);
+    await tester.pumpAndSettle();
+    await holdOnFollowTapsOnce(tester);
   });
+
+  testWidgets('held OK taps a card in an Ensemble bottom sheet once on TV',
+      (tester) async {
+    Device.debugOverrideIsTV(true);
+    final scope = await pumpPage(tester);
+    await ShowBottomSheetAction(
+            body: loadYaml(followCard), payload: <String, dynamic>{})
+        .execute(tester.element(find.byType(Scaffold)), scope);
+    await tester.pumpAndSettle();
+    await holdOnFollowTapsOnce(tester);
+  });
+
+  testWidgets('held OK taps a card on an Ensemble screen once on TV',
+      (tester) async {
+    Device.debugOverrideIsTV(true);
+    await tester.pumpWidget(hostApp(Screen(
+      appProvider: AppProvider(definitionProvider: _ScreenProvider('''
+View:
+  body:
+    Column:
+      children:
+        - Text:
+            id: taps
+            text: ""
+        - Column:
+            onTap:
+              executeCode:
+                body: taps.text = taps.text + "x";
+            children:
+              - Text:
+                  text: Follow
+''')),
+      apiProviders: const {},
+    )));
+    await tester.pumpAndSettle();
+    await holdOnFollowTapsOnce(tester);
+  });
+}
+
+/// Serves one inline screen definition.
+class _ScreenProvider extends Fake implements DefinitionProvider {
+  _ScreenProvider(this.yaml);
+  final String yaml;
+
+  @override
+  Future<ScreenDefinition> getDefinition(
+          {String? screenId, String? screenName}) async =>
+      ScreenDefinition(loadYaml(yaml));
 }
