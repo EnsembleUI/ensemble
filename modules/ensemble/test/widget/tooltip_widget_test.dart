@@ -4,6 +4,7 @@ import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_tooltip_registry.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -1096,5 +1097,142 @@ void main() {
         tester.widget<FadeTransition>(find.byType(FadeTransition)).opacity;
     // The animation is created once and reused across rebuilds.
     expect(identical(first, second), isTrue);
+  });
+
+  // Android 13+ delivers Back to the host as a route pop (in addition to any
+  // goBack key event), so the host asks the registry before normal Back.
+  group('TVTooltipRegistry.handleBack', () {
+    // Drain a Back press marked consumed by an earlier key-event test.
+    setUp(TVTooltipRegistry.handleBack);
+
+    testWidgets(
+        'a Back key that closes the tooltip also consumes the route pop of the same press',
+        (tester) async {
+      final anchorFocus = FocusNode();
+      addTearDown(anchorFocus.dispose);
+      await pumpAndOpenTooltip(tester,
+          anchorFocus: anchorFocus, anchorKey: GlobalKey());
+
+      final scope = tooltipScope(tester);
+      expect(
+        scope.onKeyEvent!(
+          scope,
+          const KeyDownEvent(
+            logicalKey: LogicalKeyboardKey.goBack,
+            physicalKey: PhysicalKeyboardKey.keyA,
+            timeStamp: Duration.zero,
+          ),
+        ),
+        KeyEventResult.handled,
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Add favorites'), findsNothing);
+
+      // Android 13+ delivers the same press again as a route pop.
+      expect(TVTooltipRegistry.handleBack(), isTrue);
+      // The next Back is a new press: normal navigation runs.
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+    });
+
+    testWidgets('a new key press clears a consumed Back', (tester) async {
+      final anchorFocus = FocusNode();
+      addTearDown(anchorFocus.dispose);
+      await pumpAndOpenTooltip(tester,
+          anchorFocus: anchorFocus, anchorKey: GlobalKey());
+
+      final scope = tooltipScope(tester);
+      scope.onKeyEvent!(
+        scope,
+        const KeyDownEvent(
+          logicalKey: LogicalKeyboardKey.goBack,
+          physicalKey: PhysicalKeyboardKey.keyA,
+          timeStamp: Duration.zero,
+        ),
+      );
+      await tester.pump();
+
+      // No route pop followed (e.g. pre-Android 13); the next press clears it.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+    });
+
+    testWidgets('dismisses, restores anchor focus and consumes Back once',
+        (tester) async {
+      final anchorFocus = FocusNode();
+      addTearDown(anchorFocus.dispose);
+      await pumpAndOpenTooltip(tester,
+          anchorFocus: anchorFocus, anchorKey: GlobalKey());
+      expect(find.text('Add favorites'), findsOneWidget);
+
+      expect(TVTooltipRegistry.handleBack(), isTrue);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Add favorites'), findsNothing);
+      expect(anchorFocus.hasFocus, isTrue);
+      // The next Back is no longer the tooltip's: normal navigation runs.
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+    });
+
+    testWidgets('leaves Back to the host when dismissOnBack is false',
+        (tester) async {
+      final anchorFocus = FocusNode();
+      addTearDown(anchorFocus.dispose);
+      await pumpAndOpenTooltip(tester,
+          anchorFocus: anchorFocus,
+          anchorKey: GlobalKey(),
+          options: const TooltipOptions(dismissOnBack: false));
+
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+      await tester.pump();
+
+      expect(find.text('Add favorites'), findsOneWidget);
+    });
+
+    testWidgets('returns false when no tooltip is open', (tester) async {
+      await tester.pumpWidget(
+          TestUtils.wrapTestWidgetWithScope(const SizedBox.shrink()));
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+    });
+
+    testWidgets('consumes a Back that arrives during the close animation',
+        (tester) async {
+      final anchorFocus = FocusNode();
+      addTearDown(anchorFocus.dispose);
+      await pumpAndOpenTooltip(tester,
+          anchorFocus: anchorFocus,
+          anchorKey: GlobalKey(),
+          options: const TooltipOptions(
+            animation: TooltipAnimation(
+              type: TooltipAnimationType.fade,
+              duration: Duration(milliseconds: 150),
+            ),
+          ));
+      await tester.pumpAndSettle();
+
+      expect(TVTooltipRegistry.handleBack(), isTrue);
+      await tester.pump(const Duration(milliseconds: 50));
+      // Still closing: this Back must not fall through to navigation.
+      expect(TVTooltipRegistry.handleBack(), isTrue);
+
+      await tester.pumpAndSettle();
+      expect(find.text('Add favorites'), findsNothing);
+      expect(anchorFocus.hasFocus, isTrue);
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+    });
+
+    test('an entry built without dismissOnBack does not take Back', () {
+      var closed = false;
+      final entry = TVTooltipEntry(close: () => closed = true);
+      TVTooltipRegistry.register(entry);
+      addTearDown(() => TVTooltipRegistry.unregister(entry));
+
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+      expect(closed, isFalse);
+    });
   });
 }
