@@ -6,7 +6,7 @@ class TVTooltipEntry {
   TVTooltipEntry({
     required this.close,
     this.route,
-    required this.dismissOnBack,
+    this.dismissOnBack = false,
   });
 
   /// Closes the tooltip and restores focus to its anchor.

@@ -1224,5 +1224,15 @@ void main() {
       expect(anchorFocus.hasFocus, isTrue);
       expect(TVTooltipRegistry.handleBack(), isFalse);
     });
+
+    test('an entry built without dismissOnBack does not take Back', () {
+      var closed = false;
+      final entry = TVTooltipEntry(close: () => closed = true);
+      TVTooltipRegistry.register(entry);
+      addTearDown(() => TVTooltipRegistry.unregister(entry));
+
+      expect(TVTooltipRegistry.handleBack(), isFalse);
+      expect(closed, isFalse);
+    });
   });
 }
