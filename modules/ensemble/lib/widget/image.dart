@@ -6,6 +6,8 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/tv/apple_tv.dart';
+import 'package:ensemble/framework/tv/apple_tv_cache_info_repository.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -527,6 +529,11 @@ class EnsembleImageCacheManager {
 
   static CacheManager get instance => instanceFor();
 
+  /// For image widgets that get no cache manager from their caller. Null
+  /// keeps the package default; on Apple TV that default can't open its
+  /// database, so [instance] is used there.
+  static BaseCacheManager? get forPlatform => isAppleTV ? instance : null;
+
   static CacheManager instanceFor({bool allowRedirect = true}) {
     return _instances.putIfAbsent(
       allowRedirect,
@@ -536,19 +543,28 @@ class EnsembleImageCacheManager {
 
   static CacheManager _createCacheManager({required bool allowRedirect}) {
     final config = ImageCacheConfig();
-    return allowRedirect
-        ? CacheManager(Config(
-            key,
-            stalePeriod: Duration(minutes: config.stalePeriodMinutes),
+    final cacheKey = allowRedirect ? key : '${key}_no_redirect';
+    final stalePeriod = Duration(minutes: config.stalePeriodMinutes);
+    // Same as the package default when redirects are allowed.
+    final fileService = allowRedirect
+        ? HttpFileService()
+        : HttpFileService(httpClient: RedirectBlockingHttpClient());
+    // Config's repo can't be passed as null (non-null in its stub), so the
+    // package default is selected by leaving the argument out.
+    final repo = AppleTVCacheInfoRepository.forPlatform(cacheKey);
+    return CacheManager(repo == null
+        ? Config(
+            cacheKey,
+            stalePeriod: stalePeriod,
             maxNrOfCacheObjects: config.maxObjects,
-          ))
-        : CacheManager(Config(
-            '${key}_no_redirect',
-            stalePeriod: Duration(minutes: config.stalePeriodMinutes),
+            fileService: fileService,
+          )
+        : Config(
+            cacheKey,
+            stalePeriod: stalePeriod,
             maxNrOfCacheObjects: config.maxObjects,
-            fileService: HttpFileService(
-              httpClient: RedirectBlockingHttpClient(),
-            ),
+            fileService: fileService,
+            repo: repo,
           ));
   }
 

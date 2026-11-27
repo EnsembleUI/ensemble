@@ -2,6 +2,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/apple_tv_scroll.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -271,7 +272,7 @@ class BoxLayoutState extends EWidgetState<BoxLayout>
             scrollDirection:
                 widget.isVertical() ? Axis.vertical : Axis.horizontal,
             physics: pullToRefresh != null
-                ? const AlwaysScrollableScrollPhysics()
+                ? appleTVScrollPhysics(const AlwaysScrollableScrollPhysics())
                 : null,
             child: rtn),
       );

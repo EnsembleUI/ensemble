@@ -7,6 +7,7 @@ import 'package:ensemble/action/app_setting.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/framework/tv/apple_tv.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -59,6 +60,8 @@ class Device
 
       // TV detection
       "isTV": () => isTV,
+      "isAndroidTV": () => isTV && !isAppleTV,
+      "isTvOS": () => isAppleTV,
 
       // @deprecated. backward compatibility
       DevicePlatform.web.name: () => DeviceWebInfo()
@@ -74,6 +77,8 @@ class Device
       'isMacOS': () => platform == DevicePlatform.macos,
       'isWindows': () => platform == DevicePlatform.windows,
       'isTV': () => isTV,
+      'isAndroidTV': () => isTV && !isAppleTV,
+      'isTvOS': () => isAppleTV,
 
       // deprecated. Should be using Action instead
       'openAppSettings': (target) => openAppSettings(target),
@@ -147,8 +152,9 @@ mixin DeviceInfoCapability {
 
   DevicePlatform? get platform => _platform;
 
-  /// Returns true if the device is an Android TV
-  /// Checks for TV-specific system features
+  /// Returns true if the device is an Android TV or an Apple TV.
+  /// Android TV is detected from its system features. Apple TV keeps
+  /// [platform] as ios (tvOS reports iOS); use [isAppleTV] to tell it apart.
   bool get isTV {
     if (_isTVOverride != null) return _isTVOverride!;
     if (_isTV != null) return _isTV!;
@@ -159,7 +165,13 @@ mixin DeviceInfoCapability {
       return false;
     }
 
-    // Only Android devices can be TVs. androidInfo is populated
+    // Apple TV is known synchronously from the OS name.
+    if (isAppleTV) {
+      _isTV = true;
+      return true;
+    }
+
+    // Otherwise only Android devices can be TVs. androidInfo is populated
     // asynchronously by initDeviceInfo(), and is only ever set on Android, so
     // androidInfo == null means either a non-Android device or Android info
     // that hasn't loaded yet. In both cases return false WITHOUT caching:

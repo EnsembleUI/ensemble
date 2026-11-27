@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
+import 'package:ensemble/widget/image.dart' show EnsembleImageCacheManager;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';
@@ -86,7 +87,7 @@ class Image extends StatelessWidget {
           errorWidget: errorBuilder != null
               ? (context, url, error) => errorBuilder!(error.toString())
               : null,
-          cacheManager: cacheManager,
+          cacheManager: cacheManager ?? EnsembleImageCacheManager.forPlatform,
         );
       }
     } else {

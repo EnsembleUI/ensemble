@@ -6,6 +6,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/apple_tv_scroll.dart';
 import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
 import 'package:ensemble/framework/tv/tv_scrollbar_widget.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
@@ -472,7 +473,7 @@ class ListViewState extends EWidgetState<ListView>
               footerScope.isColumnScrollableAndRoot(context))
           ? const NeverScrollableScrollPhysics()
           : pullToRefresh != null
-              ? const AlwaysScrollableScrollPhysics()
+              ? appleTVScrollPhysics(const AlwaysScrollableScrollPhysics())
               : null,
       loadingBuilder: widget._controller.loadingWidget != null
           ? (context) =>

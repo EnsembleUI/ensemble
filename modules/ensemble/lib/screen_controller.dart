@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:ensemble/framework/tv/apple_tv_scroll.dart';
 import 'package:ensemble/action/face_camera_actions.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
@@ -783,6 +784,8 @@ class ScreenController {
           child: screenWidget,
         );
       }
+      // Same for scrolling: the host app's scroll behavior would apply.
+      screenWidget = withAppleTVScrollBehavior(screenWidget);
     }
 
     Map<String, dynamic>? defaultTransitionOptions =

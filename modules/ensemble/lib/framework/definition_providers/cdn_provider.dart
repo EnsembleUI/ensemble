@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' as io;
 
 import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
@@ -24,6 +25,7 @@ import 'package:flutter/services.dart';
 
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/tv/apple_tv.dart';
 import 'package:ensemble/framework/dotenv_bundle.dart';
 
 /// DefinitionProvider that reads the app manifest from CDN
@@ -285,6 +287,17 @@ class CdnDefinitionProvider extends DefinitionProvider {
         cachedManifest = batched[2];
       }
 
+      if (isAppleTV && batched != null) {
+        cachedManifest = await _readAppleTVManifest();
+        if (cachedManifest == null) {
+          // The file was purged or never written. Forget the ETag and
+          // timestamp too, or the next check would skip the fetch (or get a
+          // 304) and leave the app without a manifest.
+          _etag = null;
+          _lastUpdatedAt = null;
+        }
+      }
+
       if (cachedManifest != null && cachedManifest.isNotEmpty) {
         try {
           final root = _decodeManifestRoot(cachedManifest);
@@ -303,9 +316,18 @@ class CdnDefinitionProvider extends DefinitionProvider {
     String manifestJson, {
     required String? etag,
     required int? lastUpdatedAt,
+    String? encryptedEnvelope,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (isAppleTV) {
+        // tvOS aborts the app when SharedPreferences grows past ~1 MB, and
+        // the manifest is usually bigger. Keep it in a file and only the
+        // ETag and timestamp in prefs. The file holds the encrypted envelope
+        // as fetched, so the manifest's secrets are not on disk in plain text.
+        await _writeAppleTVManifest(encryptedEnvelope ?? manifestJson);
+        manifestJson = '';
+      }
       await prefs.setStringList(
         _artifactCacheKey,
         cdnPersistedCacheEntry(
@@ -334,10 +356,68 @@ class CdnDefinitionProvider extends DefinitionProvider {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_artifactCacheKey);
+      if (isAppleTV) {
+        final file = await _appleTVManifestFile();
+        if (file != null && await file.exists()) await file.delete();
+      }
       await CdnAssetCache.instance.clearAssetManifest(removeCachedAssets: true);
     } catch (e) {
       debugPrint('CdnProvider: Failed to clear cache: $e');
     }
+  }
+
+  /// Apple TV only: where the manifest is kept instead of SharedPreferences.
+  Future<io.File?> _appleTVManifestFile() async {
+    final dir = await appleTVStorageDirectory();
+    if (dir == null) return null;
+    return io.File('${dir.path}/ensemble_cdn/$appId/manifest.json');
+  }
+
+  Future<String?> _readAppleTVManifest() async {
+    try {
+      final file = await _appleTVManifestFile();
+      if (file == null || !await file.exists()) return null;
+      final content = await file.readAsString();
+      if (content.isEmpty) return null;
+      if (_isEncryptedEnvelope(content)) {
+        return _decryptEncryptedManifestEnvelope(content);
+      }
+      if (_hasEncryptionKey()) {
+        // A plain copy where an encrypted one is expected (e.g. written by an
+        // older build). Drop it so the next fetch stores the envelope.
+        await file.delete();
+        return null;
+      }
+      return content;
+    } catch (e) {
+      // Includes a failed decrypt, e.g. after the key changed: the caller
+      // treats it as no cache and fetches again.
+      debugPrint('CdnProvider: Failed to read cached manifest: $e');
+      return null;
+    }
+  }
+
+  static bool _isEncryptedEnvelope(String content) {
+    try {
+      final decoded = jsonDecode(content);
+      return decoded is Map &&
+          decoded.containsKey('iv') &&
+          decoded.containsKey('tag') &&
+          decoded.containsKey('ciphertext');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _writeAppleTVManifest(String manifestJson) async {
+    final file = await _appleTVManifestFile();
+    if (file == null) return;
+    await file.parent.create(recursive: true);
+    // Write a temp file and rename it, so a kill mid-write can't leave a
+    // truncated manifest behind.
+    final temp = io.File('${file.path}.tmp');
+    await temp.writeAsString(manifestJson, flush: true);
+    await temp.rename(file.path);
   }
 
   // --------------------------------------------------------
@@ -588,6 +668,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
         jsonString,
         etag: savedEtag,
         lastUpdatedAt: savedLastUpdatedAt,
+        encryptedEnvelope: fetched['envelope'] as String?,
       );
 
       await _applyStaleRefreshOutcome();
@@ -643,6 +724,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       jsonString,
       etag: savedEtag,
       lastUpdatedAt: savedLastUpdatedAt,
+      encryptedEnvelope: fetched['envelope'] as String?,
     );
   }
 
@@ -785,7 +867,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
     if (jsonString.isEmpty) return null;
 
     final etag = resp.headers['etag'] ?? resp.headers['ETag'];
-    return {'json': jsonString, 'etag': etag ?? ''};
+    return {
+      'json': jsonString,
+      'etag': etag ?? '',
+      if (shouldUseEncrypted && fetchedEncrypted) 'envelope': decodedBody,
+    };
   }
 
   String? _decodePossiblyBrotli(http.Response resp) {
@@ -1195,11 +1281,13 @@ class CdnDefinitionProvider extends DefinitionProvider {
     String manifestJson, {
     required String? etag,
     required int? lastUpdatedAt,
+    String? encryptedEnvelope,
   }) =>
       _saveCachedState(
         manifestJson,
         etag: etag,
         lastUpdatedAt: lastUpdatedAt,
+        encryptedEnvelope: encryptedEnvelope,
       );
 
   @visibleForTesting

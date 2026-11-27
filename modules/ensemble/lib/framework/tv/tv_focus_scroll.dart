@@ -88,6 +88,23 @@ ScrollableState? findOutermostVerticalScrollable(BuildContext context) {
   return scrollable;
 }
 
+/// [itemBox]'s bounds in [scrollableBox]'s own coordinate space: the units of
+/// `scrollableBox.size` and of the scroll offset.
+///
+/// TV focus scrolling must compare the item with the viewport in one unit.
+/// Screen positions (`localToGlobal`) include every transform above the
+/// scrollable, while sizes and scroll offsets don't. They only agree when
+/// nothing above is scaled. A host that scales its UI (for example rendering
+/// a 960x540 layout at 2x on a 1920x1080 tvOS screen) would otherwise make
+/// visible items look off-screen and scroll the page or lane by the wrong
+/// amount. Transforms between the item and the scrollable (such as a scaled
+/// carousel slide) are applied, so the rect is what the viewport shows.
+Rect rectInScrollable(RenderBox itemBox, RenderBox scrollableBox) =>
+    MatrixUtils.transformRect(
+      itemBox.getTransformTo(scrollableBox),
+      Offset.zero & itemBox.size,
+    );
+
 /// Scrolls ONLY [scrollable] so that [itemBox] is fully visible vertically.
 /// Unlike Scrollable.ensureVisible(), this does NOT affect horizontal scroll.
 /// [verticalPadding] controls the threshold from viewport edges (use larger
@@ -106,15 +123,13 @@ void scrollVerticalOnly(
 
   final position = scrollable.position;
 
-  // Get scrollable viewport position relative to screen
-  final Offset scrollableScreenPos = scrollableBox.localToGlobal(Offset.zero);
-  final double viewportTop = scrollableScreenPos.dy;
-  final double viewportBottom = viewportTop + scrollableBox.size.height;
-
-  // Get item position relative to screen
-  final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
-  final double itemTop = itemScreenPos.dy;
-  final double itemBottom = itemTop + itemBox.size.height;
+  // Measure the item in the scrollable's own coordinates (see
+  // [rectInScrollable]), so the viewport is simply 0..height.
+  final Rect itemRect = rectInScrollable(itemBox, scrollableBox);
+  const double viewportTop = 0;
+  final double viewportBottom = scrollableBox.size.height;
+  final double itemTop = itemRect.top;
+  final double itemBottom = itemRect.bottom;
 
   final bool isAboveScreen = itemTop < viewportTop;
   final bool isBelowScreen = itemBottom > viewportBottom;
@@ -142,6 +157,137 @@ void scrollVerticalOnly(
     position.animateTo(
       targetScroll,
       duration: Duration(milliseconds: animationDurationMs),
+      curve: curve,
+    );
+  }
+}
+
+/// Default horizontal scrolling: ensure item is visible, scroll only if needed.
+/// [padding] controls the horizontal padding for visibility checks.
+/// [animationDuration] controls the scroll animation duration in milliseconds.
+/// [curve] controls the animation curve (defaults to easeOut).
+void scrollHorizontalIfNotVisible(
+  ScrollableState scrollable,
+  RenderBox itemBox, {
+  double padding = kTVHorizontalScrollPadding,
+  int animationDuration = kTVScrollAnimationDurationMs,
+  Curve curve = Curves.easeOut,
+}) {
+  final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
+  if (scrollableBox == null || !scrollableBox.hasSize) return;
+
+  // Measure the item in the scrollable's own coordinates (see
+  // [rectInScrollable]), so the viewport is simply 0..width.
+  final Rect itemRect = rectInScrollable(itemBox, scrollableBox);
+  final double itemWidth = itemRect.width;
+  final double itemLeft = itemRect.left;
+  final double itemRight = itemRect.right;
+  const double scrollableLeft = 0;
+  final double scrollableRight = scrollableBox.size.width;
+
+  // Check if item is fully visible
+  final bool isFullyVisible = itemLeft >= (scrollableLeft + padding) &&
+      itemRight <= (scrollableRight - padding);
+
+  if (isFullyVisible) return;
+
+  // Center the item horizontally. This mirrors Scrollable.ensureVisible(
+  // alignment: 0.5) but scrolls ONLY this horizontal scrollable. The old
+  // ensureVisible(context) was not axis-restricted — it also scrolled every
+  // enclosing vertical scrollable, undoing the padding-aware
+  // scrollVerticalOnly done moments earlier and causing a vertical jerk.
+  final position = scrollable.position;
+  final double itemCenter = itemLeft + itemWidth / 2;
+  final double viewportCenter = scrollableBox.size.width / 2;
+  final double targetScroll = (position.pixels + (itemCenter - viewportCenter))
+      .clamp(0.0, position.maxScrollExtent);
+
+  if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
+    position.animateTo(
+      targetScroll,
+      duration: Duration(milliseconds: animationDuration),
+      curve: curve,
+    );
+  }
+}
+
+/// Netflix-style horizontal scrolling: focus stays at fixed left position,
+/// content scrolls underneath. At boundaries, focus moves through visible items.
+/// [animationDuration] controls the scroll animation duration in milliseconds.
+/// [curve] controls the animation curve (defaults to easeOut).
+void scrollHorizontalWithFixedPosition(
+  ScrollableState scrollable,
+  RenderBox itemBox,
+  double fixedOffset, {
+  int animationDuration = kTVScrollAnimationDurationMs,
+  Curve curve = Curves.easeOut,
+}) {
+  final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
+  if (scrollableBox == null || !scrollableBox.hasSize) return;
+
+  final position = scrollable.position;
+
+  // Measure the item in the scrollable's own coordinates (see
+  // [rectInScrollable]), so the viewport is simply 0..width.
+  final Rect itemRect = rectInScrollable(itemBox, scrollableBox);
+  final double itemLeft = itemRect.left;
+  final double itemRight = itemRect.right;
+  const double scrollableLeft = 0;
+  final double scrollableRight = scrollableBox.size.width;
+
+  // Padding for visibility checks
+  const double edgePadding = kTVEdgePadding;
+
+  // Check if item's LEFT edge is visible (for START boundary)
+  final bool isLeftEdgeVisible = itemLeft >= scrollableLeft;
+
+  // Check if item's RIGHT edge is visible (for END boundary)
+  final bool isRightEdgeVisible = itemRight <= scrollableRight;
+
+  // Item is reasonably visible if both edges are on screen
+  final bool isItemReasonablyVisible = isLeftEdgeVisible && isRightEdgeVisible;
+
+  // Check if we're currently at boundaries
+  final bool isAtStart = position.pixels <= kTVScrollThreshold;
+  final bool isAtEnd =
+      position.pixels >= position.maxScrollExtent - kTVScrollThreshold;
+
+  // Calculate item's position relative to viewport
+  final double itemLeftInViewport = itemLeft - scrollableLeft;
+
+  // Calculate item's position in content coordinate system
+  final double itemContentPosition = position.pixels + itemLeftInViewport;
+
+  // Calculate target scroll position BEFORE clamping (for boundary detection)
+  final double rawTargetScroll = itemContentPosition - fixedOffset;
+
+  // Check if target would hit start boundary
+  final bool wouldHitStart = rawTargetScroll <= 0;
+
+  // START BOUNDARY: Skip scroll if item is visible and at/before fixedOffset
+  if ((isAtStart || wouldHitStart) &&
+      isLeftEdgeVisible &&
+      itemLeftInViewport <= fixedOffset + edgePadding) {
+    return;
+  }
+
+  // END BOUNDARY: Only skip scroll when we're ACTUALLY at maxScrollExtent
+  // and the item is already visible. This ensures we scroll all the way to
+  // the end before letting focus move through the remaining visible items.
+  if (isAtEnd && isItemReasonablyVisible) {
+    return;
+  }
+
+  // Clamp to valid scroll range - this will scroll to maxScrollExtent when
+  // rawTargetScroll exceeds it, ensuring content scrolls fully before
+  // focus position shifts
+  double targetScroll = rawTargetScroll.clamp(0.0, position.maxScrollExtent);
+
+  // Animate if there's a meaningful change
+  if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
+    position.animateTo(
+      targetScroll,
+      duration: Duration(milliseconds: animationDuration),
       curve: curve,
     );
   }
@@ -366,16 +512,13 @@ ScrollPositionAlignmentPolicy? _revealPolicyFor(
       scrollable.axisDirection == AxisDirection.right;
 
   // Position of the item's leading/trailing edge in the scrollable's viewport
-  // coordinate space.
-  final Offset itemTopLeft = targetBox.localToGlobal(Offset.zero);
-  final Offset viewportTopLeft = scrollableBox.localToGlobal(Offset.zero);
-  final double itemStart = horizontal ? itemTopLeft.dx : itemTopLeft.dy;
-  final double itemEnd = itemStart +
-      (horizontal ? targetBox.size.width : targetBox.size.height);
-  final double viewportStart =
-      horizontal ? viewportTopLeft.dx : viewportTopLeft.dy;
+  // coordinate space (see [rectInScrollable]).
+  final Rect itemRect = rectInScrollable(targetBox, scrollableBox);
+  final double itemStart = horizontal ? itemRect.left : itemRect.top;
+  final double itemEnd = horizontal ? itemRect.right : itemRect.bottom;
+  const double viewportStart = 0;
   final double viewportEnd =
-      viewportStart + (horizontal ? scrollableBox.size.width : scrollableBox.size.height);
+      horizontal ? scrollableBox.size.width : scrollableBox.size.height;
 
   if (itemEnd > viewportEnd) {
     return ScrollPositionAlignmentPolicy.keepVisibleAtEnd;
